@@ -9,12 +9,13 @@ interface CardFanProps {
   availableIndices: Set<number>;
   onCardDrawn: (index: number) => void;
   disabled: boolean;
+  drawnCardsCount: number;
 }
 
 const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b5a314aec.png';
 const TOTAL_CARDS = CONFIG.GAME.totalCards;
 
-export default function CardFan({ availableIndices, onCardDrawn, disabled }: CardFanProps) {
+export default function CardFan({ availableIndices, onCardDrawn, disabled, drawnCardsCount }: CardFanProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [removedCards, setRemovedCards] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
@@ -23,7 +24,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
   // Drag & Drop state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const dragStartRef = useRef<{ x: number; y: number; cardIndex: number } | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; cardIndex: number; cardRect: DOMRect } | null>(null);
   const draggedCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -76,6 +77,8 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
     return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
   };
 
+  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -83,18 +86,33 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
     } else if (e.touches.length === 1 && !disabled) {
       // Début du drag tactile
       const touch = e.touches[0];
-      const cardIndex = getCardIndexFromTouch(touch);
-      if (cardIndex !== null) {
+      const touchRect = (e.target as Element)?.getBoundingClientRect();
+      
+      // Trouver l'index de la carte touchée
+      let cardIndex = null;
+      const cards = document.querySelectorAll('[data-card-index]');
+      cards.forEach((card, idx) => {
+        const rect = card.getBoundingClientRect();
+        if (
+          touch.clientX >= rect.left &&
+          touch.clientX <= rect.right &&
+          touch.clientY >= rect.top &&
+          touch.clientY <= rect.bottom
+        ) {
+          cardIndex = parseInt(card.getAttribute('data-card-index') || '-1');
+        }
+      });
+      
+      if (cardIndex !== null && cardIndex >= 0) {
         dragStartRef.current = {
           x: touch.clientX,
           y: touch.clientY,
           cardIndex,
+          cardRect: (cards[visibleCards.indexOf(cardIndex)] as HTMLElement)?.getBoundingClientRect() || touchRect,
         };
       }
     }
   }, [disabled, zoom, visibleCards]);
-
-  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchStartRef.current) {
@@ -114,7 +132,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
         setDragPosition({ x: touch.clientX, y: touch.clientY });
         e.preventDefault();
       }
-    } else if (draggingIndex && dragPosition) {
+    } else if (draggingIndex !== null && dragPosition) {
       const touch = e.touches[0];
       setDragPosition({ x: touch.clientX, y: touch.clientY });
       e.preventDefault();
@@ -125,8 +143,8 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
     pinchStartRef.current = null;
     
     if (draggingIndex !== null && dragPosition) {
-      // Vérifier si relâché dans la zone de tirage
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.4;
+      // Vérifier si relâché dans la zone de tirage (haut de l'écran)
+      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.35;
       
       if (releasedInDrawZone) {
         // Carte validée
@@ -145,10 +163,13 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
   const handleMouseDown = useCallback((e: React.MouseEvent, index: number) => {
     if (disabled) return;
     e.preventDefault();
+    e.stopPropagation();
+    const cardElement = e.currentTarget;
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
       cardIndex: index,
+      cardRect: cardElement.getBoundingClientRect(),
     };
     setDraggingIndex(index);
     setDragPosition({ x: e.clientX, y: e.clientY });
@@ -162,7 +183,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
 
   const handleMouseUp = useCallback(() => {
     if (draggingIndex !== null && dragPosition) {
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.4;
+      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.35;
       
       if (releasedInDrawZone) {
         setRemovedCards((prev) => new Set(prev).add(draggingIndex));
@@ -175,19 +196,14 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
     }
   }, [draggingIndex, dragPosition, onCardDrawn]);
 
-  // Helper pour trouver quelle carte est touchée
-  const getCardIndexFromTouch = (touch: React.Touch): number | null => {
-    // Implementation simplifiée - en prod, utiliser une logic plus précise
-    return visibleCards[0]; // Pour l'exemple
-  };
-
   // ========== RENDER ==========
   return (
     <div
       className="relative w-full"
       style={{ 
-        height: `calc(${CONFIG.SECTIONS.fan}vh - ${CONFIG.SECTIONS.bottomPadding}vh)`,
-        paddingTop: '15vh',
+        height: `calc(${CONFIG.SECTIONS.fan}vh)`,
+        paddingTop: '20vh',
+        paddingBottom: CONFIG.SECTIONS.bottomPadding + 'vh',
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -196,15 +212,25 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Hint de drag */}
-      {!disabled && !draggingIndex && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none">
+      {/* Hint de drag - Positionné AU-DESSUS des cartes */}
+      {!disabled && !draggingIndex && drawnCardsCount === 0 && (
+        <div 
+          className="absolute w-full text-center z-40 pointer-events-none"
+          style={{
+            top: '10vh',
+            left: 0,
+            right: 0,
+          }}
+        >
           <p
-            className="text-xs sm:text-sm font-semibold"
+            className="text-base sm:text-lg font-semibold px-4 py-2 rounded-full inline-block"
             style={{
-              color: 'rgba(218,165,32,0.8)',
+              color: 'rgba(255,255,255,0.95)',
               fontFamily: 'var(--font-cinzel), serif',
-              textShadow: '0 0 10px rgba(218,165,32,0.5)',
+              textShadow: '0 0 15px rgba(218,165,32,0.7), 0 2px 8px rgba(0,0,0,0.8)',
+              background: 'rgba(0,0,0,0.75)',
+              border: '2px solid rgba(218,165,32,0.5)',
+              backdropFilter: 'blur(8px)',
             }}
           >
             🖐️ Glissez une carte vers le haut pour la tirer
@@ -215,17 +241,18 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
       {/* Scrollable card strip */}
       <div
         ref={scrollRef}
-        className="absolute bottom-0 left-0 right-0 overflow-x-auto overflow-y-hidden fan-scroll"
+        className="absolute bottom-0 left-0 right-0 overflow-x-auto overflow-y-visible"
         style={{
           height: '100%',
           display: 'flex',
           alignItems: 'flex-end',
-          paddingBottom: isMobile ? '10vh' : '12vh',
+          paddingBottom: isMobile ? '8vh' : '10vh',
+          // IMPORTANT: overflow-y-visible pour ne pas tronquer les cartes
         }}
         onWheel={handleWheel}
       >
         {/* Leading spacer */}
-        <div style={{ minWidth: 'max(60px, calc(50vw - 150px))', flexShrink: 0 }} />
+        <div style={{ minWidth: 'max(80px, calc(50vw - 180px))', flexShrink: 0 }} />
 
         {/* Zoomable inner container */}
         <div
@@ -234,6 +261,8 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
             transform: `scale(${zoom})`,
             transformOrigin: 'center bottom',
             transition: 'transform 0.2s ease-out',
+            // IMPORTANT: overflow visible pour l'arc
+            overflow: 'visible',
           }}
         >
           {visibleCards.map((originalIndex, displayIndex) => {
@@ -243,17 +272,20 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
             return (
               <div
                 key={originalIndex}
-                className={`flex-shrink-0 relative cursor-grab active:cursor-grabbing`}
+                data-card-index={originalIndex}
+                className="flex-shrink-0 relative cursor-grab active:cursor-grabbing"
                 style={{
                   width: CARD_W,
                   height: CARD_H,
                   marginLeft: displayIndex === 0 ? 0 : OVERLAP,
                   transform: isDragging 
-                    ? 'scale(1.1) rotate(0deg)' 
+                    ? 'scale(1.15) rotate(0deg) translateY(-30px)' 
                     : `translateY(${arcY}px) rotate(${rotation}deg)`,
                   transition: isDragging ? 'none' : 'transform 0.25s ease',
-                  zIndex: isDragging ? 1000 : 10 + displayIndex,
+                  zIndex: isDragging ? 1000 : Math.floor(10 + displayIndex),
                   transformOrigin: 'center bottom',
+                  // IMPORTANT: overflow visible pour voir l'arc complet
+                  overflow: 'visible',
                 }}
                 onMouseDown={(e) => handleMouseDown(e, originalIndex)}
               >
@@ -262,11 +294,13 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
                   className="w-full h-full rounded-lg overflow-hidden card-shimmer"
                   style={{
                     boxShadow: isDragging
-                      ? '0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(218,165,32,0.6)'
-                      : '0 2px 8px rgba(0,0,0,0.5)',
+                      ? '0 25px 80px rgba(0,0,0,0.9), 0 0 50px rgba(218,165,32,0.7)'
+                      : '0 4px 15px rgba(0,0,0,0.6), 0 0 8px rgba(218,165,32,0.2)',
                     border: isDragging 
-                      ? '2px solid rgba(218,165,32,0.8)' 
-                      : '1px solid rgba(218,165,32,0.15)',
+                      ? '3px solid rgba(218,165,32,0.9)' 
+                      : '2px solid rgba(218,165,32,0.2)',
+                    // IMPORTANT: overflow visible pour l'arc
+                    overflow: 'visible',
                   }}
                 >
                   <div className="relative w-full h-full">
@@ -274,9 +308,10 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
                       src={CARD_BACK_URL}
                       alt="Carte de tarot"
                       fill
-                      className="object-cover pointer-events-none"
+                      className="object-cover pointer-events-none select-none"
                       sizes={`${CARD_W * 2}px`}
                       draggable={false}
+                      priority={displayIndex < 5}
                     />
                   </div>
                 </div>
@@ -286,8 +321,9 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
                   <motion.div
                     className="absolute inset-0 rounded-lg"
                     style={{
-                      background: 'rgba(218,165,32,0.1)',
-                      border: '3px solid rgba(218,165,32,0.8)',
+                      background: 'rgba(218,165,32,0.15)',
+                      border: '3px solid rgba(218,165,32,0.9)',
+                      boxShadow: '0 0 40px rgba(218,165,32,0.6)',
                     }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -299,7 +335,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
         </div>
 
         {/* Trailing spacer */}
-        <div style={{ minWidth: 'max(60px, calc(50vw - 150px))', flexShrink: 0 }} />
+        <div style={{ minWidth: 'max(80px, calc(50vw - 180px))', flexShrink: 0 }} />
       </div>
 
       {/* Dragged card ghost (follows cursor/finger) */}
@@ -317,8 +353,9 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
             animate={{ 
               x: 0,
               y: 0,
-              scale: 1.1,
-              opacity: 0.95,
+              scale: 1.15,
+              opacity: 0.98,
+              rotate: 0,
             }}
             exit={{ 
               scale: 1,
@@ -329,8 +366,8 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
             <div
               className="w-full h-full rounded-lg overflow-hidden"
               style={{
-                boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(218,165,32,0.6)',
-                border: '3px solid rgba(218,165,32,0.9)',
+                boxShadow: '0 30px 100px rgba(0,0,0,0.9), 0 0 60px rgba(218,165,32,0.8)',
+                border: '4px solid rgba(218,165,32,0.95)',
               }}
             >
               <div className="relative w-full h-full">

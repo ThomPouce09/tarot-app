@@ -173,6 +173,7 @@ export default function TarotApp() {
           availableIndices={availableIndices}
           onCardDrawn={handleCardDrawn}
           disabled={allDrawn}
+          drawnCardsCount={drawnCards.length}
         />
       </motion.div>
 

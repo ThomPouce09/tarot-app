@@ -14,10 +14,16 @@ const POSITION_ICONS = ['☽', '☉', '★'];
 const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b5a314aec.png';
 
 export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 640);
+  }, []);
+  
   return (
     <div
-      className="absolute left-0 right-0 z-25 flex justify-center items-start gap-2 sm:gap-4 md:gap-6 lg:gap-8 px-2 sm:px-4"
-      style={{ zIndex: 25, top: '9vh' }}
+      className="absolute left-0 right-0 z-25 flex justify-center items-start gap-3 sm:gap-5 md:gap-7 lg:gap-10 px-3 sm:px-5"
+      style={{ zIndex: 25, top: '18vh' }}
     >
       {[0, 1, 2].map((position) => {
         const drawnCard = drawnCards.find((c) => c.position === position) ?? null;
@@ -65,34 +71,41 @@ function DrawnCardSlot({ position, drawnCard }: DrawnCardSlotProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-1 sm:gap-1.5">
+    <div className="flex flex-col items-center gap-2 sm:gap-3">
       {/* Position label */}
       <motion.div
-        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full"
         style={{
-          background: 'rgba(0,0,0,0.6)',
-          border: '1px solid rgba(218,165,32,0.4)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.7)',
+          border: '2px solid rgba(218,165,32,0.5)',
+          backdropFilter: 'blur(6px)',
         }}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 + position * 0.2 }}
       >
-        <span style={{ color: '#DAA520', fontSize: '10px' }}>{POSITION_ICONS[position]}</span>
+        <span style={{ color: '#DAA520', fontSize: '12px sm:14px' }}>{POSITION_ICONS[position]}</span>
         <span
-          className="text-[9px] sm:text-[10px] md:text-xs tracking-widest uppercase"
+          className="text-xs sm:text-sm md:text-base tracking-widest uppercase font-bold"
           style={{
             fontFamily: 'var(--font-cinzel), serif',
             color: '#DAA520',
-            textShadow: '0 0 8px rgba(218,165,32,0.5)',
+            textShadow: '0 0 10px rgba(218,165,32,0.6)',
           }}
         >
           {POSITION_LABELS[position]}
         </span>
       </motion.div>
 
-      {/* Card slot */}
-      <div className="relative card-slot-size" style={{ perspective: '1000px' }}>
+      {/* Card slot - AGRANDI */}
+      <div 
+        className="relative" 
+        style={{ 
+          perspective: '1000px',
+          width: isMobile ? '160px' : '240px',  // was: ~80-120px
+          height: isMobile ? '240px' : '360px', // was: ~120-180px
+        }}
+      >
         {!drawnCard ? (
           <motion.div
             className="w-full h-full rounded-lg slot-empty"
