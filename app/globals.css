@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --card-width: 120px;
+  --card-height: 180px;
+}
+
+/* Responsive card slot sizes */
+.card-slot-size {
+  width: 68px;
+  height: 102px;
+}
+@media (min-width: 640px) {
+  .card-slot-size {
+    width: 95px;
+    height: 142px;
+  }
+}
+@media (min-width: 768px) {
+  .card-slot-size {
+    width: 110px;
+    height: 165px;
+  }
+}
+@media (min-width: 1024px) {
+  .card-slot-size {
+    width: 130px;
+    height: 195px;
+  }
+}
+@media (min-width: 1280px) {
+  .card-slot-size {
+    width: 145px;
+    height: 218px;
+  }
+}
+
+/* Empty card slot */
+.slot-empty {
+  border: 2px dashed rgba(218,165,32,0.35);
+  background: rgba(0,0,0,0.35);
+  box-shadow: inset 0 0 20px rgba(218,165,32,0.06), 0 0 15px rgba(218,165,32,0.08);
+  position: relative;
+}
+.slot-empty::after {
+  content: '?';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-cinzel-deco), serif;
+  color: rgba(218,165,32,0.2);
+  font-size: 2rem;
+}
+
+[data-hydration-error] {
+  display: none !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  background: #1a0e0a;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Custom scrollbar for fan area */
+.fan-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.fan-scroll::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+}
+
+.fan-scroll::-webkit-scrollbar-thumb {
+  background: rgba(218,165,32,0.35);
+  border-radius: 4px;
+  border: 1px solid rgba(218,165,32,0.15);
+}
+
+.fan-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(218,165,32,0.6);
+}
+
+.fan-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(218,165,32,0.35) rgba(0,0,0,0.3);
+}
+
+/* Card flip animation */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card-back {
+  z-index: 2;
+}
+
+.card-front {
+  transform: rotateY(180deg);
+}
+
+/* Glow effect for drawn cards */
+@keyframes mysticGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(218,165,32,0.3), 0 0 30px rgba(218,165,32,0.1); }
+  50% { box-shadow: 0 0 25px rgba(218,165,32,0.5), 0 0 50px rgba(218,165,32,0.2); }
+}
+
+.mystic-glow {
+  animation: mysticGlow 3s ease-in-out infinite;
+}
+
+/* Sparkle keyframes */
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+/* Drag cursor */
+.cursor-grab { cursor: grab; }
+.cursor-grabbing { cursor: grabbing; }
+
+/* Interpretation panel */
+@keyframes revealText {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 600px; }
+}
+
+.reveal-text {
+  animation: revealText 1s ease-out forwards;
+}
+
+/* Subtle shimmer on cards */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.card-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+/* Title animation */
+@keyframes titleGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(218,165,32,0.3), 0 0 20px rgba(218,165,32,0.1); }
+  50% { text-shadow: 0 0 20px rgba(218,165,32,0.5), 0 0 40px rgba(218,165,32,0.2), 0 0 60px rgba(218,165,32,0.1); }
+}
+
+.title-glow {
+  animation: titleGlow 4s ease-in-out infinite;
+}

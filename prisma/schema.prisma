@@ -1,0 +1,25 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/tarot_app/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Reading {
+  id          String   @id @default(cuid())
+  card1       String
+  card2       String
+  card3       String
+  card1Rev    Boolean  @default(false)
+  card2Rev    Boolean  @default(false)
+  card3Rev    Boolean  @default(false)
+  interpretation String? @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+}
