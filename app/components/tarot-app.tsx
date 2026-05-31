@@ -89,30 +89,36 @@ export default function TarotApp() {
         }} />
       </motion.div>
 
-      {/* ========== TITLE ========== */}
+      {/* ========== TITLE - Plus gros et central ========== */}
       <motion.div
-        className="absolute top-0 left-0 right-0 z-30 text-center pt-3 sm:pt-4 md:pt-5 pb-1"
+        className="absolute top-0 left-0 right-0 z-30 text-center"
+        style={{ top: '8%', transform: 'translateY(-50%)' }}
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -40 }}
         transition={{ duration: 1, delay: 0.2 }}
       >
         <h1
-          className="title-glow text-sm sm:text-lg md:text-2xl lg:text-3xl tracking-wider uppercase px-3"
+          className="title-glow px-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl tracking-wider uppercase"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
             color: '#DAA520',
-            letterSpacing: '0.12em',
+            letterSpacing: '0.15em',
+            textShadow: '0 0 30px rgba(218,165,32,0.6), 0 0 60px rgba(218,165,32,0.3)',
           }}
         >
           Faites votre tirage de 3 cartes
         </h1>
         <motion.p
-          className="text-[9px] sm:text-xs md:text-sm mt-0.5"
-          style={{ color: 'rgba(218,165,32,0.55)', fontFamily: 'var(--font-cinzel), serif' }}
+          className="text-sm sm:text-base md:text-lg mt-3"
+          style={{ 
+            color: 'rgba(218,165,32,0.7)', 
+            fontFamily: 'var(--font-cinzel), serif',
+            textShadow: '0 0 10px rgba(218,165,32,0.4)',
+          }}
         >
           {allDrawn
-            ? 'Votre tirage est complet'
-            : `${3 - drawnCards.length} carte${(3 - drawnCards.length) > 1 ? 's' : ''} restante${(3 - drawnCards.length) > 1 ? 's' : ''}`}
+            ? 'Votre tirage est complet ✨'
+            : `${3 - drawnCards.length} carte${(3 - drawnCards.length) > 1 ? 's' : ''} à tirer`}
         </motion.p>
       </motion.div>
 
@@ -130,7 +136,7 @@ export default function TarotApp() {
         {allDrawn && !showInterpretation && (
           <motion.div
             className="absolute z-40 flex justify-center"
-            style={{ top: '42vh', left: 0, right: 0 }}
+            style={{ top: '40vh', left: 0, right: 0 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -138,15 +144,16 @@ export default function TarotApp() {
           >
             <motion.button
               onClick={() => setShowInterpretation(true)}
-              className="px-5 sm:px-8 py-2 sm:py-3 rounded-lg text-xs sm:text-sm md:text-base font-semibold tracking-wide"
+              className="px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
               style={{
                 fontFamily: 'var(--font-cinzel), serif',
                 background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
                 color: '#1a0e0a',
-                boxShadow: '0 0 30px rgba(218,165,32,0.4), 0 4px 15px rgba(0,0,0,0.5)',
+                boxShadow: '0 0 40px rgba(218,165,32,0.5), 0 6px 20px rgba(0,0,0,0.6)',
+                border: '2px solid rgba(218,165,32,0.4)',
               }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
             >
               ✨ Interprétation du tirage ✨
             </motion.button>
@@ -169,37 +176,52 @@ export default function TarotApp() {
         />
       </motion.div>
 
-      {/* ========== TUTORIAL HINT ========== */}
+      {/* ========== TUTORIAL HINT - Drag & Drop ========== */}
       <AnimatePresence>
         {isReady && !allDrawn && drawnCards.length === 0 && (
           <motion.div
             className="absolute z-35 pointer-events-none"
-            style={{ bottom: '48vh', left: '50%', transform: 'translateX(-50%)', zIndex: 35 }}
+            style={{ bottom: '52vh', left: '50%', transform: 'translateX(-50%)', zIndex: 35 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, delay: 1 }}
           >
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
               <motion.p
-                className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap px-4 py-1.5 rounded-full"
+                className="text-sm sm:text-base md:text-lg whitespace-nowrap px-5 py-2.5 rounded-full"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(255,255,255,0.85)',
-                  background: 'rgba(0,0,0,0.6)',
-                  border: '1px solid rgba(218,165,32,0.25)',
-                  backdropFilter: 'blur(4px)',
+                  color: 'rgba(255,255,255,0.9)',
+                  background: 'rgba(0,0,0,0.7)',
+                  border: '2px solid rgba(218,165,32,0.4)',
+                  backdropFilter: 'blur(6px)',
+                  textShadow: '0 0 10px rgba(218,165,32,0.5)',
                 }}
               >
-                Cliquez sur une carte pour la tirer
+                🖐️ Glissez une carte vers le haut
               </motion.p>
               <motion.div
-                animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                animate={{ y: [0, 12, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <svg width="20" height="24" viewBox="0 0 20 24" fill="none">
-                  <path d="M10 2 L10 18" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-                  <path d="M4 13 L10 20 L16 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.7" />
+                <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+                  <path 
+                    d="M14 4 L14 24" 
+                    stroke="rgba(218,165,32,0.9)" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    opacity="0.9" 
+                  />
+                  <path 
+                    d="M6 16 L14 26 L22 16" 
+                    stroke="rgba(218,165,32,0.9)" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    fill="none" 
+                    opacity="0.9" 
+                  />
                 </svg>
               </motion.div>
             </div>
