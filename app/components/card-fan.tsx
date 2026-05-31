@@ -31,22 +31,30 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Card sizes ×1.5 bigger than before
-  const CARD_W = isMobile ? 60 : 95;
-  const CARD_H = isMobile ? 90 : 143;
-  const OVERLAP = isMobile ? -22 : -32;
+  // Card sizes - AUGMENTÉ pour occuper le tiers inférieur
+  // Mobile: ×1.8, Desktop: ×2.0 par rapport à l'original
+  const CARD_W = isMobile ? 95 : 160;  // was: 60/95
+  const CARD_H = isMobile ? 142 : 240; // was: 90/143
+  const OVERLAP = isMobile ? -35 : -55; // was: -22/-32 (augmenté pour compenser)
 
   const visibleCards = useMemo(() => {
     return Array.from({ length: TOTAL_CARDS }, (_, i) => i)
       .filter((i) => availableIndices.has(i) && !removedCards.has(i));
   }, [availableIndices, removedCards]);
 
-  // Gentle arc for visual appeal
+  // ========== ARC DE L'ÉVENTAIL - Plus prononcé et esthétique ==========
+  // Gentle arc for visual appeal - VERSION AUGMENTÉE
   const getCardStyle = useCallback((displayIndex: number, total: number) => {
     const fraction = total > 1 ? displayIndex / (total - 1) : 0.5;
     const centered = fraction - 0.5; // -0.5 to 0.5
-    const arcY = Math.cos(centered * Math.PI) * 18; // subtle arc lift at center
-    const rotation = centered * 20; // -10 to +10 degrees
+    
+    // Arc BEAUCOUP plus prononcé (×2.5 par rapport à l'original)
+    // Forme bien incurvée en demi-cercle
+    const arcY = Math.cos(centered * Math.PI) * 45; // was: 18 ( Courier: -55px au centre)
+    
+    // Rotation accentuée pour suivre la courbe (×2 par rapport à l'original)
+    const rotation = centered * 45; // was: 20 (total: -22.5° to +22.5°)
+    
     return { arcY: -arcY, rotation };
   }, []);
 
@@ -113,7 +121,11 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled }: Car
   return (
     <div
       className="relative w-full"
-      style={{ height: isMobile ? '42vh' : '48vh' }}
+      // HAUTEUR AUGMENTÉE: tiers de l'écran + padding bas pour espace esthétique
+      style={{ 
+        height: isMobile ? '55vh' : '60vh', // was: 42vh/48vh
+        paddingBottom: isMobile ? '8vh' : '10vh' // Espace esthétique en bas
+      }}
       onClick={handleBackgroundClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
