@@ -32,6 +32,7 @@ export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
             key={position}
             position={position}
             drawnCard={drawnCard}
+            isMobile={isMobile}
           />
         );
       })}
@@ -42,9 +43,10 @@ export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
 interface DrawnCardSlotProps {
   position: number;
   drawnCard: DrawnCardData | null;
+  isMobile: boolean;
 }
 
-function DrawnCardSlot({ position, drawnCard }: DrawnCardSlotProps) {
+function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const prevCardRef = useRef<DrawnCardData | null>(null);
