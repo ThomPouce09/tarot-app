@@ -177,54 +177,6 @@ export default function TarotApp() {
         />
       </motion.div>
 
-      {/* ========== TUTORIAL HINT - Drag & Drop ========== */}
-      <AnimatePresence>
-        {isReady && !allDrawn && drawnCards.length === 0 && (
-          <motion.div
-            className="absolute z-35 pointer-events-none"
-            style={{ bottom: '52vh', left: '50%', transform: 'translateX(-50%)', zIndex: 35 }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, delay: 1 }}
-          >
-            <div className="flex flex-col items-center gap-3">
-              <motion.p
-                className="text-sm sm:text-base md:text-lg whitespace-nowrap px-5 py-2.5 rounded-full"
-                style={{
-                  fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(255,255,255,0.9)',
-                  background: 'rgba(0,0,0,0.7)',
-                  border: '2px solid rgba(218,165,32,0.4)',
-                  backdropFilter: 'blur(6px)',
-                  textShadow: '0 0 10px rgba(218,165,32,0.5)',
-                }}
-              >
-                🖐️ Glissez une carte vers le haut
-              </motion.p>
-              <motion.div
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
-                  <path 
-                    d="M14 4 L14 24" 
-                    stroke="rgba(218,165,32,0.9)" 
-                    strokeWidth="2.5" 
-                    strokeLinecap="round" 
-                    opacity="0.9" 
-                  />
-                  <path 
-                    d="M6 16 L14 26 L22 16" 
-                    stroke="rgba(218,165,32,0.9)" 
-                    strokeWidth="2.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    fill="none" 
-                    opacity="0.9" 
-                  />
-                </svg>
-              </motion.div>
             </div>
           </motion.div>
         )}

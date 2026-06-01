@@ -214,12 +214,12 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Hint de drag - Positionné AU-DESSUS des cartes */}
+      {/* Hint de drag - Positionné entre les cartes tirées et l'éventail */}
       {!disabled && !draggingIndex && drawnCardsCount === 0 && (
         <div 
           className="absolute w-full text-center z-40 pointer-events-none"
           style={{
-            top: '10vh',
+            top: '-12vh',  // Positionné au-dessus de l'éventail, sous les cartes tirées
             left: 0,
             right: 0,
           }}
