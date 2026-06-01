@@ -177,12 +177,7 @@ export default function TarotApp() {
         />
       </motion.div>
 
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ========== INTERPRETATION PANEL ========== */}
+      {/* ========== INTERPRETATION BUTTON ========== */}
       <AnimatePresence>
         {showInterpretation && (
           <InterpretationPanel
