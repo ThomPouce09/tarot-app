@@ -22,18 +22,32 @@ export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
   
   return (
     <div
-      className="absolute left-0 right-0 z-25 flex justify-center items-start gap-3 sm:gap-5 md:gap-7 lg:gap-10 px-3 sm:px-5"
-      style={{ zIndex: 25, top: '18vh' }}
+      className="absolute left-0 right-0 z-25 flex justify-center items-start px-2 sm:px-4"
+      style={{ 
+        zIndex: 25, 
+        top: '18vh',
+        // IMPORTANT: Overflow visible mais avec contrainte pour mobile
+        maxWidth: isMobile ? '100vw' : '1200px',
+        margin: '0 auto',
+      }}
     >
       {[0, 1, 2].map((position) => {
         const drawnCard = drawnCards.find((c) => c.position === position) ?? null;
         return (
-          <DrawnCardSlot
-            key={position}
-            position={position}
-            drawnCard={drawnCard}
-            isMobile={isMobile}
-          />
+          <div 
+            key={position} 
+            style={{ 
+              flex: '0 0 auto',
+              // Réduire l'espacement sur mobile pour éviter l'overflow
+              marginRight: isMobile && position < 2 ? '8px' : '0',
+            }}
+          >
+            <DrawnCardSlot
+              position={position}
+              drawnCard={drawnCard}
+              isMobile={isMobile}
+            />
+          </div>
         );
       })}
     </div>
@@ -99,13 +113,15 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
         </span>
       </motion.div>
 
-      {/* Card slot - AGRANDI */}
+      {/* Card slot - AGRANDI (ajusté mobile pour éviter overflow) */}
       <div 
         className="relative" 
         style={{ 
           perspective: '1000px',
-          width: isMobile ? '160px' : '240px',  // was: ~80-120px
-          height: isMobile ? '240px' : '360px', // was: ~120-180px
+          // Mobile: réduit pour tenir dans l'écran sans overflow
+          // Desktop: grandi pour être impressionnant
+          width: isMobile ? '110px' : '240px',
+          height: isMobile ? '165px' : '360px',
         }}
       >
         {!drawnCard ? (

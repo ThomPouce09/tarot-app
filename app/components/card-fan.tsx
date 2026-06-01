@@ -183,7 +183,9 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
 
   const handleMouseUp = useCallback(() => {
     if (draggingIndex !== null && dragPosition) {
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.35;
+      // Zone de validation PLUS LARGE (35% au lieu de 35%)
+      // Pour desktop, on accepte aussi si on est dans le tiers supérieur
+      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.40;
       
       if (releasedInDrawZone) {
         setRemovedCards((prev) => new Set(prev).add(draggingIndex));
