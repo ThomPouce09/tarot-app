@@ -2,8 +2,8 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // output: 'export',  // Commenté pour Vercel (décommenter pour Capacitor APK)
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  output: process.env.NEXT_OUTPUT_MODE,
   productionBrowserSourceMaps: false,
   experimental: {
     outputFileTracingRoot: path.join(__dirname, '../'),
@@ -14,7 +14,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  images: { unoptimized: true },
+  // images: { unoptimized: true },  // Requis pour static export uniquement
   // Allow access from network (for testing on mobile)
   devIndicators: {
     appIsrStatus: false,

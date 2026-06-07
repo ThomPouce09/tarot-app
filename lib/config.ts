@@ -4,88 +4,84 @@
 // Paramètres ajustables pour l'interface et les animations
 // ═══════════════════════════════════════════════════════════════════
 
+// Mode wide : dimensions alternatives (Option 3) - Agrandi de 15%
+// Overlap = marginLeft. Négatif = se chevauchent.
+// Chevauchement MAXIMUM pour un paquet ultra-compact (comme un paquet tenu en main)
+export const CARD_FAN_WIDE = {
+  mobile: { width: 69, height: 104, overlap: -45 },  // 45px de chevauchement (~65% de la carte)
+  desktop: { width: 104, height: 155, overlap: -55 }, // 55px de chevauchement (~53% de la carte)
+};
+
+export const CARD_FAN_CLASSIC = {
+  mobile: { width: 97, height: 146, overlap: -45 },
+  desktop: { width: 150, height: 225, overlap: -55 },
+};
+
+export const ARC_WIDE = {
+  mobile: { amplitude: 100, rotation: 50 },  // arc classique moins prononcé
+  desktop: { amplitude: 120, rotation: 60 }, // arc classique moins prononcé
+};
+
+export const ARC_CLASSIC = {
+  mobile: { amplitude: 100, rotation: 50 },
+  desktop: { amplitude: 120, rotation: 60 },
+};
+
+// ARC par défaut = classic (rétrocompatibilité)
+export const ARC = ARC_CLASSIC;
+export const CARD_FAN = CARD_FAN_CLASSIC;
+
 export const CONFIG = {
-  // Dimensions des cartes dans l'éventail
-  CARD_FAN: {
-    // Mobile (px)
-    mobile: {
-      width: 130,      // Largeur de carte
-      height: 195,     // Hauteur de carte
-      overlap: -50,    // Chevauchement entre cartes
-    },
-    // Desktop (px)
-    desktop: {
-      width: 200,      // Largeur de carte
-      height: 300,     // Hauteur de carte
-      overlap: -75,    // Chevauchement entre cartes
-    },
-  },
-
-  // Courbe de l'éventail
-  ARC: {
-    mobile: {
-      amplitude: 100,    // Hauteur de la courbe (px)
-      rotation: 50,      // Rotation max des cartes (degrés)
-    },
-    desktop: {
-      amplitude: 120,    // Hauteur de la courbe (px)
-      rotation: 60,      // Rotation max des cartes (degrés)
-    },
-  },
-
+  // Mode d'affichage: 'wide' (Option 3) ou 'classic'
+  FAN_MODE: 'wide' as 'wide' | 'classic',
+  
+  // Dimensions des cartes (utilisées par défaut)
+  CARD_FAN: CARD_FAN_WIDE,
+  
+  // Courbe de l'éventail (utilisée par défaut)
+  ARC: ARC_WIDE,
+  
   // Hauteurs des sections (en % de viewport height)
-  SECTIONS: {
-    header: 15,        // Titre en haut
-    drawnCards: 25,    // Zone des cartes tirées
-    fan: 50,           // Éventail de cartes
-    bottomPadding: 10, // Espace en bas
-  },
-
-  // Dimensions des cartes tirées
+    SECTIONS: {
+      header: 15,        // Titre en haut
+      drawnCards: 25,    // Zone des cartes tirées
+      fan: 50,           // Éventail de cartes
+      bottomPadding: 10, // Espace en bas
+    },
+  
+  // Dimensions des cartes tirées - ratio adapté aux images PNG (764x1286 = 0.594) + 5% de marge
   DRAWN_CARD: {
-    mobile: {
-      width: 140,      // Largeur
-      height: 210,     // Hauteur
-    },
-    desktop: {
-      width: 220,      // Largeur
-      height: 330,     // Hauteur
-    },
+    mobile: { width: 132, height: 220 },  // +5% pour mieux remplir
+    desktop: { width: 206, height: 346 }, // +5% pour mieux remplir
   },
-
+  
   // Titres
   TITLES: {
-    main: {
-      mobile: 'xl',    // Taille de police
-      desktop: '3xl',  // Taille de police
-    },
-    subtitle: {
-      mobile: 'xs',
-      desktop: 'base',
-    },
+    main: { mobile: 'xl', desktop: '3xl' },
+    subtitle: { mobile: 'xs', desktop: 'base' },
   },
-
+  
   // Drag & Drop
-  DRAG: {
-    sensitivity: 0.15,  // Seuil pour détecter le drag (0-1)
-    snapBackDuration: 0.4,  // Durée du retour en place (secondes)
-    snapToSlotDuration: 0.5, // Durée du snap vers le slot
-    minDragDistance: 50, // Distance mini pour valider le drag (px)
-  },
-
+    DRAG: {
+      sensitivity: 0.15,
+      snapBackDuration: 0.4,
+      snapToSlotDuration: 0.5,
+      minDragDistance: 80, // Distance mini pour valider le drag (px) - augmenté pour éviter sélections accidentelles
+    },
+  
   // Animations
   ANIMATIONS: {
-    flipDuration: 0.8,    // Durée du flip de carte (secondes)
-    sparkleDelay: 0.08,   // Délai entre sparkles (secondes)
-    fanInDuration: 0.6,   // Durée d'apparition de l'éventail
+    flipDuration: 0.8,
+    sparkleDelay: 0.08,
+    fanInDuration: 0.6,
   },
-
-  // Nombres de cartes
+  
+  // Jeu
   GAME: {
-    totalCards: 78,       // Nombre total de cartes dans le paquet
-    cardsToDraw: 3,       // Nombre de cartes à tirer pour un tirage
+    totalCards: 78,
+    cardsToDraw: 3,
   },
 };
 
-// Export des configs individuelles pour import facile
-export const { CARD_FAN, ARC, SECTIONS, DRAWN_CARD, TITLES, DRAG, ANIMATIONS, GAME } = CONFIG;
+// Export pour compatibilité
+export const { SECTIONS, DRAWN_CARD, TITLES, DRAG, ANIMATIONS, GAME } = CONFIG;

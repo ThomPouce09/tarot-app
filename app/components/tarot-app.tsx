@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
 import CardFan from './card-fan';
 import DrawnCards from './drawn-cards';
-import InterpretationPanel from './interpretation-panel';
+import InterpretationModal from './interpretation-modal';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export interface DrawnCardData {
   card: TarotCard;
@@ -14,26 +15,56 @@ export interface DrawnCardData {
   position: number;
 }
 
-const TABLE_BG = 'https://cdn.abacus.ai/images/fa15d4d8-3350-4925-96db-6e3c7d57c889.png';
+const TABLE_BG = '/backgrounds/table-tarot-bg.jpg';
 
 // Cinematic phases: 0=black, 1=table far, 2=zoom in, 3=ready
 type CinematicPhase = 0 | 1 | 2 | 3;
 
 export default function TarotApp() {
+  const router = useRouter();
   const [drawnCards, setDrawnCards] = useState<DrawnCardData[]>([]);
-  const [showInterpretation, setShowInterpretation] = useState(false);
   const [availableIndices, setAvailableIndices] = useState<Set<number>>(
     new Set(Array.from({ length: 78 }, (_, i) => i))
   );
   const usedCardIds = useRef<Set<number>>(new Set());
   const [cinematicPhase, setCinematicPhase] = useState<CinematicPhase>(0);
+  const [showHint, setShowHint] = useState(true);  // Zone E : toujours affichée
+  const [blinkHint, setBlinkHint] = useState(false);  // Zone E : mode clignotement
+  const [resetSignal, setResetSignal] = useState(0);  // Signal pour reset CardFan
 
   // Cinematic sequence
   useEffect(() => {
     const t1 = setTimeout(() => setCinematicPhase(1), 300);    // fade from black
-    const t2 = setTimeout(() => setCinematicPhase(2), 1200);   // start zoom
+    const t2 = setTimeout(() => setCinematicPhase(2), 1200);   // start zoom in
     const t3 = setTimeout(() => setCinematicPhase(3), 3000);   // fully revealed
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    
+    // Zone E: Clignotement 3 fois pour attirer l'attention, puis reste affichée
+    const t4 = setTimeout(() => {
+      setBlinkHint(true);  // Commence à clignoter
+      
+      const blinkInterval = setInterval(() => {
+        setBlinkHint((prev) => !prev);  // Alterne on/off
+      }, 300);  // Clignote toutes les 300ms
+      
+      // Arrête de clignoter après 3 clignotements (environ 2s) et reste affichée
+      const stopBlinkTimeout = setTimeout(() => {
+        clearInterval(blinkInterval);
+        setBlinkHint(false);  // Reste affichée sans clignoter
+      }, 1800);  // 3 clignotements = 6 alternances * 300ms
+      
+      return () => {
+        clearInterval(blinkInterval);
+        clearTimeout(stopBlinkTimeout);
+      };
+    }, 3500);  // Commence après la cinématique (3s + 0.5s de délai)
+    
+    // Cleanup function for useEffect
+    return () => { 
+      clearTimeout(t1); 
+      clearTimeout(t2); 
+      clearTimeout(t3); 
+      clearTimeout(t4); 
+    };
   }, []);
 
   const handleCardDrawn = useCallback((fanIndex: number) => {
@@ -55,9 +86,9 @@ export default function TarotApp() {
 
   const handleReset = useCallback(() => {
     setDrawnCards([]);
-    setShowInterpretation(false);
     usedCardIds.current = new Set();
     setAvailableIndices(new Set(Array.from({ length: 78 }, (_, i) => i)));
+    setResetSignal((prev) => prev + 1);  // Force CardFan à réinitialiser son state
   }, []);
 
   const allDrawn = drawnCards.length >= 3;
@@ -67,32 +98,36 @@ export default function TarotApp() {
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
       {/* ========== CINEMATIC BACKGROUND ========== */}
       <motion.div
-        className="absolute inset-0 z-0"
-        initial={{ scale: 1.8, opacity: 0 }}
-        animate={{
-          scale: cinematicPhase >= 2 ? 1 : 1.8,
-          opacity: cinematicPhase >= 1 ? 1 : 0,
-        }}
-        transition={{ duration: cinematicPhase >= 2 ? 2 : 0.8, ease: 'easeOut' }}
+        className="absolute inset-0 z-0 overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: cinematicPhase >= 1 ? 1 : 0 }}
+        transition={{ duration: 0.8 }}
       >
-        <Image
-          src={TABLE_BG}
-          alt="Table en bois rustique"
-          fill
-          className="object-cover"
-          priority
-          quality={90}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/45" />
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at center 50%, transparent 30%, rgba(0,0,0,0.5) 100%)'
-        }} />
+        <motion.div
+          className="relative w-full h-full"
+          initial={{ scale: 1 }}
+          animate={{ scale: cinematicPhase >= 2 ? 1.25 : 1 }}
+          transition={{ duration: cinematicPhase >= 2 ? 2 : 0.8, ease: 'easeOut' }}
+        >
+          <Image
+            src={TABLE_BG}
+            alt="Table en bois rustique"
+            fill
+            className="object-cover"
+            priority
+            quality={90}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/45" />
+          <div className="absolute inset-0" style={{
+            background: 'radial-gradient(ellipse at center 50%, transparent 30%, rgba(0,0,0,0.5) 100%)'
+          }} />
+        </motion.div>
       </motion.div>
 
-      {/* ========== TITLE - Plus gros et central ========== */}
+      {/* ========== TITLE - Zone A : remontée ========== */}
       <motion.div
         className="absolute top-0 left-0 right-0 z-30 text-center"
-        style={{ top: '8%', transform: 'translateY(-50%)' }}
+        style={{ top: '4%', transform: 'translateY(-50%)' }}
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -40 }}
         transition={{ duration: 1, delay: 0.2 }}
@@ -109,11 +144,16 @@ export default function TarotApp() {
           Faites votre tirage de 3 cartes
         </h1>
         <motion.p
-          className="text-sm sm:text-base md:text-lg mt-3"
+          className="text-sm sm:text-base md:text-lg mt-3 font-semibold"
           style={{ 
-            color: 'rgba(218,165,32,0.7)', 
+            color: '#FFD700',  // Or plus clair et brillant
             fontFamily: 'var(--font-cinzel), serif',
-            textShadow: '0 0 10px rgba(218,165,32,0.4)',
+            textShadow: '0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(218,165,32,0.6), 0 2px 8px rgba(0,0,0,0.9)',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            display: 'inline-block',
           }}
         >
           {allDrawn
@@ -122,7 +162,7 @@ export default function TarotApp() {
         </motion.p>
       </motion.div>
 
-      {/* ========== DRAWN CARDS ========== */}
+      {/* ========== DRAWN CARDS - Zone D : descendue ========== */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: isReady ? 1 : 0 }}
@@ -131,37 +171,7 @@ export default function TarotApp() {
         <DrawnCards drawnCards={drawnCards} />
       </motion.div>
 
-      {/* ========== INTERPRETATION BUTTON ========== */}
-      <AnimatePresence>
-        {allDrawn && !showInterpretation && (
-          <motion.div
-            className="absolute z-40 flex justify-center"
-            style={{ top: '40vh', left: 0, right: 0 }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 1.5 }}
-          >
-            <motion.button
-              onClick={() => setShowInterpretation(true)}
-              className="px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
-              style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-                color: '#1a0e0a',
-                boxShadow: '0 0 40px rgba(218,165,32,0.5), 0 6px 20px rgba(0,0,0,0.6)',
-                border: '2px solid rgba(218,165,32,0.4)',
-              }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              ✨ Interprétation du tirage ✨
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ========== CARD FAN ========== */}
+      {/* ========== CARD FAN - Zone F : descendue ========== */}
       <motion.div
         initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : 60 }}
@@ -170,23 +180,23 @@ export default function TarotApp() {
         style={{ zIndex: 20 }}
       >
         <CardFan
-          availableIndices={availableIndices}
+          key={resetSignal}  // Force re-mount au reset pour réinitialiser removedCards
+          availableIndices={Array.from(availableIndices)}
           onCardDrawn={handleCardDrawn}
           disabled={allDrawn}
           drawnCardsCount={drawnCards.length}
+          drawnCardIndices={drawnCards.map(dc => dc.card.id)}
+          drawnCards={drawnCards}  // <-- NOUVEAU : passe les cartes tirées
+          showHint={showHint && !allDrawn}
+          blinkHint={blinkHint}
+          onReturnToHome={() => {
+            router.push('/');  // Retour à la landing page
+          }}
         />
       </motion.div>
 
-      {/* ========== INTERPRETATION BUTTON ========== */}
-      <AnimatePresence>
-        {showInterpretation && (
-          <InterpretationPanel
-            drawnCards={drawnCards}
-            onClose={() => setShowInterpretation(false)}
-            onReset={handleReset}
-          />
-        )}
-      </AnimatePresence>
+      {/* ========== INTERPRETATION ZONE - Affichage direct sous les cartes ========== */}
+      {/* Géré directement dans CardFan */}
 
       {/* ========== CINEMATIC BLACK OVERLAY ========== */}
       <motion.div

@@ -35,6 +35,8 @@ export default function RootLayout({
       <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} font-sans antialiased`}>
         {children}
         <ChunkLoadErrorHandler />
+        {/* Portal root pour affichage garanti au-dessus de tout */}
+        <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
       </body>
     </html>
   )
