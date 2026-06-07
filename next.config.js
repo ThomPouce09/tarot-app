@@ -15,6 +15,9 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   // images: { unoptimized: true },  // Requis pour static export uniquement
+  images: {
+    domains: ['cdn.abacus.ai'],
+  },
   // Allow access from network (for testing on mobile)
   devIndicators: {
     appIsrStatus: false,

@@ -94,6 +94,38 @@ export default function TarotApp() {
   const allDrawn = drawnCards.length >= 3;
   const isReady = cinematicPhase >= 3;
 
+  // Sauvegarder le tirage dans la DB quand il est complet
+  useEffect(() => {
+    if (allDrawn && drawnCards.length === 3) {
+      const saveReading = async () => {
+        try {
+          const payload = {
+            spread: 'past_present_future',
+            cards: drawnCards.map((dc, idx) => ({
+              id: dc.card.id,
+              name: dc.card.name,
+              position: ['past', 'present', 'future'][idx],
+              reversed: dc.reversed,
+            })),
+          };
+          
+          const response = await fetch('/api/readings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          
+          const result = await response.json();
+          console.log('Tirage sauvegardé:', result);
+        } catch (error) {
+          console.error('Erreur sauvegarde:', error);
+        }
+      };
+      
+      saveReading();
+    }
+  }, [allDrawn, drawnCards]);
+
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
       {/* ========== CINEMATIC BACKGROUND ========== */}
