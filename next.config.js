@@ -6,7 +6,7 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   productionBrowserSourceMaps: false,
   experimental: {
-    outputFileTracingRoot: path.join(__dirname, '../'),
+    // outputFileTracingRoot retiré pour compatibilité Vercel
   },
   eslint: {
     ignoreDuringBuilds: true,
