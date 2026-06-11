@@ -48,3 +48,9 @@ coverage/
 .cache/
 temp/
 tmp/
+nul
+
+SESSION_DEV_SUMMARY.md
+*.bat
+
+tsconfig.tsbuildinfo

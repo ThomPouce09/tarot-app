@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { db, readings } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 
 // In-memory store for readings (fallback when DB is disabled)
@@ -43,6 +42,7 @@ export async function POST(req: Request) {
 
     // Use database
     try {
+      const { db, readings } = await import('../../../lib/db');
       const [newReading] = await db.insert(readings).values({
         question: question ? String(question) : null,
         spread: String(spread),
@@ -90,6 +90,7 @@ export async function GET() {
 
     // Use database
     try {
+      const { db, readings } = await import('../../../lib/db');
       const allReadings = await db.query.readings.findMany({
         orderBy: [desc(readings.createdAt)],
         limit: 10,

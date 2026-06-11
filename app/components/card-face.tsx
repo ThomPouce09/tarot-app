@@ -20,8 +20,8 @@ export default function CardFace({ card, reversed }: CardFaceProps) {
     );
   }
 
-  // Construire l'URL de l'image de la carte - utilise les fichiers PNG pour toutes les cartes (0-77)
-  const cardImageUrl = `/cards/arcana/${card.id}.png`;
+  // Construire l'URL de l'image de la carte - utilise les JPEG optimisés 400px (0-77)
+  const cardImageUrl = `/cards/arcana/${card.id}.jpg`;
 
   const isMajor = card?.arcana === 'major';
   const suitColors = card?.suit ? SUIT_COLORS[card.suit] : null;

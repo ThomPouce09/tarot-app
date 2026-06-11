@@ -130,14 +130,18 @@ Format JSON obligatoire (complète les 3 cartes !) :
 {"carte1":"texte ici","carte2":"texte ici","carte3":"texte ici"}`;
 
     // Appel à l'API OpenRouter (modèle gratuit concis)
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'poolside/laguna-xs.2:free',
+        model: 'nvidia/nemotron-nano-9b-v2:free',
+        provider: {
+          order: ['Fireworks', 'Together'],
+          allow_fallbacks: true,
+        },
         messages: [
           {
             role: 'system',
@@ -156,7 +160,46 @@ Format JSON obligatoire (complète les 3 cartes !) :
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Erreur API NVIDIA:', errorData);
+      console.error('Erreur API OpenRouter:', errorData);
+
+      if (response.status === 429) {
+        console.warn('nvidia/nemotron-nano-9b-v2:free rate-limité, fallback vers poolside/laguna-m.1:free');
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'poolside/laguna-m.1:free',
+            messages: [
+              {
+                role: 'system',
+                content: 'Tu es un maître du tarot. Réponds UNIQUEMENT avec un JSON valide. RIEN d\'autre. Pas de réflexion, pas d\'explication. Juste le JSON.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 1200,
+            stream: false,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content;
+
+          if (content) {
+            console.log('Réponse brute fallback de l\'IA:', content);
+            const jsonContent = extractValidJSON(content);
+            return NextResponse.json(JSON.parse(jsonContent));
+          }
+        }
+      }
+
       return NextResponse.json(
         { error: 'Échec de l\'appel à l\'IA' },
         { status: response.status }

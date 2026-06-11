@@ -100,7 +100,7 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 + position * 0.2 }}
       >
-        <span style={{ color: '#DAA520', fontSize: '12px sm:14px' }}>{POSITION_ICONS[position]}</span>
+        <span style={{ color: '#DAA520', fontSize: isMobile ? '11px' : '14px' }}>{POSITION_ICONS[position]}</span>
         <span
           className="text-xs sm:text-sm md:text-base tracking-widest uppercase font-bold"
           style={{
