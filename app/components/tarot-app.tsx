@@ -16,6 +16,7 @@ export interface DrawnCardData {
 }
 
 const TABLE_BG = '/backgrounds/table-tarot-bg.jpg';
+const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=2';
 
 // Cinematic phases: 0=black, 1=table far, 2=zoom in, 3=ready
 type CinematicPhase = 0 | 1 | 2 | 3;
@@ -142,16 +143,20 @@ export default function TarotApp() {
           transition={{ duration: cinematicPhase >= 2 ? 2 : 0.8, ease: 'easeOut' }}
         >
           <Image
-            src={TABLE_BG}
+            src={TABLE_BG_WITH_VERSION}
             alt="Table en bois rustique"
             fill
             className="object-cover"
+            style={{
+              objectPosition: 'center 45%',
+              transform: 'scale(1.06)',
+            }}
             priority
             quality={90}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/25" />
           <div className="absolute inset-0" style={{
-            background: 'radial-gradient(ellipse at center 50%, transparent 30%, rgba(0,0,0,0.5) 100%)'
+            background: 'radial-gradient(ellipse at center 45%, transparent 35%, rgba(0,0,0,0.35) 100%)'
           }} />
         </motion.div>
       </motion.div>
