@@ -9,7 +9,6 @@ import InterpretationModal from './interpretation-modal';
 import QuickDivination from './quick-divination';
 import MagicalDivination from './magical-divination';
 import SereneDivination from './serene-divination';
-import CrystalBallDivination from './crystal-ball-divination';
 import { createPortal } from 'react-dom';
 
 interface CardFanProps {
@@ -444,20 +443,17 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
     }
     
     await debugLog('✅ 3 cartes valides, appel API...');
-    setLoading(true);
-    setError(null);
-    setShowInterpretation(false);
+        setLoading(true);
+        setError(null);
+        setShowInterpretation(true);  // Ouvre la modal IMMÉDIATEMENT avec la vidéo
     
-    try {
-      await debugLog('📦 Affichage écran de divination IMMÉDIAT...');
-      
-            // ÉTAPE 1: Afficher l'écran de divination IMMÉDIATEMENT (synchrone, pas d'await)
-            setShowDivination(true);
-            await debugLog('🔮 Écran de divination affiché !');
-      
-            // ÉTAPE 2: Attendre 5 secondes MINIMUM (en parallèle de l'API)
-            const startTime = Date.now();
-            const minWait = 5000;
+        try {
+          await debugLog('📦 Affichage écran de divination avec vidéo...');
+          await debugLog('🔮 Modal affichée !');
+     
+          // ÉTAPE 2: Attendre 5 secondes MINIMUM (en parallèle de l'API)
+          const startTime = Date.now();
+          const minWait = 5000;
       
             await debugLog('⏳ Lancement API + attente 5s...');
       
@@ -508,12 +504,9 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
             } : null;
             setCardNames(names);
       
-            // ÉTAPE 3: Fermer l'écran de divination et ouvrir la modal
-            setShowDivination(false);
-            setDivinationPhase('revealing');
+            // ÉTAPE 3: Afficher l'interprétation dans la modal
             setInterpretation(data);
-            setShowInterpretation(true);
-            setLoading(false);
+            setLoading(false);  // Cache la vidéo, montre les cartes
             await debugLog('✨ Modal ouverte - interprétation affichée !');
       
     } catch (err) {
@@ -945,12 +938,6 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
         )}
       </AnimatePresence>
 
-      {/* Écran de divination avec BOULE DE CRISTAL */}
-      {hasMounted && createPortal(
-        <CrystalBallDivination isVisible={showDivination} />,
-        document.getElementById('portal-root') || document.body
-      )}
-
       {/* Modal d'interprétation IA via portail (rendu dans <body>) */}
       {hasMounted && createPortal(
         <InterpretationModal
@@ -972,7 +959,6 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
           cardNames={cardNames}
           loading={loading}
           error={error}
-          phase={divinationPhase}
         />,
         document.getElementById('portal-root') || document.body
       )}
