@@ -191,7 +191,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
             setDraggingIndex(cardIndex);
             setDragPosition({ x: touch.clientX, y: touch.clientY });
           }
-        }, 1000); // 1 seconde
+        }, 20); // Timer ultra court : 20ms (desktop)
         
         dragStartRef.current.holdTimer = holdTimer;
       }
@@ -265,7 +265,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
     
     if (draggingIndex !== null && dragPosition) {
       // Zone de validation - milieu de l'écran (50%)
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.50;
+      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
       
       if (releasedInDrawZone) {
         setRemovedCards((prev) => new Set(prev).add(draggingIndex));
@@ -314,7 +314,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
         // Position initiale : la carte reste à sa place
         setDragPosition({ x: e.clientX, y: e.clientY });
       }
-    }, 1000); // 1 seconde
+    }, 20); // Timer ultra court : 20ms (desktop)
     
     dragStartRef.current.holdTimer = holdTimer;
   }, [disabled]);
@@ -371,7 +371,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
     
     if (draggingIndex !== null && dragPosition) {
       // Zone de validation - milieu de l'écran (50%)
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.50;
+      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
       
       if (releasedInDrawZone) {
         setRemovedCards((prev) => new Set(prev).add(draggingIndex));
@@ -596,7 +596,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
         <motion.div
           className="absolute w-full text-center z-40"
           style={{
-            top: '12vh',  // Descendu de 8vh à 12vh pour être sous les titres des cartes
+            top: '20vh',  // Descendu de 8vh à 12vh pour être sous les titres des cartes
             left: 0,
             right: 0,
           }}

@@ -22,6 +22,7 @@ const nextConfig = {
   devIndicators: {
     appIsrStatus: false,
   },
+  /*
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.output.filename = 'static/chunks/[name]-[contenthash:8].js';
@@ -29,6 +30,7 @@ const nextConfig = {
     }
     return config;
   },
+*/
 };
 
 module.exports = nextConfig;
