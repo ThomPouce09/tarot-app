@@ -16,7 +16,7 @@ export interface DrawnCardData {
 }
 
 const TABLE_BG = '/backgrounds/table-tarot-bg.jpg';
-const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=3';
+const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=5';
 
 // Cinematic phases: 0=black, 1=table far, 2=zoom in, 3=ready
 type CinematicPhase = 0 | 1 | 2 | 3;
@@ -138,9 +138,9 @@ export default function TarotApp() {
       >
         <motion.div
           className="relative w-full h-full"
-          initial={{ scale: 1 }}
-          animate={{ scale: cinematicPhase >= 2 ? 1.25 : 1 }}
-          transition={{ duration: cinematicPhase >= 2 ? 2 : 0.8, ease: 'easeOut' }}
+          initial={{ scale: 0.92 }}
+          animate={{ scale: cinematicPhase >= 2 ? 1.08 : 0.92 }}
+          transition={{ duration: cinematicPhase >= 2 ? 2.2 : 0.8, ease: 'easeOut' }}
         >
           <Image
             src={TABLE_BG_WITH_VERSION}
@@ -148,9 +148,9 @@ export default function TarotApp() {
             fill
             className="object-cover"
             style={{
-              objectPosition: 'center 44%',
-              transform: 'scale(1.08)',
-              filter: 'brightness(1.18) contrast(1.08) saturate(1.08)',
+              objectPosition: 'center 22%',
+              transform: 'scale(1.0)',
+              filter: 'brightness(1.08) contrast(1.06) saturate(1.08)',
             }}
             priority
             quality={90}
