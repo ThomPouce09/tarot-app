@@ -16,7 +16,8 @@ export interface DrawnCardData {
 }
 
 const TABLE_BG = '/backgrounds/table-tarot-bg.jpg';
-const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=6';
+const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=10';
+const VISUAL_SHIFT_DOWN = 36;
 
 // Cinematic phases: 0=black, 1=table far, 2=zoom in, 3=ready
 type CinematicPhase = 0 | 1 | 2 | 3;
@@ -192,6 +193,7 @@ export default function TarotApp() {
             padding: '4px 12px',
             borderRadius: '12px',
             display: 'inline-block',
+            transform: `translateY(${VISUAL_SHIFT_DOWN}px)`,
           }}
         >
           {allDrawn
@@ -205,6 +207,7 @@ export default function TarotApp() {
         initial={{ opacity: 0 }}
         animate={{ opacity: isReady ? 1 : 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
+        style={{ transform: `translateY(${VISUAL_SHIFT_DOWN}px)` }}
       >
         <DrawnCards drawnCards={drawnCards} />
       </motion.div>
@@ -215,7 +218,7 @@ export default function TarotApp() {
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : 60 }}
         transition={{ duration: 1, delay: 0.6 }}
         className="absolute bottom-0 left-0 right-0"
-        style={{ zIndex: 20 }}
+        style={{ zIndex: 20, transform: `translateY(${VISUAL_SHIFT_DOWN}px)` }}
       >
         <CardFan
           key={resetSignal}  // Force re-mount au reset pour réinitialiser removedCards
