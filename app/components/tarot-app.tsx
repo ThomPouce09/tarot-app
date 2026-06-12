@@ -16,7 +16,7 @@ export interface DrawnCardData {
 }
 
 const TABLE_BG = '/backgrounds/table-tarot-bg.jpg';
-const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=5';
+const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=6';
 
 // Cinematic phases: 0=black, 1=table far, 2=zoom in, 3=ready
 type CinematicPhase = 0 | 1 | 2 | 3;
@@ -148,7 +148,7 @@ export default function TarotApp() {
             fill
             className="object-cover"
             style={{
-              objectPosition: 'center 22%',
+              objectPosition: 'center 25%',
               transform: 'scale(1.0)',
               filter: 'brightness(1.08) contrast(1.06) saturate(1.08)',
             }}
