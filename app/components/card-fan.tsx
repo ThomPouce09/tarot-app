@@ -1,967 +1,501 @@
-'use client';
-
-import { useRef, useState, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
-import { CONFIG, CARD_FAN, ARC, CARD_FAN_WIDE, CARD_FAN_CLASSIC, ARC_WIDE, ARC_CLASSIC } from '@/lib/config';
-import { DrawnCardData } from './tarot-app';
-import InterpretationModal from './interpretation-modal';
-import QuickDivination from './quick-divination';
-import MagicalDivination from './magical-divination';
-import SereneDivination from './serene-divination';
-import { createPortal } from 'react-dom';
-
-interface CardFanProps {
-  availableIndices: number[];
-  onCardDrawn: (index: number) => void;
-  disabled?: boolean;
-  drawnCardsCount: number;
-  drawnCardIndices?: number[];
-  drawnCards?: DrawnCardData[];  // <-- NOUVEAU : les cartes tirées complete s
-  showHint: boolean;
-  blinkHint?: boolean;
-  onReturnToHome?: () => void;
-}
-
-const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b5a314aec.png';
-const TOTAL_CARDS = CONFIG.GAME.totalCards;
-
-export default function CardFan({ availableIndices, onCardDrawn, disabled, drawnCardsCount, drawnCardIndices = [], drawnCards = [], showHint, blinkHint, onReturnToHome }: CardFanProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [removedCards, setRemovedCards] = useState<Set<number>>(new Set());
-  const [isMobile, setIsMobile] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [scrollProgress, setScrollProgress] = useState({ start: 0, end: 1 });
-  
-  // Drag & Drop state
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [isDraggingConfirmed, setIsDraggingConfirmed] = useState(false);
-  
-  // États pour l'interprétation IA
-  const [interpretation, setInterpretation] = useState<{ carte1: string; carte2: string; carte3: string } | null>(null);
-  const [cardNames, setCardNames] = useState<{ carte1: string; carte2: string; carte3: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showInterpretation, setShowInterpretation] = useState(false);
-  const [showDivination, setShowDivination] = useState(false);
-  const [divinationPhase, setDivinationPhase] = useState<'summoning' | 'revealing'>('summoning');
-  
-  // États pour le rendu client-side uniquement
-  const [hasMounted, setHasMounted] = useState(false);
-  const hasCenteredRef = useRef(false);
-  const dragStartRef = useRef<{ x: number; y: number; cardIndex: number; cardRect: DOMRect; holdTimer?: NodeJS.Timeout } | null>(null);
-  const draggedCardRef = useRef<HTMLDivElement | null>(null);
-  
-  // Montage client-side
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  // Dimensions from config - support du mode wide/classic
-  const isWideMode = CONFIG.FAN_MODE === 'wide';
-  const cardConfig = isMobile 
-    ? (isWideMode ? CARD_FAN_WIDE.mobile : CARD_FAN_CLASSIC.mobile)
-    : (isWideMode ? CARD_FAN_WIDE.desktop : CARD_FAN_CLASSIC.desktop);
-  const arcConfig = isMobile
-    ? (isWideMode ? ARC_WIDE.mobile : ARC_CLASSIC.mobile)
-    : (isWideMode ? ARC_WIDE.desktop : ARC_CLASSIC.desktop);
-  const CARD_W = cardConfig.width;
-  const CARD_H = cardConfig.height;
-  const OVERLAP = cardConfig.overlap; // Utilise l'overlap de la config
-
-  const visibleCards = useMemo(() => {
-    return Array.from({ length: TOTAL_CARDS }, (_, i) => i)
-      .filter((i) => availableIndices.includes(i) && !removedCards.has(i));
-  }, [availableIndices, removedCards]);
-
-  // Gestionnaire de scroll pour mettre à jour le curseur
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current || visibleCards.length === 0) return;
-    
-    const totalCards = visibleCards.length;
-    const cardSpacing = CARD_W + OVERLAP;
-    const totalWidth = CARD_W + (totalCards - 1) * cardSpacing;
-    const containerWidth = scrollRef.current.clientWidth;
-    const scrollPos = scrollRef.current.scrollLeft;
-    
-    updateScrollIndicator(scrollPos, containerWidth, totalWidth);
-  }, [visibleCards.length, CARD_W, OVERLAP]);
-
-  // Fonction utilitaire pour mettre à jour le curseur
-  const updateScrollIndicator = (scrollPos: number, containerWidth: number, totalWidth: number) => {
-    const startPercent = Math.max(0, Math.min(1, scrollPos / totalWidth));
-    const visiblePercent = Math.min(1, containerWidth / totalWidth);
-    const endPercent = Math.min(1, startPercent + visiblePercent);
-    
-    setScrollProgress({ start: startPercent * 100, end: endPercent * 100 });
-  };
-
-  // Attacher le gestionnaire de scroll
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-    
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
-
-  // ========== ARC DE L'ÉVENTAIL - Arc classique ==========
-  const getCardStyle = useCallback((displayIndex: number, total: number) => {
-    const fraction = total > 1 ? displayIndex / (total - 1) : 0.5;
-    const centered = fraction - 0.5; // -0.5 to 0.5
-    
-    // Arc en cosinus
-    const arcY = Math.cos(centered * Math.PI) * arcConfig.amplitude;
-    
-    // Rotation pour suivre la courbe
-    const rotation = centered * arcConfig.rotation * 2;
-    
-    return { arcY: -arcY, rotation };
-  }, [arcConfig]);
-
-  // ========== SCROLL horizontal ==========
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (scrollRef.current) {
-      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        return;
-      }
-      e.preventDefault();
-      scrollRef.current.scrollLeft += e.deltaY * 2;
-    }
-  }, []);
-
-  // ========== PINCH ZOOM ==========
-  const getTouchDist = (touches: React.TouchList) => {
-    const [a, b] = [touches[0], touches[1]];
-    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-  };
-
-  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      pinchStartRef.current = { dist: getTouchDist(e.touches), zoom };
-    } else if (e.touches.length === 1 && !disabled) {
-      // Reset des états
-      setIsDraggingConfirmed(false);
-      setDraggingIndex(null);
-      setDragPosition(null);
-      
-      // Début du drag tactile
-      const touch = e.touches[0];
-      const touchRect = (e.target as Element)?.getBoundingClientRect();
-      
-      // Trouver l'index de la carte touchée
-      let cardIndex: number | null = null;
-      const cards = document.querySelectorAll('[data-card-index]');
-      cards.forEach((card, idx) => {
-        const rect = card.getBoundingClientRect();
-        if (
-          touch.clientX >= rect.left &&
-          touch.clientX <= rect.right &&
-          touch.clientY >= rect.top &&
-          touch.clientY <= rect.bottom
-        ) {
-          cardIndex = parseInt(card.getAttribute('data-card-index') || '-1');
-        }
-      });
-      
-      if (cardIndex !== null && cardIndex >= 0) {
-        dragStartRef.current = {
-          x: touch.clientX,
-          y: touch.clientY,
-          cardIndex,
-          cardRect: (cards[visibleCards.indexOf(cardIndex)] as HTMLElement)?.getBoundingClientRect() || touchRect,
-        };
-        
-        // Timer : si on reste appuyé 1s sans bouger, la carte se sélectionne
-        const holdTimer = setTimeout(() => {
-          if (dragStartRef.current && dragStartRef.current.cardIndex === cardIndex) {
-            setIsDraggingConfirmed(true);
-            setDraggingIndex(cardIndex);
-            setDragPosition({ x: touch.clientX, y: touch.clientY });
-          }
-        }, 20); // Timer ultra court : 20ms (desktop)
-        
-        dragStartRef.current.holdTimer = holdTimer;
-      }
-    }
-  }, [disabled, zoom, visibleCards]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchStartRef.current) {
-      e.preventDefault();
-      const newDist = getTouchDist(e.touches);
-      const scale = newDist / pinchStartRef.current.dist;
-      setZoom(Math.max(1, Math.min(3, pinchStartRef.current.zoom * scale)));
-    } else if (e.touches.length === 1 && dragStartRef.current) {
-      const touch = e.touches[0];
-      const dx = touch.clientX - dragStartRef.current.x;
-      const dy = touch.clientY - dragStartRef.current.y;
-      
-      // Si déjà en train de draguer, on suit le mouvement
-      if (draggingIndex !== null) {
-        setDragPosition({ x: touch.clientX, y: touch.clientY });
-        e.preventDefault();
-        return;
-      }
-      
-      // Si drag déjà confirmé (par maintien ou mouvement), on active
-      if (isDraggingConfirmed) {
-        setDraggingIndex(dragStartRef.current.cardIndex);
-        setDragPosition({ x: touch.clientX, y: touch.clientY });
-        e.preventDefault();
-        return;
-      }
-      
-      // Annuler le timer de maintien si on bouge
-      if (dragStartRef.current.holdTimer) {
-        clearTimeout(dragStartRef.current.holdTimer);
-        dragStartRef.current.holdTimer = undefined;
-      }
-      
-      // Détection d'un scroll horizontal TROP important → on annule tout
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-        dragStartRef.current = null;
-        return;
-      }
-      
-      // Détection d'un vrai drag (mouvement vertical OU horizontal modéré)
-      const minDrag = 20; // Seuil réduit : 20px
-      if (Math.abs(dx) > minDrag || dy < -minDrag) {
-        // On ne confirme que si le mouvement est vers le haut ou diagonal vers le haut
-        if (dy < 0 || Math.abs(dy) > Math.abs(dx)) {
-          setIsDraggingConfirmed(true);
-          setDraggingIndex(dragStartRef.current.cardIndex);
-          setDragPosition({ x: touch.clientX, y: touch.clientY });
-          e.preventDefault();
-        }
-      }
-    } else if (draggingIndex !== null && dragPosition) {
-      const touch = e.touches[0];
-      setDragPosition({ x: touch.clientX, y: touch.clientY });
-      e.preventDefault();
-    }
-  }, [draggingIndex, isDraggingConfirmed]);
-
-  const handleTouchEnd = useCallback(() => {
-    pinchStartRef.current = null;
-    
-    // Annuler le timer de maintien
-    if (dragStartRef.current?.holdTimer) {
-      clearTimeout(dragStartRef.current.holdTimer);
-      dragStartRef.current.holdTimer = undefined;
-    }
-    
-    if (draggingIndex !== null && dragPosition) {
-      // Zone de validation - milieu de l'écran (50%)
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
-      
-      if (releasedInDrawZone) {
-        setRemovedCards((prev) => new Set(prev).add(draggingIndex));
-        onCardDrawn(draggingIndex);
-      }
-    }
-    
-    // Reset complet
-    setIsDraggingConfirmed(false);
-    setDraggingIndex(null);
-    setDragPosition(null);
-    dragStartRef.current = null;
-  }, [draggingIndex, dragPosition, onCardDrawn]);
-
-  // ========== DESKTOP: Mouse Drag ==========
-  const handleMouseDown = useCallback((e: React.MouseEvent, index: number) => {
-    console.log('🖱️ [DEBUG Desktop] handleMouseDown called, index:', index, 'disabled:', disabled);
-    
-    if (disabled) {
-      console.log('❌ [DEBUG] Bloqué car disabled=true');
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    const cardElement = e.currentTarget;
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      cardIndex: index,
-      cardRect: cardElement.getBoundingClientRect(),
-    };
-    
-    console.log('✅ [DEBUG] Drag started, timer 1s lancé...');
-    
-    // Reset des états
-    setDraggingIndex(null);
-    setDragPosition(null);
-    setIsDraggingConfirmed(false);
-    
-    // Timer : si on reste appuyé 1s sans bouger, la carte se sélectionne
-    const holdTimer = setTimeout(() => {
-      if (dragStartRef.current && dragStartRef.current.cardIndex === index) {
-        console.log('✅ [DEBUG] Hold timer écoulé, carte confirmée!');
-        setIsDraggingConfirmed(true);
-        setDraggingIndex(index);
-        // Position initiale : la carte reste à sa place
-        setDragPosition({ x: e.clientX, y: e.clientY });
-      }
-    }, 20); // Timer ultra court : 20ms (desktop)
-    
-    dragStartRef.current.holdTimer = holdTimer;
-  }, [disabled]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!dragStartRef.current) return;
-    
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    
-    // Si déjà en train de draguer, on suit le mouvement
-    if (draggingIndex !== null) {
-      setDragPosition({ x: e.clientX, y: e.clientY });
-      return;
-    }
-    
-    // Si drag déjà confirmé (par maintien ou mouvement), on active
-    if (isDraggingConfirmed) {
-      setDraggingIndex(dragStartRef.current.cardIndex);
-      setDragPosition({ x: e.clientX, y: e.clientY });
-      return;
-    }
-    
-    // Annuler le timer de maintien si on bouge
-    if (dragStartRef.current.holdTimer) {
-      clearTimeout(dragStartRef.current.holdTimer);
-      dragStartRef.current.holdTimer = undefined;
-    }
-    
-    // Détection d'un scroll horizontal TROP important → on annule tout
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-      dragStartRef.current = null;
-      return;
-    }
-    
-    // Détection d'un vrai drag (mouvement vertical OU horizontal modéré)
-    const minDrag = 20; // Seuil réduit : 20px
-    if (Math.abs(dx) > minDrag || dy < -minDrag) {
-      // On ne confirme que si le mouvement est vers le haut ou diagonal vers le haut
-      if (dy < 0 || Math.abs(dy) > Math.abs(dx)) {
-        setIsDraggingConfirmed(true);
-        setDraggingIndex(dragStartRef.current.cardIndex);
-        setDragPosition({ x: e.clientX, y: e.clientY });
-      }
-    }
-  }, [draggingIndex, isDraggingConfirmed]);
-
-  const handleMouseUp = useCallback(() => {
-    // Annuler le timer de maintien
-    if (dragStartRef.current?.holdTimer) {
-      clearTimeout(dragStartRef.current.holdTimer);
-      dragStartRef.current.holdTimer = undefined;
-    }
-    
-    if (draggingIndex !== null && dragPosition) {
-      // Zone de validation - milieu de l'écran (50%)
-      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
-      
-      if (releasedInDrawZone) {
-        setRemovedCards((prev) => new Set(prev).add(draggingIndex));
-        onCardDrawn(draggingIndex);
-      }
-    }
-    
-    // Reset complet
-    setIsDraggingConfirmed(false);
-    setDraggingIndex(null);
-    setDragPosition(null);
-    dragStartRef.current = null;
-  }, [draggingIndex, dragPosition, onCardDrawn]);
-
-  // Calcul de la position initiale de scroll pour centrer la pioche
-  const getInitialScrollPosition = useMemo(() => {
-    if (availableIndices.length < 75 || visibleCards.length === 0) {
-      return 0;
-    }
-    const totalCards = visibleCards.length;
-    const cardSpacing = CARD_W + OVERLAP;
-    const totalWidth = CARD_W + (totalCards - 1) * cardSpacing;
-    const centerOfDeck = totalWidth / 2;
-    const estimatedScreenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
-    return Math.max(0, centerOfDeck - (estimatedScreenWidth / 2));
-  }, [availableIndices.length, visibleCards.length, CARD_W, OVERLAP]);
-
-  // Centrage à chaque changement de cartes (simple et fiable)
-  useEffect(() => {
-    if (getInitialScrollPosition > 0 && scrollRef.current) {
-      scrollRef.current.scrollLeft = getInitialScrollPosition;
-    }
-  }, [getInitialScrollPosition]);
-
-  // Fonction pour appeler l'API d'interprétation
-  const handleRequestInterpretation = useCallback(async () => {
-    // Debug: écrire dans un fichier via une API locale
-    const debugLog = async (msg: string) => {
-      try {
-        await fetch('/api/debug-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ msg, ts: Date.now() }),
-        }).catch(() => {});
-      } catch {}
-    };
-    
-    await debugLog('🔮 Début interprétation');
-    await debugLog(`🃏 Cartes: ${JSON.stringify(drawnCardIndices)}`);
-    await debugLog(`📊 drawnCardsCount: ${drawnCardsCount}`);
-    await debugLog(`🔒 disabled: ${disabled}`);
-    
-    // Check plus détaillé
-    if (!drawnCardIndices || drawnCardIndices.length === 0) {
-      const msg = '❌ drawnCardIndices est vide ou undefined !';
-      await debugLog(msg + ` (drawnCardsCount=${drawnCardsCount})`);
-      setError(msg + ' (drawnCardsCount=' + drawnCardsCount + ')');
-      setShowInterpretation(true);  // Affiche quand même la zone pour voir l'erreur
-      setLoading(false);
-      return;
-    }
-    
-    if (drawnCardIndices.length !== 3) {
-      const msg = `❌ Attend 3 cartes, reçu ${drawnCardIndices.length}`;
-      await debugLog(msg);
-      setError(msg);
-      setShowInterpretation(true);  // Affiche quand même la zone
-      setLoading(false);
-      return;
-    }
-    
-    await debugLog('✅ 3 cartes valides, appel API...');
-        setLoading(true);
-        setError(null);
-        setShowInterpretation(true);  // Ouvre la modal IMMÉDIATEMENT avec la vidéo
-    
-        try {
-          await debugLog('📦 Affichage écran de divination avec vidéo...');
-          await debugLog('🔮 Modal affichée !');
-     
-          // ÉTAPE 2: Attendre 5 secondes MINIMUM (en parallèle de l'API)
-          const startTime = Date.now();
-          const minWait = 5000;
-      
-            await debugLog('⏳ Lancement API + attente 5s...');
-      
-            // Lancer l'API en parallèle
-            const apiPromise = fetch('/api/interpretation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cartes: drawnCardIndices }),
-            }).then(async (response) => {
-              const responseText = await response.text();
-              await debugLog(`📥 Status: ${response.status}, Taille: ${responseText.length} chars`);
-        
-              if (!response.ok) {
-                let errorData;
-                try { errorData = JSON.parse(responseText); } catch { errorData = { error: responseText }; }
-                await debugLog(`❌ Erreur API: ${JSON.stringify(errorData)}`);
-                throw new Error(errorData.error || 'Échec de l\'interprétation');
-              }
-        
-              let data;
-              try { 
-                data = JSON.parse(responseText); 
-                await debugLog(`✅ JSON parsé`);
-              } catch (parseErr) { 
-                await debugLog(`❌ Erreur parsing: ${parseErr}`);
-                throw new Error('Format de réponse invalide'); 
-              }
-              return data;
-            });
-      
-            // Attendre 5 secondes ET que l'API soit prête
-            await Promise.all([
-              apiPromise,
-              new Promise(resolve => setTimeout(resolve, minWait)),
-            ]);
-      
-            const elapsed = Date.now() - startTime;
-            await debugLog(`⏱️ Attente totale: ${elapsed}ms`);
-      
-            // Récupérer les données (déjà résolues par Promise.all)
-            const data = await apiPromise;
-      
-            // Extraire les noms des cartes depuis drawnCards
-            const names = drawnCards && drawnCards.length >= 3 ? {
-              carte1: drawnCards[0].card.name,
-              carte2: drawnCards[1].card.name,
-              carte3: drawnCards[2].card.name,
-            } : null;
-            setCardNames(names);
-      
-            // ÉTAPE 3: Afficher l'interprétation dans la modal
-            setInterpretation(data);
-            setLoading(false);  // Cache la vidéo, montre les cartes
-            await debugLog('✨ Modal ouverte - interprétation affichée !');
-      
-    } catch (err) {
-      await debugLog(`💥 Exception: ${err instanceof Error ? err.message : String(err)}`);
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      await debugLog('🏁 Terminé');
-      setLoading(false);
-    }
-  }, [drawnCardIndices]);
-
-  // Centrer une seule fois quand la position est prête
-  useEffect(() => {
-    if (getInitialScrollPosition > 0 && scrollRef.current && !hasCenteredRef.current) {
-      hasCenteredRef.current = true;
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollLeft = getInitialScrollPosition;
-        }
-      });
-    }
-  }, [getInitialScrollPosition]);
-
-  // ========== RENDER ==========
-  return (
-    <div
-      className="relative w-full"
-      style={{ 
-        height: `calc(${CONFIG.SECTIONS.fan}vh)`,
-        paddingTop: '20vh',
-        paddingBottom: CONFIG.SECTIONS.bottomPadding + 'vh',
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Hint de drag - Zone E : descendue plus bas, réduite, clignotante */}
-      {!disabled && !draggingIndex && drawnCardsCount === 0 && showHint && (
-        <motion.div 
-          className="absolute w-full text-center z-40 pointer-events-none"
-          style={{
-            top: '8vh',  // Descendu plus bas (était 0vh), plus proche de la pioche F
-            left: 0,
-            right: 0,
-          }}
-          animate={blinkHint ? {
-            opacity: [1, 0.3, 1],  // Clignotement
-            scale: [1, 0.95, 1],
-          } : {
-            opacity: 1,  // Fixe
-            scale: 1,
-          }}
-          transition={{ 
-            duration: 0.3,
-            repeat: blinkHint ? Infinity : 0  // Clignote indéfiniment si blinkHint=true
-          }}
-        >
-          <p
-            className="text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-full inline-block"
-            style={{
-              color: 'rgba(255,255,255,0.85)',
-              fontFamily: 'var(--font-cinzel), serif',
-              textShadow: '0 0 10px rgba(218,165,32,0.5), 0 1px 4px rgba(0,0,0,0.8)',
-              background: 'rgba(0,0,0,0.55)',
-              border: '1px solid rgba(218,165,32,0.35)',
-              backdropFilter: 'blur(6px)',
-              fontSize: '0.85rem',  // Plus petit
-            }}
-          >
-            🖐️ Glissez une carte vers le haut
-          </p>
-        </motion.div>
-      )}
-
-      {/* Zone G: Bouton Interprétation - apparaît quand 3 cartes sont tirées */}
-      {disabled && drawnCardsCount === 3 && (
-        <motion.div
-          className="absolute w-full text-center z-40"
-          style={{
-            top: '20vh',  // Descendu de 8vh à 12vh pour être sous les titres des cartes
-            left: 0,
-            right: 0,
-          }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <motion.button
-            onClick={handleRequestInterpretation}
-            className="px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
-            style={{
-              fontFamily: 'var(--font-cinzel), serif',
-              background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-              color: '#1a0e0a',
-              boxShadow: '0 0 40px rgba(218,165,32,0.5), 0 6px 20px rgba(0,0,0,0.6)',
-              border: '2px solid rgba(218,165,32,0.4)',
-            }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ✨ Interprétation du tirage ✨
-          </motion.button>
-        </motion.div>
-      )}
-
-      {/* Scrollable card strip */}
-      <div
-        ref={scrollRef}
-        className="absolute bottom-0 left-0 right-0 overflow-x-auto overflow-y-visible"
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'flex-end',
-          paddingBottom: isMobile ? '8vh' : '10vh',
-          overflowY: 'visible',
-        }}
-        onWheel={handleWheel}
-      >
-        {/* Leading spacer */}
-        <div style={{ minWidth: 'max(80px, calc(50vw - 180px))', flexShrink: 0 }} />
-
-        {/* Zoomable inner container */}
-        <div
-          className="flex items-end flex-shrink-0"
-          style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'center bottom',
-            transition: 'transform 0.2s ease-out',
-            // IMPORTANT: overflow visible pour l'arc
-            overflow: 'visible',
-          }}
-        >
-          {visibleCards.map((originalIndex, displayIndex) => {
-            const { arcY, rotation } = getCardStyle(displayIndex, visibleCards.length);
-            // L'effet visuel ET le drag ne s'activent que si le mouvement vers le haut est confirmé
-            const isActive = isDraggingConfirmed && draggingIndex === originalIndex;
-            
-            return (
-              <div
-                key={originalIndex}
-                data-card-index={originalIndex}
-                className="flex-shrink-0 relative cursor-grab active:cursor-grabbing"
-                style={{
-                  width: CARD_W,
-                  height: CARD_H,
-                  marginLeft: displayIndex === 0 ? 0 : OVERLAP,
-                  transform: isActive 
-                    ? 'scale(1.15) rotate(0deg) translateY(-30px)' 
-                    : `translateY(${arcY}px) rotate(${rotation}deg)`,
-                  transition: isActive ? 'none' : 'transform 0.25s ease',
-                  zIndex: isActive ? 1000 : Math.floor(10 + displayIndex),
-                  transformOrigin: 'center bottom',
-                  // IMPORTANT: overflow visible pour voir l'arc complet
-                  overflow: 'visible',
-                }}
-                onMouseDown={(e) => handleMouseDown(e, originalIndex)}
-              >
-                {/* Card */}
-                <div
-                  className="w-full h-full rounded-lg overflow-hidden card-shimmer"
-                  style={{
-                    boxShadow: isActive
-                      ? '0 25px 80px rgba(0,0,0,0.9), 0 0 50px rgba(218,165,32,0.7)'
-                      : '0 4px 15px rgba(0,0,0,0.6), 0 0 8px rgba(218,165,32,0.2)',
-                    border: isActive 
-                      ? '3px solid rgba(218,165,32,0.9)' 
-                      : '2px solid rgba(218,165,32,0.2)',
-                    // IMPORTANT: overflow visible pour l'arc
-                    overflow: 'visible',
-                  }}
-                >
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={CARD_BACK_URL}
-                      alt="Carte de tarot"
-                      fill
-                      className="object-cover pointer-events-none select-none"
-                      sizes={`${CARD_W * 2}px`}
-                      draggable={false}
-                      priority={displayIndex < 5}
-                    />
-                  </div>
-                </div>
-
-                {/* Drag indicator overlay */}
-                {isActive && (
-                  <motion.div
-                    className="absolute inset-0 rounded-lg"
-                    style={{
-                      background: 'rgba(218,165,32,0.15)',
-                      border: '3px solid rgba(218,165,32,0.9)',
-                      boxShadow: '0 0 40px rgba(218,165,32,0.6)',
-                    }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Trailing spacer */}
-        <div style={{ minWidth: 'max(80px, calc(50vw - 180px))', flexShrink: 0 }} />
-      </div>
-
-      {/* ===== CURSEUR DE NAVIGATION ===== */}
-      <div className="w-full flex justify-center mt-32 mb-4">
-        <div 
-          className="relative bg-gray-900/90 rounded-full overflow-hidden border-2 border-amber-500/60"
-          style={{
-            width: '25vw',  // 1/4 de la largeur de l'écran
-            maxWidth: '200px',
-            minWidth: '120px',
-            height: '8px',
-            boxShadow: '0 0 35px rgba(218,165,32,0.8), inset 0 0 20px rgba(0,0,0,0.8), 0 0 60px rgba(255,215,0,0.4)',
-          }}
-        >
-          {/* Zone visible (portion actuelle de la pioche) */}
-          <motion.div
-            className="absolute h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, #FFD700 0%, #FFF8DC 50%, #FFD700 100%)',
-              boxShadow: '0 0 30px rgba(218,165,32,1), 0 0 60px rgba(255,215,0,0.9), 0 0 90px rgba(255,215,0,0.6)',
-              left: `${scrollProgress.start}%`,
-              width: `${scrollProgress.end - scrollProgress.start}%`,
-            }}
-            initial={{ opacity: 0.7 }}
-            animate={{ 
-              opacity: 1,
-              boxShadow: [
-                '0 0 30px rgba(218,165,32,1), 0 0 60px rgba(255,215,0,0.9), 0 0 90px rgba(255,215,0,0.6)',
-                '0 0 50px rgba(218,165,32,1), 0 0 100px rgba(255,215,0,1), 0 0 150px rgba(255,215,0,0.8)',
-                '0 0 30px rgba(218,165,32,1), 0 0 60px rgba(255,215,0,0.9), 0 0 90px rgba(255,215,0,0.6)',
-              ],
-            }}
-            transition={{ 
-              duration: 0.4,
-              boxShadow: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
-            }}
-          />
-          
-          {/* Marqueurs de cartes (lignes fines tous les 10%) */}
-          {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((pct) => (
-            <div
-              key={pct}
-              className="absolute h-full bg-amber-400/50"
-              style={{
-                left: `${pct}%`,
-                width: '1.5px',
-                boxShadow: '0 0 10px rgba(218,165,32,0.8)',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* ========== ZONE D'INTERPRÉTATION IA (affichage direct) ========== */}
-      <AnimatePresence>
-        {showInterpretation && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            className="w-full px-4 pb-8 pt-4"
-            style={{
-              background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)',
-            }}
-          >
-            <div className="max-w-3xl mx-auto space-y-4">
-              {/* Titre */}
-              <motion.h3
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-center text-xl md:text-2xl font-bold mb-6"
-                style={{
-                  fontFamily: 'var(--font-cinzel), serif',
-                  color: '#DAA520',
-                  textShadow: '0 0 20px rgba(218,165,32,0.6)',
-                }}
-              >
-                🔮 Interprétation du Tirage 🔮
-              </motion.h3>
-
-              {/* Message d'erreur */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-4 bg-red-900/30 border border-red-500/40 rounded-lg text-red-300 text-center"
-                >
-                  ⚠️ {error}
-                </motion.div>
-              )}
-
-              {/* Loader */}
-              {loading && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-8"
-                >
-                  <div className="inline-block relative">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                      className="w-16 h-16 border-4 border-amber-500/30 border-t-amber-400 rounded-full"
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="absolute inset-0 flex items-center justify-center text-2xl"
-                    >
-                      🔮
-                    </motion.div>
-                  </div>
-                  <p
-                    className="mt-4 text-amber-300 text-lg"
-                    style={{ fontFamily: 'var(--font-cinzel), serif' }}
-                  >
-                    Les esprits consultent les cartes...
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Interprétations */}
-              {interpretation && !loading && (
-                <>
-                  {[
-                    { key: 'carte1', title: '🕰️ Passé / Situation', index: 0 },
-                    { key: 'carte2', title: '⚔️ Défi / Obstacle', index: 1 },
-                    { key: 'carte3', title: '💫 Conseil / Issue', index: 2 },
-                  ].map((section, idx) => {
-                    const text = interpretation[section.key as keyof typeof interpretation];
-                    return (
-                      <motion.div
-                        key={section.key}
-                        initial={{ opacity: 0, x: -30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + (idx * 0.4), duration: 0.6 }}
-                        className="relative p-5 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-xl border border-amber-500/20 overflow-hidden"
-                        style={{
-                          backdropFilter: 'blur(8px)',
-                          boxShadow: 'inset 0 0 40px rgba(0,0,0,0.6), 0 4px 20px rgba(218,165,32,0.2)',
-                        }}
-                      >
-                        {/* Glow effect */}
-                        <div
-                          className="absolute inset-0 opacity-20"
-                          style={{
-                            background: 'radial-gradient(ellipse at top, rgba(218,165,32,0.3) 0%, transparent 70%)',
-                          }}
-                        />
-
-                        <div className="relative z-10">
-                          <h4
-                            className="text-lg md:text-xl font-bold mb-3 text-amber-400"
-                            style={{ fontFamily: 'var(--font-cinzel), serif' }}
-                          >
-                            {section.title}
-                          </h4>
-                          <p
-                            className="text-base md:text-lg text-amber-100/95 leading-relaxed"
-                            style={{
-                              fontFamily: 'var(--font-cinzel-decorative), serif',
-                              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-                            }}
-                          >
-                            {text}
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Dragged card ghost (follows cursor/finger) */}
-      <AnimatePresence>
-        {draggingIndex !== null && dragPosition && (
-          <motion.div
-            className="fixed pointer-events-none z-50"
-            style={{
-              width: CARD_W,
-              height: CARD_H,
-              left: dragPosition.x - CARD_W / 2,
-              top: dragPosition.y - CARD_H / 2,
-            }}
-            initial={{ scale: 1, opacity: 1 }}
-            animate={{ 
-              x: 0,
-              y: 0,
-              scale: 1.15,
-              opacity: 0.98,
-              rotate: 0,
-            }}
-            exit={{ 
-              scale: 1,
-              opacity: 0,
-              transition: { duration: 0.2 },
-            }}
-          >
-            <div
-              className="w-full h-full rounded-lg overflow-hidden"
-              style={{
-                boxShadow: '0 30px 100px rgba(0,0,0,0.9), 0 0 60px rgba(218,165,32,0.8)',
-                border: '4px solid rgba(218,165,32,0.95)',
-              }}
-            >
-              <div className="relative w-full h-full">
-                <Image
-                  src={CARD_BACK_URL}
-                  alt="Carte de tarot"
-                  fill
-                  className="object-cover"
-                  sizes={`${CARD_W * 2}px`}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal d'interprétation IA via portail (rendu dans <body>) */}
-      {hasMounted && createPortal(
-        <InterpretationModal
-          isOpen={showInterpretation}
-          onClose={() => {
-            setShowInterpretation(false);
-            setInterpretation(null);
-            setError(null);
-          }}
-          onReturnToHome={() => {
-            setShowInterpretation(false);
-            setInterpretation(null);
-            setError(null);
-            if (onReturnToHome) {
-              onReturnToHome();
-            }
-          }}
-          interpretation={interpretation}
-          cardNames={cardNames}
-          loading={loading}
-          error={error}
-        />,
-        document.getElementById('portal-root') || document.body
-      )}
-    </div>
-  );
-}
+1|1|'use client';
+2|2|
+3|3|import { useRef, useState, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
+4|4|import { motion, AnimatePresence } from 'framer-motion';
+5|5|import Image from 'next/image';
+6|6|import { CONFIG, CARD_FAN, ARC, CARD_FAN_WIDE, CARD_FAN_CLASSIC, ARC_WIDE, ARC_CLASSIC } from '@/lib/config';
+7|7|import { DrawnCardData } from './tarot-app';
+8|8|import InterpretationModal from './interpretation-modal';
+9|9|import QuickDivination from './quick-divination';
+10|10|import MagicalDivination from './magical-divination';
+11|11|import SereneDivination from './serene-divination';
+12|12|import { createPortal } from 'react-dom';
+13|13|
+14|14|interface CardFanProps {
+15|15|  availableIndices: number[];
+16|16|  onCardDrawn: (index: number) => void;
+17|17|  disabled?: boolean;
+18|18|  drawnCardsCount: number;
+19|19|  drawnCardIndices?: number[];
+20|20|  drawnCards?: DrawnCardData[];  // <-- NOUVEAU : les cartes tirées complete s
+21|21|  showHint: boolean;
+22|22|  blinkHint?: boolean;
+23|23|  onReturnToHome?: () => void;
+24|24|}
+25|25|
+26|26|const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b5a314aec.png';
+27|27|const TOTAL_CARDS = CONFIG.GAME.totalCards;
+28|28|
+29|29|export default function CardFan({ availableIndices, onCardDrawn, disabled, drawnCardsCount, drawnCardIndices = [], drawnCards = [], showHint, blinkHint, onReturnToHome }: CardFanProps) {
+30|30|  const scrollRef = useRef<HTMLDivElement>(null);
+31|31|  const [removedCards, setRemovedCards] = useState<Set<number>>(new Set());
+32|32|  const [isMobile, setIsMobile] = useState(false);
+33|33|  const [zoom, setZoom] = useState(1);
+34|34|  const [scrollProgress, setScrollProgress] = useState({ start: 0, end: 1 });
+35|35|  
+36|36|  // Drag & Drop state
+37|37|  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+38|38|  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+39|39|  const [isDraggingConfirmed, setIsDraggingConfirmed] = useState(false);
+40|40|  
+41|41|  // États pour l'interprétation IA
+42|42|  const [interpretation, setInterpretation] = useState<{ carte1: string; carte2: string; carte3: string } | null>(null);
+43|43|  const [cardNames, setCardNames] = useState<{ carte1: string; carte2: string; carte3: string } | null>(null);
+44|44|  const [loading, setLoading] = useState(false);
+45|45|  const [error, setError] = useState<string | null>(null);
+46|46|  const [showInterpretation, setShowInterpretation] = useState(false);
+47|47|  const [showDivination, setShowDivination] = useState(false);
+48|48|  const [divinationPhase, setDivinationPhase] = useState<'summoning' | 'revealing'>('summoning');
+49|49|  
+50|50|  // États pour le rendu client-side uniquement
+51|51|  const [hasMounted, setHasMounted] = useState(false);
+52|52|  const hasCenteredRef = useRef(false);
+53|53|  const dragStartRef = useRef<{ x: number; y: number; cardIndex: number; cardRect: DOMRect; holdTimer?: NodeJS.Timeout } | null>(null);
+54|54|  const draggedCardRef = useRef<HTMLDivElement | null>(null);
+55|55|  
+56|56|  // Montage client-side
+57|57|  useEffect(() => {
+58|58|    setHasMounted(true);
+59|59|  }, []);
+60|60|  
+61|61|  useEffect(() => {
+62|62|    const check = () => setIsMobile(window.innerWidth < 640);
+63|63|    check();
+64|64|    window.addEventListener('resize', check);
+65|65|    return () => window.removeEventListener('resize', check);
+66|66|  }, []);
+67|67|
+68|68|  // Dimensions from config - support du mode wide/classic
+69|69|  const isWideMode = CONFIG.FAN_MODE === 'wide';
+70|70|  const cardConfig = isMobile 
+71|71|    ? (isWideMode ? CARD_FAN_WIDE.mobile : CARD_FAN_CLASSIC.mobile)
+72|72|    : (isWideMode ? CARD_FAN_WIDE.desktop : CARD_FAN_CLASSIC.desktop);
+73|73|  const arcConfig = isMobile
+74|74|    ? (isWideMode ? ARC_WIDE.mobile : ARC_CLASSIC.mobile)
+75|75|    : (isWideMode ? ARC_WIDE.desktop : ARC_CLASSIC.desktop);
+76|76|  const CARD_W = cardConfig.width;
+77|77|  const CARD_H = cardConfig.height;
+78|78|  const OVERLAP = cardConfig.overlap; // Utilise l'overlap de la config
+79|79|
+80|80|  const visibleCards = useMemo(() => {
+81|81|    return Array.from({ length: TOTAL_CARDS }, (_, i) => i)
+82|82|      .filter((i) => availableIndices.includes(i) && !removedCards.has(i));
+83|83|  }, [availableIndices, removedCards]);
+84|84|
+85|85|  // Gestionnaire de scroll pour mettre à jour le curseur
+86|86|  const handleScroll = useCallback(() => {
+87|87|    if (!scrollRef.current || visibleCards.length === 0) return;
+88|88|    
+89|89|    const totalCards = visibleCards.length;
+90|90|    const cardSpacing = CARD_W + OVERLAP;
+91|91|    const totalWidth = CARD_W + (totalCards - 1) * cardSpacing;
+92|92|    const containerWidth = scrollRef.current.clientWidth;
+93|93|    const scrollPos = scrollRef.current.scrollLeft;
+94|94|    
+95|95|    updateScrollIndicator(scrollPos, containerWidth, totalWidth);
+96|96|  }, [visibleCards.length, CARD_W, OVERLAP]);
+97|97|
+98|98|  // Fonction utilitaire pour mettre à jour le curseur
+99|99|  const updateScrollIndicator = (scrollPos: number, containerWidth: number, totalWidth: number) => {
+100|100|    const startPercent = Math.max(0, Math.min(1, scrollPos / totalWidth));
+101|101|    const visiblePercent = Math.min(1, containerWidth / totalWidth);
+102|102|    const endPercent = Math.min(1, startPercent + visiblePercent);
+103|103|    
+104|104|    setScrollProgress({ start: startPercent * 100, end: endPercent * 100 });
+105|105|  };
+106|106|
+107|107|  // Attacher le gestionnaire de scroll
+108|108|  useEffect(() => {
+109|109|    const scrollContainer = scrollRef.current;
+110|110|    if (!scrollContainer) return;
+111|111|    
+112|112|    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+113|113|    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+114|114|  }, [handleScroll]);
+115|115|
+116|116|  // ========== ARC DE L'ÉVENTAIL - Arc classique ==========
+117|117|  const getCardStyle = useCallback((displayIndex: number, total: number) => {
+118|118|    const fraction = total > 1 ? displayIndex / (total - 1) : 0.5;
+119|119|    const centered = fraction - 0.5; // -0.5 to 0.5
+120|120|    
+121|121|    // Arc en cosinus
+122|122|    const arcY = Math.cos(centered * Math.PI) * arcConfig.amplitude;
+123|123|    
+124|124|    // Rotation pour suivre la courbe
+125|125|    const rotation = centered * arcConfig.rotation * 2;
+126|126|    
+127|127|    return { arcY: -arcY, rotation };
+128|128|  }, [arcConfig]);
+129|129|
+130|130|  // ========== SCROLL horizontal ==========
+131|131|  const handleWheel = useCallback((e: React.WheelEvent) => {
+132|132|    if (scrollRef.current) {
+133|133|      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+134|134|        return;
+135|135|      }
+136|136|      e.preventDefault();
+137|137|      scrollRef.current.scrollLeft += e.deltaY * 2;
+138|138|    }
+139|139|  }, []);
+140|140|
+141|141|  // ========== PINCH ZOOM ==========
+142|142|  const getTouchDist = (touches: React.TouchList) => {
+143|143|    const [a, b] = [touches[0], touches[1]];
+144|144|    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+145|145|  };
+146|146|
+147|147|  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
+148|148|
+149|149|  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+150|150|    if (e.touches.length === 2) {
+151|151|      e.preventDefault();
+152|152|      pinchStartRef.current = { dist: getTouchDist(e.touches), zoom };
+153|153|    } else if (e.touches.length === 1 && !disabled) {
+154|154|      // Reset des états
+155|155|      setIsDraggingConfirmed(false);
+156|156|      setDraggingIndex(null);
+157|157|      setDragPosition(null);
+158|158|      
+159|159|      // Début du drag tactile
+160|160|      const touch = e.touches[0];
+161|161|      const touchRect = (e.target as Element)?.getBoundingClientRect();
+162|162|      
+163|163|      // Trouver l'index de la carte touchée
+164|164|      let cardIndex: number | null = null;
+165|165|      const cards = document.querySelectorAll('[data-card-index]');
+166|166|      cards.forEach((card, idx) => {
+167|167|        const rect = card.getBoundingClientRect();
+168|168|        if (
+169|169|          touch.clientX >= rect.left &&
+170|170|          touch.clientX <= rect.right &&
+171|171|          touch.clientY >= rect.top &&
+172|172|          touch.clientY <= rect.bottom
+173|173|        ) {
+174|174|          cardIndex = parseInt(card.getAttribute('data-card-index') || '-1');
+175|175|        }
+176|176|      });
+177|177|      
+178|178|      if (cardIndex !== null && cardIndex >= 0) {
+179|179|        dragStartRef.current = {
+180|180|          x: touch.clientX,
+181|181|          y: touch.clientY,
+182|182|          cardIndex,
+183|183|          cardRect: (cards[visibleCards.indexOf(cardIndex)] as HTMLElement)?.getBoundingClientRect() || touchRect,
+184|184|        };
+185|185|        
+186|186|        // Timer : si on reste appuyé 1s sans bouger, la carte se sélectionne
+187|187|        const holdTimer = setTimeout(() => {
+188|188|          if (dragStartRef.current && dragStartRef.current.cardIndex === cardIndex) {
+189|189|            setIsDraggingConfirmed(true);
+190|190|            setDraggingIndex(cardIndex);
+191|191|            setDragPosition({ x: touch.clientX, y: touch.clientY });
+192|192|          }
+193|193|        }, 300); // Timer 300ms pour drag fiable
+194|194|        
+195|195|        dragStartRef.current.holdTimer = holdTimer;
+196|196|      }
+197|197|    }
+198|198|  }, [disabled, zoom, visibleCards]);
+199|199|
+200|200|  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+201|201|    if (e.touches.length === 2 && pinchStartRef.current) {
+202|202|      e.preventDefault();
+203|203|      const newDist = getTouchDist(e.touches);
+204|204|      const scale = newDist / pinchStartRef.current.dist;
+205|205|      setZoom(Math.max(1, Math.min(3, pinchStartRef.current.zoom * scale)));
+206|206|    } else if (e.touches.length === 1 && dragStartRef.current) {
+207|207|      const touch = e.touches[0];
+208|208|      const dx = touch.clientX - dragStartRef.current.x;
+209|209|      const dy = touch.clientY - dragStartRef.current.y;
+210|210|      
+211|211|      // Si déjà en train de draguer, on suit le mouvement
+212|212|      if (draggingIndex !== null) {
+213|213|        setDragPosition({ x: touch.clientX, y: touch.clientY });
+214|214|        e.preventDefault();
+215|215|        return;
+216|216|      }
+217|217|      
+218|218|      // Si drag déjà confirmé (par maintien ou mouvement), on active
+219|219|      if (isDraggingConfirmed) {
+220|220|        setDraggingIndex(dragStartRef.current.cardIndex);
+221|221|        setDragPosition({ x: touch.clientX, y: touch.clientY });
+222|222|        e.preventDefault();
+223|223|        return;
+224|224|      }
+225|225|      
+226|226|      // Annuler le timer de maintien si on bouge
+227|227|      if (dragStartRef.current.holdTimer) {
+228|228|        clearTimeout(dragStartRef.current.holdTimer);
+229|229|        dragStartRef.current.holdTimer = undefined;
+230|230|      }
+231|231|      
+232|232|      // Détection d'un scroll horizontal TROP important → on annule tout
+233|233|      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+234|234|        dragStartRef.current = null;
+235|235|        return;
+236|236|      }
+237|237|      
+238|238|      // Détection d'un vrai drag (mouvement vertical OU horizontal modéré)
+239|239|      const minDrag = 60; // Seuil augmenté : 60px
+240|240|      if (Math.abs(dx) > minDrag || dy < -minDrag) {
+241|241|        // On ne confirme que si le mouvement est vers le haut ou diagonal vers le haut
+242|242|        if (dy < 0 || Math.abs(dy) > Math.abs(dx)) {
+243|243|          setIsDraggingConfirmed(true);
+244|244|          setDraggingIndex(dragStartRef.current.cardIndex);
+245|245|          setDragPosition({ x: touch.clientX, y: touch.clientY });
+246|246|          e.preventDefault();
+247|247|        }
+248|248|      }
+249|249|    } else if (draggingIndex !== null && dragPosition) {
+250|250|      const touch = e.touches[0];
+251|251|      setDragPosition({ x: touch.clientX, y: touch.clientY });
+252|252|      e.preventDefault();
+253|253|    }
+254|254|  }, [draggingIndex, isDraggingConfirmed]);
+255|255|
+256|256|  const handleTouchEnd = useCallback(() => {
+257|257|    pinchStartRef.current = null;
+258|258|    
+259|259|    // Annuler le timer de maintien
+260|260|    if (dragStartRef.current?.holdTimer) {
+261|261|      clearTimeout(dragStartRef.current.holdTimer);
+262|262|      dragStartRef.current.holdTimer = undefined;
+263|263|    }
+264|264|    
+265|265|    if (draggingIndex !== null && dragPosition) {
+266|266|      // Zone de validation - milieu de l'écran (50%)
+267|267|      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
+268|268|      
+269|269|      if (releasedInDrawZone) {
+270|270|        setRemovedCards((prev) => new Set(prev).add(draggingIndex));
+271|271|        onCardDrawn(draggingIndex);
+272|272|      }
+273|273|    }
+274|274|    
+275|275|    // Reset complet
+276|276|    setIsDraggingConfirmed(false);
+277|277|    setDraggingIndex(null);
+278|278|    setDragPosition(null);
+279|279|    dragStartRef.current = null;
+280|280|  }, [draggingIndex, dragPosition, onCardDrawn]);
+281|281|
+282|282|  // ========== DESKTOP: Mouse Drag ==========
+283|283|  const handleMouseDown = useCallback((e: React.MouseEvent, index: number) => {
+284|284|    console.log('🖱️ [DEBUG Desktop] handleMouseDown called, index:', index, 'disabled:', disabled);
+285|285|    
+286|286|    if (disabled) {
+287|287|      console.log('❌ [DEBUG] Bloqué car disabled=true');
+288|288|      return;
+289|289|    }
+290|290|    e.preventDefault();
+291|291|    e.stopPropagation();
+292|292|    const cardElement = e.currentTarget;
+293|293|    dragStartRef.current = {
+294|294|      x: e.clientX,
+295|295|      y: e.clientY,
+296|296|      cardIndex: index,
+297|297|      cardRect: cardElement.getBoundingClientRect(),
+298|298|    };
+299|299|    
+300|300|    console.log('✅ [DEBUG] Drag started, timer 1s lancé...');
+301|301|    
+302|302|    // Reset des états
+303|303|    setDraggingIndex(null);
+304|304|    setDragPosition(null);
+305|305|    setIsDraggingConfirmed(false);
+306|306|    
+307|307|    // Timer : si on reste appuyé 1s sans bouger, la carte se sélectionne
+308|308|    const holdTimer = setTimeout(() => {
+309|309|      if (dragStartRef.current && dragStartRef.current.cardIndex === index) {
+310|310|        console.log('✅ [DEBUG] Hold timer écoulé, carte confirmée!');
+311|311|        setIsDraggingConfirmed(true);
+312|312|        setDraggingIndex(index);
+313|313|        // Position initiale : la carte reste à sa place
+314|314|        setDragPosition({ x: e.clientX, y: e.clientY });
+315|315|      }
+316|316|    }, 300); // Timer 300ms pour drag fiable
+317|317|    
+318|318|    dragStartRef.current.holdTimer = holdTimer;
+319|319|  }, [disabled]);
+320|320|
+321|321|  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+322|322|    if (!dragStartRef.current) return;
+323|323|    
+324|324|    const dx = e.clientX - dragStartRef.current.x;
+325|325|    const dy = e.clientY - dragStartRef.current.y;
+326|326|    
+327|327|    // Si déjà en train de draguer, on suit le mouvement
+328|328|    if (draggingIndex !== null) {
+329|329|      setDragPosition({ x: e.clientX, y: e.clientY });
+330|330|      return;
+331|331|    }
+332|332|    
+333|333|    // Si drag déjà confirmé (par maintien ou mouvement), on active
+334|334|    if (isDraggingConfirmed) {
+335|335|      setDraggingIndex(dragStartRef.current.cardIndex);
+336|336|      setDragPosition({ x: e.clientX, y: e.clientY });
+337|337|      return;
+338|338|    }
+339|339|    
+340|340|    // Annuler le timer de maintien si on bouge
+341|341|    if (dragStartRef.current.holdTimer) {
+342|342|      clearTimeout(dragStartRef.current.holdTimer);
+343|343|      dragStartRef.current.holdTimer = undefined;
+344|344|    }
+345|345|    
+346|346|    // Détection d'un scroll horizontal TROP important → on annule tout
+347|347|    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+348|348|      dragStartRef.current = null;
+349|349|      return;
+350|350|    }
+351|351|    
+352|352|    // Détection d'un vrai drag (mouvement vertical OU horizontal modéré)
+353|353|    const minDrag = 60; // Seuil augmenté : 60px
+354|354|    if (Math.abs(dx) > minDrag || dy < -minDrag) {
+355|355|      // On ne confirme que si le mouvement est vers le haut ou diagonal vers le haut
+356|356|      if (dy < 0 || Math.abs(dy) > Math.abs(dx)) {
+357|357|        setIsDraggingConfirmed(true);
+358|358|        setDraggingIndex(dragStartRef.current.cardIndex);
+359|359|        setDragPosition({ x: e.clientX, y: e.clientY });
+360|360|      }
+361|361|    }
+362|362|  }, [draggingIndex, isDraggingConfirmed]);
+363|363|
+364|364|  const handleMouseUp = useCallback(() => {
+365|365|    // Annuler le timer de maintien
+366|366|    if (dragStartRef.current?.holdTimer) {
+367|367|      clearTimeout(dragStartRef.current.holdTimer);
+368|368|      dragStartRef.current.holdTimer = undefined;
+369|369|    }
+370|370|    
+371|371|    if (draggingIndex !== null && dragPosition) {
+372|372|      // Zone de validation - milieu de l'écran (50%)
+373|373|      const releasedInDrawZone = dragPosition.y < window.innerHeight * 0.95;
+374|374|      
+375|375|      if (releasedInDrawZone) {
+376|376|        setRemovedCards((prev) => new Set(prev).add(draggingIndex));
+377|377|        onCardDrawn(draggingIndex);
+378|378|      }
+379|379|    }
+380|380|    
+381|381|    // Reset complet
+382|382|    setIsDraggingConfirmed(false);
+383|383|    setDraggingIndex(null);
+384|384|    setDragPosition(null);
+385|385|    dragStartRef.current = null;
+386|386|  }, [draggingIndex, dragPosition, onCardDrawn]);
+387|387|
+388|388|  // Calcul de la position initiale de scroll pour centrer la pioche
+389|389|  const getInitialScrollPosition = useMemo(() => {
+390|390|    if (availableIndices.length < 75 || visibleCards.length === 0) {
+391|391|      return 0;
+392|392|    }
+393|393|    const totalCards = visibleCards.length;
+394|394|    const cardSpacing = CARD_W + OVERLAP;
+395|395|    const totalWidth = CARD_W + (totalCards - 1) * cardSpacing;
+396|396|    const centerOfDeck = totalWidth / 2;
+397|397|    const estimatedScreenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+398|398|    return Math.max(0, centerOfDeck - (estimatedScreenWidth / 2));
+399|399|  }, [availableIndices.length, visibleCards.length, CARD_W, OVERLAP]);
+400|400|
+401|401|  // Centrage à chaque changement de cartes (simple et fiable)
+402|402|  useEffect(() => {
+403|403|    if (getInitialScrollPosition > 0 && scrollRef.current) {
+404|404|      scrollRef.current.scrollLeft = getInitialScrollPosition;
+405|405|    }
+406|406|  }, [getInitialScrollPosition]);
+407|407|
+408|408|  // Fonction pour appeler l'API d'interprétation
+409|409|  const handleRequestInterpretation = useCallback(async () => {
+410|410|    // Debug: écrire dans un fichier via une API locale
+411|411|    const debugLog = async (msg: string) => {
+412|412|      try {
+413|413|        await fetch('/api/debug-log', {
+414|414|          method: 'POST',
+415|415|          headers: { 'Content-Type': 'application/json' },
+416|416|          body: JSON.stringify({ msg, ts: Date.now() }),
+417|417|        }).catch(() => {});
+418|418|      } catch {}
+419|419|    };
+420|420|    
+421|421|    await debugLog('🔮 Début interprétation');
+422|422|    await debugLog(`🃏 Cartes: ${JSON.stringify(drawnCardIndices)}`);
+423|423|    await debugLog(`📊 drawnCardsCount: ${drawnCardsCount}`);
+424|424|    await debugLog(`🔒 disabled: ${disabled}`);
+425|425|    
+426|426|    // Check plus détaillé
+427|427|    if (!drawnCardIndices || drawnCardIndices.length === 0) {
+428|428|      const msg = '❌ drawnCardIndices est vide ou undefined !';
+429|429|      await debugLog(msg + ` (drawnCardsCount=${drawnCardsCount})`);
+430|430|      setError(msg + ' (drawnCardsCount=' + drawnCardsCount + ')');
+431|431|      setShowInterpretation(true);  // Affiche quand même la zone pour voir l'erreur
+432|432|      setLoading(false);
+433|433|      return;
+434|434|    }
+435|435|    
+436|436|    if (drawnCardIndices.length !== 3) {
+437|437|      const msg = `❌ Attend 3 cartes, reçu ${drawnCardIndices.length}`;
+438|438|      await debugLog(msg);
+439|439|      setError(msg);
+440|440|      setShowInterpretation(true);  // Affiche quand même la zone
+441|441|      setLoading(false);
+442|442|      return;
+443|443|    }
+444|444|    
+445|445|    await debugLog('✅ 3 cartes valides, appel API...');
+446|446|        setLoading(true);
+447|447|        setError(null);
+448|448|        setShowInterpretation(true);  // Ouvre la modal IMMÉDIATEMENT avec la vidéo
+449|449|    
+450|450|        try {
+451|451|          await debugLog('📦 Affichage écran de divination avec vidéo...');
+452|452|          await debugLog('🔮 Modal affichée !');
+453|453|     
+454|454|          // ÉTAPE 2: Attendre 5 secondes MINIMUM (en parallèle de l'API)
+455|455|          const startTime = Date.now();
+456|456|          const minWait = 5000;
+457|457|      
+458|458|            await debugLog('⏳ Lancement API + attente 5s...');
+459|459|      
+460|460|            // Lancer l'API en parallèle
+461|461|            const apiPromise = fetch('/api/interpretation', {
+462|462|              method: 'POST',
+463|463|              headers: { 'Content-Type': 'application/json' },
+464|464|              body: JSON.stringify({ cartes: drawnCardIndices }),
+465|465|            }).then(async (response) => {
+466|466|              const responseText = await response.text();
+467|467|              await debugLog(`📥 Status: ${response.status}, Taille: ${responseText.length} chars`);
+468|468|        
+469|469|              if (!response.ok) {
+470|470|                let errorData;
+471|471|                try { errorData = JSON.parse(responseText); } catch { errorData = { error: responseText }; }
+472|472|                await debugLog(`❌ Erreur API: ${JSON.stringify(errorData)}`);
+473|473|                throw new Error(errorData.error || 'Échec de l\'interprétation');
+474|474|              }
+475|475|        
+476|476|              let data;
+477|477|              try { 
+478|478|                data = JSON.parse(responseText); 
+479|479|                await debugLog(`✅ JSON parsé`);
+480|480|              } catch (parseErr) { 
+481|481|                await debugLog(`❌ Erreur parsing: ${parseErr}`);
+482|482|                throw new Error('Format de réponse invalide'); 
+483|483|              }
+484|484|              return data;
+485|485|            });
+486|486|      
+487|487|            // Attendre 5 secondes ET que l'API soit prête
+488|488|            await Promise.all([
+489|489|              apiPromise,
+490|490|              new Promise(resolve => setTimeout(resolve, minWait)),
+491|491|            ]);
+492|492|      
+493|493|            const elapsed = Date.now() - startTime;
+494|494|            await debugLog(`⏱️ Attente totale: ${elapsed}ms`);
+495|495|      
+496|496|            // Récupérer les données (déjà résolues par Promise.all)
+497|497|            const data = await apiPromise;
+498|498|      
+499|499|            // Extraire les noms des cartes depuis drawnCards
+500|500|            const names = drawnCards && drawnCards.length >= 3 ? {
+501|
