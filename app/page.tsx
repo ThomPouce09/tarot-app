@@ -172,46 +172,51 @@ export default function HomePage() {
         </Link>
 
         {/* Yi Qing Card Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            alert("Le tirage Yi Jing sera bientôt disponible ! ✨");
-          }}
-          className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all opacity-60 transform hover:scale-103 active:scale-98"
-          style={{
-            boxShadow: '0 0 15px rgba(100,100,100,0.3), 0 3px 10px rgba(0,0,0,0.4)',
-            border: '2px solid rgba(180,180,180,0.25)',
-          }}
-        >
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
+        <Link href="/yi-qing" className="block">
+          <motion.div
+            className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
-              background: 'linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 50%, #3a3a3a 100%)',
+              boxShadow: '0 0 15px rgba(100,100,100,0.3), 0 3px 10px rgba(0,0,0,0.4)',
+              border: '2px solid rgba(180,180,180,0.25)',
             }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <div className="absolute inset-1.5 border border-gray-500/25 rounded-lg dashed" />
-            <div className="text-2xl sm:text-3xl mb-1">☯️</div>
-            <h2
-              className="text-xs sm:text-sm font-bold text-center leading-tight"
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                fontFamily: 'var(--font-cinzel-deco), serif',
-                color: '#9CA3AF',
-                textShadow: '0 0 6px rgba(156,163,175,0.3)',
+                background: 'linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 50%, #3a3a3a 100%)',
               }}
             >
-              Yi Jing
-            </h2>
-            <p
-              className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5 italic"
+              <div className="absolute inset-1.5 border border-gray-500/25 rounded-lg dashed" />
+              <div className="text-2xl sm:text-3xl mb-1">☯️</div>
+              <h2
+                className="text-xs sm:text-sm font-bold text-center leading-tight"
+                style={{
+                  fontFamily: 'var(--font-cinzel-deco), serif',
+                  color: '#9CA3AF',
+                  textShadow: '0 0 6px rgba(156,163,175,0.3)',
+                }}
+              >
+                Yi Jing
+              </h2>
+              <p
+                className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5 italic"
+                style={{
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: 'rgba(156,163,175,0.6)',
+                }}
+              >
+                Découvrir
+              </p>
+            </div>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                color: 'rgba(156,163,175,0.6)',
+                background: 'radial-gradient(ellipse at center, rgba(156,163,175,0.15) 0%, transparent 70%)',
               }}
-            >
-              Bientôt
-            </p>
-          </div>
-        </button>
+            />
+          </motion.div>
+        </Link>
       </div>
 
       {/* LOGIN MODAL */}
