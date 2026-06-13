@@ -15,18 +15,17 @@ const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b
 
 export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     setIsMobile(window.innerWidth < 640);
   }, []);
-  
+
   return (
     <div
       className="absolute left-0 right-0 z-25 flex justify-center items-start px-2 sm:px-4"
-      style={{ 
-        zIndex: 25, 
-        top: '28vh',  // Descendu de 22vh à 28vh pour mieux centrer sur le tapis violet
-        // IMPORTANT: Overflow visible mais avec contrainte pour mobile
+      style={{
+        zIndex: 25,
+        top: '28vh',
         maxWidth: isMobile ? '100vw' : '1200px',
         margin: '0 auto',
       }}
@@ -34,11 +33,10 @@ export default function DrawnCards({ drawnCards }: DrawnCardsProps) {
       {[0, 1, 2].map((position) => {
         const drawnCard = drawnCards.find((c) => c.position === position) ?? null;
         return (
-          <div 
-            key={position} 
-            style={{ 
+          <div
+            key={position}
+            style={{
               flex: '0 0 auto',
-              // Réduire l'espacement sur mobile pour éviter l'overflow
               marginRight: isMobile && position < 2 ? '8px' : '0',
             }}
           >
@@ -88,25 +86,26 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
 
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ marginTop: '-20px', marginBottom: '20px' }}>
-      {/* Position label */}
+      {/* Position label - mis en valeur mobile */}
       <motion.div
         className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full"
         style={{
           background: 'rgba(0,0,0,0.7)',
-          border: '2px solid rgba(218,165,32,0.5)',
-          backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(218,165,32,0.5)',
+          backdropFilter: 'blur(4px)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
         }}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 + position * 0.2 }}
       >
-        <span style={{ color: '#DAA520', fontSize: isMobile ? '11px' : '14px' }}>{POSITION_ICONS[position]}</span>
+        <span style={{ color: '#FFD700', fontSize: isMobile ? '12px' : '15px', textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>{POSITION_ICONS[position]}</span>
         <span
           className="text-xs sm:text-sm md:text-base tracking-widest uppercase font-bold"
           style={{
             fontFamily: 'var(--font-cinzel), serif',
-            color: '#DAA520',
-            textShadow: '0 0 10px rgba(218,165,32,0.6)',
+            color: '#FFD700',
+            textShadow: '0 1px 1px rgba(0,0,0,0.3)',
           }}
         >
           {POSITION_LABELS[position]}
@@ -114,14 +113,12 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
       </motion.div>
 
       {/* Card slot - AGRANDI (ajusté mobile pour éviter overflow) */}
-      <div 
-        className="relative" 
-        style={{ 
+      <div
+        className="relative"
+        style={{
           perspective: '1000px',
-          // Mobile: réduit pour tenir dans l'écran sans overflow
-          // Desktop: grandi pour être impressionnant
           width: isMobile ? '110px' : '240px',
-          height: isMobile ? '185px' : '405px',  // ratio 0.595 pour matcher PNG (764x1286)
+          height: isMobile ? '185px' : '405px',
         }}
       >
         {!drawnCard ? (
@@ -166,27 +163,23 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
               {isFlipped && (
                 <>
                   {Array.from({ length: 12 }).map((_, i) => {
-                    // Positions aléatoires mais réparties sur la carte
                     const leftPos = 5 + (i * 90 / 12);
                     const topPos = 10 + ((i * 7) % 5) * 18;
-                    
-                    // Variations de couleurs dorées
+
                     const goldColors = [
-                      '#FFD700',  // Or pur
-                      '#DAA520',  // Solid gold
-                      '#FFA500',  // Orange doré
-                      '#FFE57C',  // Or clair
-                      '#FDB931',  // Or intense
+                      '#FFD700',
+                      '#DAA520',
+                      '#FFA500',
+                      '#FFE57C',
+                      '#FDB931',
                     ];
                     const randomColor = goldColors[i % goldColors.length];
-                    
-                    // Variations de taille
+
                     const sizes = ['6px', '7px', '8px', '6px', '7px'];
                     const randomSize = sizes[i % sizes.length];
-                    
-                    // Délais décalés pour effet vague
+
                     const delay = i * 0.05;
-                    
+
                     return (
                       <motion.div
                         key={`sparkle-${position}-${i}`}
@@ -242,24 +235,18 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
  * - Background qui s'ajuste à la hauteur du contenu
  */
 function CardNameLabel({ cardName, isMobile }: { cardName: string; isMobile: boolean }) {
-  // Largeur du conteneur basée sur la taille de l'écran
   const containerWidth = isMobile ? '90px' : '180px';
-  
-  // Calcul dynamique de la taille de police avec clamp()
-  // Plus le nom est long, plus la police réduit (dans des limites raisonnables)
+
   const nameLength = cardName.length;
   const baseFontSize = isMobile ? 9 : 11;
   const minFontSize = isMobile ? 7 : 9;
-  const maxFontSize = isMobile ? 10 : 12;
-  
-  // Réduction progressive de la taille selon la longueur du nom
-  const adjustedFontSize = nameLength > 20 
+
+  const adjustedFontSize = nameLength > 20
     ? Math.max(minFontSize, baseFontSize - (nameLength - 20) * 0.3)
     : baseFontSize;
-  
-  // Autoriser le retour à la ligne pour les noms très longs
+
   const allowWrap = nameLength > 18;
-  
+
   return (
     <motion.div
       className="text-center"

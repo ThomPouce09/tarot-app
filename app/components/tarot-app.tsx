@@ -163,7 +163,7 @@ export default function TarotApp() {
         </motion.div>
       </motion.div>
 
-      {/* ========== TITLE - Zone A : remontée ========== */}
+      {/* ========== TITLE - Zone A : remontée + mis en valeur mobile ========== */}
       <motion.div
         className="absolute top-0 left-0 right-0 z-30 text-center"
         style={{ top: '4%', transform: 'translateY(-50%)' }}
@@ -172,28 +172,29 @@ export default function TarotApp() {
         transition={{ duration: 1, delay: 0.2 }}
       >
         <h1
-          className="title-glow px-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl tracking-wider uppercase"
+          className="title-glow px-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-wider uppercase"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
-            color: '#DAA520',
-            letterSpacing: '0.15em',
-            textShadow: '0 0 30px rgba(218,165,32,0.6), 0 0 60px rgba(218,165,32,0.3)',
+            color: '#FFD700',
+            letterSpacing: '0.1em',
+            textShadow: '0 2px 4px rgba(0,0,0,0.4)',
           }}
         >
           Faites votre tirage de 3 cartes
         </h1>
         <motion.p
-          className="text-sm sm:text-base md:text-lg mt-3 font-semibold"
+          className="text-sm sm:text-base md:text-lg mt-2 font-semibold"
           style={{ 
-            color: '#FFD700',  // Or plus clair et brillant
+            color: '#FFD700',
             fontFamily: 'var(--font-cinzel), serif',
-            textShadow: '0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(218,165,32,0.6), 0 2px 8px rgba(0,0,0,0.9)',
-            background: 'rgba(0,0,0,0.6)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+            background: 'rgba(0,0,0,0.55)',
             backdropFilter: 'blur(4px)',
-            padding: '4px 12px',
-            borderRadius: '12px',
+            padding: '6px 16px',
+            borderRadius: '14px',
             display: 'inline-block',
-            transform: `translateY(${VISUAL_SHIFT_DOWN}px)`,
+            border: '1px solid rgba(218,165,32,0.3)',
+            transform: 'translateY(28px)',
           }}
         >
           {allDrawn
