@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
@@ -138,6 +139,7 @@ function YiQingRig() {
   const [totalMovement, setTotalMovement] = useState(0);
   const [phase, setPhase] = useState<'idle' | 'shaking' | 'jumping' | 'done'>('idle');
   const [animatingProgress, setAnimatingProgress] = useState(0);
+  const router = useRouter();
 
   const dragging = useRef(false);
   const lastX = useRef<number | null>(null);
@@ -540,8 +542,9 @@ function YiQingRig() {
         >
           <motion.button
             onClick={() => {
-              // TODO: Implémenter l'interprétation Yi Jing
-              alert('Interprétation Yi Jing à venir !');
+              localStorage.setItem('yi-qing-baguette', String(drawnRef.current));
+              router.push('/yi-qing/interpretation');
+              
             }}
             className="px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
             style={{
