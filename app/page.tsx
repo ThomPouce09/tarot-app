@@ -20,11 +20,29 @@ export default function HomePage() {
     if (user) setIsLoggedIn(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('tarot_user', email);
-    setIsLoggedIn(true);
-    setShowLoginModal(false);
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        localStorage.setItem('tarot_user', JSON.stringify(data.user));
+        setIsLoggedIn(true);
+        setShowLoginModal(false);
+        router.push('/dashboard/account');
+      } else {
+        alert(data.error || 'Email ou mot de passe incorrect');
+      }
+    } catch {
+      alert('Erreur de connexion');
+    }
   };
 
   const handleLogout = () => {
@@ -47,8 +65,23 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/40" />
       </div>
 
-      {/* LOGIN BUTTON (Top Right) */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* AUTH BUTTONS (Top Right) */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <Link
+          href="/auth/signup"
+          className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
+          style={{
+            fontFamily: 'var(--font-cinzel), serif',
+            background: 'rgba(139, 105, 20, 0.25)',
+            color: '#DAA520',
+            border: '1px solid rgba(218, 165, 32, 0.3)',
+            backdropFilter: 'blur(4px)',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.4)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.25)'}
+        >
+          📝 Inscription
+        </Link>
         {isLoggedIn ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-amber-200/80 font-medium" style={{ 
@@ -324,15 +357,10 @@ export default function HomePage() {
                 Se connecter ✨
               </button>
             </form>
-            <p
-              className="text-center text-xs mt-4"
-              style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                color: 'rgba(255,215,0,0.5)',
-              }}
-            >
-              Pas encore de compte ? L&apos;inscription est automatique lors de votre première connexion.
-            </p>
+            <div className="text-center text-xs mt-4 space-y-2">
+              <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">🔑 Mot de passe oublié ?</a>
+              <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">✨ Pas encore inscrit ?</a>
+            </div>
           </motion.div>
         </div>
       )}
