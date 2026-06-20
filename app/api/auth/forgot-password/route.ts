@@ -1,51 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash, randomBytes } from 'crypto';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { randomBytes } from 'crypto';
 import nodemailer from 'nodemailer';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const DB_FILE = join(process.cwd(), '.registered-emails.json');
-
-const hashEmailForLookup = (email: string): string => {
-  return createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
-};
+// Create a generic transporter (configure in .env)
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { email } = body;
-
-  if (!email) {
-    return NextResponse.json({ error: 'Email requis' }, { status: 400 });
-  }
-
-  // Vérifier si l'utilisateur existe
-  const emailStore = existsSync(DB_FILE) 
-    ? new Map(JSON.parse(readFileSync(DB_FILE, 'utf-8'))) 
-    : new Map();
-
-  const emailKey = hashEmailForLookup(email);
-
-  if (!emailStore.has(emailKey)) {
-    // Ne pas révéler si l'email existe ou non (sécurité)
-    return NextResponse.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
-  }
-
-  // Générer un token de réinitialisation
-  const resetToken = randomBytes(32).toString('hex');
-  const userData = emailStore.get(emailKey);
-  
-  (userData as any).resetToken = resetToken;
-  (userData as any).resetExpires = Date.now() + 3600000; // 1 heure
-
   try {
-    writeFileSync(DB_FILE, JSON.stringify(Array.from(emailStore.entries()), null, 2));
-  } catch {}
+    const { email } = await request.json();
 
-  // Envoyer l'email (mode dev: log console)
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/auth/reset-password?token=${resetToken}`;
-  console.log('RESET PASSWORD LINK:', resetUrl);
+    if (!email) {
+      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+    }
 
-  return NextResponse.json({ message: 'Email de réinitialisation envoyé !' });
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists
+      return NextResponse.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    
+    await prisma.user.update({
+      where: { email },
+      data: { confirmationToken: resetToken },
+    });
+
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${resetToken}`;
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Réinitialisation du mot de passe',
+      html: `<p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe.</p>`,
+    });
+
+    return NextResponse.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
