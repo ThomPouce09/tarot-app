@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function AccountPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
     firstName: '',
@@ -24,7 +25,21 @@ export default function AccountPage() {
       setUser(u);
       setForm({ firstName: u.firstName || '', lastName: u.lastName || '', email: u.email || '', phone: u.phone || '', age: u.age || 0 });
     }
+    setIsLoading(false);
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center">
+        <p className="text-amber-300">Chargement...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/auth/login');
+    return null;
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
@@ -56,13 +71,9 @@ export default function AccountPage() {
     }
   };
 
-  if (!user) {
-    router.push('/auth/login');
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 p-4">
+      <Link href="/" className="absolute top-4 right-4 text-yellow-400 text-2xl font-bold hover:text-yellow-300 transition-colors">✕</Link>
       <Link href="/dashboard" className="text-amber-400 mb-4 inline-block">← Retour</Link>
       
       <h1 className="text-2xl font-bold text-amber-300 mb-4">🌙 Mon compte</h1>

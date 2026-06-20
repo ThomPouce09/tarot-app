@@ -45,9 +45,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, firstName, password, confirmPassword, lastName, gender, age, phone, comment, turnstileToken } = body;
 
-    if (!turnstileToken) {
-      return NextResponse.json({ error: 'Captcha invalide' }, { status: 400 });
-    }
 
     if (!email || !firstName || !password) {
       return NextResponse.json({ error: 'Email, prénom et mot de passe sont obligatoires' }, { status: 400 });
@@ -76,14 +73,25 @@ export async function POST(request: NextRequest) {
       phone,
       comment,
       token: generateToken(),
-      confirmed: false,
+      confirmed: true,
     });
     
     saveStore();
 
     console.log('🔐 INSCRIPTION:', email);
 
-    return NextResponse.json({ success: true, message: 'Compte créé ! Vérifiez vos emails.' });
+    return NextResponse.json({
+      success: true,
+      user: {
+        email: email.toLowerCase().trim(),
+        firstName,
+        lastName,
+        gender,
+        age,
+        phone,
+        confirmed: true,
+      },
+    });
   } catch (error: any) {
     console.error('Signup error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
