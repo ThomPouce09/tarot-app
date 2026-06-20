@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { Turnstile } from 'react-turnstile';
+// Turnstile désactivé en dev
+// import { Turnstile } from 'react-turnstile';
 
 // Schéma de validation avec règles strictes
 const passwordSchema = z.string()
@@ -41,7 +42,7 @@ export default function SignUpPage() {
     phone: '',
     comment: '',
   });
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>("skip");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
@@ -92,7 +93,7 @@ export default function SignUpPage() {
       return;
     }
 
-    if (!turnstileToken) {
+    if (!turnstileToken && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
       setApiError('Veuillez valider le captcha.');
       return;
     }
@@ -106,8 +107,10 @@ export default function SignUpPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('tarot_user', JSON.stringify(data.user));
         setShowSuccess(true);
-        setTimeout(() => router.push('/auth/login'), 3000);
+        setTimeout(() => router.push('/dashboard/account'), 3000);
       } else {
         const data = await res.json();
         setApiError(data.error || "Erreur lors de la création du compte.");
@@ -173,7 +176,7 @@ export default function SignUpPage() {
                     value={formData.email}
                     onChange={handleChange}
                     inputMode="email"
-                    autoComplete="email"
+                    autoComplete="off"
                     className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all backdrop-blur-sm"
                     placeholder="votre@email.com"
                     required
@@ -213,6 +216,7 @@ export default function SignUpPage() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
                       placeholder="8-20 caractères, A-Z, a-z, 0-9"
                       required
@@ -256,6 +260,7 @@ export default function SignUpPage() {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
                       placeholder="Confirmez le mot de passe"
                       required
@@ -370,13 +375,6 @@ export default function SignUpPage() {
                   ></textarea>
                 </div>
 
-                <div className="flex justify-center py-2">
-                  <Turnstile
-                    sitekey="0x4AAAAAADmFRdm-096yPlo9"
-                    onVerify={(token) => setTurnstileToken(token)}
-                    options={{ theme: "dark", size: "compact" }}
-                  />
-                </div>
 
                 {apiError && (
                   <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-red-400 text-xs text-center">
@@ -386,7 +384,7 @@ export default function SignUpPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || !turnstileToken}
+                  disabled={isLoading}
                   className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:via-orange-700 hover:to-amber-800 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg shadow-amber-900/30 active:scale-[0.97] touch-manipulation relative overflow-hidden group"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">

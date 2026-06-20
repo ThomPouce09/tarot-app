@@ -1,25 +1,41 @@
 generator client {
-    provider = "prisma-client-js"
-    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
-    output = "/home/ubuntu/tarot_app/nextjs_space/node_modules/.prisma/client"
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String
+  firstName        String?
+  lastName         String?
+  gender           String?
+  age              Int?
+  phone            String?
+  comment          String?
+  confirmed        Boolean   @default(false)
+  confirmationToken String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  readings         Reading[]
 }
 
 model Reading {
-  id          String   @id @default(cuid())
-  card1       String
-  card2       String
-  card3       String
-  card1Rev    Boolean  @default(false)
-  card2Rev    Boolean  @default(false)
-  card3Rev    Boolean  @default(false)
-  interpretation String? @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([createdAt])
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  question      String?
+  spread        String?
+  cards         String
+  interpretation String?  @db.Text
+  createdAt     DateTime @default(now())
+  
+  user          User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId, createdAt])
 }

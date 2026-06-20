@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcryptjs';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { randomBytes } from 'crypto';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-// Hash SHA256 pour comparaison d'unicité (email en minuscules)
-const hashEmailForLookup = (email: string): string => {
-  return createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
-};
 
 const hashPassword = async (password: string): Promise<string> => {
   return (bcrypt as any).hash(password, 12);
@@ -17,37 +11,10 @@ const hashPassword = async (password: string): Promise<string> => {
 
 const generateToken = () => randomBytes(32).toString('hex');
 
-const DB_FILE = join(process.cwd(), '.registered-emails.json');
-
-let emailStore: Map<string, any> = new Map();
-
-const loadStore = () => {
-  if (existsSync(DB_FILE)) {
-    try {
-      const data = JSON.parse(readFileSync(DB_FILE, 'utf-8'));
-      emailStore = new Map(data);
-    } catch {
-      emailStore = new Map();
-    }
-  }
-};
-
-const saveStore = () => {
-  try {
-    writeFileSync(DB_FILE, JSON.stringify(Array.from(emailStore.entries()), null, 2));
-  } catch {}
-};
-
-loadStore();
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, password, confirmPassword, lastName, gender, age, phone, comment, turnstileToken } = body;
-
-    if (!turnstileToken) {
-      return NextResponse.json({ error: 'Captcha invalide' }, { status: 400 });
-    }
+    const { email, firstName, password, confirmPassword, lastName, gender, age, phone, comment } = body;
 
     if (!email || !firstName || !password) {
       return NextResponse.json({ error: 'Email, prénom et mot de passe sont obligatoires' }, { status: 400 });
@@ -57,33 +24,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Les mots de passe ne correspondent pas' }, { status: 400 });
     }
 
-    const emailKey = hashEmailForLookup(email);
-
     // Vérification unicité
-    if (emailStore.has(emailKey)) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() }
+    });
+
+    if (existingUser) {
       return NextResponse.json({ error: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.' }, { status: 400 });
     }
 
     const hashedPassword = await hashPassword(password);
+    const confirmationToken = generateToken();
     
-    emailStore.set(emailKey, {
-      email: email.toLowerCase().trim(),
-      password: hashedPassword,
-      firstName,
-      lastName,
-      gender,
-      age,
-      phone,
-      comment,
-      token: generateToken(),
-      confirmed: false,
+    const user = await prisma.user.create({
+      data: {
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+        firstName,
+        lastName,
+        gender,
+        age,
+        phone,
+        comment,
+        confirmationToken,
+        confirmed: true, // Auto-confirmé pour le moment
+      },
     });
-    
-    saveStore();
 
     console.log('🔐 INSCRIPTION:', email);
 
-    return NextResponse.json({ success: true, message: 'Compte créé ! Vérifiez vos emails.' });
+    return NextResponse.json({
+      success: true,
+      user: {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        gender: user.gender,
+        age: user.age,
+        phone: user.phone,
+        confirmed: user.confirmed,
+      },
+    });
   } catch (error: any) {
     console.error('Signup error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
@@ -95,12 +76,20 @@ export async function DELETE(request: NextRequest) {
   const email = searchParams.get('email');
   if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 });
 
-  const emailKey = hashEmailForLookup(email);
-  
-  if (emailStore.has(emailKey)) {
-    emailStore.delete(emailKey);
-    saveStore();
-    return NextResponse.json({ deleted: email });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() }
+    });
+
+    if (user) {
+      await prisma.user.delete({
+        where: { email: email.toLowerCase().trim() }
+      });
+      return NextResponse.json({ deleted: email });
+    }
+    return NextResponse.json({ error: 'Email non trouvé' }, { status: 404 });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
-  return NextResponse.json({ error: 'Email non trouvé' }, { status: 404 });
 }

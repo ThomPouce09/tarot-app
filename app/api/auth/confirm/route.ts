@@ -1,42 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const token = searchParams.get('token');
-
-  if (!token) {
-    return NextResponse.redirect(new URL('/auth/signup?error=no_token', request.url));
-  }
-
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.redirect(new URL('/auth/login?message=confirmed_dev', request.url));
-  }
-
   try {
-    const { db, users } = await import('../../../lib/db');
-    
-    // Valide que le token existe et que l'email n'est pas déjà confirmé
-    const existingUser = await db.query.users.findFirst({
-      where: (u, { eq, and }) => 
-        and(eq(u.confirmationToken, token), eq(u.emailConfirmed, false)),
+    const searchParams = request.nextUrl.searchParams;
+    const token = searchParams.get('token');
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/auth/signup?error=no_token', request.url));
+    }
+
+    // Find user by confirmation token
+    const user = await prisma.user.findFirst({
+      where: { confirmationToken: token }
     });
 
-    if (!existingUser) {
+    if (!user) {
       return NextResponse.redirect(new URL('/auth/signup?error=invalid_token', request.url));
     }
 
-    // Confirme l'email
-    await db.update(users)
-      .set({ emailConfirmed: true, confirmationToken: null })
-      .where({ email: existingUser.email });
+    // Mark user as confirmed and clear the token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        confirmed: true,
+        confirmationToken: null,
+      },
+    });
 
-    return NextResponse.redirect(
-      new URL('/auth/login?message=confirmed', request.url)
-    );
-  } catch (error: any) {
-    console.error('Confirmation error:', error);
+    // Redirect to login with confirmation success
+    return NextResponse.redirect(new URL('/auth/login?confirmed=1', request.url));
+  } catch (error) {
+    console.error('Confirm error:', error);
     return NextResponse.redirect(new URL('/auth/signup?error=server_error', request.url));
   }
 }

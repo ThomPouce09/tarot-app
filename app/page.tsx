@@ -12,6 +12,7 @@ export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -65,48 +66,50 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/40" />
       </div>
 
-      {/* AUTH BUTTONS (Top Right) */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-        <Link
-          href="/auth/signup"
-          className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
-          style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            background: 'rgba(139, 105, 20, 0.25)',
-            color: '#DAA520',
-            border: '1px solid rgba(218, 165, 32, 0.3)',
-            backdropFilter: 'blur(4px)',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.4)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.25)'}
-        >
-          📝 Inscription
-        </Link>
-        {isLoggedIn ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-200/80 font-medium" style={{ 
-              fontFamily: 'var(--font-cinzel), serif',
-              textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-            }}>
-              👤
-            </span>
+      {/* Hamburger Menu - Visible only when logged in */}
+      {isLoggedIn && (
+        <div className="absolute top-4 right-4 z-50">
+          <div className="relative">
             <button
-              onClick={handleLogout}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-lg text-amber-300 hover:text-amber-200 transition-all"
               style={{
                 fontFamily: 'var(--font-cinzel), serif',
-                background: 'rgba(139, 105, 20, 0.3)',
-                color: '#FFD700',
-                border: '1px solid rgba(218, 165, 32, 0.4)',
+                background: 'rgba(139, 105, 20, 0.25)',
+                border: '1px solid rgba(218, 165, 32, 0.3)',
                 backdropFilter: 'blur(4px)',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.5)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.3)'}
+              aria-label="Menu"
             >
-              Déconnexion
+              &#9776;
             </button>
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-gray-900/90 border border-amber-700/50 rounded-lg shadow-xl py-2">
+                <a href="/dashboard/account" className="block px-4 py-2 text-sm text-amber-300 hover:bg-amber-900/30">Mon compte</a>
+                <a href="/dashboard/readings" className="block px-4 py-2 text-sm text-amber-300 hover:bg-amber-900/30">Historique</a>
+                <button onClick={handleLogout} className="block px-4 py-2 text-sm text-red-400 hover:bg-red-900/30 w-full text-left">Déconnexion</button>
+              </div>
+            )}
           </div>
-        ) : (
+        </div>
+      )}
+
+      {/* AUTH BUTTONS - Only show when NOT logged in */}
+      {!isLoggedIn && (
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+          <Link
+            href="/auth/signup"
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
+            style={{
+              fontFamily: 'var(--font-cinzel), serif',
+              background: 'rgba(139, 105, 20, 0.25)',
+              color: '#DAA520',
+              border: '1px solid rgba(218, 165, 32, 0.3)',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            Inscription
+          </Link>
           <button
             onClick={() => setShowLoginModal(true)}
             className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
@@ -117,13 +120,11 @@ export default function HomePage() {
               border: '1px solid rgba(218, 165, 32, 0.3)',
               backdropFilter: 'blur(4px)',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.4)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(139, 105, 20, 0.25)'}
           >
-            🔐 Connexion
+            Connexion
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* MAIN TITLE */}
       <div
