@@ -1,0 +1,87 @@
+[
+  [
+    "c2b52534fd46db17b5b8ca4ac0caf03d64039c5fe1291e29b9d67a6868b554c6",
+    {
+      "email": "test@secure.com",
+      "password": "$2a$12$.QaNoiQYj82sq/5lZmqHvu5Zyb.H4dZkoGTsOjII.PjId.i1lGO/G",
+      "firstName": "Test2",
+      "token": "669008db8798aa0d16130bf9389dd41ec88cd70f647a7462c8b9349c2d0d0d06",
+      "confirmed": false
+    }
+  ],
+  [
+    "a36aaf915eb867cf1b1b15d3f31d9b6a255591e5cbc52bed7072b83e46a84dd2",
+    {
+      "email": "nouveau@test.com",
+      "password": "$2a$12$kXjcwbj0i6v3enOPs38JWO0bG9q3AciXSsetVihZapnf5gwxMi5Be",
+      "firstName": "Nouveau",
+      "token": "1ade51815a40e1db9097dad622b589d66b97484640f35e453fd600af71a8d29c",
+      "confirmed": false
+    }
+  ],
+  [
+    "1e3fd5bdd1140044f5cbb40d5a25e419ac3011a0494cffc3cc85a0510b477182",
+    {
+      "email": "newuser@test.com",
+      "password": "$2a$12$jnQruLrYXmtCDm7DLF4wbe9BW6Qv48z/9Vagu2KHiSBVx9tq6kdRK",
+      "firstName": "Test",
+      "token": "92bfe2754c48310e81fa46ed037f547c1e77b193b511bdbbc6fc7231538ed93b",
+      "confirmed": false
+    }
+  ],
+  [
+    "98b662e9125528bf0484fd564c8c3fb2accc5460979f9f61e25bd545d38ec6ee",
+    {
+      "email": "tsalle@ik.me",
+      "password": "$2a$12$Vu2aFHaaq.D4TF77E0IHzeVYqDBy1a7wMSg/C7Oru1v2126uPIPoi",
+      "firstName": "Thom",
+      "lastName": "SALLE ",
+      "gender": "male",
+      "age": 51,
+      "phone": "0612153923",
+      "comment": "J'adore le Yi Qing ",
+      "token": "f06068e1ae68d4dbe2314fc1ef76fee7348bf93925cba94d80fae849c6be760b",
+      "confirmed": false
+    }
+  ],
+  [
+    "8cc62c145cd0c6dc444168eaeb1b61b351f9b1809a579cc9b4c9e9d7213a39ee",
+    {
+      "email": "test2@example.com",
+      "password": "$2a$12$T89m6Y24nBPZlt0YoBP6bOvhG1vRI6lI9Fje5jI5YYaEhbqZnww/a",
+      "firstName": "Test",
+      "token": "0c3c89982e7574c6f2ed7d465cf6b697cf2d2e2cd627e4877e58fbf2116ede48",
+      "confirmed": true
+    }
+  ],
+  [
+    "f660ab912ec121d1b1e928a0bb4bc61b15f5ad44d5efdc4e1c92a25e99b8e44a",
+    {
+      "email": "test@test.com",
+      "password": "$2a$12$/HvZ/yJRx.hnIViBuMYEveDGKLIADRAr.wxxmrjpvLY8tA/7/PPbW",
+      "firstName": "Test",
+      "token": "c9a5048d8c30b20b834d26853ebfb6ba5b941b7dcd72f51956dbc31038d2368d",
+      "confirmed": true
+    }
+  ],
+  [
+    "d81ce6b57c3d332281635aeeb4d56bbaba2bc0c71f501938286e49a7347c0072",
+    {
+      "email": "final@test.com",
+      "password": "$2a$12$PFxeyx6BxL0zBuS/9BAfeeeFJAx2U7rTbzV6z6VSqeBXNjPGbwCsq",
+      "firstName": "Final",
+      "token": "02207e09333c152eee557f48ea6173766c8746b2ff2ee24e08135be3aefb14f2",
+      "confirmed": true
+    }
+  ],
+  [
+    "70913baf0150e4d65bb453a9f9eac2c518556609d5fe9648df164306b56db779",
+    {
+      "email": "hamburger@test.com",
+      "password": "$2a$12$tW2s8DVZ4P4dFOoa4UFYxOzktFg9xwdlbgi3XT9YtnFe0Af0t0TPy",
+      "firstName": "TestMenu",
+      "token": "1a0880cfc8ce06f20dfe54f91db4ceff469e2e8cd47ce199a18598c8aef56271",
+      "confirmed": true
+    }
+  ]
+]

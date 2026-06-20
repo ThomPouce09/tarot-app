@@ -1,0 +1,206 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const maxAttempts = 3;
+  const isBlocked = failedAttempts >= maxAttempts;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isBlocked) {
+      setError(`Trop d'essais. Réessayez plus tard ou utilisez "Mot de passe oublié".`);
+      return;
+    }
+
+    setError('');
+    setIsLoading(true);
+
+    if (!email || !password) {
+      setError('Email et mot de passe requis');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('tarot_user', JSON.stringify(data.user));
+        router.push('/dashboard/account');
+      } else {
+        setFailedAttempts(prev => prev + 1);
+        setError(failedAttempts + 1 >= maxAttempts 
+          ? "Trop d'essais infructueux. Utilisez 'Mot de passe oublié'."
+          : "Email ou mot de passe incorrect");
+      }
+    } catch (err) {
+      setFailedAttempts(prev => prev + 1);
+      setError('Erreur de connexion');
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg('');
+    
+    try {
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setMsg('Email envoyé !');
+    } catch {
+      setMsg('Erreur lors de l\'envoi');
+    }
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4">
+        <div className="bg-gray-900/80 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
+          <h2 className="text-2xl font-bold text-amber-300 mb-4 my-auto mx-auto text-center">🔐 Connexion</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-gray-300 text-sm">📧 Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1"
+                placeholder="votre@email.com"
+                required
+                disabled={isBlocked}
+              />
+            </div>
+
+            <div>
+              <label className="text-gray-300 text-sm">🔒 Mot de passe</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1 pr-10"
+                  placeholder="••••••••"
+                  required
+                  disabled={isBlocked}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  disabled={isBlocked}
+                >
+                  {showPassword ? '👁️' : '👁‍🗨'}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-500 bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-xs animate-shake">
+                ⚠️ {error}
+              </p>
+            )}
+
+            {isBlocked && (
+              <p className="text-red-400 text-xs my-auto mx-auto text-center">
+                🔒 Compte temporairement bloqué
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading || isBlocked}
+              className="w-full py-3 mystic-btn-glow bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white font-semibold disabled:opacity-50"
+            >
+              {isLoading ? 'Connexion...' : isBlocked ? 'Bloqué' : 'Se connecter'}
+            </button>
+          </form>
+
+          <div className="mt-4 pt-4 border-t border-amber-800/30 space-y-2 my-auto mx-auto text-center">
+            <button
+              onClick={() => setShowForgotPassword(true)}
+              className="text-amber-500 text-xs hover:underline block mx-auto"
+            >
+              🔑 Mot de passe oublié ?
+            </button>
+            <a href="/auth/signup" className="text-amber-500 text-xs hover:underline block mx-auto">
+              ✨ Pas encore inscrit ?
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Mot de passe oublié */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-amber-300 mb-4">🔑 Réinitialiser le mot de passe</h3>
+            
+            {msg ? (
+              <div className="text-center space-y-4">
+                <p className="text-green-400">✅ {msg}</p>
+                <p className="text-gray-400 text-xs">Vérifiez votre boîte mail (y compris spam)</p>
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white"
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Votre email"
+                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
+                  required
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="flex-1 py-2 border border-amber-800/50 rounded-lg text-amber-300"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white"
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

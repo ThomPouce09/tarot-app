@@ -1,0 +1,3 @@
+# EDIT THIS FILE - Add your complete Neon URL
+# Format: postgresql://neondb_owner:***@ep-snowy-fog-ape667uo.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
+NEON_DATABASE_URL=postgresql://neondb_owner:***@ep-snowy-fog-ape667uo.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require

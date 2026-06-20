@@ -1,27 +1,43 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+
+// In-memory store for readings (works without database)
+let inMemoryReadings: Array<{
+  id: number;
+  question?: string | null;
+  spread: string;
+  cards: any[];
+  interpretation?: string | null;
+  createdAt: string;
+  user_id?: string | null;
+  type?: string | null;
+}> = [];
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { question, spread, cards, interpretation, userId, type } = body ?? {};
+    const { question, spread, cards, interpretation, user_id, type } = body ?? {};
 
-    if (!cards || !Array.isArray(cards)) {
-      return NextResponse.json({ error: 'Missing cards data' }, { status: 400 });
+    if (!spread || !cards || !Array.isArray(cards)) {
+      return NextResponse.json({ error: 'Missing spread or cards data' }, { status: 400 });
     }
 
-    const reading = await prisma.reading.create({
-      data: {
-        userId: userId || '',
-        type: type || 'tarot',
-        question: question ? String(question) : null,
-        spread: spread ? String(spread) : null,
-        cards: JSON.stringify(cards),
-        interpretation: interpretation ? String(interpretation) : null,
-      },
-    });
+    const reading = {
+      id: Date.now(),
+      question: question ? String(question) : null,
+      spread: String(spread),
+      cards: cards,
+      interpretation: interpretation ? String(interpretation) : null,
+      createdAt: new Date().toISOString(),
+      user_id: user_id || null,
+      type: type || 'tarot',
+    };
+    
+    inMemoryReadings.unshift(reading);
+    if (inMemoryReadings.length > 100) {
+      inMemoryReadings = inMemoryReadings.slice(0, 100);
+    }
 
     return NextResponse.json({ success: true, id: reading.id });
   } catch (error: any) {
@@ -31,49 +47,13 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
-    const userId = url.searchParams.get('userId');
-
-    if (userId) {
-      const userReadings = await prisma.reading.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-      });
-      
-      const readings = userReadings.map((r: any) => ({
-        id: r.id,
-        question: r.question,
-        spread: r.spread,
-        cards: JSON.parse(r.cards),
-        interpretation: r.interpretation,
-        createdAt: r.createdAt.toISOString(),
-        userId: r.userId,
-        type: r.type,
-      }));
-      
-      return NextResponse.json({ readings });
-    }
-
-    const allReadings = await prisma.reading.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    const readings = allReadings.map((r: any) => ({
-      id: r.id,
-      question: r.question,
-      spread: r.spread,
-      cards: JSON.parse(r.cards),
-      interpretation: r.interpretation,
-      createdAt: r.createdAt.toISOString(),
-      userId: r.userId,
-      type: r.type,
-    }));
-
-    return NextResponse.json({ readings });
-  } catch (error: any) {
-    console.error('Readings GET error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  const url = new URL(req.url);
+  const user_id = url.searchParams.get('user_id');
+  
+  if (user_id) {
+    const userReadings = inMemoryReadings.filter(r => r.user_id === user_id);
+    return NextResponse.json({ readings: userReadings });
   }
+  
+  return NextResponse.json({ readings: inMemoryReadings.slice(0, 50) });
 }
