@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 // Endpoint temporaire pour supprimer un utilisateur par email (dev uniquement)
 export async function DELETE(request: NextRequest) {
-  const url = new URL(request.url);
-  const email = url.searchParams.get('email');
-  
-  if (!email) {
-    return NextResponse.json({ error: 'Email requis' }, { status: 400 });
-  }
-
   try {
-    const { db, users } = await import('../../../../lib/db');
+    const { email } = await request.json();
     
-    await db.delete(users).where(
-      (u, { eq }) => eq(u.email, email)
-    );
-    
-    return NextResponse.json({ success: true, message: `Utilisateur ${email} supprimé` });
+    if (!email) {
+      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+    }
+
+    await prisma.user.deleteMany({
+      where: { email },
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur suppression' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
