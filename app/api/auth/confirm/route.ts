@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/signup?error=no_token', request.url));
   }
 
-  // Skip email confirmation in dev mode
-  return NextResponse.redirect(new URL('/auth/login?confirmed=1', request.url));
+  const user = await prisma.user.findFirst({
+    where: { confirmationToken: token },
+  });
+
+  if (!user) {
+    return NextResponse.redirect(new URL('/auth/signup?error=invalid_token', request.url));
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      confirmed: true,
+      confirmationToken: null,
+    },
+  });
+
+  return NextResponse.redirect(new URL('/dashboard/account?confirmed=1', request.url));
 }
