@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         gender: user.gender,
         age: user.age,
         phone: user.phone,
+        comment: user.comment,
         confirmed: user.confirmed,
         token: user.confirmationToken || 'authenticated',
       },

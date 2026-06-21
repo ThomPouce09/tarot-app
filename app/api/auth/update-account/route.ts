@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, lastName, phone, age } = body;
+    const { email, firstName, lastName, phone, age, gender, comment } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
     await prisma.user.update({
       where: { email: email.toLowerCase().trim() },
       data: {
+        gender,
+        comment,
         firstName,
         lastName,
         phone,

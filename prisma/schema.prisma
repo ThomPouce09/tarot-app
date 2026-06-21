@@ -9,33 +9,32 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  password         String
-  firstName        String?
-  lastName         String?
-  gender           String?
-  age              Int?
-  phone            String?
-  comment          String?
-  confirmed        Boolean   @default(false)
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  firstName         String?
+  lastName          String?
+  age               Int?
+  phone             String?
   confirmationToken String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  readings         Reading[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  confirmed         Boolean   @default(false)
+  comment           String?
+  gender            String?
+  readings          Reading[]
 }
 
 model Reading {
-  id            String   @id @default(cuid())
-  userId        String
-  type          String
-  question      String?
-  spread        String?
-  cards         String
-  interpretation String?  @db.Text
-  createdAt     DateTime @default(now())
-  
-  user          User     @relation(fields: [userId], references: [id])
-  
+  id             String   @id @default(cuid())
+  interpretation String?
+  createdAt      DateTime @default(now())
+  cards          String
+  type           String
+  userId         String
+  question       String?
+  spread         String?
+  user           User     @relation(fields: [userId], references: [id])
+
   @@index([userId, createdAt])
 }
