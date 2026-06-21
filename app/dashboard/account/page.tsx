@@ -28,7 +28,6 @@ export default function AccountPage() {
         setForm({
           firstName: u.firstName || '',
           lastName: u.lastName || '',
-          email: u.email || '',
           phone: u.phone || '',
           age: u.age ? String(u.age) : '',
           gender: u.gender || 'other',
@@ -62,7 +61,7 @@ export default function AccountPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        
+        email: user.email,
         ...form,
         age: form.age ? parseInt(form.age, 10) : null,
       }),
