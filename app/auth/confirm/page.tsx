@@ -35,8 +35,12 @@ export default function ConfirmPasswordPage() {
     });
     
     const data = await res.json();
-    if (res.ok) router.push('/auth/login');
-    else setMessage(data.error || 'Erreur');
+    if (res.ok) {
+      setMessage('✅ Mot de passe réinitialisé avec succès!');
+      setTimeout(() => router.push('/auth/login'), 2000);
+    } else {
+      setMessage(data.error || 'Erreur');
+    }
   };
 
   if (!verified) {

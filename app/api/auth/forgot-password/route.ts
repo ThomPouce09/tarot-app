@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
-  } catch (error) {
+  } catch (error) { console.error("Forgot password error:", error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get('token');
 
   if (!token) {
-    return NextResponse.redirect(new URL('/auth/signup?error=no_token', request.url));
+    return NextResponse.json({ valid: false, error: 'Token requis' });
   }
 
   const user = await prisma.user.findFirst({
@@ -16,16 +16,40 @@ export async function GET(request: NextRequest) {
   });
 
   if (!user) {
-    return NextResponse.redirect(new URL('/auth/signup?error=invalid_token', request.url));
+    return NextResponse.json({ valid: false, error: 'Token invalide' });
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      confirmed: true,
-      confirmationToken: null,
-    },
-  });
+  return NextResponse.json({ valid: true, message: 'Lien valide' });
+}
 
-  return NextResponse.redirect(new URL('/dashboard/account?confirmed=1', request.url));
+export async function POST(request: NextRequest) {
+  try {
+    const { token, password } = await request.json();
+
+    if (!token || !password) {
+      return NextResponse.json({ error: 'Token et mot de passe requis' }, { status: 400 });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { confirmationToken: token },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Token invalide' }, { status: 400 });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: await (require('bcryptjs') as any).hash(password, 12),
+        confirmed: true,
+        confirmationToken: null,
+      },
+    });
+
+    return NextResponse.json({ success: true, message: 'Mot de passe mis à jour' });
+  } catch (error: any) {
+    console.error('Confirm error:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
