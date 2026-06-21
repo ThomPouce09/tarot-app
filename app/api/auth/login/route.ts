@@ -6,15 +6,14 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() }
+      where: { email },
     });
 
     if (!user) {
@@ -38,10 +37,11 @@ export async function POST(request: NextRequest) {
         age: user.age,
         phone: user.phone,
         confirmed: user.confirmed,
+        token: user.confirmationToken || 'authenticated',
       },
     });
   } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur: ' + error.message }, { status: 500 });
   }
 }
