@@ -12,7 +12,6 @@ export default function AccountPage() {
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
-    email: '',
     phone: '',
     age: '',
     gender: 'other',
@@ -63,7 +62,7 @@ export default function AccountPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        email: user.email,
+        
         ...form,
         age: form.age ? parseInt(form.age, 10) : null,
       }),
