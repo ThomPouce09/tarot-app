@@ -46,6 +46,9 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
   const [showInterpretation, setShowInterpretation] = useState(false);
   const [showDivination, setShowDivination] = useState(false);
   const [divinationPhase, setDivinationPhase] = useState<'summoning' | 'revealing'>('summoning');
+
+  // User state pour l'enregistrement des tirages
+  const [user, setUser] = useState<any>(null);
   
   // États pour le rendu client-side uniquement
   const [hasMounted, setHasMounted] = useState(false);
@@ -56,6 +59,11 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
   // Montage client-side
   useEffect(() => {
     setHasMounted(true);
+    // Récupérer l'utilisateur connecté pour l'enregistrement des tirages
+    try {
+      const stored = localStorage.getItem('tarot_user');
+      if (stored) setUser(JSON.parse(stored));
+    } catch (e) {}
   }, []);
   
   useEffect(() => {
@@ -461,7 +469,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
             const apiPromise = fetch('/api/interpretation', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cartes: drawnCardIndices }),
+              body: JSON.stringify({ cartes: drawnCardIndices, userId: user?.email || 'anonymous' }),
             }).then(async (response) => {
               const responseText = await response.text();
               await debugLog(`📥 Status: ${response.status}, Taille: ${responseText.length} chars`);

@@ -159,7 +159,7 @@ export default function HomePage() {
         className="absolute bottom-[38%] sm:bottom-[40%] left-1/2 -translate-x-1/2 z-30 flex flex-row gap-3 sm:gap-4 items-center justify-center px-4"
       >
         {/* Tarot Card Button */}
-        <Link href="/tirage" className="block">
+        <Link href="/tarot" className="block">
           <motion.div
             className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -185,7 +185,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(255,215,0,0.4)',
                 }}
               >
-                Tarot
+                Tirages Tarot
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -194,7 +194,7 @@ export default function HomePage() {
                   color: 'rgba(255,215,0,0.7)',
                 }}
               >
-                3 cartes
+                3 cartes · 5 cartes en croix
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -206,7 +206,7 @@ export default function HomePage() {
         </Link>
 
         {/* Yi Qing Card Button */}
-        <Link href="/yi-qing" className="block">
+        <Link href="/yi-jing" className="block">
           <motion.div
             className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -232,16 +232,16 @@ export default function HomePage() {
                   textShadow: '0 0 6px rgba(156,163,175,0.3)',
                 }}
               >
-                Yi Jing
+                Tirages Yi Jing
               </h2>
               <p
-                className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5 italic"
+                className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
                   color: 'rgba(156,163,175,0.6)',
                 }}
               >
-                Découvrir
+                Simple · Avec question
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"

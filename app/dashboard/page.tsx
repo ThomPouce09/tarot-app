@@ -56,10 +56,10 @@ export default function DashboardPage() {
               <Link href="/dashboard/account" className="menu-item-mystic block text-gray-300 px-3 py-2 rounded">
                 👤 Mon compte
               </Link>
-              <Link href="/tirage" className="menu-item-mystic block text-gray-300 px-3 py-2 rounded">
+              <Link href="/tarot" className="menu-item-mystic block text-gray-300 px-3 py-2 rounded">
                 🎴 Tirage Tarot
               </Link>
-              <Link href="/yi-qing" className="menu-item-mystic block text-gray-300 px-3 py-2 rounded">
+              <Link href="/yi-jing" className="menu-item-mystic block text-gray-300 px-3 py-2 rounded">
                 ☯️ Yi Jing
               </Link>
               <button onClick={handleLogout} className="menu-item-mystic w-full text-left text-red-400 px-3 py-2 rounded">

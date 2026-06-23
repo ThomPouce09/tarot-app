@@ -78,7 +78,7 @@ export default function YiQingInterpretationPage() {
           {error ? (
           <>
             <p className="text-red-400 mb-4">{error}</p>
-            <Link href="/yi-qing" className="text-yellow-400 underline">
+            <Link href="/yi-jing-simple" className="text-yellow-400 underline">
               Retour au tirage
             </Link>
           </>

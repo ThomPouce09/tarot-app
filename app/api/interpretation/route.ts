@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
-    const { cartes } = await req.json();
+    const { cartes, userId } = await req.json();
 
     if (!cartes || !Array.isArray(cartes) || cartes.length !== 3) {
       return NextResponse.json(
@@ -137,7 +138,7 @@ Format JSON obligatoire (complète les 3 cartes !) :
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'nvidia/nemotron-nano-9b-v2:free',
+        model: 'openai/gpt-oss-120b:free',
         provider: {
           order: ['Fireworks', 'Together'],
           allow_fallbacks: true,
@@ -163,7 +164,7 @@ Format JSON obligatoire (complète les 3 cartes !) :
       console.error('Erreur API OpenRouter:', errorData);
 
       if (response.status === 429) {
-        console.warn('nvidia/nemotron-nano-9b-v2:free rate-limité, fallback vers poolside/laguna-m.1:free');
+        console.warn('openai/gpt-oss-120b:free rate-limité, fallback vers openai/gpt-oss-120b:free');
         response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -171,7 +172,7 @@ Format JSON obligatoire (complète les 3 cartes !) :
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'poolside/laguna-m.1:free',
+            model: 'openai/gpt-oss-120b:free',
             messages: [
               {
                 role: 'system',
@@ -220,6 +221,20 @@ Format JSON obligatoire (complète les 3 cartes !) :
 
     // Extraire le JSON valide même si le modèle continue de parler après OU si la réponse est coupée
     function extractValidJSON(text: string): string {
+    // Concatenation des objets JSON si plusieurs reçus
+    const objects: Record<string, any> = {};
+    const regex = /\{[^}]*\}(?:\{[^{}]*\})*\}/gs;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      try {
+        const obj = JSON.parse(match[0]);
+        Object.assign(objects, obj);
+      } catch (e) {}
+    }
+    if (Object.keys(objects).length > 0) {
+      return JSON.stringify(objects);
+    }
+    
       let jsonContent = text.trim();
       
       // Enlever les ```json ... ``` si présents
@@ -310,8 +325,38 @@ Format JSON obligatoire (complète les 3 cartes !) :
       );
     }
 
-    return NextResponse.json(interpretation);
+    // Enregistrer le tirage si userId fourni
+    if (userId) {
+      try {
+        const user = await prisma.user.findUnique({ where: { email: userId } });
+        if (user) {
+          const cardNames = await Promise.all(
+            cartes.map(async (cardIdx: number) => {
+              return TAROT_CARDS[cardIdx] ?? 'Carte inconnue';
+            })
+          );
 
+          await prisma.reading.create({
+            data: {
+              userId: user.id,
+              type: 'tarot',
+              cards: JSON.stringify(
+                cartes.map((idx: number, i: number) => ({
+                  id: idx,
+                  name: cardNames[i],
+                  position: ['past', 'present', 'future'][i] as 'past' | 'present' | 'future',
+                }))
+              ),
+              interpretation: JSON.stringify(interpretation),
+            },
+          });
+        }
+      } catch (e) {
+        console.error('Erreur enregistrement tirage:', e);
+      }
+    }
+
+    return NextResponse.json(interpretation);
   } catch (error) {
     console.error('Erreur dans /api/interpretation:', error);
     return NextResponse.json(

@@ -27,12 +27,22 @@ const nomsHexagrammes = [
 
 export async function POST(request: NextRequest) {
   try {
-    const { baguette, userId } = await request.json();
+    const { baguette, userId, question } = await request.json();
     const numeroBaguette = parseInt(baguette) || 1;
+    const nomHexagramme = nomsHexagrammes[numeroBaguette-1] || "Hexagramme " + numeroBaguette;
 
-    // Envoyer à l'IA pour l'interprétation
-    const prompt = `Donne une interprétation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomsHexagrammes[numeroBaguette-1]}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}`;
-    
+    // Prompt enrichi avec la question de l'utilisateur
+    const prompt = `Tu es un oracle Yi Jing (I Ching). L'utilisateur a posé cette question:
+"${question}"
+
+Le tirage d'achillée a donné l'hexagramme ${numeroBaguette} ("${nomHexagramme}").
+
+Réponds directement à la question de l'utilisateur en t'appuyant sur la sagesse de cet hexagramme. Sois profond, poétique et personnel. Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}
+
+- meditation: une réflexion profonde qui éclaire la question posée à travers le prisme de l'hexagramme
+- conseil: un conseil pratique et direct lié à la question
+- attitude: l'attitude intérieure à adopter face à cette situation`;
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -47,11 +57,11 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || data.message?.content || "";
+    console.log('[YI-JING-QUESTION] Réponse IA brute:', content.substring(0, 300));
 
     // Extraction robuste du JSON : fusionner tous les blocs JSON valides
     let parsed: { meditation?: string; conseil?: string; attitude?: string; } = {};
-    
-    // Méthode 1: chercher tous les blocs { ... } et fusionner ceux qui ont les bonnes clés
+
     const jsonMatches = content.match(/\{[^{}]*\}/g);
     if (jsonMatches && jsonMatches.length > 0) {
       for (const match of jsonMatches) {
@@ -64,7 +74,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Méthode 2: nettoyer les délimiteurs ```json si présents
+    // Méthode 2: nettoyer les délimiteurs ```json
     if (!parsed.meditation && !parsed.conseil && !parsed.attitude) {
       let cleaned = content.trim();
       if (cleaned.startsWith('```json')) {
@@ -80,7 +90,7 @@ export async function POST(request: NextRequest) {
       } catch (e) {}
     }
 
-    // Enregistrer le tirage Yi Jing si userId fourni
+    // Enregistrer le tirage Yi Jing avec question si userId fourni
     if (userId) {
       try {
         const user = await prisma.user.findUnique({ where: { email: userId } });
@@ -89,12 +99,13 @@ export async function POST(request: NextRequest) {
             data: {
               userId: user.id,
               type: 'yi-qing',
+              question: question || null,
               cards: JSON.stringify([{
                 id: numeroBaguette,
-                name: nomsHexagrammes[numeroBaguette-1] || "Hexagramme " + numeroBaguette
+                name: nomHexagramme
               }]),
               interpretation: JSON.stringify({
-                meditation: parsed.meditation || "Réflexion en cours sur cet hexagramme.",
+                meditation: parsed.meditation || "L'hexagramme vous invite à méditer sur cette situation.",
                 conseil: parsed.conseil || "Laissez les signes vous guider.",
                 attitude: parsed.attitude || "Restez ouvert et réceptif."
               })
@@ -102,20 +113,21 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (e) {
-        console.error('Error saving Yi Jing reading:', e);
+        console.error('Error saving Yi Jing question reading:', e);
       }
     }
 
     return NextResponse.json({
       numero: numeroBaguette,
-      nom: nomsHexagrammes[numeroBaguette-1] || "Hexagramme " + numeroBaguette,
-      meditation: parsed.meditation || "Réflexion en cours sur cet hexagramme.",
+      nom: nomHexagramme,
+      question: question || null,
+      meditation: parsed.meditation || "L'hexagramme vous invite à méditer sur cette situation.",
       conseil: parsed.conseil || "Laissez les signes vous guider.",
       attitude: parsed.attitude || "Restez ouvert et réceptif."
     });
 
   } catch (error) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Erreur interprétation',
       numero: 1,
       nom: "Le Créatif",
