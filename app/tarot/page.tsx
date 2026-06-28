@@ -35,7 +35,7 @@ export default function TarotHubPage() {
 
       {/* Titre */}
       <div
-        className="absolute top-[8%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none"
+        className="absolute top-[6%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none"
       >
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
@@ -63,33 +63,33 @@ export default function TarotHubPage() {
         </p>
       </div>
 
-      {/* TUILES : 3 cartes et 5 cartes (mis sur 2 lignes sur mobile) */}
+      {/* TUILES : grille 2 colonnes sur mobile */}
       <div
-        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col sm:flex-row gap-4 sm:gap-6 px-4"
+        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-2 gap-3 sm:gap-4 px-4 w-full max-w-md"
       >
         {/* TUILE — 3 CARTES */}
-        <Link href="/tarot-3-cartes" className="block">
+        <Link href="/tarot-3-cartes">
           <motion.div
-            className="group relative w-44 sm:w-48 md:w-52 rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-full rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 20px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+                "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
               border: "2px solid rgba(218,165,32,0.3)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
           >
             <div
-              className="relative p-5 sm:p-6 flex flex-col items-center justify-center min-h-[180px]"
+              className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
               style={{
                 background:
                   "linear-gradient(135deg, #2d1b4e 0%, #1a0a2e 50%, #2d1b4e 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
-              <div className="text-4xl mb-2">🎴</div>
+              <div className="text-2xl mb-1">🎴</div>
               <h2
-                className="text-lg sm:text-xl font-bold text-center leading-tight mb-1"
+                className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
                   fontFamily: "var(--font-cinzel-deco), serif",
                   color: "#FFD700",
@@ -99,7 +99,7 @@ export default function TarotHubPage() {
                 3 Cartes
               </h2>
               <p
-                className="text-xs sm:text-sm text-center leading-tight mt-1"
+                className="text-[9px] text-center leading-tight"
                 style={{
                   fontFamily: "var(--font-cinzel), serif",
                   color: "rgba(255,215,0,0.7)",
@@ -119,28 +119,28 @@ export default function TarotHubPage() {
         </Link>
 
         {/* TUILE — 5 CARTES (CROIX) */}
-        <Link href="/tarot-5-cartes" className="block">
+        <Link href="/tarot-5-cartes">
           <motion.div
-            className="group relative w-44 sm:w-48 md:w-52 rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-full rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 24px rgba(218,165,32,0.45), 0 4px 14px rgba(0,0,0,0.55)",
-              border: "2px solid rgba(218,165,32,0.45)",
+                "0 0 18px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(218,165,32,0.3)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
           >
             <div
-              className="relative p-5 sm:p-6 flex flex-col items-center justify-center min-h-[180px]"
+              className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
               style={{
                 background:
                   "linear-gradient(135deg, #4a2c1a 0%, #2a1408 50%, #4a2c1a 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
-              <div className="text-4xl mb-2">✨</div>
+              <div className="text-2xl mb-1">✨</div>
               <h2
-                className="text-lg sm:text-xl font-bold text-center leading-tight mb-1"
+                className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
                   fontFamily: "var(--font-cinzel-deco), serif",
                   color: "#FFD700",
@@ -150,13 +150,64 @@ export default function TarotHubPage() {
                 5 Cartes en Croix
               </h2>
               <p
-                className="text-xs sm:text-sm text-center leading-tight mt-1"
+                className="text-[9px] text-center leading-tight"
                 style={{
                   fontFamily: "var(--font-cinzel), serif",
                   color: "rgba(255,215,0,0.75)",
                 }}
               >
                 Sommet · Orient · Synthèse · Occident · Base
+              </p>
+            </div>
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, rgba(218,165,32,0.22) 0%, transparent 70%)",
+              }}
+            />
+          </motion.div>
+        </Link>
+
+        {/* TUILE — 5 CARTES MANUEL - centré sur 2 colonnes */}
+        <Link href="/tarot-5-c-manuelle" className="col-span-2">
+          <motion.div
+            className="group relative w-full max-w-[140px] mx-auto rounded-xl overflow-hidden cursor-pointer transition-all"
+            style={{
+              boxShadow:
+                "0 0 18px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(251,191,36,0.3)",
+            }}
+            whileHover={{ scale: 1.04, y: -3 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
+              style={{
+                background:
+                  "linear-gradient(135deg, #3a1f4d 0%, #1a0a2e 50%, #3a1f4d 100%)",
+              }}
+            >
+              <div className="absolute inset-1.5 border border-amber-400/35 rounded-lg pointer-events-none" />
+              <div className="text-2xl mb-1">🔮</div>
+              <h2
+                className="text-sm font-bold text-center leading-tight mb-1"
+                style={{
+                  fontFamily: "var(--font-cinzel-deco), serif",
+                  color: "#FFD700",
+                  textShadow: "0 0 8px rgba(255,215,0,0.45)",
+                }}
+              >
+                5 Cartes Manuelles
+              </h2>
+              <p
+                className="text-[9px] text-center leading-tight"
+                style={{
+                  fontFamily: "var(--font-cinzel), serif",
+                  color: "rgba(255,215,0,0.75)",
+                }}
+              >
+                Sans IA
               </p>
             </div>
             <div

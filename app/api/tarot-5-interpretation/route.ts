@@ -1,62 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TAROT_CARDS } from '@/lib/tarot-data';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
     const { cartes, userId, question } = await request.json();
 
-    // Prompt pour IA avec 5 cartes alignées sur la question
-    const cardNames = cartes.map((id: number, i: number) => {
-      const names = [
-        "Le Mat", "Le Bateleur", "La Papesse", "L'Impératrice", "L'Empereur", "Le Pape", "Les Amoureux", "Le Chariot",
-        "La Justice", "Le Hermite", "La Roue de Fortune", "Le Fou", "La Force", "Le Pendu", "L'Arcane Inconnu",
-        "La Tempérance", "Le Diable", "La Maison Dieu", "L'Étoile", "La Lune", "Le Soleil", "Le Jugement", "Le Monde",
-        "As de Coupe", "Deux de Coupe", "Trois de Coupe", "Quatre de Coupe", "Cinq de Coupe", "Six de Coupe", "Sept de Coupe", "Huit de Coupe",
-        "Neuf de Coupe", "Dix de Coupe", "Valet de Coupe", "Cavalière de Coupe", "Roi de Coupe",
-        "As de Épée", "Deux de Épée", "Trois de Épée", "Quatre de Épée", "Cinq de Épée", "Six de Épée", "Sept de Épée", "Huit de Épée",
-        "Neuf de Épée", "Dix de Épée", "Valet de Épée", "Cavalière de Épée", "Roi de Épée",
-        "As de Batons", "Deux de Batons", "Trois de Batons", "Quatre de Batons", "Cinq de Batons", "Six de Batons", "Sept de Batons", "Huit de Batons",
-        "Neuf de Batons", "Dix de Batons", "Valet de Batons", "Cavalière de Batons", "Roi de Batons",
-        "As de Deniers", "Deux de Deniers", "Trois de Deniers", "Quatre de Deniers", "Cinq de Deniers", "Six de Deniers", "Sept de Deniers", "Huit de Deniers",
-        "Neuf de Deniers", "Dix de Deniers", "Valet de Deniers", "Cavalière de Deniers", "Roi de Deniers"
-      ];
-      return names[id] || `Carte ${id + 1}`;
+    if (!cartes || !Array.isArray(cartes) || cartes.length !== 5) {
+      return NextResponse.json(
+        { error: 'Format invalide : attend un tableau de 5 cartes' },
+        { status: 400 }
+      );
+    }
+
+    // Noms complets depuis TAROT_CARDS (source de vérité)
+    const cardNames = cartes.map((id: number) => {
+      const card = TAROT_CARDS.find((c) => c.id === id);
+      return card?.name || `Carte ${id}`;
     });
 
-    const prompt = `Tu es un oracle Tarot de Marseille. L'utilisateur a posé cette question: "${question}"
+    const prompt = `Tu es un oracle expert du Tarot de Marseille.
 
-Tirage de 5 cartes:
-- Carte 1 (Situation): ${cardNames[0]}
-- Carte 2 (Défis): ${cardNames[1]}
-- Carte 3 (Soutien): ${cardNames[2]}
-- Carte 4 (Issue): ${cardNames[3]}
-- Carte 5 (Conseil): ${cardNames[4]}
+L'utilisateur a posé cette question : "${question || 'Quelle direction prendre ?'}"
 
-Réponds directement à la question en t'appuyant sur la signification de chaque carte et sa position dans le tirage. Sois clair, poétique et direct.
-Réponds en JSON: {"situation":"...","defis":"...","soutien":"...","issue":"...","conseil":"..."}`;
+Les 5 cartes piochées dans l'ordre où elles ont été tirées sont :
+1. ${cardNames[0]}
+2. ${cardNames[1]}
+3. ${cardNames[2]}
+4. ${cardNames[3]}
+5. ${cardNames[4]}
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b:free',
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+Interprète ces 5 cartes dans cette question. Donne une lecture riche, poétique et directe en français.
+
+Réponds UNIQUEMENT avec un objet JSON valide, SANS markdown, SANS commentaires autour :
+{"situation":"<comment les cartes précédentes décrivent la situation actuelle, 3-4 phrases>","defis":"<les obstacles et tensions, 3-4 phrases>","soutien":"<les soutiens, ressources, 3-4 phrases>","issue":"<l'évolution probable, 3-4 phrases>","conseil":"<le conseil pratique, 2-3 phrases>"}`;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    console.log('[tarot-5-interpretation] key loaded:', apiKey ? `YES (len=${apiKey.length}, prefix=${apiKey.substring(0, 8)})` : 'NO');
+    console.log('[tarot-5-interpretation] cartes:', cartes, 'question:', question);
+
+    let response: Response;
+    try {
+      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'poolside/laguna-m.1:free',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+        })
+      });
+    } catch (fetchErr) {
+      console.error('[tarot-5-interpretation] FETCH ERROR:', fetchErr);
+      throw fetchErr;
+    }
+
+    console.log('[tarot-5-interpretation] OpenRouter status:', response.status);
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || data.message?.content || "";
+    console.log('[tarot-5-interpretation] OpenRouter data keys:', Object.keys(data || {}));
+    const content = data.choices?.[0]?.message?.content || data.message?.content || '';
+    console.log('[tarot-5-interpretation] content length:', content.length);
 
-    // Parser le JSON
+    // Parser le JSON — plusieurs stratégies
     let parsed: Interpretation = {};
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch (e) {}
+    if (content) {
+      // Stratégie 1 : chercher tous les blocs {...} valides, prendre le dernier
+      const blocks = content.match(/\{[\s\S]*?\}/g);
+      if (blocks) {
+        for (let i = blocks.length - 1; i >= 0; i--) {
+          try {
+            const candidate = JSON.parse(blocks[i]);
+            if (candidate.situation || candidate.defis || candidate.soutien || candidate.issue || candidate.conseil) {
+              parsed = candidate;
+              break;
+            }
+          } catch (e) { /* keep trying next block */ }
+        }
+      }
+      // Stratégie 2 : contenu brut
+      if (!parsed.situation) {
+        try {
+          const direct = JSON.parse(content.trim());
+          if (direct && typeof direct === 'object') parsed = direct;
+        } catch (e) { /* not pure JSON, try regex */ }
+      }
+      // Stratégie 3 : regex par champ
+      if (!parsed.situation) {
+        const grab = (key: string) => {
+          const m = content.match(new RegExp(`"?${key}"?\\s*:\\s*"?([^"\\n]+)"?`, 'i'));
+          return m ? m[1].trim() : undefined;
+        };
+        parsed.situation = grab('situation');
+        parsed.defis = grab('defis') || grab('défis');
+        parsed.soutien = grab('soutien');
+        parsed.issue = grab('issue');
+        parsed.conseil = grab('conseil');
+      }
     }
 
     // Enregistrer si userId fourni
@@ -86,21 +129,22 @@ Réponds en JSON: {"situation":"...","defis":"...","soutien":"...","issue":"..."
     }
 
     return NextResponse.json({
-      situation: parsed.situation || "La situation se déploie selon les cycles naturels.",
-      defis: parsed.defis || "Reconnaissez les résistances intérieures.",
-      soutien: parsed.soutien || "Le soutien vient des forces inattendues.",
-      issue: parsed.issue || "L'issue se dessine dans la lumière.",
-      conseil: parsed.conseil || "Écoutez le sillage des étoiles."
+      situation: parsed.situation || "Les cartes se déploient selon votre question. Concentrez-vous sur l'instant présent pour percevoir ce qui se joue.",
+      defis: parsed.defis || "Des tensions apparaissent, elles sont aussi des leviers de transformation.",
+      soutien: parsed.soutien || "Vous portez en vous les ressources nécessaires pour traverser cette étape.",
+      issue: parsed.issue || "L'évolution est en cours, elle se précise quand on avance pas à pas.",
+      conseil: parsed.conseil || "Restez à l'écoute de votre intuition."
     });
 
   } catch (error) {
+    console.error('tarot-5-interpretation error:', error);
     return NextResponse.json({
       error: 'Erreur interprétation',
-      situation: "Le chemin se dessine.",
-      defis: "Les ombres portent leur leçon.",
-      soutien: "La lumière guide.",
-      issue: "L'issue se révèle.",
-      conseil: "Avancez avec confiance."
+      situation: "Les cartes invitent à un temps d'introspection.",
+      defis: "Demeurer attentif à ce qui résonne en vous.",
+      soutien: "Faites confiance à votre voix intérieure.",
+      issue: "Une direction claire se dessine.",
+      conseil: "Agissez avec patience."
     });
   }
 }
