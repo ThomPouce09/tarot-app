@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
-        router.push('/dashboard/account');
+        router.push('/');
       } else {
         setFailedAttempts(prev => prev + 1);
         setError(failedAttempts + 1 >= maxAttempts 
@@ -73,7 +73,7 @@ export default function LoginPage() {
       alert('Email de réinitialisation envoyé !');
       setShowForgotPassword(false);
     } catch {
-      alert('Erreur lors de l\'envoi');
+      alert("Erreur lors de l'envoi");
     }
   };
 
@@ -89,8 +89,9 @@ export default function LoginPage() {
               <input
                 type="email"
                 autoComplete="off"
+                autoCapitalize="none"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1"
                 placeholder="votre@email.com"
                 required
@@ -165,6 +166,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 autoComplete="off"
+                autoCapitalize="none"
                 name="email"
                 placeholder="Votre email"
                 defaultValue={email}
