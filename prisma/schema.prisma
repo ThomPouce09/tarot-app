@@ -38,3 +38,17 @@ model Reading {
 
   @@index([userId, createdAt])
 }
+
+model Hexagram {
+  id             Int     @id @default(autoincrement())
+  number         Int     @unique
+  glyph          String
+  ideogram       String
+  pinyin         String
+  frenchName     String
+  trigramSuperior String
+  trigramInferior String
+  semanticEssence String
+  dateDebut      DateTime?
+  dateFin        DateTime?
+}
