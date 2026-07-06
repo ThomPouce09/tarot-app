@@ -3,12 +3,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function YiJingSimpleInterpretationPage() {
+export default function Tarot3CartesInterpretationPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedBaguette = localStorage.getItem('yi-jing-simple-baguette');
-    const storedQuestion = localStorage.getItem('yi-jing-simple-question');
+    const storedCards = localStorage.getItem('tarot-3-cards');
+    const storedQuestion = localStorage.getItem('tarot-3-question');
     let userId = undefined;
     try {
       const storedUser = localStorage.getItem('tarot_user');
@@ -18,19 +18,19 @@ export default function YiJingSimpleInterpretationPage() {
       }
     } catch {}
 
-    if (!storedBaguette) {
-      // No baguette, redirect to home
+    if (!storedCards) {
+      // No cards, redirect to home
       router.replace('/');
       return;
     }
 
     const params = new URLSearchParams();
-    params.append('type', 'yi-jing-simple');
-    params.append('baguette', storedBaguette);
+    params.append('type', 'tarot-3-cartes');
+    params.append('cartes', storedCards);
     if (storedQuestion) params.append('question', storedQuestion);
     if (userId) params.append('userId', userId);
 
-    router.push(`/interpret/yi-jing-simple?${params.toString()}`);
+    router.push(`/interpret/tarot-3-cartes?${params.toString()}`);
   }, []);
 
   return null;

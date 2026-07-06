@@ -22,6 +22,25 @@ type PickedCard = {
 export default function TarotUpgradePage() {
   const router = useRouter();
 
+  // AUTH GUARD: redirect if not logged in
+  useEffect(() => {
+    const stored = localStorage.getItem('tarot_user');
+    if (!stored) {
+      router.replace('/auth/login');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(stored);
+      if (!parsed?.email) {
+        router.replace('/auth/login');
+        return;
+      }
+    } catch {
+      router.replace('/auth/login');
+      return;
+    }
+  }, [router]);
+
   const fullDeck = useMemo(
     () => TAROT_CARDS.map((c) => ({ id: c.id, name: c.name })),
     []
@@ -40,11 +59,14 @@ export default function TarotUpgradePage() {
     if (phase === 'question') {
       const attemptPlay = () => {
         if (videoRef.current) {
-          videoRef.current.play().then(() => {
-            setVideoStarted(true);
-          }).catch((error) => {
-            console.log("Autoplay bloqué : ", error);
-          });
+          videoRef.current
+            .play()
+            .then(() => {
+              setVideoStarted(true);
+            })
+            .catch((error) => {
+              console.log('Autoplay bloqué : ', error);
+            });
         }
       };
       attemptPlay();
@@ -64,9 +86,12 @@ export default function TarotUpgradePage() {
 
   const handleVideoStart = () => {
     if (!videoStarted && videoRef.current) {
-      videoRef.current.play().then(() => {
-        setVideoStarted(true);
-      }).catch((err) => console.log("Focus play failed:", err));
+      videoRef.current
+        .play()
+        .then(() => {
+          setVideoStarted(true);
+        })
+        .catch((err) => console.log('Focus play failed:', err));
     }
   };
 
@@ -95,7 +120,9 @@ export default function TarotUpgradePage() {
     (isConfirming: boolean) => {
       if (!isConfirming) return;
       if (!pickerSelectedId) return;
-      const idx = availableDeck.findIndex((c) => String(c.id) === pickerSelectedId);
+      const idx = availableDeck.findIndex(
+        (c) => String(c.id) === pickerSelectedId
+      );
       if (idx < 0) return;
       const card = availableDeck[idx];
       const position = SLOT_POSITIONS[picks.length];
@@ -193,9 +220,17 @@ export default function TarotUpgradePage() {
       {/* ETAPE QUESTION */}
       {phase === 'question' && (
         <div className="absolute inset-0 z-20 flex items-start justify-center px-6 pt-16">
-          <div className="relative z-20 w-full max-w-lg rounded-3xl border-2 border-amber-400/40 bg-gradient-to-b from-slate-900/95 to-indigo-950/90 p-8 shadow-[0_0_80px_rgba(251,191,36,0.25)] backdrop-blur-sm">
-            <h2 className="mb-4 text-center text-3xl font-bold text-amber-100 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-              <span className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">Question au Tarot</span>
+          <div
+            className="relative z-20 w-full max-w-lg rounded-3xl border-2 border-amber-400/40 bg-gradient-to-b from-slate-900/95 to-indigo-950/90 p-8 shadow-[0_0_80px_rgba(251,191,36,0.25)] backdrop-blur-sm"
+          >
+            <h2
+              className="mb-4 text-center text-3xl font-bold text-amber-100 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]"
+            >
+              <span
+                className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent"
+              >
+                Question au Tarot
+              </span>
             </h2>
             <label className="mb-3 block text-lg font-medium text-indigo-200">
               ✨ Posez votre question à la cartomancie
@@ -223,13 +258,19 @@ export default function TarotUpgradePage() {
       {/* ETAPE PIOCHE */}
       {phase === 'picking' && (
         <>
-          <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center px-4 pt-4">
-            <div className="max-w-md truncate rounded-full border border-amber-400/30 bg-slate-900/90 px-4 py-2 text-base font-medium text-amber-100 backdrop-blur shadow-lg">
+          <div
+            className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center px-4 pt-4"
+          >
+            <div
+              className="max-w-md truncate rounded-full border border-amber-400/30 bg-slate-900/90 px-4 py-2 text-base font-medium text-amber-100 backdrop-blur shadow-lg"
+            >
               💭 {questionText.length > 50 ? questionText.slice(0, 50) + '…' : questionText}
             </div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4"
+          >
             <DividedCross picks={renderedSlots} compact={true} />
           </div>
 
@@ -242,7 +283,9 @@ export default function TarotUpgradePage() {
             />
           </div>
 
-          <div className="pointer-events-none absolute left-1/2 bottom-4 z-30 -translate-x-1/2">
+          <div
+            className="pointer-events-none absolute left-1/2 bottom-4 z-30 -translate-x-1/2"
+          >
             <p className="rounded-full border border-amber-300/40 px-3 py-1 text-xs text-amber-200">
               Carte {picks.length + 1} / {TOTAL_PICKS}
             </p>
@@ -253,11 +296,15 @@ export default function TarotUpgradePage() {
       {/* ETAPE DONE - croix + bouton */}
       {phase === 'done' && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4"
+          >
             <DividedCross picks={renderedSlots} compact={false} />
           </div>
 
-          <div className="absolute inset-x-0 bottom-20 left-1/2 z-30 -translate-x-1/2 flex justify-center px-4">
+          <div
+            className="absolute inset-x-0 bottom-20 left-1/2 z-30 -translate-x-1/2 flex justify-center px-4"
+          >
             <button
               onClick={handleInterpret}
               className="rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-3 text-base font-bold text-slate-900 shadow-[0_0_40px_rgba(251,191,36,0.6)] hover:from-amber-300 hover:via-yellow-200 hover:to-amber-400 hover:shadow-[0_0_50px_rgba(251,191,36,0.8)] transition-all duration-300 whitespace-nowrap"
@@ -270,7 +317,9 @@ export default function TarotUpgradePage() {
 
       {phase === 'picking' && pickerSelectedId && (
         <div className="pointer-events-none absolute left-1/2 bottom-[20%] z-30 -translate-x-1/2">
-          <p className="rounded-full border border-amber-300/60 bg-amber-300/15 px-3 py-1 text-[11px] uppercase tracking-wider text-amber-200 shadow-lg backdrop-blur">
+          <p
+            className="rounded-full border border-amber-300/60 bg-amber-300/15 px-3 py-1 text-[11px] uppercase tracking-wider text-amber-200 shadow-lg backdrop-blur"
+          >
             Relachez pour piocher
           </p>
         </div>
@@ -296,19 +345,16 @@ function DividedCross({
   const base = picks.find((p) => p.pos === 'base');
 
   return (
-    <div
-      className="grid max-w-xs"
-      style={{
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gridTemplateRows: 'auto auto auto',
-        gridTemplateAreas: `
-          ".        sommet     .       "
-          "orient   synthese   occident"
-          ".        base       .       "
-        `,
-        gap: '8px 12px',
-      }}
-    >
+    <div className="grid max-w-xs" style={{
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateRows: 'auto auto auto',
+      gridTemplateAreas: `
+        ".        sommet     .       "
+        "orient   synthese   occident"
+        ".        base       .       "
+      `,
+      gap: '8px 12px',
+    }}>
       <div style={{ gridArea: 'sommet' }} className="flex justify-center">
         {sommet?.pick ? <FilledSlot pick={sommet.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
       </div>

@@ -88,11 +88,16 @@ export default function LoginPage() {
               <label className="text-gray-300 text-sm">📧 Email</label>
               <input
                 type="email"
+                inputMode="email"
                 autoComplete="off"
                 autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1"
+                style={{ textTransform: 'lowercase' }}
+
                 placeholder="votre@email.com"
                 required
                 disabled={isBlocked}
@@ -165,8 +170,11 @@ export default function LoginPage() {
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <input
                 type="email"
+                inputMode="email"
                 autoComplete="off"
                 autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 name="email"
                 placeholder="Votre email"
                 defaultValue={email}

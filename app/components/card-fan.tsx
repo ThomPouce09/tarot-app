@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 import { CONFIG, CARD_FAN, ARC, CARD_FAN_WIDE, CARD_FAN_CLASSIC, ARC_WIDE, ARC_CLASSIC } from '@/lib/config';
 import { DrawnCardData } from './tarot-app';
 import InterpretationModal from './interpretation-modal';
@@ -27,6 +28,8 @@ const CARD_BACK_URL = 'https://cdn.abacus.ai/images/00de34b4-d163-46d0-b0cc-503b
 const TOTAL_CARDS = CONFIG.GAME.totalCards;
 
 export default function CardFan({ availableIndices, onCardDrawn, disabled, drawnCardsCount, drawnCardIndices = [], drawnCards = [], showHint, blinkHint, onReturnToHome }: CardFanProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [removedCards, setRemovedCards] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
@@ -413,118 +416,35 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
     }
   }, [getInitialScrollPosition]);
 
-  // Fonction pour appeler l'API d'interprétation
-  const handleRequestInterpretation = useCallback(async () => {
-    // Debug: écrire dans un fichier via une API locale
-    const debugLog = async (msg: string) => {
-      try {
-        await fetch('/api/debug-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ msg, ts: Date.now() }),
-        }).catch(() => {});
-      } catch {}
-    };
+  // Rediriger vers la page d'interprétation unifiée
+  const handleRequestInterpretation = useCallback(() => {
+    if (!drawnCardIndices || drawnCardIndices.length === 0) return;
     
-    await debugLog('🔮 Début interprétation');
-    await debugLog(`🃏 Cartes: ${JSON.stringify(drawnCardIndices)}`);
-    await debugLog(`📊 drawnCardsCount: ${drawnCardsCount}`);
-    await debugLog(`🔒 disabled: ${disabled}`);
+    // Déterminer le type de tirage depuis le pathname
+    const segments = pathname.split('/').filter(Boolean);
+    const spreadType = segments[0] || 'tarot-3-cartes';
     
-    // Check plus détaillé
-    if (!drawnCardIndices || drawnCardIndices.length === 0) {
-      const msg = '❌ drawnCardIndices est vide ou undefined !';
-      await debugLog(msg + ` (drawnCardsCount=${drawnCardsCount})`);
-      setError(msg + ' (drawnCardsCount=' + drawnCardsCount + ')');
-      setShowInterpretation(true);  // Affiche quand même la zone pour voir l'erreur
-      setLoading(false);
-      return;
-    }
+    // Sauvegarder les cartes dans localStorage pour l'interprétation unifiée
+    localStorage.setItem(`${spreadType}-cards`, JSON.stringify(drawnCardIndices));
     
-    if (drawnCardIndices.length !== 3) {
-      const msg = `❌ Attend 3 cartes, reçu ${drawnCardIndices.length}`;
-      await debugLog(msg);
-      setError(msg);
-      setShowInterpretation(true);  // Affiche quand même la zone
-      setLoading(false);
-      return;
-    }
+    // Récupérer userId
+    let userId = '';
+    try {
+      const storedUser = localStorage.getItem('tarot_user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        userId = user.email || '';
+      }
+    } catch {}
     
-    await debugLog('✅ 3 cartes valides, appel API...');
-        setLoading(true);
-        setError(null);
-        setShowInterpretation(true);  // Ouvre la modal IMMÉDIATEMENT avec la vidéo
+    // Construire l'URL de redirection
+    const params = new URLSearchParams();
+    params.append('type', spreadType);
+    params.append('cartes', drawnCardIndices.join(','));
+    if (userId) params.append('userId', userId);
     
-        try {
-          await debugLog('📦 Affichage écran de divination avec vidéo...');
-          await debugLog('🔮 Modal affichée !');
-     
-          // ÉTAPE 2: Attendre 5 secondes MINIMUM (en parallèle de l'API)
-          const startTime = Date.now();
-          const minWait = 5000;
-      
-            await debugLog('⏳ Lancement API + attente 5s...');
-      
-            // Lancer l'API en parallèle
-            const apiPromise = fetch('/api/interpretation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cartes: drawnCardIndices, userId: user?.email || 'anonymous' }),
-            }).then(async (response) => {
-              const responseText = await response.text();
-              await debugLog(`📥 Status: ${response.status}, Taille: ${responseText.length} chars`);
-        
-              if (!response.ok) {
-                let errorData;
-                try { errorData = JSON.parse(responseText); } catch { errorData = { error: responseText }; }
-                await debugLog(`❌ Erreur API: ${JSON.stringify(errorData)}`);
-                throw new Error(errorData.error || 'Échec de l\'interprétation');
-              }
-        
-              let data;
-              try { 
-                data = JSON.parse(responseText); 
-                await debugLog(`✅ JSON parsé`);
-              } catch (parseErr) { 
-                await debugLog(`❌ Erreur parsing: ${parseErr}`);
-                throw new Error('Format de réponse invalide'); 
-              }
-              return data;
-            });
-      
-            // Attendre 5 secondes ET que l'API soit prête
-            await Promise.all([
-              apiPromise,
-              new Promise(resolve => setTimeout(resolve, minWait)),
-            ]);
-      
-            const elapsed = Date.now() - startTime;
-            await debugLog(`⏱️ Attente totale: ${elapsed}ms`);
-      
-            // Récupérer les données (déjà résolues par Promise.all)
-            const data = await apiPromise;
-      
-            // Extraire les noms des cartes depuis drawnCards
-            const names = drawnCards && drawnCards.length >= 3 ? {
-              carte1: drawnCards[0].card.name,
-              carte2: drawnCards[1].card.name,
-              carte3: drawnCards[2].card.name,
-            } : null;
-            setCardNames(names);
-      
-            // ÉTAPE 3: Afficher l'interprétation dans la modal
-            setInterpretation(data);
-            setLoading(false);  // Cache la vidéo, montre les cartes
-            await debugLog('✨ Modal ouverte - interprétation affichée !');
-      
-    } catch (err) {
-      await debugLog(`💥 Exception: ${err instanceof Error ? err.message : String(err)}`);
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      await debugLog('🏁 Terminé');
-      setLoading(false);
-    }
-  }, [drawnCardIndices]);
+    router.push(`/interpret/${spreadType}?${params.toString()}`);
+  }, [drawnCardIndices, pathname, router]);
 
   // Centrer une seule fois quand la position est prête
   useEffect(() => {

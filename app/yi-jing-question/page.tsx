@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import Image from "next/image";
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
@@ -547,6 +547,19 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
 export default function YiJingQuestionPage() {
   const [question, setQuestion] = useState('');
   const [questionAsked, setQuestionAsked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem('tarot_user');
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+    setIsLoggedIn(true);
+    setCheckingAuth(false);
+  }, []);
 
   const handleSubmitQuestion = () => {
     if (question.trim()) {
@@ -554,6 +567,14 @@ export default function YiJingQuestionPage() {
       setQuestionAsked(true);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <p className="text-purple-300">Vérification...</p>
+      </div>
+    );
+  }
 
   return (
     <div

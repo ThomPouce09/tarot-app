@@ -542,7 +542,7 @@ function YiQingRig() {
         >
           <motion.button
             onClick={() => {
-              localStorage.setItem('yi-qing-baguette', String(drawnRef.current));
+              localStorage.setItem('yi-jing-simple-baguette', String(drawnRef.current));
               router.push('/yi-jing-simple/interpretation');
               
             }}

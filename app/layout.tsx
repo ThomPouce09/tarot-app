@@ -34,6 +34,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <style dangerouslySetInnerHTML={{
           __html: `
+            input[type="email"] {
+              text-transform: lowercase !important;
+            }
             @media screen and (orientation: landscape) {
               body::before {
                 content: "Tournez l'appareil en mode portrait";

@@ -37,7 +37,7 @@ export default function HomePage() {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
         setIsLoggedIn(true);
         setShowLoginModal(false);
-        router.push('/dashboard/account');
+        router.push('/');
       } else {
         alert(data.error || 'Email ou mot de passe incorrect');
       }
@@ -304,7 +304,12 @@ export default function HomePage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  inputMode="email"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onChange={(e) => setEmail(e.target.value.toLowerCase())}
                   required
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all"
                   style={{
@@ -312,6 +317,7 @@ export default function HomePage() {
                     border: '1px solid rgba(218,165,32,0.3)',
                     color: '#FFD700',
                     fontFamily: 'var(--font-cinzel), serif',
+                    textTransform: 'lowercase',
                   }}
                   placeholder="votre@email.com"
                 />
@@ -338,6 +344,7 @@ export default function HomePage() {
                     border: '1px solid rgba(218,165,32,0.3)',
                     color: '#FFD700',
                     fontFamily: 'var(--font-cinzel), serif',
+                    textTransform: 'lowercase',
                   }}
                   placeholder="••••••••"
                 />
