@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
 import { prisma } from '@/lib/prisma';
+import { callOracle, extractJsonObject } from '@/lib/llm';
 
 interface Interpretation {
   situation?: string;
@@ -107,155 +108,12 @@ Interprète ces 5 cartes en français. Donne une lecture riche, poétique, encou
 Réponds UNIQUEMENT avec un objet JSON valide, SANS markdown, SANS commentaires autour :
 {"situation":"<analyse de la situation combinant Sommet et Orient, 3-4 phrases>","defis":"<analyse des obstacles et peurs liée à la carte Occident, 3-4 phrases>","soutien":"<analyse des forces d'ancrage liée à la carte Base, 3-4 phrases>","issue":"<l'évolution probable de synthèse, 3-4 phrases>","conseil":"<le conseil spirituel et pratique de l'oracle, 2-3 phrases>"}`;
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-
-  // Liste des modèles OpenRouter à tester en cascade si l'un échoue
-  const modelsToTry = [
-    'openai/gpt-oss-120b:free',
-    'meta-llama/llama-3-8b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
-    'google/gemma-2-9b-it:free',
-    'qwen/qwen-2-7b-instruct:free'
-  ];
-
-  let response: Response | null = null;
-  let successfulModel: string | null = null;
-
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[tarot-5-interpretation] Attempting OpenRouter API call with model: ${model}`);
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { role: 'system', content: 'Tu es un oracle expert du Tarot de Marseille. Réponds UNIQUEMENT avec un JSON valide sans aucune réflexion.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.72,
-          max_tokens: 1200,
-        })
-      });
-
-      if (res.ok) {
-        response = res;
-        successfulModel = model;
-        break; // Succès ! On arrête la boucle
-      } else {
-        const errText = await res.text();
-        console.warn(`[tarot-5-interpretation] Model ${model} failed with status ${res.status}:`, errText);
-      }
-    } catch (fetchErr) {
-      console.error(`[tarot-5-interpretation] Error fetching with model ${model}:`, fetchErr);
-    }
-  }
-
-  // ─── FALLBACK: FreeLLM Custom API ─────────────────────────
-  if (!response) {
-    try {
-      console.log('[tarot-5-interpretation] OpenRouter failed. Attempting FreeLLM fallback...');
-      const freeLlmKey = process.env.FREELLM_API_KEY || '';
-      const res = await fetch('http://localhost:3001/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          ...(freeLlmKey ? { 'Authorization': `Bearer ${freeLlmKey}` } : {}),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'auto',
-          messages: [
-            { role: 'system', content: 'Tu es un oracle expert du Tarot de Marseille. Réponds UNIQUEMENT avec un JSON valide sans aucune réflexion.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.72,
-          max_tokens: 1200,
-        })
-      });
-
-      if (res.ok) {
-        response = res;
-        successfulModel = 'freellm-auto';
-        console.log('[tarot-5-interpretation] FreeLLM fallback succeeded.');
-      } else {
-        const errText = await res.text();
-        console.warn(`[tarot-5-interpretation] FreeLLM fallback failed with status ${res.status}:`, errText);
-      }
-    } catch (fetchErr) {
-      console.error('[tarot-5-interpretation] FreeLLM fallback error:', fetchErr);
-    }
-  }
+  const content = (await callOracle(prompt)) || '';
 
   let parsed: Interpretation = {};
 
-  if (response) {
-    try {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.message?.content || '';
-      console.log(`[tarot-5-interpretation] Successful API response from ${successfulModel}. Content length:`, content.length);
+  parsed = extractJsonObject(content);
 
-      if (content) {
-        let jsonContent = content.trim();
-        
-        // Nettoyage Markdown si présent
-        if (jsonContent.startsWith('```json')) {
-          jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
-        } else if (jsonContent.startsWith('```')) {
-          jsonContent = jsonContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
-        }
-        
-        const startIdx = jsonContent.indexOf('{');
-        if (startIdx !== -1) {
-          let braceCount = 0;
-          let inString = false;
-          let escape = false;
-          let lastGoodEnd = -1;
-          
-          for (let i = startIdx; i < jsonContent.length; i++) {
-            const char = jsonContent[i];
-            
-            if (escape) {
-              escape = false;
-              continue;
-            }
-            
-            if (char === '\\\\') {
-              escape = true;
-              continue;
-            }
-            
-            if (char === '"' && !escape) {
-              inString = !inString;
-              continue;
-            }
-            
-            if (!inString) {
-              if (char === '{') braceCount++;
-              if (char === '}') {
-                braceCount--;
-                if (braceCount === 0) {
-                  lastGoodEnd = i;
-                }
-              }
-            }
-          }
-          
-          if (lastGoodEnd !== -1) {
-            jsonContent = jsonContent.substring(startIdx, lastGoodEnd + 1);
-          }
-        }
-        
-        parsed = JSON.parse(jsonContent);
-      }
-    } catch (e) {
-      console.error('[tarot-5-interpretation] Failed to parse API JSON content. Falling back to Smart offline generator.', e);
-    }
-  }
-
-  // Si l'appel a complètement échoué ou si le JSON reçu est vide / invalide, on utilise notre générateur intelligent offline !
   if (!parsed.situation || !parsed.defis || !parsed.soutien || !parsed.issue || !parsed.conseil) {
     console.log('[tarot-5-interpretation] Generating dynamic offline fallback interpretation...');
     parsed = generateSmartOfflineFallback(cartes, question);

@@ -1,0 +1,175 @@
+/**
+ * Cascade d'appels IA partagée pour toutes les interprétations (Tarot, Yi Jing).
+ *
+ * Ordre de fallback (selon config souhaitée) :
+ *   1. OpenRouter  : openai/gpt-oss-120b:free  →  google/gemma-4-31b-it:free
+ *   2. NVIDIA      : deepseek-ai/deepseek-v4-flash  →  mistralai/ministral-14b-instruct-2512
+ *   3. DeepSeek    : deepseek-ai/deepseek-chat  →  deepseek-ai/deepseek-v4-flash
+ *
+ * Chaque fournisseur est testé indépendamment ; dès qu'une réponse OK est obtenue,
+ * on la renvoie. Si toutes les clés sont absentes ou tous les appels échouent,
+ * on renvoie `null` (la route appelante bascule alors sur son fallback offline).
+ */
+
+export interface OracleProvider {
+  name: string;
+  baseUrl: string;
+  apiKey?: string;
+  models: string[];
+}
+
+// --- Configuration des fournisseurs (clés via variables d'env, jamais en dur) ---
+const PROVIDERS: OracleProvider[] = [
+  {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    apiKey: process.env.OPENROUTER_API_KEY,
+    models: ['openai/gpt-oss-120b:free', 'google/gemma-4-31b-it:free'],
+  },
+  {
+    name: 'NVIDIA',
+    baseUrl: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    apiKey: process.env.NVIDIA_API_KEY,
+    models: ['deepseek-ai/deepseek-v4-flash', 'mistralai/ministral-14b-instruct-2512'],
+  },
+  {
+    name: 'DeepSeek',
+    baseUrl: 'https://api.deepseek.com/v1/chat/completions',
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    models: ['deepseek-v4-flash'],
+  },
+];
+
+const SYSTEM_PROMPT =
+  'Tu es un oracle expert du Tarot de Marseille et du Yi Jing. Réponds UNIQUEMENT avec un JSON valide sans aucune réflexion.';
+
+/**
+ * Tente d'obtenir une interprétation via la cascade de fournisseurs.
+ * @param prompt Le prompt utilisateur (déjà construit par la route).
+ * @param opts.maxTokens Tokens max (défaut 1200).
+ * @returns Le contenu brut de l'IA (string), ou `null` si tout a échoué.
+ */
+export async function callOracle(
+  prompt: string,
+  opts: { maxTokens?: number; temperature?: number } = {}
+): Promise<string | null> {
+  const maxTokens = opts.maxTokens ?? 1200;
+  const temperature = opts.temperature ?? 0.72;
+
+  for (const provider of PROVIDERS) {
+    if (!provider.apiKey) {
+      console.warn(`[llm] ${provider.name}: clé API absente, fournisseur ignoré.`);
+      continue;
+    }
+
+    for (const model of provider.models) {
+      try {
+        console.log(`[llm] Tentative ${provider.name} / ${model}`);
+        const res = await fetch(provider.baseUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${provider.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: prompt },
+            ],
+            temperature,
+            max_tokens: maxTokens,
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          console.warn(`[llm] ${provider.name} / ${model} échoué (${res.status}):`, errText.slice(0, 300));
+          continue;
+        }
+
+        const data = await res.json();
+        const content: string =
+          data?.choices?.[0]?.message?.content || data?.message?.content || '';
+        if (content && content.trim().length > 0) {
+          console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);
+          return content;
+        }
+        console.warn(`[llm] ${provider.name} / ${model}: réponse vide.`);
+      } catch (err) {
+        console.error(`[llm] Erreur ${provider.name} / ${model}:`, err);
+      }
+    }
+  }
+
+  console.warn('[llm] Tous les fournisseurs ont échoué ou sont absents.');
+  return null;
+}
+
+/**
+ * Extrait un objet JSON valide depuis le contenu brut renvoyé par un LLM.
+ * Robuste face aux sauts de ligne littéraux / caractères de contrôle que les
+ * modèles insèrent parfois dans les chaînes (ce qui casse JSON.parse).
+ *
+ * @param content Contenu brut de l'IA (peut contenir du Markdown, du texte autour).
+ * @returns L'objet JSON parsé, ou `{}` si aucun JSON valide n'a pu être extrait.
+ */
+export function extractJsonObject(content: string): Record<string, any> {
+  if (!content || typeof content !== 'string') return {};
+
+  let text = content.trim();
+
+  // Retirer les délimiteurs Markdown ```json / ```
+  if (text.startsWith('```json')) {
+    text = text.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+  } else if (text.startsWith('```')) {
+    text = text.replace(/^```\s*/, '').replace(/```\s*$/, '');
+  }
+
+  // Retirer les caractères de contrôle (0x00-0x1F) qui cassent JSON.parse
+  // (sauts de ligne / tabulations littéraux dans les chaînes -> espaces)
+  text = text.replace(/[\x00-\x1f]/g, ' ');
+
+  const start = text.indexOf('{');
+  if (start < 0) return {};
+
+  // Trouver l'accolade fermante équilibrée en respectant les chaînes + échappement
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let end = -1;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === '\\') {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (c === '{') depth++;
+      else if (c === '}') {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+  }
+  if (end < 0) return {};
+
+  const jsonBlock = text.slice(start, end + 1);
+  try {
+    return JSON.parse(jsonBlock);
+  } catch (e) {
+    console.warn('[llm] extractJsonObject: échec du parse JSON:', (e as Error)?.message);
+    return {};
+  }
+}

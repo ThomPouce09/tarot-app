@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { callOracle, extractJsonObject } from '@/lib/llm';
 
 const nomsHexagrammes = [
   "Le Créatif (乾 Qián)", "Le Réceptif (坤 Kūn)", "La difficulté initiale (屯 Zhūn)",
@@ -33,53 +34,9 @@ export async function POST(request: NextRequest) {
     // Envoyer à l'IA pour l'interprétation
     const prompt = `Donne une interprétation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomsHexagrammes[numeroBaguette-1]}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}`;
     
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b:free',
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const content = (await callOracle(prompt)) || '';
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || data.message?.content || "";
-
-    // Extraction robuste du JSON : fusionner tous les blocs JSON valides
-    let parsed: { meditation?: string; conseil?: string; attitude?: string; } = {};
-    
-    // Méthode 1: chercher tous les blocs { ... } et fusionner ceux qui ont les bonnes clés
-    const jsonMatches = content.match(/\{[^{}]*\}/g);
-    if (jsonMatches && jsonMatches.length > 0) {
-      for (const match of jsonMatches) {
-        try {
-          const obj = JSON.parse(match);
-          if (obj.meditation) parsed.meditation = obj.meditation;
-          if (obj.conseil) parsed.conseil = obj.conseil;
-          if (obj.attitude) parsed.attitude = obj.attitude;
-        } catch (e) {}
-      }
-    }
-
-    // Méthode 2: nettoyer les délimiteurs ```json si présents
-    if (!parsed.meditation && !parsed.conseil && !parsed.attitude) {
-      let cleaned = content.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replace(/^```json\s*/, '').replace(/```\s*$/, '');
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```\s*/, '').replace(/```\s*$/, '');
-      }
-      try {
-        const obj = JSON.parse(cleaned);
-        if (obj.meditation) parsed.meditation = obj.meditation;
-        if (obj.conseil) parsed.conseil = obj.conseil;
-        if (obj.attitude) parsed.attitude = obj.attitude;
-      } catch (e) {}
-    }
-
+    parsed = extractJsonObject(content);
     // Enregistrer le tirage Yi Jing si userId fourni
     if (userId) {
       try {

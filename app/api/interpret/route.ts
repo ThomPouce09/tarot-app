@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { prisma } from '@/lib/prisma';
+import { callOracle, extractJsonObject } from '@/lib/llm';
 
 interface Interpretation {
   situation?: string;
@@ -237,116 +238,11 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
     'qwen/qwen-2-7b-instruct:free'
   ];
 
-  let response: Response | null = null;
-  let successfulModel: string | null = null;
-  const apiKey = process.env.OPENROUTER_API_KEY;
-
-  // OpenRouter candidats
-  for (const model of openRouterModels) {
-    try {
-      console.log(`[interpret] Trying OpenRouter model: ${model}`);
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: isTarot
-              ? "Tu es un oracle expert du Tarot de Marseille. Réponds UNIQUEMENT avec un JSON valide."
-              : "Tu es un Maître du Yi Jing. Réponds UNIQUEMENT avec un JSON poétique et valide." },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 1200,
-          temperature: 0.72,
-        })
-      });
-
-      if (res.ok) {
-        response = res;
-        successfulModel = model;
-        break;
-      }
-    } catch (err) {
-      console.error(`[interpret] OpenRouter ${model} error:`, err);
-    }
-  }
-
-  // FreeLLM fallback
-  if (!response) {
-    try {
-      console.log('[interpret] All OpenRouter models failed. Trying FreeLLM fallback...');
-      const res = await fetch('http://localhost:3001/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.FREELLM_API_KEY || ''}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'auto',
-          messages: [
-            { role: 'system', content: isTarot
-              ? "Tu es un oracle expert Tarot. JSON valide UNIQUEMENT."
-              : "Tu es un Maître Yi Jing. JSON valide poétique UNIQUEMENT." },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 1200,
-          temperature: 0.72,
-        })
-      });
-
-      if (res.ok) {
-        response = res;
-        successfulModel = 'freellm:auto';
-      }
-    } catch (err) {
-      console.error('[interpret] FreeLLM fallback failed:', err);
-    }
-  }
+  const content = (await callOracle(prompt)) || '';
 
   // Parse JSON de la réponse
   let parsed: Interpretation = {};
-  if (response) {
-    try {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.message?.content || "";
-      console.log(`[interpret] API success from ${successfulModel}. Length:`, content.length);
-
-      // Détection automatique de JSON brut ou entouré de Markdown
-      let jsonContent = content.trim();
-      if (jsonContent.startsWith('```json') || jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```.*\n?/, '').replace(/```$/, '');
-      }
-
-      // Trouver le premier '{' et fermer proprement
-      const startIdx = jsonContent.indexOf('{');
-      if (startIdx >= 0) {
-        let braceCount = 0;
-        let lastIdx = startIdx;
-        let escape = false;
-        for (let i = startIdx; i < jsonContent.length; i++) {
-          const char = jsonContent[i];
-          if (!escape) {
-            if (char === '\\') escape = true;
-            else if (char === '"') { /* flip string mode */ }
-            else if (char === '{') braceCount++;
-            else if (char === '}') braceCount--;
-
-            if (braceCount === 0 && jsonContent[i] === '}') {
-              lastIdx = i;
-              break;
-            }
-          }
-        }
-        parsed = JSON.parse(jsonContent.substring(startIdx, lastIdx + 1));
-      }
-    } catch (parseError) {
-      console.error('[interpret] JSON parse failed:', parseError);
-    }
-  }
-
+  parsed = extractJsonObject(content);
   // Offline fallback si rien ne fonctionne
   if (!parsed.situation || !parsed.defis || !parsed.soutien || !parsed.issue || !parsed.conseil) {
     console.log('[interpret] Falling back to offline generator.');
