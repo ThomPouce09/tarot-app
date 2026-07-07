@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 const BOX_IMG = "/images/boite.png";
@@ -596,15 +597,15 @@ export default function YiJingQuestionPage() {
         <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'none' }} />
       </div>
 
-      {/* Croix retour accueil */}
-      <a
-        href="/"
-        className="fixed top-4 right-4 text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors z-50 leading-none"
-        aria-label="Retour à l'accueil"
-        style={{ textShadow: '0 0 12px rgba(251, 191, 36, 0.3)' }}
+      {/* Croix retour vers /yi-jing */}
+      <Link
+        href="/yi-jing"
+        className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none p-2 -m-2"
+        aria-label="Retour au Yi Jing"
+        style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
       >
         ×
-      </a>
+      </Link>
 
       {/* YI JING QUESTION RIG */}
       <YiJingQuestionRig questionAsked={questionAsked} />
@@ -632,9 +633,9 @@ export default function YiJingQuestionPage() {
           className="title-glow"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
-            color: '#FFD700',
+            color: '#C6A8E6',
             letterSpacing: '0.2em',
-            textShadow: '0 0 40px rgba(255,215,0,0.7), 0 0 80px rgba(255,215,0,0.4)',
+            textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
             fontSize: 'clamp(1.4rem, 5vw, 3.5rem)',
             textTransform: 'uppercase',
             marginBottom: '0.25rem',
@@ -645,8 +646,8 @@ export default function YiJingQuestionPage() {
         <p
           style={{
             fontFamily: 'var(--font-cinzel), serif',
-            color: '#FFD700',
-            textShadow: '0 0 10px rgba(255,215,0,0.6), 0 1px 4px rgba(0,0,0,0.9)',
+            color: '#E0CFF0',
+            textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
             letterSpacing: '0.05em',
             fontStyle: 'italic',
             fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)',

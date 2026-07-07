@@ -13,6 +13,7 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showRunesNotice, setShowRunesNotice] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -128,7 +129,7 @@ export default function HomePage() {
 
       {/* MAIN TITLE */}
       <div
-        className="absolute top-[12%] sm:top-[8%] md:top-[10%] left-1/2 -translate-x-1/2 z-30 text-center px-4"
+        className="absolute top-[7%] sm:top-[4%] md:top-[5%] left-1/2 -translate-x-1/2 z-30 text-center px-4"
       >
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-wider uppercase mb-4"
@@ -150,18 +151,18 @@ export default function HomePage() {
             letterSpacing: '0.05em',
           }}
         >
-          Révélez votre destin à travers les arcanes
+          Consultez votre destin à travers les arcanes
         </p>
       </div>
 
       {/* CHOICE CARDS */}
       <div
-        className="absolute bottom-[38%] sm:bottom-[40%] left-1/2 -translate-x-1/2 z-30 flex flex-row gap-3 sm:gap-4 items-center justify-center px-4"
+        className="absolute top-[34%] sm:top-[30%] md:top-[28%] left-1/2 -translate-x-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
       >
         {/* Tarot Card Button */}
         <Link href="/tarot" className="block">
           <motion.div
-            className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow: '0 0 20px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)',
               border: '2px solid rgba(218,165,32,0.3)',
@@ -172,34 +173,39 @@ export default function HomePage() {
             <div
               className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                background: 'linear-gradient(135deg, #2d1b4e 0%, #1a0a2e 50%, #2d1b4e 100%)',
+                background: 'linear-gradient(135deg, #4a2c1a 0%, #2a1408 50%, #4a2c1a 100%)',
               }}
             >
-              <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg" />
-              <div className="text-2xl sm:text-3xl mb-1">🎴</div>
+              <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
+              <img
+                src="/images/tarot-icon.png"
+                alt="Tarot"
+                className="w-11 h-11 mb-2 object-contain"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.5))' }}
+              />
               <h2
-                className="text-xs sm:text-sm font-bold text-center leading-tight"
+                className="text-sm sm:text-base font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
                   color: '#FFD700',
-                  textShadow: '0 0 8px rgba(255,215,0,0.4)',
+                  textShadow: '0 0 8px rgba(255,215,0,0.45)',
                 }}
               >
-                Tirages Tarot
+                Tarot
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(255,215,0,0.7)',
+                  color: 'rgba(255,215,0,0.75)',
                 }}
               >
-                3 cartes · 5 cartes en croix
+                Déployer les lames sacrées
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at center, rgba(218,165,32,0.15) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, rgba(255,215,0,0.18) 0%, transparent 70%)',
               }}
             />
           </motion.div>
@@ -208,10 +214,11 @@ export default function HomePage() {
         {/* Yi Qing Card Button */}
         <Link href="/yi-jing" className="block">
           <motion.div
-            className="group relative w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
-              boxShadow: '0 0 15px rgba(100,100,100,0.3), 0 3px 10px rgba(0,0,0,0.4)',
-              border: '2px solid rgba(180,180,180,0.25)',
+              boxShadow:
+                '0 0 22px rgba(160,130,200,0.45), 0 4px 12px rgba(0,0,0,0.5)',
+              border: '2px solid rgba(180,140,220,0.4)',
             }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -219,38 +226,125 @@ export default function HomePage() {
             <div
               className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                background: 'linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 50%, #3a3a3a 100%)',
+                background: 'linear-gradient(135deg, #1a1230 0%, #0a0618 50%, #1a1230 100%)',
               }}
             >
-              <div className="absolute inset-1.5 border border-gray-500/25 rounded-lg dashed" />
-              <div className="text-2xl sm:text-3xl mb-1">☯️</div>
+              <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
+              <img
+                src="/images/yi-jing-icon.png"
+                alt="Yi Jing"
+                className="w-9 h-9 mb-2 object-contain"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(180,140,200,0.6))' }}
+              />
               <h2
-                className="text-xs sm:text-sm font-bold text-center leading-tight"
+                className="text-sm sm:text-base font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: '#9CA3AF',
-                  textShadow: '0 0 6px rgba(156,163,175,0.3)',
+                  color: '#E0CFF0',
+                  textShadow: '0 0 8px rgba(180,140,200,0.5)',
                 }}
               >
-                Tirages Yi Jing
+                Yi Jing
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(156,163,175,0.6)',
+                  color: 'rgba(200,180,230,0.7)',
                 }}
               >
-                Simple · Avec question
+                Interroger les baguettes d'achillée
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at center, rgba(156,163,175,0.15) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, rgba(180,140,220,0.2) 0%, transparent 70%)',
               }}
             />
           </motion.div>
         </Link>
+
+        {/* Runes Card Button */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowRunesNotice(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowRunesNotice(true); }}
+          className="block cursor-pointer outline-none"
+        >
+          <motion.div
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden transition-all"
+            style={{
+              boxShadow:
+                '0 0 22px rgba(60,120,80,0.45), 0 4px 12px rgba(0,0,0,0.5)',
+              border: '2px solid rgba(138,109,59,0.4)',
+            }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
+              style={{
+                background: 'linear-gradient(135deg, #1b3a2a 0%, #0a1f15 50%, #1b3a2a 100%)',
+              }}
+            >
+              <div className="absolute inset-1.5 border border-amber-600/30 rounded-lg pointer-events-none" />
+              <img
+                src="/images/runes-icon.png"
+                alt="Runes Scandinaves"
+                className="w-11 h-11 mb-2 object-contain"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(138,109,59,0.5))' }}
+              />
+              <h2
+                className="text-sm sm:text-base font-bold text-center leading-tight"
+                style={{
+                  fontFamily: 'var(--font-cinzel-deco), serif',
+                  color: '#D4B483',
+                  textShadow: '0 0 8px rgba(138,109,59,0.5)',
+                }}
+              >
+                Runes Scandinaves
+              </h2>
+              <p
+                className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
+                style={{
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: 'rgba(168,201,154,0.8)',
+                }}
+              >
+                Interroger le Futhark
+              </p>
+            </div>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(138,109,59,0.2) 0%, transparent 70%)',
+              }}
+            />
+            {showRunesNotice && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl px-3 text-center backdrop-blur-sm"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(10,31,21,0.92) 0%, rgba(26,58,42,0.92) 100%)',
+                  border: '1px solid rgba(138,109,59,0.5)',
+                }}
+              >
+                <div className="text-2xl mb-1" style={{ filter: 'drop-shadow(0 0 8px rgba(138,109,59,0.6))' }}>🔨</div>
+                <p
+                  className="text-[11px] sm:text-xs font-bold leading-tight"
+                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#D4B483', textShadow: '0 0 8px rgba(138,109,59,0.5)' }}
+                >
+                  En cours de construction
+                </p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowRunesNotice(false); }}
+                  className="mt-2 px-3 py-1 rounded-md text-[10px] font-medium transition-all hover:opacity-80"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', background: 'rgba(138,109,59,0.25)', color: '#E8D5B0', border: '1px solid rgba(138,109,59,0.4)' }}
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
       </div>
 
       {/* LOGIN MODAL */}

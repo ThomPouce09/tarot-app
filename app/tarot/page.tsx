@@ -80,12 +80,12 @@ export default function TarotHubPage() {
 
       {/* TUILES : grille 2 colonnes sur mobile */}
       <div
-        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-2 gap-3 sm:gap-4 px-4 w-full max-w-md"
+        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
       >
         {/* TUILE — 3 CARTES */}
         <Link href="/tarot-3-cartes">
           <motion.div
-            className="group relative w-full rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -95,14 +95,14 @@ export default function TarotHubPage() {
             whileTap={{ scale: 0.98 }}
           >
             <div
-              className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
+              className="relative w-full h-full p-2 flex flex-col items-center justify-center"
               style={{
                 background:
-                  "linear-gradient(135deg, #2d1b4e 0%, #1a0a2e 50%, #2d1b4e 100%)",
+                  "linear-gradient(135deg, #5a4420 0%, #34240c 50%, #5a4420 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
-              <div className="text-2xl mb-1">🎴</div>
+              <img src="/images/tirage-3-cartes.png" alt="Tirage 3 cartes" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -120,7 +120,7 @@ export default function TarotHubPage() {
                   color: "rgba(255,215,0,0.7)",
                 }}
               >
-                Passé · Présent · Avenir
+                Passé · Présent · Avenir (Tirage standard)
               </p>
             </div>
             <div
@@ -136,7 +136,7 @@ export default function TarotHubPage() {
         {/* TUILE — 5 CARTES (CROIX) */}
         <Link href="/tarot-5-cartes">
           <motion.div
-            className="group relative w-full rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -146,14 +146,14 @@ export default function TarotHubPage() {
             whileTap={{ scale: 0.98 }}
           >
             <div
-              className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
+              className="relative w-full h-full p-2 flex flex-col items-center justify-center"
               style={{
                 background:
                   "linear-gradient(135deg, #4a2c1a 0%, #2a1408 50%, #4a2c1a 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
-              <div className="text-2xl mb-1">✨</div>
+              <img src="/images/croix-5-cartes.png" alt="5 cartes en croix" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -171,7 +171,7 @@ export default function TarotHubPage() {
                   color: "rgba(255,215,0,0.75)",
                 }}
               >
-                Sommet · Orient · Synthèse · Occident · Base
+                (Tirage automatisé)
               </p>
             </div>
             <div
@@ -186,9 +186,9 @@ export default function TarotHubPage() {
 
         {/* TUILE — 5 CARTES MANUEL - centré sur 2 colonnes (Bloqué si non connecté) */}
         {isLoggedIn ? (
-          <Link href="/tarot-5-c-manuelle" className="col-span-2">
+          <Link href="/tarot-5-c-manuelle">
             <motion.div
-              className="group relative w-full max-w-[140px] mx-auto rounded-xl overflow-hidden cursor-pointer transition-all"
+              className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
               style={{
                 boxShadow:
                   "0 0 18px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -198,14 +198,14 @@ export default function TarotHubPage() {
               whileTap={{ scale: 0.98 }}
             >
               <div
-                className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
+                className="relative w-full h-full p-2 flex flex-col items-center justify-center"
                 style={{
                   background:
-                    "linear-gradient(135deg, #3a1f4d 0%, #1a0a2e 50%, #3a1f4d 100%)",
+                    "linear-gradient(135deg, #321a0c 0%, #180a04 50%, #321a0c 100%)",
                 }}
               >
-                <div className="absolute inset-1.5 border border-amber-400/35 rounded-lg pointer-events-none" />
-                <div className="text-2xl mb-1">🔮</div>
+                <div className="absolute inset-1.5 border border-amber-500/30 rounded-lg pointer-events-none" />
+                <img src="/images/5 cartes manuelles.png" alt="5 cartes manuelles" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1"
                   style={{
@@ -223,7 +223,7 @@ export default function TarotHubPage() {
                     color: "rgba(255,215,0,0.75)",
                   }}
                 >
-                  Sans IA
+                  Consultation personnalisée
                 </p>
               </div>
               <div
@@ -236,9 +236,9 @@ export default function TarotHubPage() {
             </motion.div>
           </Link>
         ) : (
-          <div className="block opacity-50 cursor-not-allowed col-span-2" onClick={handleLockedClick}>
+          <div className="block opacity-50 cursor-not-allowed" onClick={handleLockedClick}>
             <motion.div
-              className="group relative w-full max-w-[140px] mx-auto rounded-xl overflow-hidden"
+              className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden"
               style={{
                 boxShadow:
                   "0 0 18px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -246,14 +246,14 @@ export default function TarotHubPage() {
               }}
             >
               <div
-                className="relative p-2 flex flex-col items-center justify-center min-h-[90px]"
+                className="relative w-full h-full p-2 flex flex-col items-center justify-center"
                 style={{
                   background:
-                    "linear-gradient(135deg, #3a1f4d 0%, #1a0a2e 50%, #3a1f4d 100%)",
+                    "linear-gradient(135deg, #321a0c 0%, #180a04 50%, #321a0c 100%)",
                 }}
               >
-                <div className="absolute inset-1.5 border border-amber-400/20 rounded-lg pointer-events-none" />
-                <div className="text-2xl mb-1 opacity-50">🔮</div>
+                <div className="absolute inset-1.5 border border-amber-600/25 rounded-lg pointer-events-none" />
+                <img src="/images/5 cartes manuelles.png" alt="5 cartes manuelles" className="w-16 h-auto mb-1 object-contain opacity-50" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1 opacity-50"
                   style={{

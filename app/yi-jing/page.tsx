@@ -98,9 +98,14 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
-              <div className="text-3xl mb-1">☯</div>
+              <img
+                src="/images/yi-jing-simple-icon.png"
+                alt="Yi Jing Simple"
+                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 0 8px rgba(180,140,200,0.6))" }}
+              />
               <h2
-                className="text-base font-bold text-center leading-tight mb-1"
+                className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "var(--font-cinzel-deco), serif",
                   color: "#E0CFF0",
@@ -135,8 +140,8 @@ export default function YiJingHubPage() {
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 22px rgba(255,200,100,0.4), 0 4px 12px rgba(0,0,0,0.5)",
-              border: "2px solid rgba(255,200,150,0.35)",
+                "0 0 20px rgba(160,130,200,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(180,140,220,0.35)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
@@ -145,17 +150,17 @@ export default function YiJingHubPage() {
               className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #2a2010 0%, #1a1008 50%, #2a2010 100%)",
+                  "linear-gradient(135deg, #1a1230 0%, #0a0618 50%, #1a1230 100%)",
               }}
             >
-              <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
+              <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
               <div className="text-3xl mb-1">🌅</div>
               <h2
                 className="text-base font-bold text-center leading-tight mb-1"
                 style={{
                   fontFamily: "var(--font-cinzel-deco), serif",
-                  color: "#F0E0C0",
-                  textShadow: "0 0 8px rgba(255,200,100,0.5)",
+                  color: "#E0CFF0",
+                  textShadow: "0 0 8px rgba(180,140,200,0.5)",
                 }}
               >
                 Hexagramme du Jour
@@ -164,7 +169,7 @@ export default function YiJingHubPage() {
                 className="text-[11px] text-center leading-tight"
                 style={{
                   fontFamily: "var(--font-cinzel), serif",
-                  color: "rgba(255,220,180,0.7)",
+                  color: "rgba(200,180,230,0.7)",
                 }}
               >
                 L'influence du moment
@@ -174,7 +179,7 @@ export default function YiJingHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(255,200,100,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(180,140,220,0.18) 0%, transparent 70%)",
               }}
             />
           </motion.div>

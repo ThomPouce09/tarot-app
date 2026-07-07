@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -575,6 +576,16 @@ export default function YiQingPage() {
         minHeight: '-webkit-fill-available',
       }}
     >
+      {/* Croix retour vers /yi-jing */}
+      <Link
+        href="/yi-jing"
+        className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none p-2 -m-2"
+        aria-label="Retour au Yi Jing"
+        style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
+      >
+        ×
+      </Link>
+
       {/* VIDEO BACKGROUND */}
       <div className="absolute inset-0 z-0 bg-black" style={{ pointerEvents: 'none' }}>
         <video
@@ -616,9 +627,9 @@ export default function YiQingPage() {
           className="title-glow"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
-            color: '#FFD700',
+            color: '#C6A8E6',
             letterSpacing: '0.2em',
-            textShadow: '0 0 40px rgba(255,215,0,0.7), 0 0 80px rgba(255,215,0,0.4)',
+            textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
             fontSize: 'clamp(1.6rem, 6vw, 4.5rem)',
             textTransform: 'uppercase',
             marginBottom: '0.25rem',
@@ -629,8 +640,8 @@ export default function YiQingPage() {
         <p
           style={{
             fontFamily: 'var(--font-cinzel), serif',
-            color: '#FFD700',
-            textShadow: '0 0 10px rgba(255,215,0,0.6), 0 1px 4px rgba(0,0,0,0.9)',
+            color: '#E0CFF0',
+            textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
             letterSpacing: '0.05em',
             fontStyle: 'italic',
             fontSize: 'clamp(0.7rem, 2vw, 1rem)',
