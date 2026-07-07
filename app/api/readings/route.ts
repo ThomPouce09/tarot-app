@@ -48,6 +48,7 @@ export async function GET(request: Request) {
         question: r.question ?? null,
         spread: r.spread ?? null,
         cards: Array.isArray(r.cards) ? r.cards : (typeof r.cards === 'string' ? JSON.parse(r.cards || '[]') : []),
+        interpretation: typeof r.interpretation === 'string' ? r.interpretation : (r.interpretation ? JSON.stringify(r.interpretation) : null),
         createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
       }));
 
@@ -170,6 +171,68 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Error in /api/readings POST:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+export async function DELETE(request: Request) {
+  try {
+    let reqBody;
+    try {
+      reqBody = await request.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in DELETE body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
+    const { userId, id, date } = reqBody;
+
+    if (!userId || typeof userId !== 'string') {
+      return NextResponse.json({ error: 'userId (email) required' }, { status: 400 });
+    }
+    const email = userId.trim();
+    if (email === '') {
+      return NextResponse.json({ error: 'userId (email) required' }, { status: 400 });
+    }
+    if (!id && !date) {
+      return NextResponse.json({ error: 'id or date required' }, { status: 400 });
+    }
+
+    // Résoudre l'utilisateur (vérif ownership : on scope toujours au user)
+    let user;
+    try {
+      user = await prisma.user.findUnique({ where: { email } });
+    } catch (prismaError) {
+      console.error('Prisma error in findUser (DELETE):', prismaError);
+      return NextResponse.json({ error: 'Invalid user' }, { status: 400 });
+    }
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const where: any = { userId: user.id };
+
+    if (id) {
+      where.id = String(id);
+    } else if (date) {
+      // date au format YYYY-MM-DD -> borner la journée UTC
+      const day = String(date).slice(0, 10);
+      const start = new Date(`${day}T00:00:00.000Z`);
+      const end = new Date(`${day}T23:59:59.999Z`);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return NextResponse.json({ error: 'Invalid date format (attendu YYYY-MM-DD)' }, { status: 400 });
+      }
+      where.createdAt = { gte: start, lte: end };
+    }
+
+    try {
+      const result = await prisma.reading.deleteMany({ where });
+      return NextResponse.json({ success: true, deleted: result.count });
+    } catch (delError) {
+      console.error('Error deleting readings:', delError);
+      return NextResponse.json({ error: 'Failed to delete readings' }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('Error in /api/readings DELETE:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
