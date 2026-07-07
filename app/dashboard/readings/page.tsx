@@ -37,6 +37,19 @@ const FILTERS = [
   { key: 'rune',  label: 'Runes',           icon: '/images/runes-icon.png', color: '#D4B483' },
 ] as const;
 
+const tarot3Positions = [
+  { key: 'carte1', position: 'past', icon: '🕰️', name: 'Passé', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
+  { key: 'carte2', position: 'present', icon: '⚔️', name: 'Présent', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
+  { key: 'carte3', position: 'future', icon: '💫', name: 'Avenir', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
+];
+const tarot5Positions = [
+  { key: 'situation', icon: '⬆️', name: 'Le Sommet', titleColor: 'text-yellow-300', cardColor: 'bg-yellow-950/20 border-yellow-700/40' },
+  { key: 'defis', icon: '👈', name: "L'Orient", titleColor: 'text-red-300', cardColor: 'bg-red-950/20 border-red-800/40' },
+  { key: 'soutien', icon: '🎯', name: 'La Synthèse', titleColor: 'text-purple-300', cardColor: 'bg-purple-950/20 border-purple-800/40' },
+  { key: 'issue', icon: '👉', name: "L'Occident", titleColor: 'text-orange-300', cardColor: 'bg-orange-950/20 border-orange-800/40' },
+  { key: 'conseil', icon: '⬇️', name: 'La Base', titleColor: 'text-cyan-300', cardColor: 'bg-cyan-950/20 border-cyan-800/40' },
+];
+
 export default function ReadingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -126,19 +139,6 @@ export default function ReadingsPage() {
     try { const p = JSON.parse(raw); if (p.meditation || p.conseil || p.attitude) return p; } catch {}
     return null;
   };
-
-  const tarot3Positions = [
-    { key: 'carte1', position: 'past', icon: '🕰️', name: 'Passé', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
-    { key: 'carte2', position: 'present', icon: '⚔️', name: 'Présent', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
-    { key: 'carte3', position: 'future', icon: '💫', name: 'Avenir', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
-  ];
-  const tarot5Positions = [
-    { key: 'situation', icon: '⬆️', name: 'Le Sommet', titleColor: 'text-yellow-300', cardColor: 'bg-yellow-950/20 border-yellow-700/40' },
-    { key: 'defis', icon: '👈', name: "L'Orient", titleColor: 'text-red-300', cardColor: 'bg-red-950/20 border-red-800/40' },
-    { key: 'soutien', icon: '🎯', name: 'La Synthèse', titleColor: 'text-purple-300', cardColor: 'bg-purple-950/20 border-purple-800/40' },
-    { key: 'issue', icon: '👉', name: "L'Occident", titleColor: 'text-orange-300', cardColor: 'bg-orange-950/20 border-orange-800/40' },
-    { key: 'conseil', icon: '⬇️', name: 'La Base', titleColor: 'text-cyan-300', cardColor: 'bg-cyan-950/20 border-cyan-800/40' },
-  ];
 
   const toggleReading = (id: string) => setOpenReading(openReading === id ? null : id);
   const toggleDate = (dateKey: string) => setOpenDates((prev) => {
