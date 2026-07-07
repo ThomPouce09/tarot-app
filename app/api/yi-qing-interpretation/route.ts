@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     
     const content = (await callOracle(prompt)) || '';
 
+    let parsed: { meditation?: string; conseil?: string; attitude?: string } = {};
     parsed = extractJsonObject(content);
     // Enregistrer le tirage Yi Jing si userId fourni
     if (userId) {

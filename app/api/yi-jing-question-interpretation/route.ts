@@ -47,6 +47,7 @@ Réponds directement à la question de l'utilisateur en t'appuyant sur la sagess
     const content = (await callOracle(prompt)) || '';
     console.log('[YI-JING-QUESTION] Réponse IA brute:', content.substring(0, 300));
 
+    let parsed: { meditation?: string; conseil?: string; attitude?: string } = {};
     parsed = extractJsonObject(content);
     // Enregistrer le tirage Yi Jing avec question si userId fourni
     if (userId) {
