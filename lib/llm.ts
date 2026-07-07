@@ -2,7 +2,7 @@
  * Cascade d'appels IA partagée pour toutes les interprétations (Tarot, Yi Jing).
  *
  * Ordre de fallback (selon config souhaitée) :
- *   1. OpenRouter  : openai/gpt-oss-120b:free  →  google/gemma-4-31b-it:free
+ *   1. OpenRouter  : poolside/laguna-m.1:free  →  tencent/hy3:free
  *   2. NVIDIA      : deepseek-ai/deepseek-v4-flash  →  mistralai/ministral-14b-instruct-2512
  *   3. DeepSeek    : deepseek-ai/deepseek-chat  →  deepseek-ai/deepseek-v4-flash
  *
@@ -24,7 +24,7 @@ const PROVIDERS: OracleProvider[] = [
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
     apiKey: process.env.OPENROUTER_API_KEY,
-    models: ['openai/gpt-oss-120b:free', 'google/gemma-4-31b-it:free'],
+    models: ['poolside/laguna-m.1:free', 'tencent/hy3:free'],
   },
   {
     name: 'NVIDIA',
@@ -39,6 +39,37 @@ const PROVIDERS: OracleProvider[] = [
     models: ['deepseek-v4-flash'],
   },
 ];
+
+// --- Circuit Breaker : désactive temporairement un fournisseur après N échecs ---
+// Évite de spammer les 429/503 et de se faire bannir / bloquer la clé inutilement.
+const FAILURE_THRESHOLD = 3;
+const COOLDOWN_MS = 30_000;
+const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
+
+function isBlocked(name: string): boolean {
+  const b = breaker[name];
+  if (!b) return false;
+  if (b.blockedUntil > Date.now()) return true;
+  if (b.blockedUntil) {
+    // cooldown écoulé → reset automatique
+    breaker[name] = { failures: 0, blockedUntil: 0 };
+  }
+  return false;
+}
+
+function recordFailure(name: string) {
+  const b = breaker[name] || { failures: 0, blockedUntil: 0 };
+  b.failures++;
+  if (b.failures >= FAILURE_THRESHOLD) {
+    b.blockedUntil = Date.now() + COOLDOWN_MS;
+    console.warn(`[llm] Circuit breaker: ${name} désactivé ${COOLDOWN_MS / 1000}s (trop d'échecs 429/503)`);
+  }
+  breaker[name] = b;
+}
+
+function recordSuccess(name: string) {
+  breaker[name] = { failures: 0, blockedUntil: 0 };
+}
 
 const SYSTEM_PROMPT =
   'Tu es un oracle expert du Tarot de Marseille et du Yi Jing. Réponds UNIQUEMENT avec un JSON valide sans aucune réflexion.';
@@ -59,6 +90,10 @@ export async function callOracle(
   for (const provider of PROVIDERS) {
     if (!provider.apiKey) {
       console.warn(`[llm] ${provider.name}: clé API absente, fournisseur ignoré.`);
+      continue;
+    }
+    if (isBlocked(provider.name)) {
+      console.warn(`[llm] ${provider.name}: circuit breaker actif, fournisseur ignoré (cooldown).`);
       continue;
     }
 
@@ -85,6 +120,8 @@ export async function callOracle(
         if (!res.ok) {
           const errText = await res.text().catch(() => '');
           console.warn(`[llm] ${provider.name} / ${model} échoué (${res.status}):`, errText.slice(0, 300));
+          // 429 (rate limit) / 503 (saturation) -> comptent pour le circuit breaker
+          if (res.status === 429 || res.status === 503) recordFailure(provider.name);
           continue;
         }
 
@@ -93,6 +130,7 @@ export async function callOracle(
           data?.choices?.[0]?.message?.content || data?.message?.content || '';
         if (content && content.trim().length > 0) {
           console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);
+          recordSuccess(provider.name);
           return content;
         }
         console.warn(`[llm] ${provider.name} / ${model}: réponse vide.`);
