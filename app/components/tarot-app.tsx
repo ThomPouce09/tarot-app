@@ -95,10 +95,13 @@ export default function TarotApp() {
 
   const allDrawn = drawnCards.length >= 3;
   const isReady = cinematicPhase >= 3;
+  const savedRef = useRef(false);
 
-  // Sauvegarder le tirage dans la DB quand il est complet
+  // Sauvegarder le tirage dans la DB quand il est complet (1 seule fois par tirage)
   useEffect(() => {
     if (allDrawn && drawnCards.length === 3) {
+      if (savedRef.current) return; // évite le double-save (StrictMode / re-render)
+      savedRef.current = true;
       const saveReading = async () => {
         try {
           const payload = {
@@ -121,10 +124,14 @@ export default function TarotApp() {
           console.log('Tirage sauvegardé:', result);
         } catch (error) {
           console.error('Erreur sauvegarde:', error);
+          savedRef.current = false; // permet une nouvelle tentative en cas d'échec
         }
       };
       
       saveReading();
+    } else {
+      // Nouveau tirage → réautorise la sauvegarde
+      savedRef.current = false;
     }
   }, [allDrawn, drawnCards]);
 

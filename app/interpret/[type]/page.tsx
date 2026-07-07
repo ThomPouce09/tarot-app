@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
@@ -30,6 +30,7 @@ export default function InterpretationPage() {
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const doneRef = useRef<string | null>(null);
 
   // Extract type from pathname: /interpret/tarot-3-cartes -> tarot-3-cartes
   const type = pathname.split('/')[2] || '';
@@ -40,6 +41,12 @@ export default function InterpretationPage() {
       setLoading(false);
       return;
     }
+
+    // Guard idempotent : searchParams change de référence à chaque render
+    // -> sans ça, le effect re-fire et sauvegarde le tirage 2× (doublon).
+    const sig = type + '|' + searchParams.toString();
+    if (doneRef.current === sig) return;
+    doneRef.current = sig;
 
     const question = searchParams.get('question');
     const userId = searchParams.get('userId');
