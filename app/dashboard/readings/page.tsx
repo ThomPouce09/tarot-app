@@ -30,6 +30,29 @@ function classifyType(t: string): keyof typeof TYPE_META {
   return 'tarot'; // tarot, null, et tout le reste
 }
 
+// --- Mapping fin (par type stocke) -> libellé précis + groupe ---
+const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune'; label: string }> = {
+  'tarot-3-cartes':      { group: 'tarot',  label: 'Tarot 3 cartes' },
+  'tarot-5-cartes':      { group: 'tarot',  label: 'Tarot 5 cartes' },
+  'tarot-5-c-manuelle':  { group: 'tarot',  label: 'Tarot 5 cartes (manuelle)' },
+  'tarot-10-cartes':     { group: 'tarot',  label: 'Tarot 10 cartes' },
+  'tirage-ouvert':       { group: 'tarot',  label: 'Tirage Ouvert' },
+  'tirage-amoureux':     { group: 'tarot',  label: 'Tirage Amoureux' },
+  'yi-jing-simple':      { group: 'yijing', label: 'Yi Jing simple' },
+  'yi-jing-question':    { group: 'yijing', label: 'Yi Jing (question)' },
+  'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
+  'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
+  'runes':               { group: 'rune',   label: 'Runes Scandinaves' },
+  'tarot':               { group: 'tarot',  label: 'Tarot' },
+  'yi-jing':             { group: 'yijing', label: 'Yi Jing' },
+  'yijing':              { group: 'yijing', label: 'Yi Jing' },
+};
+function metaOf(r: Reading) {
+  const sub = SUBTYPE_META[r.type] || { group: 'tarot' as const, label: TYPE_META.tarot.label };
+  const gm = TYPE_META[sub.group];
+  return { ...gm, group: sub.group, label: sub.label };
+}
+
 const FILTERS = [
   { key: 'all',   label: 'Tous',            icon: '/images/tarot-icon.png', color: '#FFD700' },
   { key: 'tarot', label: 'Tarot',           icon: '/images/tarot-icon.png', color: '#FFD700' },
@@ -90,7 +113,7 @@ export default function ReadingsPage() {
   // Filtrer par type
   const filtered = useMemo(() => {
     if (filter === 'all') return readings;
-    return readings.filter((r) => classifyType(r.type) === filter);
+    return readings.filter((r) => metaOf(r).group === filter);
   }, [readings, filter]);
 
   // Grouper par date (desc)
@@ -149,7 +172,7 @@ export default function ReadingsPage() {
 
   // --- Suppression ---
   const askDeleteOne = (r: Reading) => {
-    const m = TYPE_META[classifyType(r.type)];
+    const m = metaOf(r);
     setConfirm({ mode: 'one', id: r.id, label: `${m.label} du ${formatTime(r.createdAt)}` });
   };
   const askDeleteDate = (g: { dateKey: string; dateLabel: string }) => {
@@ -246,7 +269,7 @@ export default function ReadingsPage() {
             {groupedByDate.map((group) => {
               const isOpen = openDates.has(group.dateKey);
               const counts: Record<string, number> = { tarot: 0, yijing: 0, rune: 0 };
-              group.readings.forEach((r) => { counts[classifyType(r.type)]++; });
+              group.readings.forEach((r) => { counts[metaOf(r).group]++; });
 
               return (
                 <div key={group.dateKey}>
@@ -271,8 +294,7 @@ export default function ReadingsPage() {
                   {isOpen && (
                     <div className="space-y-2 pl-2">
                       {group.readings.map((r) => {
-                        const tkey = classifyType(r.type);
-                        const m = TYPE_META[tkey];
+                        const m = metaOf(r);
                         const yiQing = parseYiQing(r.interpretation || '');
                         return (
                           <div key={r.id} className="bg-gray-900/80 border rounded-lg overflow-hidden shadow-lg" style={{ borderColor: m.border }}>
@@ -295,7 +317,7 @@ export default function ReadingsPage() {
 
                             {openReading === r.id && (
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
-                                {tkey === 'yijing' ? (
+                                {m.group === 'yijing' ? (
                                   <YiJingView r={r} interp={yiQing} />
                                 ) : (
                                   <TarotView r={r} interpretation={r.interpretation || ''} />
