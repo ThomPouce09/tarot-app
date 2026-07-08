@@ -152,7 +152,7 @@ export default function ReadingsPage() {
     const m = TYPE_META[classifyType(r.type)];
     setConfirm({ mode: 'one', id: r.id, label: `${m.label} du ${formatTime(r.createdAt)}` });
   };
-  const askDeleteDate = (g: { dateKey: string }) => {
+  const askDeleteDate = (g: { dateKey: string; dateLabel: string }) => {
     setConfirm({ mode: 'date', dateKey: g.dateKey, label: g.dateLabel });
   };
 
@@ -196,7 +196,7 @@ export default function ReadingsPage() {
       <Link href="/" className="fixed top-4 right-4 text-amber-400 text-3xl font-bold hover:text-amber-300 transition-colors z-50 leading-none"
         aria-label="Retour à l'accueil" style={{ textShadow: '0 0 12px rgba(251, 191, 36, 0.3)' }}>×</Link>
 
-      <div className="max-w-2xl mx-auto pt-2">
+      <div className="max-w-2xl mx-auto pt-2 pb-24">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}>
           ✨ Vos tirages
         </h1>
@@ -242,7 +242,7 @@ export default function ReadingsPage() {
             <p className="text-amber-200/70 text-sm">Aucun tirage de ce type pour le moment.</p>
           </div>
         ) : (
-          <div className="space-y-5 max-h-[74vh] overflow-y-auto pr-1">
+          <div className="space-y-5 pb-2">
             {groupedByDate.map((group) => {
               const isOpen = openDates.has(group.dateKey);
               const counts: Record<string, number> = { tarot: 0, yijing: 0, rune: 0 };
@@ -294,7 +294,7 @@ export default function ReadingsPage() {
                             </div>
 
                             {openReading === r.id && (
-                              <div className="px-4 pb-4 border-t border-amber-800/20 max-h-96 overflow-y-auto">
+                              <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
                                 {tkey === 'yijing' ? (
                                   <YiJingView r={r} interp={yiQing} />
                                 ) : (
@@ -369,6 +369,10 @@ function EmptyState() {
 }
 
 function YiJingView({ r, interp }: { r: Reading; interp: any }) {
+  // yi-jing-simple stocke le format situation/defis/soutien/issue/conseil
+  // (généré par /api/interpret), alors que yi-qing / yi-jing-question
+  // utilisent meditation/conseil/attitude. On branche sur les deux formats.
+  const isSimpleFormat = r.type === 'yi-jing-simple' || (interp && interp.situation);
   return (
     <div className="mt-4 space-y-4">
       {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
@@ -377,9 +381,23 @@ function YiJingView({ r, interp }: { r: Reading; interp: any }) {
           {r.cards[0]?.id && <p className="text-purple-400/60 text-xs">Hexagramme n°{r.cards[0].id}</p>}
         </div>
       )}
-      {interp?.meditation && <Block color="purple" icon="🧘" title="Méditation" text={interp.meditation} />}
-      {interp?.conseil && <Block color="amber" icon="💡" title="Conseil" text={interp.conseil} />}
-      {interp?.attitude && <Block color="green" icon="🌿" title="Attitude" text={interp.attitude} />}
+
+      {isSimpleFormat ? (
+        <>
+          {interp?.situation && <Block color="purple" icon="📍" title="Situation" text={interp.situation} />}
+          {interp?.defis && <Block color="amber" icon="⚔️" title="Défis" text={interp.defis} />}
+          {interp?.soutien && <Block color="green" icon="🌟" title="Soutien" text={interp.soutien} />}
+          {interp?.issue && <Block color="amber" icon="🔮" title="Issue" text={interp.issue} />}
+          {interp?.conseil && <Block color="green" icon="💡" title="Conseil" text={interp.conseil} />}
+        </>
+      ) : (
+        <>
+          {interp?.meditation && <Block color="purple" icon="🧘" title="Méditation" text={interp.meditation} />}
+          {interp?.conseil && <Block color="amber" icon="💡" title="Conseil" text={interp.conseil} />}
+          {interp?.attitude && <Block color="green" icon="🌿" title="Attitude" text={interp.attitude} />}
+        </>
+      )}
+
       {!interp && r.interpretation && (
         <div className="bg-gray-800/40 rounded-lg p-3">
           <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{r.interpretation}</p>

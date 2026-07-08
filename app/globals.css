@@ -67,9 +67,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background: #1a0e0a;
   -webkit-user-select: none;
   user-select: none;
