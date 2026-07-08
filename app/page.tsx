@@ -366,7 +366,7 @@ export default function HomePage() {
             exit={{ opacity: 0, scale: 0.9 }}
           >
             <h3
-              className="text-2xl font-bold text-center mb-2"
+              className="text-2xl font-bold text-center mb-6"
               style={{
                 fontFamily: 'var(--font-cinzel-deco), serif',
                 color: '#FFD700',
@@ -378,11 +378,12 @@ export default function HomePage() {
             <p
               className="text-center text-sm mb-6"
               style={{
-                fontFamily: 'var(--font-cinzel), serif',
+                fontFamily: 'var(--font-cormorant), serif',
+                fontSize: '1.05rem',
                 color: 'rgba(255,215,0,0.7)',
               }}
             >
-              Accédez à votre historique de tirages
+              Que les étoiles vous guident !
             </p>
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
@@ -405,12 +406,14 @@ export default function HomePage() {
                   spellCheck={false}
                   onChange={(e) => setEmail(e.target.value.toLowerCase())}
                   required
-                  className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all"
+                  className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
                   style={{
-                    background: 'rgba(0,0,0,0.5)',
+                    background: 'rgba(0,0,0,0.45)',
                     border: '1px solid rgba(218,165,32,0.3)',
-                    color: '#FFD700',
-                    fontFamily: 'var(--font-cinzel), serif',
+                    color: '#FFE9B0',
+                    fontFamily: 'var(--font-cormorant), serif',
+                    fontSize: '1.1rem',
+                    letterSpacing: '0.02em',
                     textTransform: 'lowercase',
                   }}
                   placeholder="votre@email.com"
@@ -432,12 +435,14 @@ export default function HomePage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all"
+                  className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
                   style={{
-                    background: 'rgba(0,0,0,0.5)',
+                    background: 'rgba(0,0,0,0.45)',
                     border: '1px solid rgba(218,165,32,0.3)',
-                    color: '#FFD700',
-                    fontFamily: 'var(--font-cinzel), serif',
+                    color: '#FFE9B0',
+                    fontFamily: 'var(--font-cormorant), serif',
+                    fontSize: '1.1rem',
+                    letterSpacing: '0.02em',
                     textTransform: 'lowercase',
                   }}
                   placeholder="••••••••"

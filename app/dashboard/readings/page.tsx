@@ -34,7 +34,7 @@ function classifyType(t: string): keyof typeof TYPE_META {
 const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune'; label: string }> = {
   'tarot-3-cartes':      { group: 'tarot',  label: 'Tarot 3 cartes' },
   'tarot-5-cartes':      { group: 'tarot',  label: 'Tarot 5 cartes' },
-  'tarot-5-c-manuelle':  { group: 'tarot',  label: 'Tarot 5 cartes (✋ main)' },
+  'tarot-5-c-manuelle':  { group: 'tarot',  label: 'Tarot 5 cartes (✋)' },
   'tarot-10-cartes':     { group: 'tarot',  label: 'Tarot 10 cartes' },
   'tirage-ouvert':       { group: 'tarot',  label: 'Tirage Ouvert' },
   'tirage-amoureux':     { group: 'tarot',  label: 'Tirage Amoureux' },
