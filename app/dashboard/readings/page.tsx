@@ -53,6 +53,32 @@ function metaOf(r: Reading) {
   return { ...gm, group: sub.group, label: sub.label };
 }
 
+// Souligne les occurrences du mot-clé recherché (insensible à la casse)
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  const parts: (string | JSX.Element)[] = [];
+  let i = 0;
+  let idx = lower.indexOf(ql);
+  while (idx !== -1) {
+    if (idx > i) parts.push(text.slice(i, idx));
+    parts.push(
+      <mark key={idx} className="rounded px-0.5 font-semibold" style={{
+        background: 'rgba(255, 215, 0, 0.18)',
+        color: '#FFE9A8',
+        textShadow: '0 0 16px rgba(255, 215, 0, 1), 0 0 28px rgba(255, 215, 0, 0.6)',
+        boxShadow: '0 0 10px rgba(255, 215, 0, 0.45)',
+      }}>{text.slice(idx, idx + q.length)}</mark>
+    );
+    i = idx + q.length;
+    idx = lower.indexOf(ql, i);
+  }
+  if (i < text.length) parts.push(text.slice(i));
+  return <>{parts}</>;
+}
+
 const FILTERS = [
   { key: 'all',   label: 'Tous',            icon: '/images/tarot-icon.png', color: '#FFD700' },
   { key: 'tarot', label: 'Tarot',           icon: '/images/tarot-icon.png', color: '#FFD700' },
@@ -80,6 +106,7 @@ export default function ReadingsPage() {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
   const [openReading, setOpenReading] = useState<string | null>(null);
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -110,11 +137,21 @@ export default function ReadingsPage() {
 
   useEffect(() => { loadReadings(); }, [loadReadings]);
 
-  // Filtrer par type
+  // Filtrer par type + recherche mot-clé
   const filtered = useMemo(() => {
-    if (filter === 'all') return readings;
-    return readings.filter((r) => metaOf(r).group === filter);
-  }, [readings, filter]);
+    const q = search.trim().toLowerCase();
+    return readings.filter((r) => {
+      if (filter !== 'all' && metaOf(r).group !== filter) return false;
+      if (!q) return true;
+      const haystack = [
+        r.question || '',
+        r.interpretation || '',
+        metaOf(r).label,
+        (r.cards || []).map((c: any) => (c.name?.name || c.name || '')).join(' '),
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [readings, filter, search]);
 
   // Grouper par date (desc)
   const groupedByDate = useMemo(() => {
@@ -233,6 +270,30 @@ export default function ReadingsPage() {
           </div>
         )}
 
+        {/* Recherche par mot-clé */}
+        {readings.length > 0 && (
+          <div className="relative mb-5">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400/70" style={{ filter: 'drop-shadow(0 0 4px rgba(218,165,32,0.4))' }}>🔍</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un tirage (mot-clé, carte, question…)"
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(218,165,32,0.3)',
+                color: '#FFE9B0',
+                fontFamily: 'var(--font-cormorant), serif',
+                fontSize: '1.05rem',
+              }}
+            />
+            {search.trim() && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 hover:text-amber-300 text-sm" aria-label="Effacer">✕</button>
+            )}
+          </div>
+        )}
+
         {/* Filtres par type (icônes landing) */}
         {readings.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-6">
@@ -318,9 +379,9 @@ export default function ReadingsPage() {
                             {openReading === r.id && (
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
                                 {m.group === 'yijing' ? (
-                                  <YiJingView r={r} interp={yiQing} />
+                                  <YiJingView r={r} interp={yiQing} query={search} />
                                 ) : (
-                                  <TarotView r={r} interpretation={r.interpretation || ''} />
+                                  <TarotView r={r} interpretation={r.interpretation || ''} query={search} />
                                 )}
                               </div>
                             )}
@@ -390,7 +451,7 @@ function EmptyState() {
   );
 }
 
-function YiJingView({ r, interp }: { r: Reading; interp: any }) {
+function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?: string }) {
   // yi-jing-simple stocke le format situation/defis/soutien/issue/conseil
   // (généré par /api/interpret), alors que yi-qing / yi-jing-question
   // utilisent meditation/conseil/attitude. On branche sur les deux formats.
@@ -406,30 +467,30 @@ function YiJingView({ r, interp }: { r: Reading; interp: any }) {
 
       {isSimpleFormat ? (
         <>
-          {interp?.situation && <Block color="purple" icon="📍" title="Situation" text={interp.situation} />}
-          {interp?.defis && <Block color="amber" icon="⚔️" title="Défis" text={interp.defis} />}
-          {interp?.soutien && <Block color="green" icon="🌟" title="Soutien" text={interp.soutien} />}
-          {interp?.issue && <Block color="amber" icon="🔮" title="Issue" text={interp.issue} />}
-          {interp?.conseil && <Block color="green" icon="💡" title="Conseil" text={interp.conseil} />}
+          {interp?.situation && <Block color="purple" icon="📍" title="Situation" text={interp.situation} query={query} />}
+          {interp?.defis && <Block color="amber" icon="⚔️" title="Défis" text={interp.defis} query={query} />}
+          {interp?.soutien && <Block color="green" icon="🌟" title="Soutien" text={interp.soutien} query={query} />}
+          {interp?.issue && <Block color="amber" icon="🔮" title="Issue" text={interp.issue} query={query} />}
+          {interp?.conseil && <Block color="green" icon="💡" title="Conseil" text={interp.conseil} query={query} />}
         </>
       ) : (
         <>
-          {interp?.meditation && <Block color="purple" icon="🧘" title="Méditation" text={interp.meditation} />}
-          {interp?.conseil && <Block color="amber" icon="💡" title="Conseil" text={interp.conseil} />}
-          {interp?.attitude && <Block color="green" icon="🌿" title="Attitude" text={interp.attitude} />}
+          {interp?.meditation && <Block color="purple" icon="🧘" title="Méditation" text={interp.meditation} query={query} />}
+          {interp?.conseil && <Block color="amber" icon="💡" title="Conseil" text={interp.conseil} query={query} />}
+          {interp?.attitude && <Block color="green" icon="🌿" title="Attitude" text={interp.attitude} query={query} />}
         </>
       )}
 
       {!interp && r.interpretation && (
         <div className="bg-gray-800/40 rounded-lg p-3">
-          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{r.interpretation}</p>
+          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={r.interpretation || ''} query={query} /></p>
         </div>
       )}
     </div>
   );
 }
 
-function TarotView({ r, interpretation }: { r: Reading; interpretation: string }) {
+function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretation: string; query?: string }) {
   const isTarot3 = r.cards.length === 3;
   const positions = isTarot3 ? tarot3Positions : tarot5Positions;
   const interpData = isTarot3
@@ -437,7 +498,7 @@ function TarotView({ r, interpretation }: { r: Reading; interpretation: string }
     : (parseTarot5Inline(interpretation) || {});
 
   if (!r.cards || !Array.isArray(r.cards) || r.cards.length === 0) {
-    return <p className="text-gray-400 text-xs italic mt-3">"{r.question}"</p>;
+    return <p className="text-gray-400 text-xs italic mt-3">"<Highlight text={r.question || ''} query={query} />"</p>;
   }
 
   return (
@@ -445,7 +506,7 @@ function TarotView({ r, interpretation }: { r: Reading; interpretation: string }
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
           <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Votre question</p>
-          <p className="text-amber-200 italic text-sm">"{r.question}"</p>
+          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
         </div>
       )}
       {r.cards.map((c: any, idx: number) => {
@@ -461,10 +522,10 @@ function TarotView({ r, interpretation }: { r: Reading; interpretation: string }
             <h4 className={`${pos.titleColor} font-semibold text-sm mb-2 flex items-center gap-2`}>
               <span className="text-base">{pos.icon}</span><span>{pos.name}</span>
               <span className="text-gray-500">—</span>
-              <span className="text-gray-100 font-serif italic">{cardName}</span>
+              <span className="text-gray-100 font-serif italic"><Highlight text={cardName} query={query} /></span>
               {c.reversed && <em className="text-amber-400 text-xs">(renversée)</em>}
             </h4>
-            <p className="text-gray-200 text-sm leading-relaxed">{text}</p>
+            <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={text} query={query} /></p>
           </div>
         );
       })}
@@ -472,13 +533,13 @@ function TarotView({ r, interpretation }: { r: Reading; interpretation: string }
   );
 }
 
-function Block({ color, icon, title, text }: { color: 'purple' | 'amber' | 'green'; icon: string; title: string; text: string }) {
+function Block({ color, icon, title, text, query = '' }: { color: 'purple' | 'amber' | 'green'; icon: string; title: string; text: string; query?: string }) {
   const bg = color === 'purple' ? 'bg-purple-950/20 border-purple-800/30' : color === 'amber' ? 'bg-amber-950/20 border-amber-800/30' : 'bg-green-950/20 border-green-800/30';
   const tc = color === 'purple' ? 'text-purple-300' : color === 'amber' ? 'text-amber-300' : 'text-green-300';
   return (
     <div className={`${bg} border rounded-lg p-3`}>
       <h4 className={`${tc} font-semibold text-sm mb-2 flex items-center gap-2`}><span>{icon}</span>{title}</h4>
-      <p className="text-gray-200 text-sm leading-relaxed">{text}</p>
+      <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={text} query={query} /></p>
     </div>
   );
 }
