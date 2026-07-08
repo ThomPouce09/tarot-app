@@ -39,16 +39,16 @@ model Reading {
   @@index([userId, createdAt])
 }
 
-model Hexagram {
-  id             Int     @id @default(autoincrement())
-  number         Int     @unique
-  glyph          String
-  ideogram       String
-  pinyin         String
-  frenchName     String
-  trigramSuperior String
-  trigramInferior String
-  semanticEssence String
-  dateDebut      DateTime?
-  dateFin        DateTime?
+// ─── Écrans d'attente personnalisés par type de tirage ─────
+// Créée en base par SQL manuel (scripts/...) pour ne pas toucher la table
+// 'hexagrams' existante lors d'un 'prisma db push'.
+model MessagesAttente {
+  id            String   @id @default(cuid())
+  type          String   @unique // ex: tarot-3-cartes, yi-qing, yi-jing-du-jour...
+  messages      String   // JSON: string[] textes d'attente défilants
+  backgroundType String   @default("none") // image | video | none
+  backgroundUrl  String?  // /public/wait/<type>.jpg ou .mp4
+  animation     String   @default("fade") // clé d'anim framer-motion
+  minDurationMs Int      @default(2500)
+  updatedAt     DateTime @updatedAt
 }

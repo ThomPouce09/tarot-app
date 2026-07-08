@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import WaitOverlay from '@/components/wait-overlay';
 
 interface Interpretation {
   situation?: string;
@@ -117,11 +118,7 @@ export default function InterpretationPage() {
   }, [type, searchParams]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <p className="text-yellow-400 text-lg animate-pulse">Chargement de l'interprétation...</p>
-      </div>
-    );
+    return <WaitOverlay type={type} />;
   }
 
   if (error) {

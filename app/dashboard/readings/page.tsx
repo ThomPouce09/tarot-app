@@ -38,9 +38,9 @@ const FILTERS = [
 ] as const;
 
 const tarot3Positions = [
-  { key: 'carte1', position: 'past', icon: '🕰️', name: 'Passé', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
-  { key: 'carte2', position: 'present', icon: '⚔️', name: 'Présent', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
-  { key: 'carte3', position: 'future', icon: '💫', name: 'Avenir', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
+  { key: 'situation', position: 'past', icon: '🕰️', name: 'Passé', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
+  { key: 'defis', position: 'present', icon: '⚔️', name: 'Présent', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
+  { key: 'issue', position: 'future', icon: '💫', name: 'Avenir', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
 ];
 const tarot5Positions = [
   { key: 'situation', icon: '⬆️', name: 'Le Sommet', titleColor: 'text-yellow-300', cardColor: 'bg-yellow-950/20 border-yellow-700/40' },
@@ -408,9 +408,11 @@ function YiJingView({ r, interp }: { r: Reading; interp: any }) {
 }
 
 function TarotView({ r, interpretation }: { r: Reading; interpretation: string }) {
-  const tarot5 = parseTarot5Inline(interpretation);
-  const positions = tarot5 ? tarot5Positions : tarot3Positions;
-  const interpData = tarot5 || parseTarot3Inline(interpretation)?.data || {};
+  const isTarot3 = r.cards.length === 3;
+  const positions = isTarot3 ? tarot3Positions : tarot5Positions;
+  const interpData = isTarot3
+    ? (parseTarot3Inline(interpretation)?.data || {})
+    : (parseTarot5Inline(interpretation) || {});
 
   if (!r.cards || !Array.isArray(r.cards) || r.cards.length === 0) {
     return <p className="text-gray-400 text-xs italic mt-3">"{r.question}"</p>;
@@ -425,7 +427,7 @@ function TarotView({ r, interpretation }: { r: Reading; interpretation: string }
         </div>
       )}
       {r.cards.map((c: any, idx: number) => {
-        if (!tarot5 && idx >= 3) return null;
+        if (isTarot3 && idx >= 3) return null;
         if (idx >= positions.length) return null;
         const pos = positions[idx];
         const cardData = TAROT_CARDS.find((t) => t.id === c.id);
@@ -462,7 +464,12 @@ function Block({ color, icon, title, text }: { color: 'purple' | 'amber' | 'gree
 // Parsers internes pour TarotView
 function parseTarot3Inline(raw: string) {
   if (!raw) return null;
-  try { const p = JSON.parse(raw); if (p.carte1 || p.carte2 || p.carte3) return { kind: 'tarot3' as const, data: p }; } catch {}
+  try {
+    const p = JSON.parse(raw);
+    if (p && typeof p === 'object' && (p.situation || p.defis || p.issue || p.carte1 || p.carte2 || p.carte3)) {
+      return { kind: 'tarot3' as const, data: p };
+    }
+  } catch {}
   return null;
 }
 function parseTarot5Inline(raw: string) {

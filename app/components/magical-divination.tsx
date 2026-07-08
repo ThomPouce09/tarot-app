@@ -1,12 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useWaitMessages } from './use-wait-messages';
 
 interface MagicalDivinationProps {
   isVisible: boolean;
 }
 
 export default function MagicalDivination({ isVisible }: MagicalDivinationProps) {
+  const msg = useWaitMessages('magical-divination');
   return (
     <motion.div 
       initial={false}
@@ -243,6 +245,7 @@ export default function MagicalDivination({ isVisible }: MagicalDivinationProps)
       {/* Texte de divination */}
       <div className="absolute bottom-32 text-center px-8">
         <motion.h2
+          key={msg}
           className="text-4xl md:text-5xl font-bold mb-4"
           style={{ 
             fontFamily: 'var(--font-cinzel), serif',
@@ -254,7 +257,7 @@ export default function MagicalDivination({ isVisible }: MagicalDivinationProps)
           animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          Divination en cours...
+          {msg}
         </motion.h2>
         
         <motion.p

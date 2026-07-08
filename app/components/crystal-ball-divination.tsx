@@ -1,12 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useWaitMessages } from './use-wait-messages';
 
 interface CrystalBallDivinationProps {
   isVisible: boolean;
 }
 
 export default function CrystalBallDivination({ isVisible }: CrystalBallDivinationProps) {
+  const msg = useWaitMessages('crystal-ball-divination');
   return (
     <motion.div 
       initial={false}
@@ -152,7 +154,8 @@ export default function CrystalBallDivination({ isVisible }: CrystalBallDivinati
           animate={{ opacity: isVisible ? 1 : 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <p
+          <motion.p
+            key={msg}
             className="text-xl md:text-2xl"
             style={{ 
               fontFamily: 'var(--font-cinzel), serif',
@@ -160,9 +163,12 @@ export default function CrystalBallDivination({ isVisible }: CrystalBallDivinati
               textShadow: '0 0 20px rgba(99,102,241,0.6)',
               letterSpacing: '0.05em',
             }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            Etude du tirage en cours...
-          </p>
+            {msg}
+          </motion.p>
         </motion.div>
       </div>
 

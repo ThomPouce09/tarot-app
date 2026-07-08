@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import WaitOverlay from '@/components/wait-overlay';
 
 export default function YiQingInterpretationPage() {
   const [interpretation, setInterpretation] = useState<{
@@ -56,11 +57,7 @@ export default function YiQingInterpretationPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <p className="text-yellow-400 text-lg">Interprétation en cours...</p>
-      </div>
-    );
+    return <WaitOverlay type="yi-qing" />;
   }
 
   return (

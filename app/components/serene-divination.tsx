@@ -1,12 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useWaitMessages } from './use-wait-messages';
 
 interface SereneDivinationProps {
   isVisible: boolean;
 }
 
 export default function SereneDivination({ isVisible }: SereneDivinationProps) {
+  const msg = useWaitMessages('serene-divination');
   return (
     <motion.div 
       initial={false}
@@ -162,8 +164,9 @@ export default function SereneDivination({ isVisible }: SereneDivinationProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: isVisible ? 1 : 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          key={msg}
         >
-          Etude du tirage en cours...
+          {msg}
         </motion.p>
       </div>
 
