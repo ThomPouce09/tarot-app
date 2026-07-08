@@ -1,55 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    age: '',
-    gender: 'other',
-    comment: '',
-  });
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', age: '', gender: 'other', comment: '' });
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('tarot_user');
-    if (stored) {
-      try {
-        const u = JSON.parse(stored);
-        setUser(u);
-        setForm({
-          firstName: u.firstName || '',
-          lastName: u.lastName || '',
-          phone: u.phone || '',
-          age: u.age ? String(u.age) : '',
-          gender: u.gender || 'other',
-          comment: u.comment || '',
-        });
-      } catch (e) {}
-    }
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center">
-        <p className="text-amber-300">Chargement...</p>
-      </div>
-    );
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
+  if (!user && stored) {
+    try { setUser(JSON.parse(stored)); } catch {}
   }
+  if (!user) return null;
 
-  if (!user) {
-    router.push('/auth/login');
-    return null;
-  }
+  const initial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
+
+  const memberSince = user.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
+    : '—';
+  const genderLabel = user.gender === 'male' ? 'Homme' : user.gender === 'female' ? 'Femme' : user.gender === 'other' ? 'Autre' : user.gender || '—';
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
@@ -57,167 +30,158 @@ export default function AccountPage() {
   };
 
   const handleSave = async () => {
-    const res = await fetch('/api/auth/update-account', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: user.email,
-        ...form,
-        age: form.age ? parseInt(form.age, 10) : null,
-      }),
-    });
-    
-    const data = await res.json();
-    if (res.ok) {
-      const updatedUser = { ...user, ...form, age: form.age ? parseInt(form.age, 10) : null };
-      localStorage.setItem('tarot_user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      setEditMode(false);
-      setMessage('Modifications sauvegardées');
-    } else {
-      setMessage(data.error || 'Erreur');
+    setSaving(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/auth/update-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, ...form, age: form.age ? parseInt(form.age, 10) : null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const updatedUser = { ...user, ...form, age: form.age ? parseInt(form.age, 10) : null };
+        localStorage.setItem('tarot_user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setEditMode(false);
+        setMessage('Modifications sauvegardées ✦');
+      } else {
+        setMessage(data.error || 'Erreur');
+      }
+    } catch {
+      setMessage('Erreur de connexion');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (confirm('⚠️ Supprimer définitivement votre compte ?')) {
-      await fetch('/api/auth/delete-account', { 
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email }),
-      });
-      localStorage.removeItem('tarot_user');
-      router.push('/');
-    }
-  };
+  const Field = ({ id, label, value, onChange, type = 'text' }: any) => (
+    <div>
+      <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        autoComplete="off"
+        className="mystic-input"
+      />
+    </div>
+  );
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
-      <Link href="/" className="absolute top-4 right-4 text-yellow-400 text-2xl font-bold hover:text-yellow-300 z-10">✕</Link>
-      
-      <div className="bg-gray-900/80 border border-amber-800/50 rounded-xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md flex flex-col max-h-[90vh]">
-        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent mb-3">
-          Mon compte
-        </h1>
-        
-        {message && (
-          <p className="text-green-400 text-sm mb-3 px-2 py-1 rounded bg-green-900/20">
-            {message}
-          </p>
-        )}
+    <div className="space-y-6">
+      {/* En-tête profil */}
+      <div className="mystic-panel p-5 sm:p-7 flex items-center gap-5">
+        <div className="w-20 h-20 shrink-0 rounded-full bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white text-3xl font-bold mystic-glow" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          {initial}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="mystic-title text-2xl sm:text-3xl leading-tight truncate">
+            {user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Bienvenue'}
+          </h1>
+          <p className="text-gray-400 text-sm truncate">{user.email}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <span className={`badge-mystic ${user.confirmed ? '' : 'muted'}`}>
+              {user.confirmed ? '✦ Email confirmé' : 'Email non confirmé'}
+            </span>
+            <span className="badge-mystic muted">Membre depuis {memberSince}</span>
+          </div>
+        </div>
+      </div>
 
-        <div className="overflow-y-auto flex-1 min-h-0 space-y-3">
-          {editMode ? (
-            <>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Prenom</label>
-                <input
-                  type="text"
-                  value={form.firstName}
-                  onChange={e => setForm({...form, firstName: e.target.value})}
-                  autoComplete="off"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                />
-              </div>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Nom</label>
-                <input
-                  type="text"
-                  value={form.lastName}
-                  onChange={e => setForm({...form, lastName: e.target.value})}
-                  autoComplete="off"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                />
-              </div>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Telephone</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={e => setForm({...form, phone: e.target.value})}
-                  autoComplete="off"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                />
-              </div>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Age</label>
-                <input
-                  type="number"
-                  value={form.age}
-                  onChange={e => setForm({...form, age: e.target.value})}
-                  autoComplete="off"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                />
-              </div>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Genre</label>
-                <select
-                  value={form.gender}
-                  onChange={e => setForm({...form, gender: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                >
-                  <option value="male">Homme</option>
-                  <option value="female">Femme</option>
-                  <option value="other">Autre</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-gray-300 text-xs font-medium mb-1 block">Commentaires</label>
-                <textarea
-                  value={form.comment}
-                  onChange={e => setForm({...form, comment: e.target.value})}
-                  rows={3}
-                  autoComplete="off"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={handleSave} className="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-orange-700 rounded-lg text-white font-semibold">
-                  ✓ Valider
-                </button>
-                <button onClick={() => setEditMode(false)} className="flex-1 py-2.5 bg-gray-700 rounded-lg text-white">
-                  ✗ Annuler
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <p className="text-white"><span className="text-amber-400 font-medium">Email :</span> {user.email || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Prenom :</span> {user.firstName || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Nom :</span> {user.lastName || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Telephone :</span> {user.phone || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Age :</span> {user.age || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Genre :</span> {user.gender === "male" ? "Homme" : user.gender === "female" ? "Femme" : user.gender === "other" ? "Autre" : user.gender || "-"}</p>
-                <p className="text-white"><span className="text-amber-400 font-medium">Commentaires :</span> {user.comment || "-"}</p>
-              </div>
-              <button 
-                onClick={() => setEditMode(true)} 
-                className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-orange-700 rounded-lg text-white font-semibold mt-2"
-              >
-                Modifier mes informations
-              </button>
-            </>
+      {message && (
+        <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
+          {message}
+        </p>
+      )}
+
+      {message && (
+        <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
+          {message}
+        </p>
+      )}
+
+      {/* Détails du profil */}
+      <div className="mystic-panel p-5 sm:p-7">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="mystic-subtitle text-sm">Informations personnelles</h2>
+          {!editMode && (
+            <button onClick={() => setEditMode(true)} className="mystic-btn-ghost text-sm px-3 py-1.5">✎ Modifier</button>
           )}
         </div>
 
-        {!editMode && (
-          <div className="pt-3 mt-3 border-t border-amber-800/30 space-y-2">
-            <button 
-              onClick={handleLogout} 
-              className="w-full py-2.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-gray-300 text-sm"
-            >
-              Déconnexion
-            </button>
-            <button 
-              onClick={handleDeleteAccount} 
-              className="w-full py-2.5 bg-red-900/50 border border-red-700/50 rounded text-red-400 text-sm"
-            >
-              Supprimer mon compte
-            </button>
+        {editMode ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field id="firstName" label="Prénom" value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
+              <Field id="lastName" label="Nom" value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
+              <Field id="phone" label="Téléphone" value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
+              <Field id="age" label="Âge" value={form.age} onChange={(e: any) => setForm({ ...form, age: e.target.value })} type="number" />
+            </div>
+            <div>
+              <label htmlFor="gender" className="mystic-label block mb-1">Genre</label>
+              <select id="gender" value={form.gender} onChange={(e: any) => setForm({ ...form, gender: e.target.value })} className="mystic-input">
+                <option value="male">Homme</option>
+                <option value="female">Femme</option>
+                <option value="other">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="comment" className="mystic-label block mb-1">Commentaires</label>
+              <textarea id="comment" value={form.comment} onChange={(e: any) => setForm({ ...form, comment: e.target.value })} rows={3} className="mystic-input resize-none" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={handleSave} disabled={saving} className="mystic-btn flex-1 disabled:opacity-60">
+                {saving ? 'Sauvegarde…' : '✓ Valider'}
+              </button>
+              <button onClick={() => setEditMode(false)} className="mystic-btn-ghost flex-1">✗ Annuler</button>
+            </div>
           </div>
+        ) : (
+          <dl className="space-y-3 text-sm">
+            <Row label="Email" value={user.email} />
+            <Row label="Prénom" value={user.firstName} />
+            <Row label="Nom" value={user.lastName} />
+            <Row label="Téléphone" value={user.phone} />
+            <Row label="Âge" value={user.age} />
+            <Row label="Genre" value={genderLabel} />
+            <Row label="Commentaires" value={user.comment} />
+          </dl>
         )}
       </div>
+
+      {/* Raccourcis */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <QuickLink href="/dashboard/readings" icon="📜" title="Mon historique" sub="Revoir vos tirages" />
+        <QuickLink href="/dashboard/account/security" icon="🛡️" title="Sécurité" sub="Mot de passe & compte" />
+        <QuickLink href="/dashboard/account/abonnement" icon="✦" title="Mon abonnement" sub="Forfait & facturation" />
+        <QuickLink href="/dashboard/account/stats" icon="📊" title="Statistiques" sub="Votre activité" />
+      </div>
+
+      {/* Déconnexion (mobile) */}
+      <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3">🚪 Déconnexion</button>
     </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-amber-800/15 pb-2">
+      <dt className="mystic-label shrink-0">{label}</dt>
+      <dd className="text-gray-200 text-right truncate">{value || '—'}</dd>
+    </div>
+  );
+}
+
+function QuickLink({ href, icon, title, sub }: { href: string; icon: string; title: string; sub: string }) {
+  return (
+    <a href={href} className="mystic-panel p-4 flex items-center gap-3 hover:border-amber-600/40 transition-colors group">
+      <span className="text-2xl">{icon}</span>
+      <div>
+        <p className="text-amber-200 font-medium group-hover:text-amber-100">{title}</p>
+        <p className="text-gray-500 text-xs">{sub}</p>
+      </div>
+    </a>
   );
 }

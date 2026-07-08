@@ -194,3 +194,131 @@ html, body {
 .title-glow {
   text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
+
+/* ============================================================
+   Espace membre — design system partagé (Mon compte / Sécurité /
+   Forfait / Statistiques / Préférences). Centralise le thème
+   mystique ambre pour garder toutes les pages cohérentes (DRY).
+   ============================================================ */
+.mystic-panel {
+  background: rgba(17, 11, 9, 0.8);
+  border: 1px solid rgba(218, 165, 32, 0.25);
+  border-radius: 1rem;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(218, 165, 32, 0.06);
+  backdrop-filter: blur(8px);
+}
+.mystic-title {
+  font-family: var(--font-cinzel-deco), serif;
+  color: #DAA520;
+  text-shadow: 0 0 18px rgba(218, 165, 32, 0.5);
+}
+.brand-oracle {
+  font-family: var(--font-cormorant), serif;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: linear-gradient(100deg, #f5d98b 0%, #daa520 38%, #b8860b 62%, #f5d98b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #daa520;
+  text-shadow: 0 0 22px rgba(218, 165, 32, 0.45);
+}
+.mystic-subtitle {
+  font-family: var(--font-cinzel), serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(218, 165, 32, 0.7);
+}
+.mystic-label {
+  font-family: var(--font-cinzel), serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(253, 230, 138, 0.85);
+  font-size: 0.7rem;
+}
+.mystic-input {
+  width: 100%;
+  background: rgba(120, 53, 15, 0.1);
+  border: 1px solid rgba(180, 83, 9, 0.35);
+  border-radius: 0.6rem;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.65rem 0.85rem;
+  transition: border-color .2s, box-shadow .2s;
+}
+.mystic-input:focus {
+  outline: none;
+  border-color: rgba(218, 165, 32, 0.7);
+  box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.25);
+}
+.mystic-input::placeholder { color: rgba(217, 119, 6, 0.5); }
+.mystic-btn {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1rem;
+  transition: filter .2s, box-shadow .2s;
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35);
+}
+.mystic-btn:hover { filter: brightness(1.1); box-shadow: 0 6px 20px rgba(218, 165, 32, 0.4); }
+.mystic-btn:focus-visible { outline: 2px solid #DAA520; outline-offset: 2px; }
+.mystic-btn-ghost {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(120, 120, 120, 0.4);
+  color: #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1rem;
+  transition: background .2s;
+}
+.mystic-btn-ghost:hover { background: rgba(31, 41, 55, 0.8); }
+.mystic-btn-ghost:focus-visible { outline: 2px solid #DAA520; outline-offset: 2px; }
+.mystic-btn-danger {
+  background: rgba(127, 29, 29, 0.45);
+  border: 1px solid rgba(185, 28, 28, 0.5);
+  color: #fca5a5;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1rem;
+  transition: background .2s;
+}
+.mystic-btn-danger:hover { background: rgba(127, 29, 29, 0.7); }
+.mystic-btn-danger:focus-visible { outline: 2px solid #fca5a5; outline-offset: 2px; }
+.nav-link-mystic {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  color: #d1d5db;
+  transition: background .2s, color .2s;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.nav-link-mystic:hover { background: rgba(218, 165, 32, 0.08); color: #fde68a; }
+.nav-link-mystic.active {
+  background: linear-gradient(90deg, rgba(218, 165, 32, 0.18), rgba(218, 165, 32, 0.04));
+  color: #DAA520;
+  border-left: 3px solid #DAA520;
+  box-shadow: inset 0 0 20px rgba(218, 165, 32, 0.06);
+}
+.badge-mystic {
+  font-size: 0.65rem;
+  font-family: var(--font-cinzel), serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(218, 165, 32, 0.4);
+  color: #fde68a;
+  background: rgba(218, 165, 32, 0.08);
+}
+.badge-mystic.muted {
+  border-color: rgba(156, 163, 175, 0.4);
+  color: #cbd5e1;
+  background: rgba(156, 163, 175, 0.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mystic-glow, .reveal-text, .shimmer, .card-shimmer::after, .mystic-glow * {
+    animation: none !important;
+  }
+}
