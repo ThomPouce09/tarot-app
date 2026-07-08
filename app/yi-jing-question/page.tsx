@@ -564,7 +564,7 @@ export default function YiJingQuestionPage() {
 
   const handleSubmitQuestion = () => {
     if (question.trim()) {
-      localStorage.setItem('yi-jing-question-text', question.trim());
+      localStorage.setItem('yi-jing-question-question', question.trim());
       setQuestionAsked(true);
     }
   };

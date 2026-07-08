@@ -458,6 +458,12 @@ function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?
   const isSimpleFormat = r.type === 'yi-jing-simple' || (interp && interp.situation);
   return (
     <div className="mt-4 space-y-4">
+      {r.question && (
+        <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Votre question</p>
+          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+        </div>
+      )}
       {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
         <div className="text-center">
           <h3 className="text-xl font-serif text-purple-300 mb-1">{r.cards[0]?.name || 'Hexagramme'}</h3>
