@@ -12,7 +12,6 @@ export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showRunesNotice, setShowRunesNotice] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,18 +37,13 @@ export default function HomePage() {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
         setIsLoggedIn(true);
         setShowLoginModal(false);
-        router.push('/');
+        router.push('/dashboard/account');
       } else {
         alert(data.error || 'Email ou mot de passe incorrect');
       }
     } catch {
       alert('Erreur de connexion');
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('tarot_user');
-    setIsLoggedIn(false);
   };
 
   return (
@@ -67,72 +61,12 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/40" />
       </div>
 
-      {/* Hamburger Menu - Visible only when logged in */}
-      {isLoggedIn && (
-        <div className="absolute top-4 right-4 z-50">
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 rounded-lg text-amber-300 hover:text-amber-200 transition-all"
-              style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                background: 'rgba(139, 105, 20, 0.25)',
-                border: '1px solid rgba(218, 165, 32, 0.3)',
-                backdropFilter: 'blur(4px)',
-              }}
-              aria-label="Menu"
-            >
-              &#9776;
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-900/90 border border-amber-700/50 rounded-lg shadow-xl py-2">
-                <a href="/dashboard/account" className="block px-4 py-2 text-sm text-amber-300 hover:bg-amber-900/30">Mon compte</a>
-                <a href="/dashboard/readings" className="block px-4 py-2 text-sm text-amber-300 hover:bg-amber-900/30">Historique</a>
-                <button onClick={handleLogout} className="block px-4 py-2 text-sm text-red-400 hover:bg-red-900/30 w-full text-left">Déconnexion</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* AUTH BUTTONS - Only show when NOT logged in */}
-      {!isLoggedIn && (
-        <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-          <Link
-            href="/auth/signup"
-            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
-            style={{
-              fontFamily: 'var(--font-cinzel), serif',
-              background: 'rgba(139, 105, 20, 0.25)',
-              color: '#DAA520',
-              border: '1px solid rgba(218, 165, 32, 0.3)',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            Inscription
-          </Link>
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all opacity-80 hover:opacity-100"
-            style={{
-              fontFamily: 'var(--font-cinzel), serif',
-              background: 'rgba(139, 105, 20, 0.25)',
-              color: '#FFD700',
-              border: '1px solid rgba(218, 165, 32, 0.3)',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            Connexion
-          </button>
-        </div>
-      )}
-
       {/* MAIN TITLE */}
       <div
-        className="absolute top-[7%] sm:top-[4%] md:top-[5%] left-1/2 -translate-x-1/2 z-30 text-center px-4"
+        className="absolute top-[3%] sm:top-[3%] md:top-[4%] left-1/2 -translate-x-1/2 z-40 text-center px-4"
       >
         <h1
-          className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-wider uppercase mb-4"
+          className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-wider uppercase mb-3"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
             color: '#DAA520',
@@ -143,7 +77,7 @@ export default function HomePage() {
           L&apos;Oracle des étoiles
         </h1>
         <p
-          className="text-sm sm:text-base md:text-lg font-medium italic"
+          className="text-sm sm:text-base md:text-lg font-medium italic mb-5"
           style={{
             fontFamily: 'var(--font-cinzel), serif',
             color: '#FFD700',
@@ -153,11 +87,31 @@ export default function HomePage() {
         >
           Consultez votre destin à travers les arcanes
         </p>
+
+        {/* CTA central unique */}
+        <motion.button
+          onClick={() => isLoggedIn ? router.push('/dashboard/account') : setShowLoginModal(true)}
+          className="mx-auto px-5 py-1.5 rounded-full font-semibold transition-all"
+          style={{
+            fontFamily: 'var(--font-cinzel), serif',
+            background: 'rgba(26, 14, 10, 0.55)',
+            color: '#FFD700',
+            boxShadow: '0 0 16px rgba(218,165,32,0.35)',
+            border: '1px solid rgba(218,165,32,0.55)',
+            letterSpacing: '0.05em',
+            fontSize: '0.95rem',
+            backdropFilter: 'blur(4px)',
+          }}
+          whileHover={{ scale: 1.04, boxShadow: '0 0 24px rgba(218,165,32,0.55)' }}
+          whileTap={{ scale: 0.97 }}
+        >
+          ✨ {isLoggedIn ? 'Mon espace' : 'Entrer dans le temple'}
+        </motion.button>
       </div>
 
       {/* CHOICE CARDS */}
       <div
-        className="absolute top-[34%] sm:top-[30%] md:top-[28%] left-1/2 -translate-x-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
+        className="absolute top-[36%] sm:top-[32%] md:top-[30%] left-1/2 -translate-x-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
       >
         {/* Tarot Card Button */}
         <Link href="/tarot" className="block">
