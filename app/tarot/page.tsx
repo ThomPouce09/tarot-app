@@ -4,10 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useT } from "@/lib/i18n";
 
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const t = useT();
   
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -74,7 +76,7 @@ export default function TarotHubPage() {
             letterSpacing: "0.05em",
           }}
         >
-          Choisissez votre tirage
+          {t('hubs.tarot.subtitle')}
         </p>
       </div>
 
@@ -111,7 +113,7 @@ export default function TarotHubPage() {
                   textShadow: "0 0 8px rgba(255,215,0,0.4)",
                 }}
               >
-                3 Cartes
+                {t('hubs.tarot.tile3')}
               </h2>
               <p
                 className="text-[9px] text-center leading-tight"
@@ -120,7 +122,7 @@ export default function TarotHubPage() {
                   color: "rgba(255,215,0,0.7)",
                 }}
               >
-                Passé · Présent · Avenir (Tirage standard)
+                {t('hubs.tarot.tile3sub')}
               </p>
             </div>
             <div
@@ -162,7 +164,7 @@ export default function TarotHubPage() {
                   textShadow: "0 0 8px rgba(255,215,0,0.45)",
                 }}
               >
-                5 Cartes en Croix
+                {t('hubs.tarot.tile5')}
               </h2>
               <p
                 className="text-[9px] text-center leading-tight"
@@ -171,7 +173,7 @@ export default function TarotHubPage() {
                   color: "rgba(255,215,0,0.75)",
                 }}
               >
-                (Tirage automatisé)
+                {t('hubs.tarot.tile5sub')}
               </p>
             </div>
             <div
@@ -214,8 +216,8 @@ export default function TarotHubPage() {
                     textShadow: "0 0 8px rgba(255,215,0,0.45)",
                   }}
                 >
-                  5 Cartes Manuelles
-                </h2>
+                  {t('hubs.tarot.tileMan')}
+                  </h2>
                 <p
                   className="text-[9px] text-center leading-tight"
                   style={{
@@ -223,7 +225,7 @@ export default function TarotHubPage() {
                     color: "rgba(255,215,0,0.75)",
                   }}
                 >
-                  Consultation personnalisée
+                  {t('hubs.tarot.tileMansub')}
                 </p>
               </div>
               <div
@@ -262,8 +264,8 @@ export default function TarotHubPage() {
                     textShadow: "0 0 8px rgba(255,215,0,0.45)",
                   }}
                 >
-                  5 Cartes Manuelles
-                </h2>
+                  {t('hubs.tarot.tileMan')}
+                  </h2>
                 <p
                   className="text-[9px] text-center leading-tight"
                   style={{
@@ -271,7 +273,7 @@ export default function TarotHubPage() {
                     color: "rgba(255,215,0,0.75)",
                   }}
                 >
-                  🔒 Connectez-vous
+                  {t('hubs.loginRequired')}
                 </p>
               </div>
             </motion.div>
@@ -282,7 +284,7 @@ export default function TarotHubPage() {
       {/* Login prompt message */}
       {showLoginPrompt && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-purple-900/90 border border-purple-500 rounded-lg px-4 py-2">
-          <p className="text-purple-300 text-sm font-medium">🔒 Connectez-vous pour accéder à cette fonction</p>
+          <p className="text-purple-300 text-sm font-medium">{t('hubs.loginPrompt')}</p>
         </div>
       )}
 
@@ -296,7 +298,7 @@ export default function TarotHubPage() {
             letterSpacing: "0.05em",
           }}
         >
-          ✦ Les étoiles vous guident ✦
+          {t('hubs.tarot.footer')}
         </p>
       </div>
     </div>

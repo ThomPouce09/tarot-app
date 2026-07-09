@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
 
   console.log('[interpret] Received body:', JSON.stringify(body, null, 2));
 
-  const { type, cartes, question, userId } = body;
+  const { type, cartes, question, userId, lang } = body;
+  const language: 'fr' | 'en' = lang === 'en' ? 'en' : 'fr';
 
   // Validation
   if (!type || typeof type !== 'string') {
@@ -197,10 +198,18 @@ export async function POST(request: NextRequest) {
   const isTarot = type.startsWith('tarot');
 
   if (isTarot) {
-    const cardNames = cartes.map((id: number) => TAROT_CARDS.find(c => c.id === id)?.name || `Carte ${id}`);
-    const positions = type === 'tarot-5-c-manuelle'
+    const cardNames = cartes.map((id: number) => {
+      const c = TAROT_CARDS.find(cc => cc.id === id);
+      if (!c) return `Carte ${id}`;
+      return language === 'en' ? (c.nameEn || c.name) : c.name;
+    });
+    const positionsFr = type === 'tarot-5-c-manuelle'
       ? ['Sommet (Situation)', 'Orient (Forces)', 'Synthèse (Issue)', 'Occident (Défis)', 'Base (Soutien)']
       : ['Passé', 'Présent', 'Futur'];
+    const positionsEn = type === 'tarot-5-c-manuelle'
+      ? ['Top (Situation)', 'East (Strengths)', 'Synthesis (Outcome)', 'West (Challenges)', 'Base (Support)']
+      : ['Past', 'Present', 'Future'];
+    const positions = language === 'en' ? positionsEn : positionsFr;
 
     prompt = `Tu es un oracle expert du Tarot de Marseille.
 L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"
@@ -213,7 +222,7 @@ Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 "soutien": "<3-4 phrases : forces d'ancrage>",
 "issue": "<3-4 phrases : évolution probable>",
 "conseil": "<2-3 phrases : message clair et puissant>"
-}`;
+}${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
   } else {
     // Yi Jing
     prompt = `Tu es un Maître du Yi Jing. Réponds à la question suivante :
@@ -226,7 +235,7 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
 "soutien": "<où trouver l'appui, 2-3 phrases>",
 "issue": "<perspectives d'évolution, 3-4 phrases>",
 "conseil": "<message décisif, 1-2 phrases>"
-}`;
+}${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
   }
 
   // --- Appels API en cascade ---

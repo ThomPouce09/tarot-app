@@ -4,10 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useT } from "@/lib/i18n";
 
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -72,7 +74,7 @@ export default function YiJingHubPage() {
             letterSpacing: "0.05em",
           }}
         >
-          Choisissez votre consultation
+          {t('hubs.yijing.subtitle')}
         </p>
       </div>
 
@@ -112,7 +114,7 @@ export default function YiJingHubPage() {
                   textShadow: "0 0 8px rgba(180,140,200,0.5)",
                 }}
               >
-                Yi Jing Simple
+                {t('hubs.yijing.simple')}
               </h2>
               <p
                 className="text-[11px] text-center leading-tight"
@@ -121,7 +123,7 @@ export default function YiJingHubPage() {
                   color: "rgba(200,180,230,0.7)",
                 }}
               >
-                Tirage classique sans question
+                {t('hubs.yijing.simplesub')}
               </p>
             </div>
             <div
@@ -163,7 +165,7 @@ export default function YiJingHubPage() {
                   textShadow: "0 0 8px rgba(180,140,200,0.5)",
                 }}
               >
-                Hexagramme du Jour
+                {t('hubs.yijing.day')}
               </h2>
               <p
                 className="text-[11px] text-center leading-tight"
@@ -172,7 +174,7 @@ export default function YiJingHubPage() {
                   color: "rgba(200,180,230,0.7)",
                 }}
               >
-                L'influence du moment
+                {t('hubs.yijing.daysub')}
               </p>
             </div>
             <div
@@ -215,8 +217,8 @@ export default function YiJingHubPage() {
                     textShadow: "0 0 8px rgba(200,160,240,0.5)",
                   }}
                 >
-                  Yi Jing avec Question
-                </h2>
+                  {t('hubs.yijing.question')}
+                  </h2>
                 <p
                   className="text-[11px] text-center leading-tight"
                   style={{
@@ -224,7 +226,7 @@ export default function YiJingHubPage() {
                     color: "rgba(220,200,250,0.75)",
                   }}
                 >
-                  Question & baguettes
+                  {t('hubs.yijing.questionsub')}
                 </p>
               </div>
               <div
@@ -263,8 +265,8 @@ export default function YiJingHubPage() {
                     textShadow: "0 0 8px rgba(200,160,240,0.5)",
                   }}
                 >
-                  Yi Jing avec Question
-                </h2>
+                  {t('hubs.yijing.question')}
+                  </h2>
                 <p
                   className="text-[11px] text-center leading-tight opacity-50"
                   style={{
@@ -283,7 +285,7 @@ export default function YiJingHubPage() {
       {/* Login prompt message */}
       {showLoginPrompt && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-purple-900/90 border border-purple-500 rounded-lg px-4 py-2">
-          <p className="text-purple-300 text-sm font-medium">🔒 Connectez-vous pour accéder à cette fonction</p>
+          <p className="text-purple-300 text-sm font-medium">{t('hubs.loginPrompt')}</p>
         </div>
       )}
 
@@ -297,7 +299,7 @@ export default function YiJingHubPage() {
             letterSpacing: "0.05em",
           }}
         >
-          ☯ Les hexagrammes murmurent ☯
+          {t('hubs.yijing.footer')}
         </p>
       </div>
     </div>

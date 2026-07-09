@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DrawnCardData } from './tarot-app';
 import CardFace from './card-face';
 import { useState, useEffect, useRef } from 'react';
+import { useLang } from '@/lib/i18n';
+import { cardDisplayName } from '@/lib/i18n/cards';
 
 interface DrawnCardsProps {
   drawnCards: DrawnCardData[];
@@ -62,6 +64,7 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const prevCardRef = useRef<DrawnCardData | null>(null);
+  const lang = useLang();
 
   useEffect(() => {
     if (!drawnCard) {
@@ -220,7 +223,7 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
       {/* Card name - Zone C : noms des cartes sélectionnées */}
       <AnimatePresence>
         {showFace && drawnCard && (
-          <CardNameLabel cardName={drawnCard.card.name} isMobile={isMobile} />
+          <CardNameLabel cardName={cardDisplayName(drawnCard.card, lang)} isMobile={isMobile} />
         )}
       </AnimatePresence>
     </div>

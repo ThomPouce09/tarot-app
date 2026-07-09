@@ -32,7 +32,10 @@ export default function AbonnementPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl">✦ Mon abonnement</h1>
+        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
+          <img src="/images/nav-abonnement.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
+          Mon abonnement
+        </h1>
         <p className="text-gray-500 text-sm mt-1">
           Statut : <span className={status === 'actif' ? 'text-amber-300' : 'text-gray-400'}>{status === 'actif' ? 'Actif' : 'Suspendu'}</span>
           {status === 'actif' && <span className="ml-2 badge-mystic">{PLANS[current].name}</span>}

@@ -1,6 +1,7 @@
 import { Cinzel, Cinzel_Decorative, MedievalSharp, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
+import { LanguageProvider } from '@/lib/i18n'
 
 export const dynamic = 'force-dynamic';
 
@@ -65,10 +66,12 @@ export default function RootLayout({
         }} />
       </head>
       <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} ${cormorant.variable} font-sans antialiased`}>
-        {children}
-        <ChunkLoadErrorHandler />
-        {/* Portal root pour affichage garanti au-dessus de tout */}
-        <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
+        <LanguageProvider>
+          {children}
+          <ChunkLoadErrorHandler />
+          {/* Portal root pour affichage garanti au-dessus de tout */}
+          <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
+        </LanguageProvider>
       </body>
     </html>
   )

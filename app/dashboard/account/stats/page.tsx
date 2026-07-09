@@ -6,6 +6,7 @@ export default function StatsPage() {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [stats, setStats] = useState<{ total: number; tarot: number; yijing: number; byMonth: { month: string; count: number }[] }>({ total: 0, tarot: 0, yijing: 0, byMonth: [] });
+  const [recent, setRecent] = useState<{ type: string; createdAt: string }[]>([]);
 
   if (typeof window !== 'undefined' && !ready) {
     const stored = localStorage.getItem('tarot_user');
@@ -29,9 +30,21 @@ export default function StatsPage() {
         });
         const byMonth = Object.entries(months).map(([month, count]) => ({ month, count })).slice(-6);
         setStats({ total: readings.length, tarot, yijing, byMonth });
+        const sorted = [...readings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setRecent(sorted.slice(0, 5).map((r) => ({ type: r.type, createdAt: r.createdAt })));
       })
       .catch(() => {});
   }, [user]);
+
+  const typeLabel = (t: string) => {
+    const s = (t || '').toLowerCase().replace(/[_-]/g, '');
+    if (s.includes('yi') || s.includes('jing')) return 'Yi Jing';
+    if (s.includes('rune') || s.includes('futhark')) return 'Runes';
+    return 'Tarot';
+  };
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' · ' + new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   if (!user) return null;
 
@@ -40,14 +53,17 @@ export default function StatsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl">📊 Statistiques</h1>
+        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
+          <img src="/images/nav-stats.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
+          Statistiques
+        </h1>
         <p className="text-gray-500 text-sm mt-1">Votre parcours divinatoire.</p>
       </header>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon="📜" value={stats.total} label="Tirages" />
-        <StatCard icon="🎴" value={stats.tarot} label="Tarot" />
-        <StatCard icon="☯️" value={stats.yijing} label="Yi Jing" />
+        <StatCard icon="/images/nav-historique.png" value={stats.total} label="Tirages" />
+        <StatCard icon="/images/tarot-icon.png" value={stats.tarot} label="Tarot" />
+        <StatCard icon="/images/yi-jing-icon.png" value={stats.yijing} label="Yi Jing" />
       </div>
 
       {/* Répartition Tarot / Yi Jing */}
@@ -63,13 +79,13 @@ export default function StatsPage() {
         )}
       </div>
 
-      {/* Activité mensuelle */}
+      {/* Activité récente */}
       <div className="mystic-panel p-5">
         <h2 className="mystic-subtitle text-sm mb-4">Activité récente</h2>
         {stats.byMonth.length === 0 ? (
           <p className="text-gray-500 text-sm">Pas encore d'historique.</p>
         ) : (
-          <div className="flex items-end justify-between gap-2 h-32">
+          <div className="flex items-end justify-between gap-2 h-32 mb-5">
             {stats.byMonth.map((m) => (
               <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full bg-gradient-to-t from-amber-700/40 to-amber-400/70 rounded-t" style={{ height: `${(m.count / maxMonth) * 100}%`, minHeight: '4px' }} />
@@ -78,15 +94,35 @@ export default function StatsPage() {
             ))}
           </div>
         )}
+        {recent.length > 0 && (
+          <ul className="space-y-2">
+            {recent.map((r, i) => (
+              <li key={i} className="flex items-center justify-between text-sm border-b border-amber-800/15 pb-2 last:border-0 last:pb-0">
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className="text-gray-200">{typeLabel(r.type)}</span>
+                </span>
+                <span className="text-gray-500 text-xs">{fmtDate(r.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
 }
 
 function StatCard({ icon, value, label }: { icon: string; value: number; label: string }) {
+  const isImg = icon.startsWith('/');
   return (
     <div className="mystic-panel p-4 text-center">
-      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-2xl mb-1 flex justify-center">
+        {isImg ? (
+          <img src={icon} alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.4))' }} />
+        ) : (
+          icon
+        )}
+      </div>
       <div className="mystic-title text-2xl">{value}</div>
       <div className="mystic-subtitle text-[10px] mt-1">{label}</div>
     </div>

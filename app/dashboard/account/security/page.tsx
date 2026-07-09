@@ -78,7 +78,10 @@ export default function SecurityPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl">🛡️ Sécurité</h1>
+        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
+          <img src="/images/nav-security.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
+          Sécurité
+        </h1>
         <p className="text-gray-500 text-sm mt-1">Protégez votre sanctuaire mystique.</p>
       </header>
 

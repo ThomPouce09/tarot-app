@@ -5,11 +5,13 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useT } from '@/lib/i18n';
 
 const LANDING_BG = '/backgrounds/landing-bg.jpg';
 
 export default function HomePage() {
   const router = useRouter();
+  const t = useT();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRunesNotice, setShowRunesNotice] = useState(false);
@@ -74,7 +76,7 @@ export default function HomePage() {
             textShadow: '0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)',
           }}
         >
-          L&apos;Oracle des étoiles
+          L'Oracle des étoiles
         </h1>
         <p
           className="text-sm sm:text-base md:text-lg font-medium italic mb-5"
@@ -85,7 +87,7 @@ export default function HomePage() {
             letterSpacing: '0.05em',
           }}
         >
-          Consultez votre destin à travers les arcanes
+          {t('landing.subtitle')}
         </p>
 
         {/* CTA central unique */}
@@ -105,7 +107,7 @@ export default function HomePage() {
           whileHover={{ scale: 1.04, boxShadow: '0 0 24px rgba(218,165,32,0.55)' }}
           whileTap={{ scale: 0.97 }}
         >
-          ✨ {isLoggedIn ? 'Mon espace' : 'Entrer dans le temple'}
+          ✨ {isLoggedIn ? t('landing.cta.logged') : t('landing.cta.guest')}
         </motion.button>
       </div>
 
@@ -145,7 +147,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(255,215,0,0.45)',
                 }}
               >
-                Tarot
+                {t('landing.tile.tarot')}
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -154,7 +156,7 @@ export default function HomePage() {
                   color: 'rgba(255,215,0,0.75)',
                 }}
               >
-                Déployer les lames sacrées
+                {t('landing.tile.tarotSub')}
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -198,7 +200,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(180,140,200,0.5)',
                 }}
               >
-                Yi Jing
+                {t('landing.tile.yijing')}
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -207,7 +209,7 @@ export default function HomePage() {
                   color: 'rgba(200,180,230,0.7)',
                 }}
               >
-                Interroger les baguettes d'achillée
+                {t('landing.tile.yijingSub')}
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -257,7 +259,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(138,109,59,0.5)',
                 }}
               >
-                Runes Scandinaves
+                {t('landing.tile.runes')}
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -266,7 +268,7 @@ export default function HomePage() {
                   color: 'rgba(168,201,154,0.8)',
                 }}
               >
-                Interroger le Futhark
+                {t('landing.tile.runesSub')}
               </p>
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -286,14 +288,14 @@ export default function HomePage() {
                   className="text-[11px] sm:text-xs font-bold leading-tight"
                   style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#D4B483', textShadow: '0 0 8px rgba(138,109,59,0.5)' }}
                 >
-                  En cours de construction
+                  {t('landing.runes.building')}
                 </p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowRunesNotice(false); }}
                   className="mt-2 px-3 py-1 rounded-md text-[10px] font-medium transition-all hover:opacity-80"
                   style={{ fontFamily: 'var(--font-cinzel), serif', background: 'rgba(138,109,59,0.25)', color: '#E8D5B0', border: '1px solid rgba(138,109,59,0.4)' }}
                 >
-                  Fermer
+                  {t('landing.runes.close')}
                 </button>
               </div>
             )}
@@ -327,7 +329,7 @@ export default function HomePage() {
                 textShadow: '0 0 15px rgba(255,215,0,0.5)',
               }}
             >
-              Connexion ✨
+              {t('login.title')}
             </h3>
             <p
               className="text-center text-sm mb-6"
@@ -337,7 +339,7 @@ export default function HomePage() {
                 color: 'rgba(255,215,0,0.7)',
               }}
             >
-              Que les étoiles vous guident !
+              {t('login.slogan')}
             </p>
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
@@ -348,7 +350,7 @@ export default function HomePage() {
                     color: '#FFD700',
                   }}
                 >
-                  Email
+                  {t('login.email')}
                 </label>
                 <input
                   type="email"
@@ -381,7 +383,7 @@ export default function HomePage() {
                     color: '#FFD700',
                   }}
                 >
-                  Mot de passe
+                  {t('login.password')}
                 </label>
                 <input
                   type="password"
@@ -415,12 +417,12 @@ export default function HomePage() {
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
-                Se connecter ✨
+                {t('login.submit')}
               </button>
             </form>
             <div className="text-center text-xs mt-4 space-y-2">
-              <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">🔑 Mot de passe oublié ?</a>
-              <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">✨ Pas encore inscrit ?</a>
+              <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</a>
+              <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</a>
             </div>
           </motion.div>
         </div>

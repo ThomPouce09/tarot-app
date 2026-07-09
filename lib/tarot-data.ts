@@ -1,6 +1,9 @@
+import { majorNameEn, minorNameEn } from './tarot-data-en';
+
 export interface TarotCard {
   id: number;
   name: string;
+  nameEn: string;
   nameShort: string;
   arcana: 'major' | 'minor';
   suit: string | null;
@@ -10,28 +13,28 @@ export interface TarotCard {
 
 export const TAROT_CARDS: TarotCard[] = [
   // Major Arcana (0-21)
-  { id: 0, name: 'Le Mat', nameShort: '0', arcana: 'major', suit: null, number: 0, keywords: ['liberté', 'aventure', 'folie'] },
-  { id: 1, name: 'Le Bateleur', nameShort: 'I', arcana: 'major', suit: null, number: 1, keywords: ['création', 'habileté', 'volonté'] },
-  { id: 2, name: 'La Papesse', nameShort: 'II', arcana: 'major', suit: null, number: 2, keywords: ['intuition', 'sagesse', 'mystère'] },
-  { id: 3, name: "L'Impératrice", nameShort: 'III', arcana: 'major', suit: null, number: 3, keywords: ['fécondité', 'abondance', 'nature'] },
-  { id: 4, name: "L'Empereur", nameShort: 'IV', arcana: 'major', suit: null, number: 4, keywords: ['autorité', 'structure', 'pouvoir'] },
-  { id: 5, name: 'Le Pape', nameShort: 'V', arcana: 'major', suit: null, number: 5, keywords: ['enseignement', 'tradition', 'spiritualité'] },
-  { id: 6, name: "L'Amoureux", nameShort: 'VI', arcana: 'major', suit: null, number: 6, keywords: ['amour', 'choix', 'union'] },
-  { id: 7, name: 'Le Chariot', nameShort: 'VII', arcana: 'major', suit: null, number: 7, keywords: ['victoire', 'conquête', 'détermination'] },
-  { id: 8, name: 'La Justice', nameShort: 'VIII', arcana: 'major', suit: null, number: 8, keywords: ['équilibre', 'vérité', 'loi'] },
-  { id: 9, name: "L'Hermite", nameShort: 'IX', arcana: 'major', suit: null, number: 9, keywords: ['solitude', 'recherche', 'prudence'] },
-  { id: 10, name: 'La Roue de Fortune', nameShort: 'X', arcana: 'major', suit: null, number: 10, keywords: ['destin', 'cycles', 'chance'] },
-  { id: 11, name: 'La Force', nameShort: 'XI', arcana: 'major', suit: null, number: 11, keywords: ['courage', 'énergie', 'maîtrise'] },
-  { id: 12, name: 'Le Pendu', nameShort: 'XII', arcana: 'major', suit: null, number: 12, keywords: ['sacrifice', 'lâcher-prise', 'suspension'] },
-  { id: 13, name: 'La Mort', nameShort: 'XIII', arcana: 'major', suit: null, number: 13, keywords: ['transformation', 'fin', 'renouveau'] },
-  { id: 14, name: 'La Tempérance', nameShort: 'XIV', arcana: 'major', suit: null, number: 14, keywords: ['harmonie', 'patience', 'guérison'] },
-  { id: 15, name: 'Le Diable', nameShort: 'XV', arcana: 'major', suit: null, number: 15, keywords: ['tentation', 'passion', 'attachement'] },
-  { id: 16, name: 'La Maison Dieu', nameShort: 'XVI', arcana: 'major', suit: null, number: 16, keywords: ['destruction', 'révélation', 'libération'] },
-  { id: 17, name: "L'Étoile", nameShort: 'XVII', arcana: 'major', suit: null, number: 17, keywords: ['espoir', 'inspiration', 'sérénité'] },
-  { id: 18, name: 'La Lune', nameShort: 'XVIII', arcana: 'major', suit: null, number: 18, keywords: ['illusion', 'rêves', 'inconscient'] },
-  { id: 19, name: 'Le Soleil', nameShort: 'XIX', arcana: 'major', suit: null, number: 19, keywords: ['bonheur', 'succès', 'vitalité'] },
-  { id: 20, name: 'Le Jugement', nameShort: 'XX', arcana: 'major', suit: null, number: 20, keywords: ['résurrection', 'appel', 'absolution'] },
-  { id: 21, name: 'Le Monde', nameShort: 'XXI', arcana: 'major', suit: null, number: 21, keywords: ['accomplissement', 'plénitude', 'réalisation'] },
+  m(0, 'Le Mat', '0', ['liberté', 'aventure', 'folie']),
+  m(1, 'Le Bateleur', 'I', ['création', 'habileté', 'volonté']),
+  m(2, 'La Papesse', 'II', ['intuition', 'sagesse', 'mystère']),
+  m(3, "L'Impératrice", 'III', ['fécondité', 'abondance', 'nature']),
+  m(4, "L'Empereur", 'IV', ['autorité', 'structure', 'pouvoir']),
+  m(5, 'Le Pape', 'V', ['enseignement', 'tradition', 'spiritualité']),
+  m(6, "L'Amoureux", 'VI', ['amour', 'choix', 'union']),
+  m(7, 'Le Chariot', 'VII', ['victoire', 'conquête', 'détermination']),
+  m(8, 'La Justice', 'VIII', ['équilibre', 'vérité', 'loi']),
+  m(9, "L'Hermite", 'IX', ['solitude', 'recherche', 'prudence']),
+  m(10, 'La Roue de Fortune', 'X', ['destin', 'cycles', 'chance']),
+  m(11, 'La Force', 'XI', ['courage', 'énergie', 'maîtrise']),
+  m(12, 'Le Pendu', 'XII', ['sacrifice', 'lâcher-prise', 'suspension']),
+  m(13, 'La Mort', 'XIII', ['transformation', 'fin', 'renouveau']),
+  m(14, 'La Tempérance', 'XIV', ['harmonie', 'patience', 'guérison']),
+  m(15, 'Le Diable', 'XV', ['tentation', 'passion', 'attachement']),
+  m(16, 'La Maison Dieu', 'XVI', ['destruction', 'révélation', 'libération']),
+  m(17, "L'Étoile", 'XVII', ['espoir', 'inspiration', 'sérénité']),
+  m(18, 'La Lune', 'XVIII', ['illusion', 'rêves', 'inconscient']),
+  m(19, 'Le Soleil', 'XIX', ['bonheur', 'succès', 'vitalité']),
+  m(20, 'Le Jugement', 'XX', ['résurrection', 'appel', 'absolution']),
+  m(21, 'Le Monde', 'XXI', ['accomplissement', 'plénitude', 'réalisation']),
   // Minor Arcana - Bâtons (Wands)
   ...generateSuit('Bâtons', 'minor'),
   // Minor Arcana - Coupes (Cups)
@@ -41,6 +44,20 @@ export const TAROT_CARDS: TarotCard[] = [
   // Minor Arcana - Deniers (Pentacles)
   ...generateSuit('Deniers', 'minor'),
 ];
+
+// Helper pour Major Arcana : remplit nameEn via le dictionnaire EN
+function m(id: number, name: string, nameShort: string, keywords: string[]): TarotCard {
+  return {
+    id,
+    name,
+    nameEn: majorNameEn(id) ?? name,
+    nameShort,
+    arcana: 'major',
+    suit: null,
+    number: id,
+    keywords,
+  };
+}
 
 function generateSuit(suit: string, arcana: 'minor'): TarotCard[] {
   const baseId = suit === 'Bâtons' ? 22 : suit === 'Coupes' ? 36 : suit === 'Épées' ? 50 : 64;
@@ -57,8 +74,9 @@ function generateSuit(suit: string, arcana: 'minor'): TarotCard[] {
     cards.push({
       id: baseId + i,
       name,
+      nameEn: minorNameEn(suit, i),
       nameShort,
-      arcana,
+      arcana: 'minor' as const,
       suit,
       number: i + 1,
       keywords: getSuitKeywords(suit, i),

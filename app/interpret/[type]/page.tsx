@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
+import { useLang, useT } from '@/lib/i18n';
 
 interface Interpretation {
   situation?: string;
@@ -27,6 +28,8 @@ export default function InterpretationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname(); // e.g., /interpret/tarot-3-cartes
+  const lang = useLang();
+  const t = useT();
 
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +62,8 @@ export default function InterpretationPage() {
     let payload: any = {
       type,
       question: question || undefined,
-      userId: userId || undefined
+      userId: userId || undefined,
+      lang,
     };
 
     if (isTarot) {
@@ -132,7 +136,7 @@ export default function InterpretationPage() {
   if (!interpretation) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
-        <p className="text-gray-400">Aucune interprétation disponible</p>
+        <p className="text-gray-400">{t('interpret.noInterpretation')}</p>
       </div>
     );
   }
@@ -154,34 +158,34 @@ export default function InterpretationPage() {
 
       <div className="w-full max-w-md mt-20 text-center">
         <h1 className="text-2xl font-serif text-yellow-400 mb-2">
-          {isTarot ? 'Interprétation du Tirage' : 'Interprétation du Yi Jing'}
+          {isTarot ? t('interpret.titleTarot') : t('interpret.titleYiJing')}
         </h1>
 
         <div className="text-left space-y-4">
           <>
-            <h2 className="text-yellow-500 font-bold">📍 Situation</h2>
+            <h2 className="text-yellow-500 font-bold">{t('interpret.situation')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.situation}</p>
 
-            <h2 className="text-yellow-500 font-bold">⚔️ Défis</h2>
+            <h2 className="text-yellow-500 font-bold">{t('interpret.defis')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.defis}</p>
 
-            <h2 className="text-yellow-500 font-bold">🌟 Soutien</h2>
+            <h2 className="text-yellow-500 font-bold">{t('interpret.soutien')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.soutien}</p>
 
-            <h2 className="text-yellow-500 font-bold">🔮 Issue</h2>
+            <h2 className="text-yellow-500 font-bold">{t('interpret.issue')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.issue}</p>
 
-            <h2 className="text-yellow-500 font-bold">💡 Conseil</h2>
+            <h2 className="text-yellow-500 font-bold">{t('interpret.conseil')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.conseil}</p>
 
             {/* Détails Yi Jing simple */}
             {type === 'yi-jing-simple' && (
               <div className="mt-6 p-4 bg-yellow-900/20 rounded-lg">
-                <h3 className="text-yellow-400 font-bold mb-2">Détails du tirage</h3>
-                <p className="text-gray-200">Numéro : {interpretation.numero}</p>
-                <p className="text-gray-200">Nom : {interpretation.nom}</p>
-                <p className="text-gray-200">Méditation : {interpretation.meditation}</p>
-                <p className="text-gray-200">Attitude : {interpretation.attitude}</p>
+                <h3 className="text-yellow-400 font-bold mb-2">{t('interpret.detailsTitle')}</h3>
+                <p className="text-gray-200">{t('interpret.numero')} : {interpretation.numero}</p>
+                <p className="text-gray-200">{t('interpret.nom')} : {interpretation.nom}</p>
+                <p className="text-gray-200">{t('interpret.meditation')} : {interpretation.meditation}</p>
+                <p className="text-gray-200">{t('interpret.attitude')} : {interpretation.attitude}</p>
               </div>
             )}
           </>
