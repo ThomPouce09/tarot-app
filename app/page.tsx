@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useT } from '@/lib/i18n';
+import { useLang, useT } from '@/lib/i18n';
+import Firefly from '@/components/firefly';
 
 const LANDING_BG = '/backgrounds/landing-bg.jpg';
 
@@ -427,6 +428,7 @@ export default function HomePage() {
           </motion.div>
         </div>
       )}
+    <Firefly page="landing" />
     </div>
   );
 }// force vercel redeploy

@@ -1,5 +1,7 @@
 'use client';
 
+import { useLang } from '@/lib/i18n';
+import Firefly from '@/components/firefly';
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -301,6 +303,7 @@ export default function TarotHubPage() {
           {t('hubs.tarot.footer')}
         </p>
       </div>
+    <Firefly page="tarot" />
     </div>
   );
 }

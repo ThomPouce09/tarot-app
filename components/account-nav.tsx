@@ -44,7 +44,7 @@ export default function AccountNav({ user }: { user: any }) {
       <aside className="hidden md:flex md:flex-col w-64 shrink-0 p-5 border-r border-amber-800/20 bg-gradient-to-b from-gray-950/60 to-gray-950/20">
         <Link href="/" className="flex items-center gap-2 mb-6 group">
           <span className="text-2xl">🔮</span>
-          <span className="brand-oracle text-xl">L'oracle des étoiles</span>
+          <span className="brand-oracle text-xl">L&apos;oracle des étoiles</span>
         </Link>
 
         <div className="flex items-center gap-3 mb-6 px-2">
@@ -90,7 +90,7 @@ export default function AccountNav({ user }: { user: any }) {
       <header className="md:hidden sticky top-0 z-40 w-full flex items-center justify-between px-4 py-3 bg-gray-950/90 backdrop-blur border-b border-amber-800/20">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-xl">🔮</span>
-          <span className="brand-oracle text-lg">L'oracle des étoiles</span>
+          <span className="brand-oracle text-lg">L&apos;oracle des étoiles</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="relative inline-flex">

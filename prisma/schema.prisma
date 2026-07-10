@@ -39,6 +39,30 @@ model Reading {
   @@index([userId, createdAt])
 }
 
+// ─── Créatures / Lucioles (petits personnages errants) ─────
+// Créées en base par SQL manuel (scripts/setup-creatures.ts) pour ne pas
+// toucher aux tables existantes lors d'un 'prisma db push'.
+model Creature {
+  id         String   @id @default(cuid())
+  slug       String   @unique // ex: luciole-aria, renard-rune...
+  name       String   // nom affiché (FR)
+  image      String   // /images/creatures/<slug>.png (~100px)
+  page       String   // 'landing' | 'tarot' | 'runes' | 'yi-jing' (affinité)
+  color      String?  // glow / accent (ex: '#FFD700')
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model CreatureMessage {
+  id        String   @id @default(cuid())
+  creatureId String
+  category  String   // tips | credits | lore | advice | joke | history
+  textFr    String
+  textEn    String?
+  createdAt DateTime @default(now())
+}
+
+
 // ─── Écrans d'attente personnalisés par type de tirage ─────
 // Créée en base par SQL manuel (scripts/...) pour ne pas toucher la table
 // 'hexagrams' existante lors d'un 'prisma db push'.
