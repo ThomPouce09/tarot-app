@@ -20,9 +20,9 @@ export const FIREFLY_CONFIG = {
   // Délai entre deux apparitions (une seule créature à la fois)
   spawnIntervalMs: [5000, 45000] as [number, number],
 
-  // Délai avant la PREMIÈRE apparition — remis temporairement à 1,5s pour le debug
-  // (à retirer / remonter en prod après les tests).
-  firstSpawnMs: 1500,
+  // Délai avant la PREMIÈRE apparition — valeur de prod (laisser la page se
+  // charger calmement avant la 1re luciole, aligné sur spawnIntervalMs)
+  firstSpawnMs: 15000,
 
   // Taille du point lumineux (px) — petit et doré
   dotSize: 12,

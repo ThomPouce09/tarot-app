@@ -10,15 +10,15 @@ type Props = {
 
 const GOLD = '#F3C969';
 
-// Halo très discret, un seul souffle lent derrière la créature
+// Halo discret mais visible, un seul souffle lent derrière la créature
 function SoftHalo({ glow }: { glow: string }) {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 top-[calc(50%+50px)] -z-10 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
-      style={{ background: glow }}
+      className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-xl"
+      style={{ background: '#FFC400' }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0.12, 0.24, 0.12] }}
+      animate={{ opacity: [0.3, 0.5, 0.3] }}
       transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
     />
   );
@@ -30,23 +30,23 @@ function SpellRipple({ glow }: { glow: string }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 top-[calc(50%+50px)] -z-10 -translate-x-1/2 -translate-y-1/2"
+      className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
     >
       {[0, 0.32].map((delay, i) => (
         <motion.div
           key={i}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `1.5px solid ${glow}` }}
-          initial={{ width: 40, height: 40, opacity: 0.55, scale: 1 }}
+          style={{ border: `2px solid #FFC400` }}
+          initial={{ width: 40, height: 40, opacity: 0.8, scale: 1 }}
           animate={{ width: 40, height: 40, opacity: 0, scale: 3.4 }}
           transition={{ duration: 2.1, delay, ease: 'easeOut' }}
         />
       ))}
       {/* souffle lumineux central, unique */}
       <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-xl"
-        style={{ background: glow }}
-        initial={{ width: 90, height: 90, opacity: 0.4 }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-lg"
+        style={{ background: '#FFC400' }}
+        initial={{ width: 90, height: 90, opacity: 0.5 }}
         animate={{ width: 90, height: 90, opacity: 0 }}
         transition={{ duration: 1.6, ease: 'easeOut' }}
       />
@@ -191,9 +191,15 @@ export default function CreaturePopup({ data, onClose }: Props) {
   }, [onClose]);
 
   return (
-    // Overlay plein écran : clic extérieur = fermeture (avant 6s)
-    <div
+    // Overlay plein écran : clic extérieur = fermeture (avant 6s).
+    // Fond assombri tant que le message est visible (révèle le rendu du sortilège).
+    <motion.div
       className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto p-4"
+      style={{ backgroundColor: 'rgba(6,4,14,0.6)' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: show ? 1 : 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1.1, ease: 'easeInOut' }}
       onClick={onClose}
     >
       <motion.div
@@ -207,8 +213,6 @@ export default function CreaturePopup({ data, onClose }: Props) {
         {/* Image créature, à gauche, descendue. Fallback avatar CSS si l'image manque.
             z-10 : reste au 1er plan, AU-DESSUS du voile de fumées. */}
         <div className="relative z-10 shrink-0">
-          <SoftHalo glow={glow} />
-          <SpellRipple glow={glow} />
           {/* éveil doux et unique de la créature (pas de mouvement perpétuel) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85, filter: 'blur(6px)' }}
@@ -216,6 +220,9 @@ export default function CreaturePopup({ data, onClose }: Props) {
             transition={{ duration: 0.9, ease: 'easeOut' }}
             className="relative mt-6 ml-3 h-[80px] w-[80px] sm:h-[96px] sm:w-[96px]"
           >
+            {/* Halo + sort centrés SUR la créature (imbriqués dans le bloc image) */}
+            <SoftHalo glow={glow} />
+            <SpellRipple glow={glow} />
             {!imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -263,6 +270,6 @@ export default function CreaturePopup({ data, onClose }: Props) {
           </motion.div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
