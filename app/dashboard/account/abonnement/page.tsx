@@ -1,32 +1,35 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 
 type Plan = 'gratuit' | 'initie' | 'oracle';
 
-const PLANS: Record<Plan, { name: string; price: string; icon: string; features: string[] }> = {
-  gratuit: {
-    name: 'Apprenti', icon: '🌙', price: '0€',
-    features: ['3 tirages / jour', 'Tirages Tarot & Yi Jing', 'Historique 7 jours'],
-  },
-  initie: {
-    name: 'Initié', icon: '✦', price: '7,99€',
-    features: ['Tirages illimités', 'Toutes les formules', 'Historique complet', 'Interprétations IA avancées'],
-  },
-  oracle: {
-    name: 'Oracle', icon: '🔮', price: '14,99€',
-    features: ['Tout Initié +', 'Tirages à la demande', 'Consultations prioritaires', 'Thèmes visuels exclusifs'],
-  },
+const PLAN_NAMES: Record<Plan, string> = {
+  gratuit: 'sub.freeName',
+  initie: 'sub.initieName',
+  oracle: 'sub.oracleName',
+};
+const PLAN_ICONS: Record<Plan, string> = {
+  gratuit: '🌙',
+  initie: '✦',
+  oracle: '🔮',
+};
+const PLAN_FEATURES: Record<Plan, string> = {
+  gratuit: 'sub.freeFeatures',
+  initie: 'sub.initieFeatures',
+  oracle: 'sub.oracleFeatures',
 };
 
 export default function AbonnementPage() {
+  const t = useT();
   const [current, setCurrent] = useState<Plan>('initie');
   const [status, setStatus] = useState<'actif' | 'suspendu'>('actif');
   const [msg, setMsg] = useState<string | null>(null);
 
   const choose = (p: Plan) => {
     setCurrent(p);
-    setMsg(`Forfait « ${PLANS[p].name} » sélectionné. (Ébauche : branchement paiement à venir)`);
+    setMsg(t('sub.selected').replace('{name}', t(PLAN_NAMES[p])));
   };
 
   return (
@@ -34,11 +37,11 @@ export default function AbonnementPage() {
       <header>
         <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
           <img src="/images/nav-abonnement.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          Mon abonnement
+          {t('sub.title')}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Statut : <span className={status === 'actif' ? 'text-amber-300' : 'text-gray-400'}>{status === 'actif' ? 'Actif' : 'Suspendu'}</span>
-          {status === 'actif' && <span className="ml-2 badge-mystic">{PLANS[current].name}</span>}
+          {t('sub.statusLabel')} <span className={status === 'actif' ? 'text-amber-300' : 'text-gray-400'}>{status === 'actif' ? t('sub.active') : t('sub.suspended')}</span>
+          {status === 'actif' && <span className="ml-2 badge-mystic">{t(PLAN_NAMES[current])}</span>}
         </p>
       </header>
 
@@ -47,24 +50,24 @@ export default function AbonnementPage() {
       {/* Actions abonnement */}
       <div className="flex flex-wrap gap-3">
         {status === 'actif' ? (
-          <button onClick={() => { setStatus('suspendu'); setMsg('Abonnement suspendu. Vous pourrez le reprendre à tout moment.'); }} className="mystic-btn-ghost">⏸️ Suspendre l'abonnement</button>
+          <button onClick={() => { setStatus('suspendu'); setMsg(t('sub.suspendedMsg')); }} className="mystic-btn-ghost">{t('sub.suspend')}</button>
         ) : (
-          <button onClick={() => { setStatus('actif'); setMsg('Abonnement repris. Merci de votre confiance ✦'); }} className="mystic-btn">▶️ Reprendre l'abonnement</button>
+          <button onClick={() => { setStatus('actif'); setMsg(t('sub.resumedMsg')); }} className="mystic-btn">{t('sub.resume')}</button>
         )}
       </div>
 
       {/* Cartes de forfaits */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(Object.keys(PLANS) as Plan[]).map((p) => {
-          const plan = PLANS[p];
+        {(Object.keys(PLAN_NAMES) as Plan[]).map((p) => {
           const isCurrent = p === current;
+          const features = t(PLAN_FEATURES[p]).split('|');
           return (
             <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-amber-500/60' : ''}`}>
-              <div className="text-3xl mb-2">{plan.icon}</div>
-              <h2 className="mystic-title text-lg">{plan.name}</h2>
-              <p className="mystic-subtitle text-xs mb-3">{plan.price} <span className="text-gray-500">/ mois</span></p>
+              <div className="text-3xl mb-2">{PLAN_ICONS[p]}</div>
+              <h2 className="mystic-title text-lg">{t(PLAN_NAMES[p])}</h2>
+              <p className="mystic-subtitle text-xs mb-3"><span className="text-gray-500">{t('sub.perMonth')}</span></p>
               <ul className="space-y-1.5 text-sm text-gray-300 flex-1">
-                {plan.features.map((f) => (
+                {features.map((f) => (
                   <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{f}</span></li>
                 ))}
               </ul>
@@ -73,14 +76,14 @@ export default function AbonnementPage() {
                 disabled={isCurrent}
                 className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : 'mystic-btn'}`}
               >
-                {isCurrent ? '✓ Forfait actuel' : 'Choisir'}
+                {isCurrent ? t('sub.currentPlan') : t('sub.choose')}
               </button>
             </div>
           );
         })}
       </div>
 
-      <p className="text-gray-600 text-xs text-center">Ébauche de prévisualisation — le paiement réel (Stripe/PayPal) sera branché ultérieurement.</p>
+      <p className="text-gray-600 text-xs text-center">{t('sub.previewNote')}</p>
     </div>
   );
 }

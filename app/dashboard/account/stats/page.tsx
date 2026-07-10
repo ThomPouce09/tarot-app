@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/lib/i18n';
 
 export default function StatsPage() {
+  const t = useT();
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [stats, setStats] = useState<{ total: number; tarot: number; yijing: number; byMonth: { month: string; count: number }[] }>({ total: 0, tarot: 0, yijing: 0, byMonth: [] });
@@ -36,11 +38,11 @@ export default function StatsPage() {
       .catch(() => {});
   }, [user]);
 
-  const typeLabel = (t: string) => {
-    const s = (t || '').toLowerCase().replace(/[_-]/g, '');
-    if (s.includes('yi') || s.includes('jing')) return 'Yi Jing';
-    if (s.includes('rune') || s.includes('futhark')) return 'Runes';
-    return 'Tarot';
+  const typeLabel = (t2: string) => {
+    const s = (t2 || '').toLowerCase().replace(/[_-]/g, '');
+    if (s.includes('yi') || s.includes('jing')) return t('stats.yijing');
+    if (s.includes('rune') || s.includes('futhark')) return t('stats.runes');
+    return t('stats.tarot');
   };
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) +
@@ -55,35 +57,35 @@ export default function StatsPage() {
       <header>
         <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
           <img src="/images/nav-stats.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          Statistiques
+          {t('stats.title')}
         </h1>
-        <p className="text-gray-500 text-sm mt-1">Votre parcours divinatoire.</p>
+        <p className="text-gray-500 text-sm mt-1">{t('stats.subtitle')}</p>
       </header>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon="/images/nav-historique.png" value={stats.total} label="Tirages" />
-        <StatCard icon="/images/tarot-icon.png" value={stats.tarot} label="Tarot" />
-        <StatCard icon="/images/yi-jing-icon.png" value={stats.yijing} label="Yi Jing" />
+        <StatCard icon="/images/nav-historique.png" value={stats.total} label={t('stats.draws')} />
+        <StatCard icon="/images/tarot-icon.png" value={stats.tarot} label={t('stats.tarot')} />
+        <StatCard icon="/images/yi-jing-icon.png" value={stats.yijing} label={t('stats.yijing')} />
       </div>
 
       {/* Répartition Tarot / Yi Jing */}
       <div className="mystic-panel p-5">
-        <h2 className="mystic-subtitle text-sm mb-4">Répartition</h2>
+        <h2 className="mystic-subtitle text-sm mb-4">{t('stats.repartition')}</h2>
         {stats.total === 0 ? (
-          <p className="text-gray-500 text-sm">Aucun tirage pour l'instant.</p>
+          <p className="text-gray-500 text-sm">{t('stats.noDraws')}</p>
         ) : (
           <div className="space-y-3">
-            <Bar label="🎴 Tarot" value={stats.tarot} total={stats.total} color="from-amber-500 to-orange-700" />
-            <Bar label="☯️ Yi Jing" value={stats.yijing} total={stats.total} color="from-purple-500 to-fuchsia-700" />
+            <Bar label={t('stats.barTarot')} value={stats.tarot} total={stats.total} color="from-amber-500 to-orange-700" />
+            <Bar label={t('stats.barYijing')} value={stats.yijing} total={stats.total} color="from-purple-500 to-fuchsia-700" />
           </div>
         )}
       </div>
 
       {/* Activité récente */}
       <div className="mystic-panel p-5">
-        <h2 className="mystic-subtitle text-sm mb-4">Activité récente</h2>
+        <h2 className="mystic-subtitle text-sm mb-4">{t('stats.activityRecent')}</h2>
         {stats.byMonth.length === 0 ? (
-          <p className="text-gray-500 text-sm">Pas encore d'historique.</p>
+          <p className="text-gray-500 text-sm">{t('stats.noHistory')}</p>
         ) : (
           <div className="flex items-end justify-between gap-2 h-32 mb-5">
             {stats.byMonth.map((m) => (

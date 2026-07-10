@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
+import { useT } from '@/lib/i18n';
 
 interface Reading {
   id: string;
@@ -80,27 +81,28 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 const FILTERS = [
-  { key: 'all',   label: 'Tous',            icon: '/images/tarot-icon.png', color: '#FFD700' },
-  { key: 'tarot', label: 'Tarot',           icon: '/images/tarot-icon.png', color: '#FFD700' },
-  { key: 'yijing', label: 'Yi Jing',        icon: '/images/yi-jing-icon.png', color: '#E0CFF0' },
-  { key: 'rune',  label: 'Runes',           icon: '/images/runes-icon.png', color: '#D4B483' },
+  { key: 'all',   labelKey: 'history.filter.all',    icon: '/images/tarot-icon.png', color: '#FFD700' },
+  { key: 'tarot', labelKey: 'history.filter.tarot',  icon: '/images/tarot-icon.png', color: '#FFD700' },
+  { key: 'yijing', labelKey: 'history.filter.yijing', icon: '/images/yi-jing-icon.png', color: '#E0CFF0' },
+  { key: 'rune',  labelKey: 'history.filter.rune',   icon: '/images/runes-icon.png', color: '#D4B483' },
 ] as const;
 
 const tarot3Positions = [
-  { key: 'situation', position: 'past', icon: '🕰️', name: 'Passé', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
-  { key: 'defis', position: 'present', icon: '⚔️', name: 'Présent', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
-  { key: 'issue', position: 'future', icon: '💫', name: 'Avenir', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
+  { key: 'situation', position: 'past', icon: '🕰️', nameKey: 'history.pos.past', titleColor: 'text-blue-300', cardColor: 'bg-blue-950/20 border-blue-800/30' },
+  { key: 'defis', position: 'present', icon: '⚔️', nameKey: 'history.pos.present', titleColor: 'text-amber-300', cardColor: 'bg-amber-950/20 border-amber-800/30' },
+  { key: 'issue', position: 'future', icon: '💫', nameKey: 'history.pos.future', titleColor: 'text-green-300', cardColor: 'bg-green-950/20 border-green-800/30' },
 ];
 const tarot5Positions = [
-  { key: 'situation', icon: '⬆️', name: 'Le Sommet', titleColor: 'text-yellow-300', cardColor: 'bg-yellow-950/20 border-yellow-700/40' },
-  { key: 'defis', icon: '👈', name: "L'Orient", titleColor: 'text-red-300', cardColor: 'bg-red-950/20 border-red-800/40' },
-  { key: 'soutien', icon: '🎯', name: 'La Synthèse', titleColor: 'text-purple-300', cardColor: 'bg-purple-950/20 border-purple-800/40' },
-  { key: 'issue', icon: '👉', name: "L'Occident", titleColor: 'text-orange-300', cardColor: 'bg-orange-950/20 border-orange-800/40' },
-  { key: 'conseil', icon: '⬇️', name: 'La Base', titleColor: 'text-cyan-300', cardColor: 'bg-cyan-950/20 border-cyan-800/40' },
+  { key: 'situation', icon: '⬆️', nameKey: 'history.pos.summit', titleColor: 'text-yellow-300', cardColor: 'bg-yellow-950/20 border-yellow-700/40' },
+  { key: 'defis', icon: '👈', nameKey: 'history.pos.orient', titleColor: 'text-red-300', cardColor: 'bg-red-950/20 border-red-800/40' },
+  { key: 'soutien', icon: '🎯', nameKey: 'history.pos.synthesis', titleColor: 'text-purple-300', cardColor: 'bg-purple-950/20 border-purple-800/40' },
+  { key: 'issue', icon: '👉', nameKey: 'history.pos.occident', titleColor: 'text-orange-300', cardColor: 'bg-orange-950/20 border-orange-800/40' },
+  { key: 'conseil', icon: '⬇️', nameKey: 'history.pos.base', titleColor: 'text-cyan-300', cardColor: 'bg-cyan-950/20 border-cyan-800/40' },
 ];
 
 export default function ReadingsPage() {
   const router = useRouter();
+  const t = useT();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -129,7 +131,7 @@ export default function ReadingsPage() {
       setFetchError(null);
     } catch (err) {
       console.error('Fetch readings error:', err);
-      setFetchError('Impossible de charger les tirages');
+      setFetchError(t('history.loadError'));
     } finally {
       setLoading(false);
     }
@@ -244,7 +246,7 @@ export default function ReadingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4">
-        <p className="text-amber-300 animate-pulse text-lg" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Chargement de l'historique...</p>
+        <p className="text-amber-300 animate-pulse text-lg" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.loading')}</p>
       </div>
     );
   }
@@ -257,10 +259,10 @@ export default function ReadingsPage() {
       <div className="max-w-2xl mx-auto pt-2 pb-24">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}>
           <img src="/images/nav-historique.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          Vos tirages
+          {t('history.title')}
         </h1>
         <p className="text-center text-xs mb-5" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.6)' }}>
-          Consultez et organisez votre histoire divinatoire
+          {t('history.subtitle')}
         </p>
 
         {fetchError && (
@@ -277,7 +279,7 @@ export default function ReadingsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un tirage (mot-clé, carte, question…)"
+              placeholder={t('history.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
               style={{
                 background: 'rgba(0,0,0,0.45)',
@@ -288,7 +290,7 @@ export default function ReadingsPage() {
               }}
             />
             {search.trim() && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 hover:text-amber-300 text-sm" aria-label="Effacer">✕</button>
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 hover:text-amber-300 text-sm" aria-label={t('history.clear')}>✕</button>
             )}
           </div>
         )}
@@ -311,7 +313,7 @@ export default function ReadingsPage() {
                   }}
                 >
                   <img src={f.icon} alt="" className="w-5 h-5 object-contain" style={{ filter: `drop-shadow(0 0 4px ${f.color})` }} />
-                  <span className="text-xs font-semibold">{f.label}</span>
+                  <span className="text-xs font-semibold">{t(f.labelKey)}</span>
                 </button>
               );
             })}
@@ -322,7 +324,7 @@ export default function ReadingsPage() {
           <EmptyState />
         ) : filtered.length === 0 ? (
           <div className="bg-gray-900/60 border border-amber-800/30 rounded-lg p-8 text-center">
-            <p className="text-amber-200/70 text-sm">Aucun tirage de ce type pour le moment.</p>
+            <p className="text-amber-200/70 text-sm">{t('history.noType')}</p>
           </div>
         ) : (
           <div className="space-y-5 pb-2">
@@ -346,7 +348,7 @@ export default function ReadingsPage() {
                     </button>
                     <button onClick={() => askDeleteDate(group)}
                       className="ml-2 p-1.5 rounded-md text-red-400/70 hover:text-red-300 hover:bg-red-900/30 transition-all"
-                      aria-label="Supprimer tous les tirages de cette date" title="Tout supprimer cette date">
+                      aria-label={t('history.deleteDate')} title={t('history.deleteDate')}>
                       🗑
                     </button>
                   </div>
@@ -370,7 +372,7 @@ export default function ReadingsPage() {
                               </button>
                               <button onClick={() => askDeleteOne(r)}
                                 className="mr-2 p-1.5 rounded-md text-red-400/60 hover:text-red-300 hover:bg-red-900/30 transition-all shrink-0"
-                                aria-label="Supprimer ce tirage" title="Supprimer">
+                                aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
                                 🗑
                               </button>
                             </div>
@@ -402,7 +404,7 @@ export default function ReadingsPage() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !deleting && setConfirm(null)} />
           <div className="relative z-10 w-full max-w-sm p-6 rounded-2xl" style={{ background: 'rgba(26,14,10,0.96)', border: '1px solid rgba(218,165,32,0.3)', boxShadow: '0 0 40px rgba(218,165,32,0.2)' }}>
             <h3 className="text-xl font-bold text-center mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700', textShadow: '0 0 15px rgba(255,215,0,0.5)' }}>
-              {confirm.mode === 'one' ? 'Supprimer ce tirage ?' : 'Supprimer tous les tirages de cette date ?'}
+              {confirm.mode === 'one' ? t('history.deleteOne') : t('history.deleteDate')}
             </h3>
             <p className="text-center text-sm mb-6" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.75)' }}>
               {confirm.label}
@@ -412,13 +414,13 @@ export default function ReadingsPage() {
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all hover:opacity-80"
                 style={{ fontFamily: 'var(--font-cinzel), serif', background: 'rgba(255,255,255,0.08)', color: '#ddd', border: '1px solid rgba(255,255,255,0.2)' }}
                 disabled={deleting}>
-                Annuler
+                {t('history.cancel')}
               </button>
               <button onClick={doDelete}
                 className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all hover:opacity-80"
                 style={{ fontFamily: 'var(--font-cinzel), serif', background: 'linear-gradient(135deg, #7a1f1f 0%, #c0392b 100%)', color: '#fff', border: '1px solid rgba(192,57,43,0.5)', boxShadow: '0 0 16px rgba(192,57,43,0.4)' }}
                 disabled={deleting}>
-                {deleting ? 'Suppression…' : 'Confirmer'}
+                {deleting ? t('history.deleting') : t('history.confirm')}
               </button>
             </div>
           </div>
@@ -435,54 +437,53 @@ function TypeBadge({ k, n }: { k: keyof typeof TYPE_META; n: number }) {
 }
 
 function EmptyState() {
+  const t = useT();
   return (
     <div className="bg-gray-900/60 border border-amber-800/30 rounded-lg p-10 text-center">
       <div className="text-5xl mb-4" style={{ filter: 'drop-shadow(0 0 14px rgba(218,165,32,0.5))' }}>🔮</div>
-      <p className="text-amber-200/80 text-base mb-1 font-semibold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>Aucun tirage pour le moment</p>
-      <p className="text-gray-500 text-xs mb-6" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Vos consultations Tarot, Yi Jing et Runes apparaîtront ici.</p>
+      <p className="text-amber-200/80 text-base mb-1 font-semibold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>{t('history.emptyTitle')}</p>
+      <p className="text-gray-500 text-xs mb-6" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.emptyText')}</p>
       <div className="flex gap-3 justify-center flex-wrap">
         <Link href="/tarot" className="inline-block px-4 py-2 rounded-lg text-amber-300 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(218,165,32,0.2)', border: '1px solid rgba(218,165,32,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>🎴 Faire un tirage Tarot</Link>
+          style={{ background: 'rgba(218,165,32,0.2)', border: '1px solid rgba(218,165,32,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doTarot')}</Link>
         <Link href="/yi-jing" className="inline-block px-4 py-2 rounded-lg text-purple-300 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(180,140,220,0.2)', border: '1px solid rgba(180,140,220,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>☯ Tirer Yi Jing</Link>
+          style={{ background: 'rgba(180,140,220,0.2)', border: '1px solid rgba(180,140,220,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doYijing')}</Link>
       </div>
     </div>
   );
 }
 
 function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?: string }) {
-  // yi-jing-simple stocke le format situation/defis/soutien/issue/conseil
-  // (généré par /api/interpret), alors que yi-qing / yi-jing-question
-  // utilisent meditation/conseil/attitude. On branche sur les deux formats.
+  const t = useT();
   const isSimpleFormat = r.type === 'yi-jing-simple' || (interp && interp.situation);
   return (
     <div className="mt-4 space-y-4">
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
-          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Votre question</p>
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
           <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
         </div>
       )}
       {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
         <div className="text-center">
-          <h3 className="text-xl font-serif text-purple-300 mb-1">{r.cards[0]?.name || 'Hexagramme'}</h3>
-          {r.cards[0]?.id && <p className="text-purple-400/60 text-xs">Hexagramme n°{r.cards[0].id}</p>}
+          <h3 className="text-xl font-serif text-purple-300 mb-1">{r.cards[0]?.name || t('history.hexagram')}</h3>
+          {r.cards[0]?.id && <p className="text-purple-400/60 text-xs">{t('history.hexagramNo')}{r.cards[0].id}</p>}
         </div>
       )}
 
       {isSimpleFormat ? (
         <>
-          {interp?.situation && <Block color="purple" icon="📍" title="Situation" text={interp.situation} query={query} />}
-          {interp?.defis && <Block color="amber" icon="⚔️" title="Défis" text={interp.defis} query={query} />}
-          {interp?.soutien && <Block color="green" icon="🌟" title="Soutien" text={interp.soutien} query={query} />}
-          {interp?.issue && <Block color="amber" icon="🔮" title="Issue" text={interp.issue} query={query} />}
-          {interp?.conseil && <Block color="green" icon="💡" title="Conseil" text={interp.conseil} query={query} />}
+          {interp?.situation && <Block color="purple" icon="📍" title={t('history.block.situation')} text={interp.situation} query={query} />}
+          {interp?.defis && <Block color="amber" icon="⚔️" title={t('history.block.defis')} text={interp.defis} query={query} />}
+          {interp?.soutien && <Block color="green" icon="🌟" title={t('history.block.soutien')} text={interp.soutien} query={query} />}
+          {interp?.issue && <Block color="amber" icon="🔮" title={t('history.block.issue')} text={interp.issue} query={query} />}
+          {interp?.conseil && <Block color="green" icon="💡" title={t('history.block.conseil')} text={interp.conseil} query={query} />}
         </>
       ) : (
         <>
-          {interp?.meditation && <Block color="purple" icon="🧘" title="Méditation" text={interp.meditation} query={query} />}
-          {interp?.conseil && <Block color="amber" icon="💡" title="Conseil" text={interp.conseil} query={query} />}
-          {interp?.attitude && <Block color="green" icon="🌿" title="Attitude" text={interp.attitude} query={query} />}
+          {interp?.meditation && <Block color="purple" icon="🧘" title={t('history.block.meditation')} text={interp.meditation} query={query} />}
+          {interp?.conseil && <Block color="amber" icon="💡" title={t('history.block.conseil')} text={interp.conseil} query={query} />}
+          {interp?.attitude && <Block color="green" icon="🌿" title={t('history.block.attitude')} text={interp.attitude} query={query} />}
         </>
       )}
 
@@ -496,6 +497,7 @@ function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?
 }
 
 function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretation: string; query?: string }) {
+  const t = useT();
   const isTarot3 = r.cards.length === 3;
   const positions = isTarot3 ? tarot3Positions : tarot5Positions;
   const interpData = isTarot3
@@ -510,7 +512,7 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
     <div className="mt-4 space-y-3">
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
-          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Votre question</p>
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
           <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
         </div>
       )}
@@ -525,10 +527,10 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
         return (
           <div key={idx} className={`${pos.cardColor} border rounded-lg p-3 shadow-sm`}>
             <h4 className={`${pos.titleColor} font-semibold text-sm mb-2 flex items-center gap-2`}>
-              <span className="text-base">{pos.icon}</span><span>{pos.name}</span>
+              <span className="text-base">{pos.icon}</span><span>{t(pos.nameKey)}</span>
               <span className="text-gray-500">—</span>
               <span className="text-gray-100 font-serif italic"><Highlight text={cardName} query={query} /></span>
-              {c.reversed && <em className="text-amber-400 text-xs">(renversée)</em>}
+              {c.reversed && <em className="text-amber-400 text-xs">{t('history.reversed')}</em>}
             </h4>
             <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={text} query={query} /></p>
           </div>
