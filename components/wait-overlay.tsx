@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLang } from '@/lib/i18n';
 
 interface WaitConfig {
   messages: string[];
@@ -73,17 +74,18 @@ function Background({ type, url }: { type: string; url: string | null }) {
 }
 
 export default function WaitOverlay({ type }: { type: string }) {
+  const lang = useLang();
   const [cfg, setCfg] = useState<WaitConfig>(FALLBACK);
   const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}`)
+    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}&lang=${encodeURIComponent(lang)}`)
       .then((r) => r.json())
       .then((d) => { if (alive) setCfg(d); })
       .catch(() => { if (alive) setCfg(FALLBACK); });
     return () => { alive = false; };
-  }, [type]);
+  }, [type, lang]);
 
   // Défilement des messages d'attente (min 5s entre chaque)
   useEffect(() => {

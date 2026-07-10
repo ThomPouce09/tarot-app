@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // Fallback local si la DB est indisponible (typage homogène avec la DB)
-const FALLBACK: Record<string, {
+const FALLBACK_FR: Record<string, {
   messages: string[];
   backgroundType: 'image' | 'video' | 'none';
   backgroundUrl: string | null;
@@ -21,22 +21,40 @@ const FALLBACK: Record<string, {
   'magical-divination': { messages: ['Les étoiles s\'alignent...', 'L\'oracle invoque votre sort...', 'La magie opère...'], backgroundType: 'image', backgroundUrl: '/wait/magical-divination.jpg', animation: 'sparkle', minDurationMs: 2600 },
   'default': { messages: ['Chargement de l\'interprétation...', 'L\'oracle étudie votre tirage...'], backgroundType: 'none', backgroundUrl: null, animation: 'fade', minDurationMs: 2500 },
 };
+const FALLBACK_EN: Record<string, { messages: string[] }> = {
+  'tarot-3-cartes': { messages: ['The oracle studies your draw with care...', 'The arcana slowly reveal themselves...', 'Loading interpretation...'] },
+  'tarot-5-cartes': { messages: ['The five paths contemplate each other...', 'The oracle reads the weave of fate...', 'Preparing your reading...'] },
+  'tarot-7-cartes': { messages: ['The seven mirrors align...', 'The oracle probes the depths...', 'Loading interpretation...'] },
+  'tarot-10-cartes': { messages: ['The ten archetypes converge...', 'The oracle weaves your story...', 'Preparing your reading...'] },
+  'yi-qing': { messages: ['The yarrow stalk still resonates...', 'The oracle consults the I Ching...', 'The hexagrams take shape...'] },
+  'yi-jing-du-jour': { messages: ['Today\'s hexagram reveals itself...', 'Time suspends its flight...', 'The oracle meditates on your day...'] },
+  'quick-divination': { messages: ['Quick divination in progress...', 'The oracle catches your intent...', 'A glimmer sharpens...'] },
+  'serene-divination': { messages: ['Studying the draw...', 'The oracle calms with you...', 'The answer ripens in silence...'] },
+  'crystal-ball-divination': { messages: ['The crystal ball fogs up...', 'Shapes swirl in the glass...', 'The oracle peers through the mists...'] },
+  'magical-divination': { messages: ['The stars align...', 'The oracle invokes your spell...', 'Magic is at work...'] },
+  'default': { messages: ['Loading interpretation...', 'The oracle studies your draw...'] },
+};
 
-function resolve(type: string) {
-  return FALLBACK[type] || FALLBACK['default'];
+function resolve(type: string, lang: string) {
+  const base = FALLBACK_FR[type] || FALLBACK_FR['default'];
+  const en = (lang === 'en' ? (FALLBACK_EN[type] || FALLBACK_EN['default']) : null);
+  return { ...base, messages: en ? en.messages : base.messages };
 }
 
 export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get('type') || '';
+  const lang = req.nextUrl.searchParams.get('lang') || 'fr';
   try {
     const row = await prisma.messagesAttente.findUnique({ where: { type } });
     if (!row) {
-      return NextResponse.json(resolve(type));
+      return NextResponse.json(resolve(type, lang));
     }
     let messages: string[] = [];
     try { messages = JSON.parse(row.messages); } catch { messages = [row.messages]; }
+    // NB: la DB ne possède pas de champ messagesEn — en mode EN on utilise le fallback EN statique (miroir).
+    const resolved = resolve(type, lang);
     return NextResponse.json({
-      messages,
+      messages: lang === 'en' ? resolved.messages : messages,
       backgroundType: row.backgroundType as 'image' | 'video' | 'none',
       backgroundUrl: row.backgroundUrl,
       animation: row.animation,
@@ -44,6 +62,6 @@ export async function GET(req: NextRequest) {
     });
   } catch {
     // DB indisponible -> fallback local
-    return NextResponse.json(resolve(type));
+    return NextResponse.json(resolve(type, lang));
   }
 }
