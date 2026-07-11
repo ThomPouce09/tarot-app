@@ -24,7 +24,7 @@ const PROVIDERS: OracleProvider[] = [
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
     apiKey: process.env.OPENROUTER_API_KEY,
-    models: ['poolside/laguna-m.1:free', 'tencent/hy3:free'],
+    models: ['tencent/hy3:free', 'poolside/laguna-m.1:free'],
   },
   {
     name: 'NVIDIA',
@@ -44,6 +44,9 @@ const PROVIDERS: OracleProvider[] = [
 // Évite de spammer les 429/503 et de se faire bannir / bloquer la clé inutilement.
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 30_000;
+// Timeout dur par requête LLM. hy3 (reasoning) répond en ~27s -> 35s de marge,
+// sans jamais laisser la page d'attente bloquée indéfiniment.
+const REQUEST_TIMEOUT_MS = 35_000;
 const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
 
 function isBlocked(name: string): boolean {
@@ -84,7 +87,7 @@ export async function callOracle(
   prompt: string,
   opts: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string | null> {
-  const maxTokens = opts.maxTokens ?? 1200;
+  const maxTokens = opts.maxTokens ?? 3000; // marge pour modèles reasoning (hy3) sinon JSON tronqué
   const temperature = opts.temperature ?? 0.72;
 
   for (const provider of PROVIDERS) {
@@ -100,22 +103,32 @@ export async function callOracle(
     for (const model of provider.models) {
       try {
         console.log(`[llm] Tentative ${provider.name} / ${model}`);
-        const res = await fetch(provider.baseUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${provider.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: prompt },
-            ],
-            temperature,
-            max_tokens: maxTokens,
-          }),
-        });
+        // Timeout dur par requête : un modèle reasoning (hy3 ~27s) ou un provider
+        // qui hang ne doit JAMAIS bloquer la page d'attente indéfiniment.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        let res: Response;
+        try {
+          res = await fetch(provider.baseUrl, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${provider.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: prompt },
+              ],
+              temperature,
+              max_tokens: maxTokens,
+            }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
 
         if (!res.ok) {
           const errText = await res.text().catch(() => '');
@@ -126,8 +139,10 @@ export async function callOracle(
         }
 
         const data = await res.json();
-        const content: string =
-          data?.choices?.[0]?.message?.content || data?.message?.content || '';
+        // Certains modèles "reasoning" (hy3) laissent parfois content vide et
+        // rangent le texte dans reasoning -> on lit les deux, content en priorité.
+        const msg = data?.choices?.[0]?.message ?? data?.message ?? {};
+        const content: string = msg?.content || msg?.reasoning || '';
         if (content && content.trim().length > 0) {
           console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);
           recordSuccess(provider.name);
@@ -135,7 +150,8 @@ export async function callOracle(
         }
         console.warn(`[llm] ${provider.name} / ${model}: réponse vide.`);
       } catch (err) {
-        console.error(`[llm] Erreur ${provider.name} / ${model}:`, err);
+        const aborted = (err as Error)?.name === 'AbortError';
+        console.error(`[llm] Erreur ${provider.name} / ${model}${aborted ? ' (timeout)' : ''}:`, err);
       }
     }
   }

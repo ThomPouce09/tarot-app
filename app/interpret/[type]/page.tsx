@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT } from '@/lib/i18n';
 
@@ -24,8 +24,7 @@ interface Interpretation {
   [key: string]: string | number | undefined;
 }
 
-export default function InterpretationPage() {
-  const router = useRouter();
+function InterpretationInner() {
   const searchParams = useSearchParams();
   const pathname = usePathname(); // e.g., /interpret/tarot-3-cartes
   const lang = useLang();
@@ -163,6 +162,7 @@ export default function InterpretationPage() {
 
         <div className="text-left space-y-4">
           <>
+
             <h2 className="text-yellow-500 font-bold">{t('interpret.situation')}</h2>
             <p className="text-gray-200 mb-4">{interpretation.situation}</p>
 
@@ -192,5 +192,13 @@ export default function InterpretationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function InterpretationPage() {
+  return (
+    <Suspense fallback={<WaitOverlay type="" />}>
+      <InterpretationInner />
+    </Suspense>
   );
 }
