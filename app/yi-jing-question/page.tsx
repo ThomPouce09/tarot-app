@@ -14,11 +14,15 @@ const STICK_IMG = "/images/baguette.png";
 // 🎛️ PARAMÈTRES CONFIGURABLES
 // ============================================================================
 
-const MOVEMENT_THRESHOLD = 700;
+const MOVEMENT_THRESHOLD = 1200; // drag desktop : declenchement moins sensible
 const STICK_LEFT_OFFSET = -3;
 const MAX_BOX_SHIFT_X = 15;
 const MAX_BOX_SHIFT_Y = 10;
 const STICK_JUMP_HEIGHT = 55;
+const STICK_LIFT_HEIGHT = 80; // sortie moderee, un peu moins haute
+const STICK_RISE_EASE = 0.045;  // extraction: un poil plus rapide (0.04 -> 0.045)
+const STICK_SWING_K = 0.06;    // raideur forte = rebond COURT et RAPIDE (table en bois)
+const STICK_SWING_DAMP = 0.9; // amortissement plus doux = plusieurs rebonds avant stabilisation
 const MAX_INITIAL_RISE = 15;
 const HORIZONTAL_SENSITIVITY = 0.9;
 const VERTICAL_SENSITIVITY = 0;
@@ -33,7 +37,7 @@ const STICK_DISPLAY_WIDTH = 4.5;
 const STICK_DISPLAY_HEIGHT = 260;
 const BOX_WIDTH = STICK_DISPLAY_WIDTH * 10;
 const BOX_HEIGHT = STICK_DISPLAY_HEIGHT * 0.45;
-const BOX_BOTTOM = 170;
+const BOX_BOTTOM = 125; // boite + baguettes, remontee legere (hint main suit via BOX_BOTTOM)
 const RIG_W = BOX_WIDTH + 40;
 const RIG_H = STICK_DISPLAY_HEIGHT + BOX_BOTTOM + 40;
 const STICK_COUNT = 64;
@@ -41,18 +45,18 @@ const INTERIOR_WIDTH = BOX_WIDTH * 0.50;
 const STICK_WIDTH = Math.max(2, INTERIOR_WIDTH / STICK_COUNT);
 const STICK_BASE_BOTTOM_OFFSET = 52;
 
-const ACCEL_THRESHOLD = 80;
-const ACCEL_NOISE_FLOOR = 1.5;
+const ACCEL_THRESHOLD = 160; // shake mobile : declenchement moins sensible
+const ACCEL_NOISE_FLOOR = 3.5; // ignore le micro-tremblement (moins sensible)
 
 const SWIPE_ANIMATION_DURATION = '0.6s';
 const SWIPE_ANIMATION_DISTANCE = '16px';
-const SWIPE_BELOW_BOX = 80;
+const SWIPE_BELOW_BOX = 0; // colle le hint sous le bas de la boite (ancre au bas de la boite)
 const SWIPE_ICON_SIZE = '48px';
 const SWIPE_ICON_OPACITY = 0.5;
 const SWIPE_TEXT_FONT_SIZE = '0.65rem';
 const SWIPE_TEXT_MAX_WIDTH = '140px';
 
-const PROGRESS_BAR_ABOVE_BOX = -32;
+const PROGRESS_BAR_ABOVE_BOX = 45; // POSITIF = remonte la barre (top = 50% - (RIG_H/2 + val))
 const TITLE_TOP = 48;
 
 const RESULT_CONTAINER_BOTTOM = '24%';
@@ -77,11 +81,14 @@ interface Stick {
 
 interface Jumping {
   id: number;
-  y: number;
-  targetY: number;
-  rotation: number;
-  opacity: number;
+  y: number;                  // hauteur verticale (monte sans rebond)
+  swing: number;              // angle de balancement latéral courant (degrés)
+  swingV: number;             // vélocité angulaire
+  restAngle: number;          // angle de repos aléatoire final (qq degrés, de travers)
+  peakY: number;              // apex vertical stabilisé
+  settled: boolean;
   xOffset: number;
+  opacity: number;
 }
 
 function makeSticks(): Stick[] {
@@ -126,7 +133,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
   const [jumping, setJumping] = useState<Jumping | null>(null);
   const [totalMovement, setTotalMovement] = useState(0);
   const [phase, setPhase] = useState<'idle' | 'shaking' | 'jumping' | 'done'>('idle');
-  const [animatingProgress, setAnimatingProgress] = useState(0);
+  const [isShaking, setIsShaking] = useState(false); // user a commence a secouer -> glow boite off
   const router = useRouter();
 
   const dragging = useRef(false);
@@ -159,21 +166,27 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
 
     drawnRef.current = chosen.id;
     setDrawn(chosen.id);
-    setAnimatingProgress(0);
     setPhase('jumping');
 
+    // La gagnante est la SEULE à bouger : elle SORT doucement hors du haut de la
+    // boîte (halo doré = « c'est celle-là »), se redresse, puis se balance
+    // latéralement (gauche↔droite) avant de se stabiliser — comme une baguette
+    // d'achillée qui se détache en douceur quand on agite la boîte.
+    // Le clone apparaît IMMÉDIATEMENT à la position exacte de la baguette émergente
+    // (même xOffset + rise gelé) : aucune disparition ni surgissement ailleurs.
     const currentRise = chosen.rise;
 
-    setTimeout(() => {
-      setJumping({
-        id: chosen.id,
-        y: -currentRise,
-        targetY: -currentRise - STICK_JUMP_HEIGHT,
-        rotation: chosen.stick.rotation + currentShiftX * 0.03 * (chosen.id % 2 === 0 ? 1 : -1),
-        xOffset: chosen.stick.xOffset,
-        opacity: 1,
-      });
-    }, 400);
+    setJumping({
+      id: chosen.id,
+      y: -currentRise,
+      swing: (chosen.id % 2 === 0 ? -1 : 1) * 4, // amorçage du rebond (court)
+      swingV: 0,
+      restAngle: (Math.random() * 2 - 1) * 6,      // appui incliné très léger (±6°)
+      peakY: -currentRise - STICK_LIFT_HEIGHT,
+      settled: false,
+      xOffset: chosen.stick.xOffset,
+      opacity: 1,
+    });
   }, [sticks]);
 
   // --- DeviceMotion (shake) ---
@@ -241,10 +254,11 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
     if (!questionAsked) return;
     if (phase === 'done' || phase === 'jumping') return;
     dragging.current = true;
+    setIsShaking(true); // debut secouage -> retire le glow de la boite
     lastX.current = e.clientX;
     lastY.current = e.clientY;
     lastPos.current = { x: e.clientX, y: e.clientY };
-    (e.target as Element).setPointerCapture(e.pointerId);
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch {}
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -303,19 +317,27 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
     if (!jumping) return;
 
     const step = () => {
-      setAnimatingProgress((p) => Math.min(1, p + 0.015));
-
+      // L'émergence est gelée (effectiveProgress = frozenProgress) : on n'avance
+      // PAS animatingProgress, sinon la gagnante continuerait de monter sous le clone.
       setJumping((j) => {
-        if (!j) return j;
-        const nextY = j.y + (j.targetY - j.y) * 0.08;
-        const arrived = Math.abs(nextY - j.targetY) < 0.5;
+        if (!j || j.settled) return j;
 
-        if (arrived) {
+        // Vertical : redressement lissé vers l'apex (sans rebond vertical).
+        const nextY = j.y + (j.peakY - j.y) * STICK_RISE_EASE;
+
+        // Balancement latéral : pendule amorti qui vise progressivement restAngle
+        // (de travers), donc l'oscillation est forte AU DÉBUT puis s'estompe — pas
+        // de déviation ajoutée à la fin.
+        const swingV = (j.swingV + (j.restAngle - j.swing) * STICK_SWING_K) * STICK_SWING_DAMP;
+        const nextSwing = j.swing + swingV;
+
+        const vertDone = Math.abs(nextY - j.peakY) < 0.5;
+        const swingDone = Math.abs(swingV) < 0.02 && Math.abs(nextSwing - j.restAngle) < 0.1;
+        if (vertDone && swingDone) {
           setPhase('done');
-          return { ...j, y: j.targetY };
+          return { ...j, y: j.peakY, swing: j.restAngle, swingV: 0, settled: true };
         }
-
-        return { ...j, y: nextY };
+        return { ...j, y: nextY, swing: nextSwing, swingV };
       });
       rafRef.current = requestAnimationFrame(step);
     };
@@ -353,6 +375,8 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+      ` }} />
       {/* ✅ Barre de progression */}
       {phase === 'idle' && questionAsked && (
         <div
@@ -387,10 +411,15 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
       >
         {sticks.map((s) => {
           const isDrawn = drawn === s.id;
-          const stickProgress = isDrawn
-            ? animatingProgress
-            : Math.max(0, (effectiveProgress - s.emergenceDelay) / (1 - s.emergenceDelay));
+          // Progression gelée pour toutes (y compris gagnante) une fois le tirage
+          // acté : la gagnante reste EXACTEMENT à sa position d'émergence (là où le
+          // clone démarre) — aucune disparition ni surgissement d'une autre baguette.
+          const stickProgress = Math.max(0, (effectiveProgress - s.emergenceDelay) / (1 - s.emergenceDelay));
           const rise = s.initialRise + stickProgress * s.baseRise;
+
+          // La gagnante est masquée dès la phase jumping : le clone la recouvre à
+          // l'identique (même xOffset + rise), donc le passage est invisible.
+          const isLeaving = isDrawn && (phase === 'jumping' || phase === 'done');
 
           return (
             <div
@@ -404,7 +433,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
                 transformOrigin: "bottom center",
                 transform: `translateX(${s.xOffset}px) translateY(${-rise}px) rotate(${s.rotation + shiftX * 0.03 * (s.id % 2 === 0 ? 1 : -1)}deg)`,
                 transition: dragging.current ? "none" : "transform 0.3s ease-out",
-                opacity: isDrawn && phase === 'jumping' ? 0 : 1,
+                opacity: isLeaving ? 0 : 1,
                 zIndex: s.zJitter,
               }}
             >
@@ -414,6 +443,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
         })}
 
         <div
+          className={phase === 'idle' && !isShaking ? 'box-glow' : undefined}
           style={{
             position: "absolute",
             bottom: BOX_BOTTOM,
@@ -434,9 +464,10 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
               position: "absolute",
               bottom: interiorBottom + STICK_BASE_BOTTOM_OFFSET,
               left: "50%",
-              width: STICK_DISPLAY_WIDTH * 1.3,
+              width: STICK_DISPLAY_WIDTH,
               height: STICK_DISPLAY_HEIGHT,
-              transform: `translateX(${jumping.xOffset}px) translateY(${jumping.y}px) rotate(${jumping.rotation}deg)`,
+              transform: `translateX(${jumping.xOffset}px) translateY(${jumping.y}px) rotate(${jumping.swing}deg)`,
+              transformOrigin: "bottom center", // bascule depuis la base (sol)
               zIndex: 10,
               opacity: jumping.opacity,
             }}
@@ -446,13 +477,13 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
         )}
       </div>
 
-      {/* ✅ Animation Swipe */}
+      {/* ✅ Animation Swipe (main qui s'agite) sous la boîte */}
       {showSwipeHint && (
         <div
           className="absolute left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1"
-          style={{ bottom: `calc(50% - ${RIG_H / 2 - SWIPE_BELOW_BOX}px)` }}
+          style={{ bottom: `${BOX_BOTTOM - SWIPE_BELOW_BOX}px` }} // ancre au bas de la boite descendue
         >
-          <style>{`
+          <style dangerouslySetInnerHTML={{ __html: `
             @keyframes swipe-shake {
               0%, 100% { transform: translateX(0); }
               25% { transform: translateX(-${SWIPE_ANIMATION_DISTANCE}); }
@@ -465,7 +496,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
               user-select: none;
               -webkit-user-select: none;
             }
-          `}</style>
+          ` }} />
           <span className="material-symbols-outlined swipe-icon">swipe</span>
           <p
             className="text-center leading-tight"
@@ -497,18 +528,66 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
           >
             Le sort a parlé
           </p>
-          <strong
-            className="block"
+        </div>
+      )}
+
+      {/* ✅ Bulle animée collée à la baguette gagnante (style de l'app) */}
+      {phase === 'done' && jumping && drawn !== null && (
+        <motion.div
+          className="absolute z-[55] pointer-events-none"
+          style={{
+            left: `calc(50% + ${jumping.xOffset + STICK_DISPLAY_WIDTH * 0.95 + 34}px)`,
+            bottom: interiorBottom + STICK_BASE_BOTTOM_OFFSET + STICK_DISPLAY_HEIGHT * 0.7 - jumping.y,
+          }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.15 }}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes baguette-num-shimmer {
+              0%, 100% { text-shadow: 0 0 5px rgba(255,215,0,0.55), 0 0 11px rgba(243,201,105,0.4); }
+              50%      { text-shadow: 0 0 9px rgba(255,215,0,0.8),  0 0 18px rgba(243,201,105,0.6); }
+            }
+            .baguette-num {
+              animation: baguette-num-shimmer 2.8s ease-in-out infinite;
+            }
+            @keyframes baguette-spark {
+              0%   { opacity: 0; transform: translate(0,0) scale(0.4); }
+              20%  { opacity: 1; }
+              100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
+            }
+            .baguette-spark {
+              position: absolute;
+              width: 4px; height: 4px;
+              border-radius: 9999px;
+              background: #FFE9A8;
+              box-shadow: 0 0 6px rgba(255,215,0,0.9);
+              pointer-events: none;
+              animation: baguette-spark 1.8s ease-out infinite;
+            }
+          ` }} />
+
+          <div
+            className="baguette-num relative flex items-center justify-center rounded-full px-3 py-1.5"
             style={{
+              background: 'rgba(20, 14, 30, 0.82)',
+              border: '1px solid rgba(243, 201, 105, 0.85)',
+              boxShadow: 'inset 0 0 8px rgba(243, 201, 105, 0.15)',
               fontFamily: 'var(--font-cinzel), serif',
               color: '#FFD700',
-              fontSize: RESULT_NUMBER_FONT_SIZE,
-              marginTop: RESULT_TEXT_SPACING
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
             }}
           >
-            Baguette n°{drawn + 1}
-          </strong>
-        </div>
+            {drawn + 1}
+            {/* petites étincelles discrètes autour du numéro */}
+            <span className="baguette-spark" style={{ top: '-4px', left: '20%', ['--dx' as any]: '-6px', ['--dy' as any]: '-10px', animationDelay: '0s' }} />
+            <span className="baguette-spark" style={{ top: '30%', right: '-6px', left: 'auto', ['--dx' as any]: '8px', ['--dy' as any]: '-4px', animationDelay: '0.6s' }} />
+            <span className="baguette-spark" style={{ bottom: '-4px', left: '60%', top: 'auto', ['--dx' as any]: '4px', ['--dy' as any]: '9px', animationDelay: '1.1s' }} />
+            <span className="baguette-spark" style={{ bottom: '20%', left: '-6px', top: 'auto', ['--dx' as any]: '-7px', ['--dy' as any]: '5px', animationDelay: '1.4s' }} />
+          </div>
+        </motion.div>
       )}
 
       {/* Bouton Interprétation */}
@@ -530,7 +609,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
               fontFamily: 'var(--font-cinzel), serif',
               background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
               color: '#1a0e0a',
-              boxShadow: '0 0 40px rgba(218,165,32,0.5), 0 6px 20px rgba(0,0,0,0.6)',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
               border: '2px solid rgba(218,165,32,0.4)',
             }}
             whileHover={{ scale: 1.08 }}
