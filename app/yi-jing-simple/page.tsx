@@ -193,6 +193,13 @@ function YiQingRig() {
     setDrawn(chosen.id);
     setPhase('jumping');
 
+    // Son de tirage : joue au moment où la baguette élue sort de la boîte.
+    try {
+      const s = new Audio('/audio/stick-draw.mp3');
+      s.volume = 0.8;
+      s.play().catch(() => {});
+    } catch {}
+
     // La gagnante est la SEULE à bouger : elle SORT doucement hors du haut de la
     // boîte (halo doré = « c'est celle-là »), se redresse, puis se balance
     // latéralement (gauche↔droite) avant de se stabiliser — comme une baguette
