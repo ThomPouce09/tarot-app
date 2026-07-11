@@ -78,7 +78,7 @@ export default function HomePage() {
             textShadow: '0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)',
           }}
         >
-          <BrandTitle text="L'Oracle des étoiles" dimInactive={false} grow={false} />
+          <BrandTitle text={"L'Oracle\ndes\nétoiles"} grow={false} />
         </h1>
         <p
           className="text-sm sm:text-base md:text-lg font-medium italic mb-5"
