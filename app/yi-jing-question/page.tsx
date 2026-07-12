@@ -156,6 +156,38 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
   const lastDirRef = useRef<number>(0);      // direction du dernier mouvement (shake)
   const reversalsRef = useRef<number>(0);    // nombre d'inversions de direction
   const SHAKE_REVERSALS_REQUIRED = 4;        // secousses reelles (aller-retour) minimum
+  // Audio de tirage : instance réutilisable + déverrouillage autoplay au 1er geste/capteur.
+  const drawSoundRef = useRef<HTMLAudioElement | null>(null);
+  const unlockAudio = useCallback(() => {
+    try {
+      const a = new Audio('/audio/stick-draw.mp3');
+      a.volume = 0.8;
+      a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
+      drawSoundRef.current = a;
+    } catch {}
+  }, []);
+  const playDrawSound = useCallback(() => {
+    try {
+      const snd = drawSoundRef.current || new Audio('/audio/stick-draw.mp3');
+      drawSoundRef.current = snd;
+      snd.volume = 0.8;
+      snd.currentTime = 0;
+      snd.play().catch(() => {});
+    } catch {}
+  }, []);
+  useEffect(() => {
+    const onFirst = () => unlockAudio();
+    window.addEventListener('pointerdown', onFirst, { once: true });
+    window.addEventListener('touchstart', onFirst, { once: true });
+    window.addEventListener('keydown', onFirst, { once: true });
+    window.addEventListener('devicemotion', onFirst, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', onFirst);
+      window.removeEventListener('touchstart', onFirst);
+      window.removeEventListener('keydown', onFirst);
+      window.removeEventListener('devicemotion', onFirst);
+    };
+  }, [unlockAudio]);
 
   const interiorBottom = BOX_BOTTOM - BOX_HEIGHT;
 
@@ -164,11 +196,17 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
     hasTriggeredRef.current = true;
     frozenProgressRef.current = progress;
 
+
+    // juste avant la montée de la baguette élue.
+    playDrawSound();
+
+
     const stickRises = sticks.map(s => ({
       id: s.id,
-      rise: getStickRise(s, progress),
-      stick: s,
-    }));
+        rise: getStickRise(s, progress),
+        stick: s,
+      }));
+
 
     stickRises.sort((a, b) => b.rise - a.rise);
     const topSticks = stickRises.slice(0, TOP_STICKS_COUNT);
@@ -177,13 +215,6 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
     drawnRef.current = chosen.id;
     setDrawn(chosen.id);
     setPhase('jumping');
-
-    // Son de tirage : joue au moment où la baguette élue sort de la boîte.
-    try {
-      const s = new Audio('/audio/stick-draw.mp3');
-      s.volume = 0.8;
-      s.play().catch(() => {});
-    } catch {}
 
     // La gagnante est la SEULE à bouger : elle SORT doucement hors du haut de la
     // boîte (halo doré = « c'est celle-là »), se redresse, puis se balance
@@ -259,11 +290,13 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
         .then((permissionState: string) => {
           if (permissionState === 'granted') {
             window.addEventListener('devicemotion', handleMotion);
+            unlockAudio(); // déverrouille l'autoplay audio dès l'interaction capteur (clic iOS)
           }
         })
         .catch(() => {});
     } else if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
       window.addEventListener('devicemotion', handleMotion);
+      unlockAudio(); // Desktop : le 1er mouvement capteur sert de déverrouillage autoplay
     }
 
     return () => {
