@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
+import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
 
 interface Interpretation {
   situation?: string;
@@ -220,7 +221,6 @@ function InterpretationInner() {
                     <div className="flex flex-col gap-3">
                       {trigs.superior && (
                         <div className="flex items-start gap-3">
-                          <span className="text-3xl leading-none text-yellow-300">{trigs.superior.symbol}</span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
                               {trigs.superior.name} <span className="text-yellow-500/60">(supérieur)</span>
@@ -231,7 +231,6 @@ function InterpretationInner() {
                       )}
                       {trigs.inferior && (
                         <div className="flex items-start gap-3">
-                          <span className="text-3xl leading-none text-yellow-300">{trigs.inferior.symbol}</span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
                               {trigs.inferior.name} <span className="text-yellow-500/60">(inférieur)</span>
@@ -255,15 +254,15 @@ function InterpretationInner() {
 
             {/* Analyse détaillée — situation / défis / soutien / issue / conseil */}
             {[
-              { label: t('interpret.situation'), value: interpretation.situation },
-              { label: t('interpret.defis'), value: interpretation.defis },
-              { label: t('interpret.soutien'), value: interpretation.soutien },
-              { label: t('interpret.issue'), value: interpretation.issue },
-              { label: t('interpret.conseil'), value: interpretation.conseil },
+              { label: t('interpret.situation'), value: interpretation.situation, Icon: IconSituation },
+              { label: t('interpret.defis'), value: interpretation.defis, Icon: IconDefis },
+              { label: t('interpret.soutien'), value: interpretation.soutien, Icon: IconSoutien },
+              { label: t('interpret.issue'), value: interpretation.issue, Icon: IconIssue },
+              { label: t('interpret.conseil'), value: interpretation.conseil, Icon: IconConseil },
             ].filter((s) => s.value).map((section) => (
               <div key={section.label} className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
-                <h2 className="text-yellow-500 font-serif font-semibold text-base tracking-wide mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/70" />
+                <h2 className="text-yellow-500 font-serif font-semibold text-base tracking-wide mb-2 flex items-center gap-2.5">
+                  {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
                   {section.label}
                 </h2>
                 <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
@@ -274,7 +273,7 @@ function InterpretationInner() {
             {interpretation.resume && (
               <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-yellow-400 text-xl leading-none">✶</span>
+                  <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
                   <h3 className="text-yellow-300 font-serif text-lg tracking-wide">Résumé</h3>
                 </div>
                 <p className="text-gray-100 leading-relaxed italic text-[15px]">
