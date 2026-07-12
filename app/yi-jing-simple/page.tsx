@@ -154,6 +154,7 @@ function YiQingRig() {
   const [messageGone, setMessageGone] = useState(false); // le message sous le bouton disparait apres 10s
   const [winSparkOn, setWinSparkOn] = useState(false); // etincelles autour de la gagnante 1.5s apres le tirage
   const [centered, setCentered] = useState(false); // baguette + numero derivent vers le centre apres le tirage
+  const [interpreting, setInterpreting] = useState(false); // bouton Interpretation : anti double-clic + greye
   const router = useRouter();
 
   const dragging = useRef(false);
@@ -761,7 +762,7 @@ function YiQingRig() {
       {/* Zone G: Bouton Interprétation - glisse vers l'emplacement de la boite apres le tirage */}
       {phase === 'done' && drawn !== null && (
         <motion.div
-          className="absolute w-full text-center z-40"
+          className="absolute w-full text-center z-50"
           style={{
             left: 0,
             right: 0,
@@ -775,23 +776,34 @@ function YiQingRig() {
         >
           <motion.button
             onClick={() => {
-              localStorage.setItem('yi-jing-simple-baguette', String(drawnRef.current));
+              if (interpreting) return;
+              setInterpreting(true);
+              // drawnRef.current est 0-based (0..63) -> +1 pour l'hexagramme 1..64
+              localStorage.setItem('yi-jing-simple-baguette', String((drawnRef.current ?? 0) + 1));
               router.push('/yi-jing-simple/interpretation');
-              
             }}
+            disabled={interpreting}
             className="yi-interpret-btn px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
             style={{
               fontFamily: 'var(--font-cinzel), serif',
               position: 'relative',
-              background: 'linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)',
-              color: '#2a1808',
-              border: '2px solid #F3C969',
-              boxShadow: '0 0 16px rgba(218,165,32,0.45), inset 0 0 10px rgba(255,240,200,0.25)',
+              background: interpreting
+                ? 'linear-gradient(135deg, #6b6b6b 0%, #4a4a4a 55%, #6b6b6b 100%)'
+                : 'linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)',
+              color: interpreting ? '#cfcfcf' : '#2a1808',
+              border: interpreting ? '2px solid #888' : '2px solid #F3C969',
+              boxShadow: interpreting
+                ? 'none'
+                : '0 0 16px rgba(218,165,32,0.45), inset 0 0 10px rgba(255,240,200,0.25)',
+              cursor: interpreting ? 'not-allowed' : 'pointer',
+              opacity: interpreting ? 0.6 : 1,
             }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: interpreting ? 1 : 1.04 }}
+            whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
-            <span className="relative z-10">Interprétation du tirage</span>
+            <span className="relative z-10">
+              {interpreting ? 'Chargement…' : 'Interprétation du tirage'}
+            </span>
           </motion.button>
           <p
             className="mt-3 text-center"

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT } from '@/lib/i18n';
+import { getHexagramTrigrams } from '@/lib/yijing-data';
 
 interface Interpretation {
   situation?: string;
@@ -33,6 +34,18 @@ function InterpretationInner() {
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hexagram, setHexagram] = useState<{
+    numero: number;
+    name?: string;
+    frenchName?: string;
+    glyph?: string;
+    ideogram?: string;
+    pinyin?: string;
+    trigramSuperior?: string;
+    trigramInferior?: string;
+    semanticEssence?: string;
+    synthese?: string;
+  } | null>(null);
   const doneRef = useRef<string | null>(null);
 
   // Extract type from pathname: /interpret/tarot-3-cartes -> tarot-3-cartes
@@ -53,6 +66,18 @@ function InterpretationInner() {
 
     const question = searchParams.get('question');
     const userId = searchParams.get('userId');
+    const baguette = searchParams.get('baguette');
+
+    // Récupère l'hexagramme correspondant à la baguette tirée (Yi Jing)
+    if (baguette && (type.startsWith('yi-jing') || type === 'yi-qing')) {
+      const num = parseInt(baguette, 10);
+      if (!isNaN(num)) {
+        fetch(`/api/hexagram/${num}`)
+          .then((r) => r.json())
+          .then((d) => { if (d.found) setHexagram(d.hexagram); })
+          .catch(() => {});
+      }
+    }
 
     // Determine payload based on type
     const isTarot = type.startsWith('tarot');
@@ -143,55 +168,123 @@ function InterpretationInner() {
   // Determine if it's Tarot or Yi Jing based on type prefix
   const isTarot = type.startsWith('tarot');
   const isYiJing = type.startsWith('yi-jing') || type === 'yi-qing';
+  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero) : { superior: null, inferior: null };
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto">
-      {/* Croix retour */}
-      <Link
-        href="/"
-        className="fixed top-4 right-4 text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors z-50"
-        aria-label="Retour à l'accueil"
-      >
-        ×
-      </Link>
-
-      <div className="w-full max-w-md mt-20 text-center">
-        <h1 className="text-2xl font-serif text-yellow-400 mb-2">
-          {isTarot ? t('interpret.titleTarot') : t('interpret.titleYiJing')}
+      {/* En-tête : titre + croix sur la même ligne */}
+      <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
+        <h1 className="text-2xl font-serif text-yellow-400">
+          {isTarot ? t('interpret.titleTarot') : "Le Yi Jing a parlé"}
         </h1>
+        <Link
+          href="/"
+          className="text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors shrink-0 leading-none"
+          aria-label="Retour à l'accueil"
+        >
+          ×
+        </Link>
+      </div>
 
-        <div className="text-left space-y-4">
+      <div className="w-full max-w-md text-left space-y-5">
           <>
 
-            <h2 className="text-yellow-500 font-bold">{t('interpret.situation')}</h2>
-            <p className="text-gray-200 mb-4">{interpretation.situation}</p>
+            {/* Récap baguette élue — Yi Jing simple + question */}
+            {(type === 'yi-jing-simple' || type === 'yi-jing-question') && hexagram && (
+              <div className="p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10 backdrop-blur-sm">
+                <div className="flex items-center gap-5">
+                  {hexagram.glyph && (
+                    <span className="shrink-0 text-6xl leading-none text-yellow-300 drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]">
+                      {hexagram.glyph}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-yellow-200 text-sm font-semibold tracking-wide mb-1">
+                      Baguette tirée : {String(hexagram.numero).padStart(2, '0')}
+                    </p>
+                    <p className="text-yellow-100 font-serif font-semibold text-2xl leading-tight">
+                      {hexagram.frenchName || hexagram.name || 'Hexagramme'}
+                    </p>
+                    {hexagram.pinyin && (
+                      <p className="text-yellow-400/90 text-sm italic mt-0.5">
+                        {hexagram.pinyin}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-            <h2 className="text-yellow-500 font-bold">{t('interpret.defis')}</h2>
-            <p className="text-gray-200 mb-4">{interpretation.defis}</p>
+                {/* Traduction : les 2 trigrammes réels (supérieur / inférieur) */}
+                {(trigs.superior || trigs.inferior) && (
+                  <div className="mt-5 pt-4 border-t border-yellow-500/15">
+                    <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3">Traduction</p>
+                    <div className="flex flex-col gap-3">
+                      {trigs.superior && (
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl leading-none text-yellow-300">{trigs.superior.symbol}</span>
+                          <div>
+                            <p className="text-yellow-100 font-medium text-sm">
+                              {trigs.superior.name} <span className="text-yellow-500/60">(supérieur)</span>
+                            </p>
+                            <p className="text-gray-300 text-xs">{trigs.superior.meaning}</p>
+                          </div>
+                        </div>
+                      )}
+                      {trigs.inferior && (
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl leading-none text-yellow-300">{trigs.inferior.symbol}</span>
+                          <div>
+                            <p className="text-yellow-100 font-medium text-sm">
+                              {trigs.inferior.name} <span className="text-yellow-500/60">(inférieur)</span>
+                            </p>
+                            <p className="text-gray-300 text-xs">{trigs.inferior.meaning}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-            <h2 className="text-yellow-500 font-bold">{t('interpret.soutien')}</h2>
-            <p className="text-gray-200 mb-4">{interpretation.soutien}</p>
+                {/* Synthèse de l'hexagramme — police réduite sur mobile */}
+                {hexagram.synthese && (
+                  <p className="mt-5 pt-4 border-t border-yellow-500/15 text-gray-300/90 text-xs sm:text-sm leading-relaxed">
+                    {hexagram.synthese}
+                  </p>
+                )}
+              </div>
+            )}
 
-            <h2 className="text-yellow-500 font-bold">{t('interpret.issue')}</h2>
-            <p className="text-gray-200 mb-4">{interpretation.issue}</p>
+            {/* Analyse détaillée — situation / défis / soutien / issue / conseil */}
+            {[
+              { label: t('interpret.situation'), value: interpretation.situation },
+              { label: t('interpret.defis'), value: interpretation.defis },
+              { label: t('interpret.soutien'), value: interpretation.soutien },
+              { label: t('interpret.issue'), value: interpretation.issue },
+              { label: t('interpret.conseil'), value: interpretation.conseil },
+            ].filter((s) => s.value).map((section) => (
+              <div key={section.label} className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
+                <h2 className="text-yellow-500 font-serif font-semibold text-base tracking-wide mb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/70" />
+                  {section.label}
+                </h2>
+                <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
+              </div>
+            ))}
 
-            <h2 className="text-yellow-500 font-bold">{t('interpret.conseil')}</h2>
-            <p className="text-gray-200 mb-4">{interpretation.conseil}</p>
-
-            {/* Détails Yi Jing simple */}
-            {type === 'yi-jing-simple' && (
-              <div className="mt-6 p-4 bg-yellow-900/20 rounded-lg">
-                <h3 className="text-yellow-400 font-bold mb-2">{t('interpret.detailsTitle')}</h3>
-                <p className="text-gray-200">{t('interpret.numero')} : {interpretation.numero}</p>
-                <p className="text-gray-200">{t('interpret.nom')} : {interpretation.nom}</p>
-                <p className="text-gray-200">{t('interpret.meditation')} : {interpretation.meditation}</p>
-                <p className="text-gray-200">{t('interpret.attitude')} : {interpretation.attitude}</p>
+            {/* ✶ Résumé du tirage — en fin (synthèse globale) */}
+            {interpretation.resume && (
+              <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-yellow-400 text-xl leading-none">✶</span>
+                  <h3 className="text-yellow-300 font-serif text-lg tracking-wide">Résumé</h3>
+                </div>
+                <p className="text-gray-100 leading-relaxed italic text-[15px]">
+                  {interpretation.resume}
+                </p>
               </div>
             )}
           </>
         </div>
       </div>
-    </div>
   );
 }
 

@@ -44,9 +44,9 @@ const PROVIDERS: OracleProvider[] = [
 // Évite de spammer les 429/503 et de se faire bannir / bloquer la clé inutilement.
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 30_000;
-// Timeout dur par requête LLM. hy3 (reasoning) répond en ~27s -> 35s de marge,
+// Timeout dur par requête LLM. hy3 (reasoning) répond en ~45-60s -> 75s de marge,
 // sans jamais laisser la page d'attente bloquée indéfiniment.
-const REQUEST_TIMEOUT_MS = 35_000;
+const REQUEST_TIMEOUT_MS = 75_000;
 const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
 
 function isBlocked(name: string): boolean {

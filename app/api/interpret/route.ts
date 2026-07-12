@@ -11,6 +11,7 @@ interface Interpretation {
   soutien?: string;
   issue?: string;
   conseil?: string;
+  resume?: string;
 }
 
 interface CardInfo {
@@ -138,7 +139,8 @@ function generateYijingInterpretation(question?: string): Interpretation {
     defis: "Le Yi Jing souligne les résistances inutiles. Lachez prise.",
     soutien: "Le flux naturel de la vie est là pour vous guider, comme il l'a toujours fait.",
     issue: "Les hexagrammes montrent que les tensions actuelles se dénoueront spontanément.",
-    conseil: conseil[(seed * 2) % conseil.length]
+    conseil: conseil[(seed * 2) % conseil.length],
+    resume: "L'hexagramme vous invite à accueillir le mouvement naturel des choses : agissez dans le flux plutôt que contre lui, et la voie se clarifiera d'elle-même."
   };
 }
 
@@ -221,7 +223,8 @@ Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 "defis": "<3-4 phrases : obstacles révélés>",
 "soutien": "<3-4 phrases : forces d'ancrage>",
 "issue": "<3-4 phrases : évolution probable>",
-"conseil": "<2-3 phrases : message clair et puissant>"
+"conseil": "<2-3 phrases : message clair et puissant>",
+"resume": "<2-3 phrases : synthèse globale et conclusion du tirage>"
 }${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
   } else {
     // Yi Jing
@@ -234,7 +237,8 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
 "defis": "<les tensions à gérer, 2-3 phrases>",
 "soutien": "<où trouver l'appui, 2-3 phrases>",
 "issue": "<perspectives d'évolution, 3-4 phrases>",
-"conseil": "<message décisif, 1-2 phrases>"
+"conseil": "<message décisif, 1-2 phrases>",
+"resume": "<2-3 phrases : synthèse globale et conclusion de l'hexagramme>"
 }${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
   }
 
