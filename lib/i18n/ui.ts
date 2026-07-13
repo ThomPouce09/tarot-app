@@ -176,8 +176,8 @@ export const DICT = {
   'stats.runes': { fr: 'Runes', en: 'Runes' },
   'stats.repartition': { fr: 'Répartition', en: 'Breakdown' },
   'stats.noDraws': { fr: 'Aucun tirage pour l\'instant.', en: 'No draw yet.' },
-  'stats.barTarot': { fr: '🎴 Tarot', en: '🎴 Tarot' },
-  'stats.barYijing': { fr: '☯️ Yi Jing', en: '☯️ I Ching' },
+  'stats.barTarot': { fr: 'Tarot', en: 'Tarot' },
+  'stats.barYijing': { fr: 'Yi Jing', en: 'I Ching' },
   'stats.activityRecent': { fr: 'Activité récente', en: 'Recent activity' },
   'stats.noHistory': { fr: 'Pas encore d\'historique.', en: 'No history yet.' },
 

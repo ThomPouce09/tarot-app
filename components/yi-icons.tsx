@@ -83,3 +83,27 @@ export function IconResume({ className }: IconProps) {
     </svg>
   );
 }
+
+export function IconTarot({ className }: IconProps) {
+  // Carte de tarot stylisee (soleil/arcane) -> Tirage Tarot
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="6" y="3.5" width="12" height="17" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M12 7v-1.5M12 13v1.5M9 10h-1.5M15 10h1.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <path d="M9 17h6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+    </svg>
+  );
+}
+
+export function IconYiJing({ className }: IconProps) {
+  // Trigramme (3 lignes : pleine / brisee / pleine) -> Tirage Yi Jing
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="5" y="6" width="14" height="2" rx="1" fill="currentColor" />
+      <rect x="5" y="11.5" width="6" height="2" rx="1" fill="currentColor" />
+      <rect x="13" y="11.5" width="6" height="2" rx="1" fill="currentColor" />
+      <rect x="5" y="17" width="14" height="2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}

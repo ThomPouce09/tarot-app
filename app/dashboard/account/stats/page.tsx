@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useState } from 'react';
 import { useT } from '@/lib/i18n';
+import { IconTarot, IconYiJing } from '@/components/yi-icons';
 
 export default function StatsPage() {
   const t = useT();
@@ -75,8 +77,8 @@ export default function StatsPage() {
           <p className="text-gray-500 text-sm">{t('stats.noDraws')}</p>
         ) : (
           <div className="space-y-3">
-            <Bar label={t('stats.barTarot')} value={stats.tarot} total={stats.total} color="from-amber-500 to-orange-700" />
-            <Bar label={t('stats.barYijing')} value={stats.yijing} total={stats.total} color="from-purple-500 to-fuchsia-700" />
+            <Bar iconComp={IconTarot} label={t('stats.barTarot')} value={stats.tarot} total={stats.total} color="from-amber-500 to-orange-700" />
+            <Bar iconComp={IconYiJing} label={t('stats.barYijing')} value={stats.yijing} total={stats.total} color="from-purple-500 to-fuchsia-700" />
           </div>
         )}
       </div>
@@ -131,12 +133,15 @@ function StatCard({ icon, value, label }: { icon: string; value: number; label: 
   );
 }
 
-function Bar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+function Bar({ iconComp: IconComp, label, value, total, color }: { iconComp?: React.ComponentType<{ className?: string }>; label: string; value: number; total: number; color: string }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-300">{label}</span>
+        <span className="text-gray-300 flex items-center gap-1.5">
+          {IconComp && <IconComp className="h-4 w-4 text-amber-300" />}
+          {label}
+        </span>
         <span className="text-amber-300">{value} · {pct}%</span>
       </div>
       <div className="h-2.5 rounded-full bg-gray-800/60 overflow-hidden">
