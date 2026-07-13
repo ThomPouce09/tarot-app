@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useLang, useT } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
+import { useShimmer } from '@/lib/use-shimmer';
+import { ShimmerChars } from '@/components/shimmer-chars';
 
 const LANDING_BG = '/backgrounds/landing-bg.jpg';
 
@@ -19,6 +21,10 @@ export default function HomePage() {
   const [showRunesNotice, setShowRunesNotice] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
+  const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
+  const yijingShimmer = useShimmer(t('landing.tile.yijing'), 4000, 18000);
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -149,7 +155,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(255,215,0,0.45)',
                 }}
               >
-                {t('landing.tile.tarot')}
+                <ShimmerChars text={t('landing.tile.tarot')} col={tarotShimmer.col} color="#FFD700" />
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -166,6 +172,10 @@ export default function HomePage() {
                 background: 'radial-gradient(ellipse at center, rgba(255,215,0,0.18) 0%, transparent 70%)',
               }}
             />
+            {/* Balayage de lueur le long de l'encadrre, droite->gauche (synchro lettres) */}
+            {tarotShimmer.sweeping && (
+              <div className="tile-sweep-tarot absolute inset-0 pointer-events-none rounded-xl" />
+            )}
           </motion.div>
         </Link>
 
@@ -202,7 +212,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(180,140,200,0.5)',
                 }}
               >
-                {t('landing.tile.yijing')}
+                <ShimmerChars text={t('landing.tile.yijing')} col={yijingShimmer.col} color="#E0CFF0" />
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -219,6 +229,10 @@ export default function HomePage() {
                 background: 'radial-gradient(ellipse at center, rgba(180,140,220,0.2) 0%, transparent 70%)',
               }}
             />
+            {/* Balayage de lueur le long de l'encadrre, droite->gauche (synchro lettres) */}
+            {yijingShimmer.sweeping && (
+              <div className="tile-sweep-yijing absolute inset-0 pointer-events-none rounded-xl" />
+            )}
           </motion.div>
         </Link>
 

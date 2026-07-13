@@ -322,3 +322,30 @@ html, body {
     animation: none !important;
   }
 }
+
+/* Scintillement encadre tuiles Tarot/Yi Jing : une lueur court LE LONG du cadre
+   de droite a gauche. Le centre reste transparent (mask creux) -> la tuile ne
+   devient pas noire. Synchronise avec le balayage des lettres. */
+.tile-sweep-tarot,
+.tile-sweep-yijing {
+  padding: 2px;                 /* epaisseur de la bande lumineuse */
+  background-repeat: no-repeat;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: tile-sweep 0.55s ease-in-out;
+}
+.tile-sweep-tarot {
+  background: linear-gradient(90deg, transparent 40%, rgba(255,225,120,0.95) 50%, transparent 60%);
+  background-size: 220% 100%;
+}
+.tile-sweep-yijing {
+  background: linear-gradient(90deg, transparent 40%, rgba(230,210,255,0.9) 50%, transparent 60%);
+  background-size: 220% 100%;
+}
+@keyframes tile-sweep {
+  0% { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
