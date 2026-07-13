@@ -24,6 +24,7 @@ export default function Firefly({ page }: { page: string }) {
   const [creature, setCreature] = useState<Creature | null>(null);
   const [pending, setPending] = useState<PopupData | null>(null); // message récupéré au spawn
   const [popup, setPopup] = useState<PopupData | null>(null);
+  const [burst, setBurst] = useState<{ id: number; dx: number; dy: number; size: number }[] | null>(null);
   const aliveRef = useRef(true);
   const wanderResolveRef = useRef<null | (() => void)>(null); // permet au clic de court-circuiter l'attente
   const popupActiveRef = useRef(false); // une créature/popup est-elle active ? (bloque tout nouveau spawn)
@@ -126,10 +127,22 @@ export default function Firefly({ page }: { page: string }) {
             title={creature.name}
             onClick={() => {
               if (!pending) return;
-              setPopup(pending);
-              popupActiveRef.current = true; // une créature est active : bloque tout nouveau spawn
-              setVisible(false); // la luciole s'éteint : la créature (popup) prend le relais
+              // Explosion de la luciole en petites particules qui fondent dans le fond
+              const parts = Array.from({ length: 42 }).map((_, i) => ({
+                id: i,
+                dx: (Math.random() - 0.5) * 200,
+                dy: (Math.random() - 0.5) * 200,
+                size: 2.5 + Math.random() * 5,
+              }));
+              setBurst(parts);
+              setVisible(false); // la luciole s'eteint : les particules prennent le relais
               wanderResolveRef.current?.();
+              // Apres l'explosion, le message apparait
+              setTimeout(() => {
+                setPopup(pending);
+                popupActiveRef.current = true;
+                setBurst(null);
+              }, 620);
             }}
             className="fixed z-[60] cursor-pointer rounded-full"
             style={{
@@ -167,6 +180,32 @@ export default function Firefly({ page }: { page: string }) {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* Explosion de la luciole : petites particules dorées qui s'éparpillent
+          et fondent dans le fond noir, depuis la position de la luciole. */}
+      {burst && (
+        <div className="pointer-events-none fixed inset-0 z-[65]">
+          {burst.map((p) => (
+            <motion.span
+              key={p.id}
+              className="absolute rounded-full"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                width: p.size,
+                height: p.size,
+                background: GOLD,
+                boxShadow: `0 0 ${p.size * 2.5}px ${p.size}px ${GOLD}`,
+                marginTop: -p.size / 2,
+                marginLeft: -p.size / 2,
+              }}
+              initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+              animate={{ opacity: 0, x: p.dx, y: p.dy, scale: 0.2 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+            />
+          ))}
+        </div>
+      )}
 
       <AnimatePresence>
         {popup && (

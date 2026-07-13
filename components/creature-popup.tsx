@@ -10,16 +10,16 @@ type Props = {
 
 const GOLD = '#F3C969';
 
-// Halo discret mais visible, un seul souffle lent derrière la créature
+// Halo scintillant doré autour de la creature (effet d'origine, doux et continu)
 function SoftHalo({ glow }: { glow: string }) {
   return (
     <motion.div
       aria-hidden
       className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-xl"
-      style={{ background: '#FFC400' }}
+      style={{ background: glow }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0.3, 0.5, 0.3] }}
-      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      animate={{ opacity: [0.3, 0.55, 0.3] }}
+      transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
     />
   );
 }
@@ -27,31 +27,7 @@ function SoftHalo({ glow }: { glow: string }) {
 // Le "sort" : une onde de lumière dorée qui se déploie en cercles concentriques
 // depuis la créature à l'ouverture, puis s'évanouit. Un seul geste, calme, élégant.
 function SpellRipple({ glow }: { glow: string }) {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
-    >
-      {[0, 0.32].map((delay, i) => (
-        <motion.div
-          key={i}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ border: `2px solid #FFC400` }}
-          initial={{ width: 40, height: 40, opacity: 0.8, scale: 1 }}
-          animate={{ width: 40, height: 40, opacity: 0, scale: 3.4 }}
-          transition={{ duration: 2.1, delay, ease: 'easeOut' }}
-        />
-      ))}
-      {/* souffle lumineux central, unique */}
-      <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-lg"
-        style={{ background: '#FFC400' }}
-        initial={{ width: 90, height: 90, opacity: 0.5 }}
-        animate={{ width: 90, height: 90, opacity: 0 }}
-        transition={{ duration: 1.6, ease: 'easeOut' }}
-      />
-    </div>
-  );
+  return null;
 }
 
 // Étincelles + poussières dorées ET argentées, un peu plus voyantes, qui
@@ -119,57 +95,62 @@ function TextSpell({ glow, show }: { glow: string; show: boolean }) {
   );
 }
 
-// Voile de fumées (sortilège) : masse de fumée aux tons variés GRIS → NOIR
-// (gris moyen en haut, quasi-noir en bas), bien contrastés sur le fond sombre.
-// Décalée à gauche et un peu surélevée pour englober le texte. Se déploie en
-// ~2s puis se rétracte avec le texte.
-// DOM order : rendu AVANT le texte (pas de -z-10) → impossible de passer derrière la page.
-function SmokeVeil({ show }: { show: boolean }) {
-  const blobs = useMemo(() => {
-    const colors = ['#72727e', '#54545e', '#3a3a42', '#8a8a96', '#26262e'];
-    return Array.from({ length: 6 }).map((_, i) => ({
-      id: i,
-      color: colors[i % colors.length],
-      top: 0 + Math.random() * 70,
-      left: -12 + Math.random() * 60, // décalé à gauche
-      size: 44 + Math.random() * 40, // un peu moins large
-      delay: Math.random() * 0.4,
-      dur: 5 + Math.random() * 3,
-      dx: (Math.random() - 0.5) * 14,
-      dy: (Math.random() - 0.5) * 12,
-    }));
-  }, []);
-
+// Nuage tres noir : ne sous l'image de la creature (haut-gauche), se repand
+// derriere tout le message en ~1s. Nuances de sombre/tres sombre, transform-origin
+// en haut a gauche pour que la croissance parte de sous la creature.
+function DarkCloud({ show }: { show: boolean }) {
   return (
-    <motion.span
+    <motion.div
       aria-hidden
-      className="pointer-events-none absolute -top-8 -bottom-4 -left-8 -right-2 overflow-visible rounded-[28px]"
+      className="pointer-events-none absolute -z-10 -top-6 -bottom-4 -left-6 -right-2 rounded-[30px] blur-md"
       style={{
+        transformOrigin: 'top left',
         background:
-          'radial-gradient(closest-side, rgba(114,114,126,0.55), rgba(70,70,80,0.40) 55%, rgba(40,40,48,0.0) 100%)',
-        boxShadow: '0 0 34px 12px rgba(80,80,90,0.24)',
+          'radial-gradient(120% 120% at 18% 8%, rgba(26,24,30,0.96) 0%, rgba(12,11,15,0.95) 42%, rgba(4,3,7,0.92) 78%, rgba(0,0,0,0) 100%)',
+        boxShadow: '0 0 50px 22px rgba(0,0,0,0.55)',
       }}
-      initial={{ scale: 0.15, opacity: 0 }}
-      animate={{ scale: show ? 1 : 0.15, opacity: show ? 0.85 : 0 }}
-      transition={{ duration: show ? 2 : 1, ease: 'easeInOut' }}
+      initial={{ scale: 0.04, opacity: 0 }}
+      animate={{ scale: show ? 1 : 0.04, opacity: show ? 1 : 0 }}
+      transition={{ duration: show ? 1 : 0.7, ease: 'easeOut' }}
+    />
+  );
+}
+
+// Traits de vitesse (style Star Wars) : lignes radiales dorées qui jaillissent
+// du centre vers l'exterieur derriere le texte, puis s'effacent progressivement
+// pendant que le message trouve sa position finale (synchro avec l'effet Z ~1.1s).
+function SpeedLines({ show }: { show: boolean }) {
+  const lines = Array.from({ length: 18 }).map((_, i) => {
+    const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.18;
+    const len = 60 + Math.random() * 70;
+    return { id: i, angle, len, w: 1 + Math.random() * 2.5 };
+  });
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-0 w-0"
     >
-      {blobs.map((b) => (
+      {lines.map((l) => (
         <motion.span
-          key={b.id}
+          key={l.id}
           className="absolute rounded-full"
           style={{
-            top: `${b.top}%`,
-            left: `${b.left}%`,
-            width: `${b.size}%`,
-            height: `${b.size}%`,
-            background: b.color,
-            filter: 'blur(12px)',
+            height: `${l.w}px`,
+            width: `${l.len}px`,
+            background: 'linear-gradient(90deg, rgba(246,215,122,0) 0%, rgba(246,215,122,0.85) 70%, rgba(246,215,122,0.95) 100%)',
+            // part du centre, pointe vers l'exterieur
+            left: 0,
+            top: 0,
+            transform: `rotate(${l.angle}rad) translateX(20px)`,
+            transformOrigin: 'left center',
+            boxShadow: '0 0 6px rgba(246,215,122,0.6)',
           }}
-          animate={{ x: [0, b.dx, 0], y: [0, b.dy, 0] }}
-          transition={{ duration: b.dur, delay: b.delay, repeat: Infinity, ease: 'easeInOut' }}
+          initial={{ opacity: 0, scaleX: 0.2 }}
+          animate={{ opacity: show ? [0, 0.9, 0] : 0, scaleX: show ? [0.2, 1, 1.1] : 0.2 }}
+          transition={{ duration: show ? 1.1 : 0.4, ease: 'easeOut', times: [0, 0.3, 1] }}
         />
       ))}
-    </motion.span>
+    </div>
   );
 }
 
@@ -208,8 +189,11 @@ export default function CreaturePopup({ data, onClose }: Props) {
         animate={{ opacity: show ? 1 : 0, scale: show ? 1 : 0.97 }}
         exit={{ opacity: 0, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 200, damping: 22, opacity: { duration: 1.1 } }}
-        className="my-auto flex w-full max-w-[min(92vw,540px)] items-start justify-center gap-3"
+        className="relative my-auto flex w-full max-w-[min(92vw,540px)] items-start justify-center gap-3"
       >
+        {/* Nuage tres noir : ne sous l'image de la creature, se repand derriere
+            tout le message en ~1s. transform-origin en haut a gauche. */}
+        <DarkCloud show={show} />
         {/* Image créature, à gauche, descendue. Fallback avatar CSS si l'image manque.
             z-10 : reste au 1er plan, AU-DESSUS du voile de fumées. */}
         <div className="relative z-10 shrink-0">
@@ -220,9 +204,9 @@ export default function CreaturePopup({ data, onClose }: Props) {
             transition={{ duration: 0.9, ease: 'easeOut' }}
             className="relative mt-6 ml-3 h-[80px] w-[80px] sm:h-[96px] sm:w-[96px]"
           >
-            {/* Halo + sort centrés SUR la créature (imbriqués dans le bloc image) */}
-            <SoftHalo glow={glow} />
-            <SpellRipple glow={glow} />
+            <span className="pointer-events-none absolute -inset-4">
+              <Embers glow={glow} />
+            </span>
             {!imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -230,13 +214,13 @@ export default function CreaturePopup({ data, onClose }: Props) {
                 alt={creature.name}
                 width={80}
                 height={80}
-                className="h-[80px] w-[80px] object-contain drop-shadow-[0_0_16px_rgba(255,233,168,0.6)] sm:h-[96px] sm:w-[96px]"
+                className="h-[80px] w-[80px] object-contain drop-shadow-[0_0_7px_rgba(255,233,168,0.5)] sm:h-[96px] sm:w-[96px]"
                 onError={() => setImgError(true)}
               />
             ) : (
               <div
                 className="flex h-[80px] w-[80px] items-center justify-center rounded-full text-3xl font-bold text-[#3a2f1a] sm:h-[96px] sm:w-[96px] sm:text-4xl"
-                style={{ background: glow, boxShadow: `0 0 18px 5px ${glow}` }}
+                style={{ background: glow, boxShadow: `0 0 9px 2px ${glow}` }}
               >
                 {creature.name.charAt(0)}
               </div>
@@ -244,28 +228,31 @@ export default function CreaturePopup({ data, onClose }: Props) {
           </motion.div>
         </div>
 
-        {/* Texte flottant + voile de fumées (background) + étincelles autour */}
-        <div className="relative min-w-0 flex-1 pt-1">
-          <SmokeVeil show={show} />
+        {/* Texte flottant : effet "Star Wars" — monte du fond vers l'avant en doré */}
+        <div className="relative min-w-0 flex-1 pt-1 [perspective:900px]">
+          <SpeedLines show={show} />
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: show ? 1 : 0, y: show ? 0 : 6 }}
-            transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: 0.2, z: -600 }}
+            animate={{ opacity: show ? 1 : 0, scale: show ? 1 : 0.2, z: show ? 0 : -600 }}
+            transition={{ delay: 0.15, duration: 1.1, ease: 'easeOut' }}
+            style={{ transformOrigin: 'center', transformStyle: 'preserve-3d' }}
             className="relative z-10"
           >
             <TextSpell glow={glow} show={show} />
-            <div className="relative mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-100 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            <div className="relative mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#FFD86B', textShadow: '0 0 10px rgba(255,200,60,0.9), 0 0 20px rgba(255,170,30,0.6)' }}>
               <span className="text-amber-300">✦</span>
               {creature.name}
             </div>
             <div
-              className="relative font-medium text-[#fdf6e3]"
+              className="relative font-medium"
               style={{
+                fontFamily: 'var(--font-cormorant), serif',
+                color: '#F6D77A',
                 textShadow:
-                  '0 1px 3px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6), 0 0 18px ' + glow + '66',
+                  '0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(255,200,80,0.55), 0 0 26px rgba(255,180,40,0.35)',
               }}
             >
-              {text}
+              {text.toLowerCase()}
             </div>
           </motion.div>
         </div>
