@@ -26,6 +26,22 @@ export default function HomePage() {
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
   const yijingShimmer = useShimmer(t('landing.tile.yijing'), 4000, 18000);
 
+  // Scintillement occasionnel de l'etoile du bouton Mon espace (pas trop frequent)
+  const [ctaTwinkle, setCtaTwinkle] = useState(false);
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const loop = () => {
+      const delay = 6000 + Math.random() * 5000; // 6-11s entre deux scintillements
+      timeoutId = setTimeout(() => {
+        setCtaTwinkle(true);
+        setTimeout(() => setCtaTwinkle(false), 750); // pulsation ~0.75s
+        loop();
+      }, delay);
+    };
+    loop();
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
@@ -115,7 +131,7 @@ export default function HomePage() {
           whileHover={{ scale: 1.04, boxShadow: '0 0 24px rgba(218,165,32,0.55)' }}
           whileTap={{ scale: 0.97 }}
         >
-          ✨ {isLoggedIn ? t('landing.cta.logged') : t('landing.cta.guest')}
+          <span className={ctaTwinkle ? 'star-twinkle inline-block' : 'inline-block'}>✨</span> {isLoggedIn ? t('landing.cta.logged') : t('landing.cta.guest')}
         </motion.button>
       </div>
 

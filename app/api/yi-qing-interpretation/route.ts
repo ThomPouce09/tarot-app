@@ -28,12 +28,26 @@ const nomsHexagrammes = [
 
 export async function POST(request: NextRequest) {
   try {
-    const { baguette, userId } = await request.json();
+    const { baguette, userId, lang } = await request.json();
     const numeroBaguette = parseInt(baguette) || 1;
+    const isEn = lang === 'en';
 
-    // Envoyer à l'IA pour l'interprétation
-    const prompt = `Donne une interprétation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomsHexagrammes[numeroBaguette-1]}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}`;
-    
+    // Nom canonique EN depuis hexagrams_en (nouvelle table), sinon FR par defaut
+    let nomEn: string | null = null;
+    try {
+      const enRows = await prisma.$queryRawUnsafe(
+        `SELECT name_en FROM "hexagrams_en" WHERE numero = $1 LIMIT 1`,
+        numeroBaguette
+      ) as Array<Record<string, any>>;
+      if (enRows[0]?.name_en) nomEn = enRows[0].name_en;
+    } catch {}
+
+    // Envoyer a l'IA pour l'interpretation
+    const nomFr = nomsHexagrammes[numeroBaguette - 1] || `Hexagramme ${numeroBaguette}`;
+    const prompt = isEn
+      ? `Give a Yi Jing interpretation for hexagram ${numeroBaguette} ("${nomEn || nomFr}"). Reply in JSON: {"meditation":"...","conseil":"...","attitude":"..."}`
+      : `Donne une interpretation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomFr}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}`;
+
     const content = (await callOracle(prompt)) || '';
 
     let parsed: { meditation?: string; conseil?: string; attitude?: string } = {};
@@ -49,7 +63,7 @@ export async function POST(request: NextRequest) {
               type: 'yi-qing',
               cards: JSON.stringify([{
                 id: numeroBaguette,
-                name: nomsHexagrammes[numeroBaguette-1] || "Hexagramme " + numeroBaguette
+                name: isEn ? (nomEn || nomFr) : nomFr
               }]),
               interpretation: JSON.stringify({
                 meditation: parsed.meditation || "Réflexion en cours sur cet hexagramme.",
@@ -66,14 +80,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       numero: numeroBaguette,
-      nom: nomsHexagrammes[numeroBaguette-1] || "Hexagramme " + numeroBaguette,
+      nom: isEn ? (nomEn || nomFr) : nomFr,
       meditation: parsed.meditation || "Réflexion en cours sur cet hexagramme.",
       conseil: parsed.conseil || "Laissez les signes vous guider.",
       attitude: parsed.attitude || "Restez ouvert et réceptif."
     });
 
   } catch (error) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Erreur interprétation',
       numero: 1,
       nom: "Le Créatif",

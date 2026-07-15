@@ -1,5 +1,6 @@
 import { Cinzel, Cinzel_Decorative, MedievalSharp, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
+import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LanguageProvider } from '@/lib/i18n'
 

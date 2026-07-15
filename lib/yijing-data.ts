@@ -21,6 +21,18 @@ export const TRIGRAM_INFO: Record<string, TrigramInfo> = {
   Lac: { name: 'Lac', symbol: '☱', meaning: 'Joie, ouverture, satisfaction' },
 };
 
+// Les 8 trigrammes fondamentaux (Ba Gua) — version anglaise (canonique)
+export const TRIGRAM_INFO_EN: Record<string, TrigramInfo> = {
+  Ciel: { name: 'Heaven', symbol: '☰', meaning: 'Creativity, force, sovereign action' },
+  Terre: { name: 'Earth', symbol: '☷', meaning: 'Receptivity, welcome, fertility' },
+  Eau: { name: 'Water', symbol: '☵', meaning: 'Deep danger, fluidity, abyss' },
+  Montagne: { name: 'Mountain', symbol: '☶', meaning: 'Stillness, calm, stop' },
+  Tonnerre: { name: 'Thunder', symbol: '☳', meaning: 'Movement, awakening, action' },
+  Vent: { name: 'Wind', symbol: '☴', meaning: 'Gentle penetration, flexibility' },
+  Feu: { name: 'Fire', symbol: '☲', meaning: 'Clarity, light, dependence' },
+  Lac: { name: 'Lake', symbol: '☱', meaning: 'Joy, openness, satisfaction' },
+};
+
 // Paires de trigrammes par numéro d'hexagramme (1..64), depuis le seed.
 export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: string }> = {
   1: { superior: 'Ciel', inferior: 'Ciel' },
@@ -89,11 +101,12 @@ export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: str
   64: { superior: 'Feu', inferior: 'Eau' },
 };
 
-export function getHexagramTrigrams(numero: number): { superior: TrigramInfo | null; inferior: TrigramInfo | null } {
+export function getHexagramTrigrams(numero: number, lang: 'fr' | 'en' = 'fr'): { superior: TrigramInfo | null; inferior: TrigramInfo | null } {
   const pair = HEXAGRAM_TRIGRAMS[numero];
   if (!pair) return { superior: null, inferior: null };
+  const map = lang === 'en' ? TRIGRAM_INFO_EN : TRIGRAM_INFO;
   return {
-    superior: TRIGRAM_INFO[pair.superior] ?? null,
-    inferior: TRIGRAM_INFO[pair.inferior] ?? null,
+    superior: map[pair.superior] ?? null,
+    inferior: map[pair.inferior] ?? null,
   };
 }

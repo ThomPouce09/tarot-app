@@ -244,7 +244,7 @@ export default function CreaturePopup({ data, onClose }: Props) {
               {creature.name}
             </div>
             <div
-              className="relative font-medium"
+              className="relative font-medium text-lg leading-snug"
               style={{
                 fontFamily: 'var(--font-cormorant), serif',
                 color: '#F6D77A',

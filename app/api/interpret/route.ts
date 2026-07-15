@@ -121,8 +121,27 @@ Votre chemin est tracé.`,
   };
 }
 
-function generateYijingInterpretation(question?: string): Interpretation {
+function generateYijingInterpretation(question?: string, lang: 'fr' | 'en' = 'fr'): Interpretation {
   const seed = question ? question.length : Math.floor(Math.random() * 1000);
+
+  if (lang === 'en') {
+    const situation = [
+      "Changes are coming, invisible yet powerful. Your situation reflects a natural transition.",
+      "A powerful current runs through your life. Things evolve quickly, even if imperceptibly."
+    ];
+    const conseil = [
+      "Stay attentive to subtle signs: they announce a metamorphosis.",
+      "Let events ripen without haste. The moment will come."
+    ];
+    return {
+      situation: situation[seed % situation.length] + (question ? ` Your question: "${question}"` : ''),
+      defis: "The I Ching points to useless resistances. Let go.",
+      soutien: "The natural flow of life is there to guide you, as it always has.",
+      issue: "The hexagrams show current tensions will untie spontaneously.",
+      conseil: conseil[(seed * 2) % conseil.length],
+      resume: "The hexagram invites you to welcome the natural movement of things: act within the flow rather than against it, and the path will clarify itself."
+    };
+  }
 
   const situation = [
     "Les changements s'annoncent, invisibles mais puissants. Votre situation reflète une transition naturelle.",
@@ -261,7 +280,7 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
     console.log('[interpret] Falling back to offline generator.');
     parsed = isTarot
       ? generateTarotInterpretation(cartes.map((id: number) => ({ id, name: TAROT_CARDS.find(c => c.id === id)?.name || '' })), question)
-      : generateYijingInterpretation(question);
+      : generateYijingInterpretation(question, language);
   }
 
   // Sauvegarde DB

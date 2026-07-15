@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useLang } from '@/lib/i18n';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 const BOX_IMG = "/images/boite.png";
@@ -62,7 +63,7 @@ const SWIPE_TEXT_MAX_WIDTH = '140px';
 const PROGRESS_BAR_ABOVE_BOX = 45; // POSITIF = remonte la barre (top = 50% - (RIG_H/2 + val))
 const TITLE_TOP = 48;
 
-const RESULT_CONTAINER_BOTTOM = '24%';
+const RESULT_CONTAINER_BOTTOM = '34%';
 const RESULT_SUBTITLE_FONT_SIZE = '0.875rem';
 const RESULT_NUMBER_FONT_SIZE = '1.5rem';
 const RESULT_TEXT_SPACING = '0.5rem';
@@ -129,6 +130,7 @@ function getStickRise(stick: Stick, progress: number): number {
 
 // --- YiJingQuestionRig Component ---
 function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
+  const lang = useLang();
   const [sticks] = useState<Stick[]>(makeSticks);
   const [shiftX, setShiftX] = useState(0);
   const [shiftY, setShiftY] = useState(0);
@@ -774,7 +776,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? 'Chargement…' : 'Interprétation du tirage'}
+              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Interpret the draw' : 'Interprétation du tirage')}
             </span>
           </motion.button>
           <p
@@ -791,8 +793,9 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
               transition: 'opacity 1s ease-in',
             }}
           >
-            La baguette élue est sortie de la boîte. Cliquez sur le bouton pour
-            découvrir le message que l'Oracle vous destine.
+            {lang === 'en'
+              ? 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.'
+              : 'La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.'}
           </p>
         </motion.div>
       )}
@@ -802,6 +805,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
 
 // --- Main Page ---
 export default function YiJingQuestionPage() {
+  const lang = useLang();
   const [question, setQuestion] = useState('');
   const [questionAsked, setQuestionAsked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -897,20 +901,8 @@ export default function YiJingQuestionPage() {
             marginBottom: '0.25rem',
           }}
         >
-          Yi Jing — Question
+          {lang === 'en' ? 'The I Ching — Question' : 'Yi Jing — Question'}
         </h1>
-        <p
-          style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            color: '#E0CFF0',
-            textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
-            letterSpacing: '0.05em',
-            fontStyle: 'italic',
-            fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)',
-          }}
-        >
-          Posez votre question à l'oracle
-        </p>
       </div>
 
       {/* CHAMP QUESTION — visible avant le tirage */}
@@ -926,7 +918,7 @@ export default function YiJingQuestionPage() {
               className="text-center text-yellow-300/80 text-sm mb-3"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              🪶 Formulez votre question
+              🪶 {lang === 'en' ? 'Ask your question' : 'Formulez votre question'}
             </p>
             <textarea
               value={question}
@@ -937,7 +929,7 @@ export default function YiJingQuestionPage() {
                   handleSubmitQuestion();
                 }
               }}
-              placeholder="Ex: Dois-je accepter cette opportunité professionnelle ?"
+              placeholder={lang === 'en' ? 'e.g. Should I accept this career opportunity?' : 'Ex: Dois-je accepter cette opportunité professionnelle ?'}
               className="w-full bg-black/50 text-yellow-100 placeholder-yellow-700/50 rounded-lg p-3 text-sm border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none"
               rows={3}
               style={{ fontFamily: 'serif' }}
@@ -960,7 +952,7 @@ export default function YiJingQuestionPage() {
               whileHover={question.trim() ? { scale: 1.03 } : {}}
               whileTap={question.trim() ? { scale: 0.97 } : {}}
             >
-              ✨ Valider et tirer une baguette
+              ✨ {lang === 'en' ? <>Validate and draw<br />a yarrow stalk</> : 'Valider et tirer une baguette'}
             </motion.button>
           </div>
         </motion.div>
@@ -976,7 +968,7 @@ export default function YiJingQuestionPage() {
           transition={{ duration: 0.5 }}
         >
           <div className="bg-yellow-950/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-700/20 text-center">
-            <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">Votre question</p>
+            <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">{lang === 'en' ? 'Your question' : 'Votre question'}</p>
             <p className="text-yellow-200 italic text-sm">"{question}"</p>
           </div>
         </motion.div>

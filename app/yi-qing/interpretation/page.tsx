@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import WaitOverlay from '@/components/wait-overlay';
+import { useLang } from '@/lib/i18n';
 
 export default function YiQingInterpretationPage() {
+  const lang = useLang();
   const [interpretation, setInterpretation] = useState<{
     numero?: number;
     nom?: string;
@@ -14,6 +16,7 @@ export default function YiQingInterpretationPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [videoEnded, setVideoEnded] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export default function YiQingInterpretationPage() {
     fetch('/api/yi-qing-interpretation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ baguette: Number(baguetteNum), userId })
+      body: JSON.stringify({ baguette: Number(baguetteNum), userId, lang })
     })
       .then(res => res.json())
       .then(data => {
@@ -56,8 +59,8 @@ export default function YiQingInterpretationPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return <WaitOverlay type="yi-qing" />;
+  if (loading || !videoEnded) {
+    return <WaitOverlay type="yi-qing" onVideoEnded={() => setVideoEnded(true)} />;
   }
 
   return (

@@ -15,7 +15,10 @@ export async function GET(
     // Lecture directe de la table seedée 'hexagrams' (non déclarée dans le schéma Prisma)
     // -> aucune modification de schéma, lecture seule.
     const rows = (await prisma.$queryRawUnsafe(
-      `SELECT * FROM "hexagrams" WHERE numero = $1 LIMIT 1`,
+      `SELECT h.*, e.name_en, e.synthese_en
+       FROM "hexagrams" h
+       LEFT JOIN "hexagrams_en" e ON e.numero = h.numero
+       WHERE h.numero = $1 LIMIT 1`,
       numero
     )) as Array<Record<string, any>>;
 
@@ -33,7 +36,9 @@ export async function GET(
         glyph: hex.caractere || null,
         ideogram: hex.caractere || null,
         pinyin: hex.pinyin || null,            // prononciation
-        synthese: hex.synthese || null,        // synthèse longue (affichée en fin, petite)
+        synthese: hex.synthese || null,        // synthèse longue FR (affichée en fin, petite)
+        name_en: hex.name_en || null,          // nom canonique EN
+        synthese_en: hex.synthese_en || null,  // synthèse EN
         trigramSuperior: hex.element || null,
         trigramInferior: null,
         semanticEssence: null,                 // supprimé (redondant)

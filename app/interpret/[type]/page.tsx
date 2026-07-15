@@ -39,6 +39,7 @@ function InterpretationInner() {
     numero: number;
     name?: string;
     frenchName?: string;
+    name_en?: string;
     glyph?: string;
     ideogram?: string;
     pinyin?: string;
@@ -46,8 +47,12 @@ function InterpretationInner() {
     trigramInferior?: string;
     semanticEssence?: string;
     synthese?: string;
+    synthese_en?: string;
   } | null>(null);
   const doneRef = useRef<string | null>(null);
+  // Vidéo de chargement Yi Jing : prioritaire, doit jouer en entier avant le relais
+  const [videoEnded, setVideoEnded] = useState(false);
+  const MIN_VIDEO_MS = 3500;
 
   // Extract type from pathname: /interpret/tarot-3-cartes -> tarot-3-cartes
   const type = pathname.split('/')[2] || '';
@@ -146,8 +151,8 @@ function InterpretationInner() {
       .finally(() => setLoading(false));
   }, [type, searchParams]);
 
-  if (loading) {
-    return <WaitOverlay type={type} />;
+  if (loading || !videoEnded) {
+    return <WaitOverlay type={type} onVideoEnded={() => setVideoEnded(true)} />;
   }
 
   if (error) {
@@ -169,14 +174,14 @@ function InterpretationInner() {
   // Determine if it's Tarot or Yi Jing based on type prefix
   const isTarot = type.startsWith('tarot');
   const isYiJing = type.startsWith('yi-jing') || type === 'yi-qing';
-  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero) : { superior: null, inferior: null };
+  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto">
       {/* En-tête : titre + croix sur la même ligne */}
       <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
-        <h1 className="text-2xl font-serif text-yellow-400">
-          {isTarot ? t('interpret.titleTarot') : "Le Yi Jing a parlé"}
+        <h1 className="text-2xl text-yellow-400" style={{ fontFamily: "'Hoshiko Satsuki', serif" }}>
+          {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
         </h1>
         <Link
           href="/"
@@ -195,16 +200,16 @@ function InterpretationInner() {
               <div className="p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10 backdrop-blur-sm">
                 <div className="flex items-center gap-5">
                   {hexagram.glyph && (
-                    <span className="shrink-0 text-6xl leading-none text-yellow-300 drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]">
+                    <span className="shrink-0 text-6xl leading-none text-yellow-400 drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]" style={{ fontFamily: "'Hoshiko Satsuki', serif" }}>
                       {hexagram.glyph}
                     </span>
                   )}
                   <div className="min-w-0">
                     <p className="text-yellow-200 text-sm font-semibold tracking-wide mb-1">
-                      Baguette tirée : {String(hexagram.numero).padStart(2, '0')}
+                      {t('interpret.baguette')} : {String(hexagram.numero).padStart(2, '0')}
                     </p>
-                    <p className="text-yellow-100 font-serif font-semibold text-2xl leading-tight">
-                      {hexagram.frenchName || hexagram.name || 'Hexagramme'}
+                    <p className="text-yellow-400 font-semibold text-2xl leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>
+                      {lang === 'en' ? (hexagram.name_en || hexagram.frenchName || hexagram.name || 'Hexagram') : (hexagram.frenchName || hexagram.name || 'Hexagramme')}
                     </p>
                     {hexagram.pinyin && (
                       <p className="text-yellow-400/90 text-sm italic mt-0.5">
@@ -221,6 +226,9 @@ function InterpretationInner() {
                     <div className="flex flex-col gap-3">
                       {trigs.superior && (
                         <div className="flex items-start gap-3">
+                          <span className="shrink-0 text-4xl leading-none text-yellow-300 drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
+                            {trigs.superior.symbol}
+                          </span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
                               {trigs.superior.name} <span className="text-yellow-500/60">(supérieur)</span>
@@ -231,6 +239,9 @@ function InterpretationInner() {
                       )}
                       {trigs.inferior && (
                         <div className="flex items-start gap-3">
+                          <span className="shrink-0 text-4xl leading-none text-yellow-300 drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
+                            {trigs.inferior.symbol}
+                          </span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
                               {trigs.inferior.name} <span className="text-yellow-500/60">(inférieur)</span>
@@ -244,9 +255,9 @@ function InterpretationInner() {
                 )}
 
                 {/* Synthèse de l'hexagramme — police réduite sur mobile */}
-                {hexagram.synthese && (
-                  <p className="mt-5 pt-4 border-t border-yellow-500/15 text-gray-300/90 text-xs sm:text-sm leading-relaxed">
-                    {hexagram.synthese}
+                {(lang === 'en' ? hexagram.synthese_en : hexagram.synthese) && (
+                  <p className="mt-5 pt-4 border-t border-yellow-500/15 text-gray-300/90 text-xs sm:text-sm leading-relaxed" style={{ fontFamily: 'Arial, sans-serif', fontStyle: 'italic' }}>
+                    {lang === 'en' ? (hexagram.synthese_en || hexagram.synthese) : hexagram.synthese}
                   </p>
                 )}
               </div>
@@ -261,7 +272,7 @@ function InterpretationInner() {
               { label: t('interpret.conseil'), value: interpretation.conseil, Icon: IconConseil },
             ].filter((s) => s.value).map((section) => (
               <div key={section.label} className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
-                <h2 className="text-yellow-500 font-serif font-semibold text-base tracking-wide mb-2 flex items-center gap-2.5">
+                <h2 className="text-yellow-500 font-semibold text-base tracking-wide mb-2 flex items-center gap-2.5" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>
                   {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
                   {section.label}
                 </h2>
@@ -274,7 +285,7 @@ function InterpretationInner() {
               <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
-                  <h3 className="text-yellow-300 font-serif text-lg tracking-wide">Résumé</h3>
+                  <h3 className="text-yellow-300 font-serif text-lg tracking-wide" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>Résumé</h3>
                 </div>
                 <p className="text-gray-100 leading-relaxed italic text-[15px]">
                   {interpretation.resume}

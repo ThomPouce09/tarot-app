@@ -62,6 +62,8 @@ export const DICT = {
 
   // ─── Interpretation page ───
   'interpret.titleTarot': { fr: 'Interprétation du Tirage', en: 'Reading Interpretation' },
+  'interpret.yijingSpoke': { fr: 'Le Yi Jing a parlé', en: 'The I Ching has spoken' },
+  'interpret.baguette': { fr: 'Baguette tirée', en: 'Stalk drawn' },
   'interpret.titleYiJing': { fr: 'Interprétation du Yi Jing', en: 'I Ching Interpretation' },
   'interpret.situation': { fr: 'Situation', en: 'Situation' },
   'interpret.defis': { fr: 'Défis', en: 'Challenges' },

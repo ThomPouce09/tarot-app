@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useLang } from '@/lib/i18n';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -142,6 +143,7 @@ function getStickRise(stick: Stick, progress: number): number {
 
 // --- YiQingRig Component ---
 function YiQingRig() {
+  const lang = useLang();
   const [sticks] = useState<Stick[]>(makeSticks);
   const [shiftX, setShiftX] = useState(0);
   const [shiftY, setShiftY] = useState(0);
@@ -668,7 +670,7 @@ function YiQingRig() {
               lineHeight: '1.3',
             }}
           >
-            Secouez la boîte pour le tirage<br />d&apos;une baguette d&apos;achillée
+            {lang === 'en' ? 'Shake the box to draw a yarrow stalk' : 'Secouez la boîte pour le tirage d\'une baguette d\'achillée'}
           </p>
         </div>
       )}
@@ -690,7 +692,7 @@ function YiQingRig() {
               fontSize: RESULT_SUBTITLE_FONT_SIZE
             }}
           >
-            Le sort a parlé
+            {lang === 'en' ? 'The lot has spoken' : 'Le sort a parlé'}
           </p>
         </div>
       )}
@@ -802,7 +804,7 @@ function YiQingRig() {
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? 'Chargement…' : 'Interprétation du tirage'}
+              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Interpret the draw' : 'Interprétation du tirage')}
             </span>
           </motion.button>
           <p
@@ -819,8 +821,9 @@ function YiQingRig() {
               transition: 'opacity 1s ease-in',
             }}
           >
-            La baguette élue est sortie de la boîte. Cliquez sur le bouton pour
-            découvrir le message que l'Oracle vous destine.
+            {lang === 'en'
+              ? 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.'
+              : 'La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.'}
           </p>
         </motion.div>
       )}
@@ -830,6 +833,7 @@ function YiQingRig() {
 
 // --- Main Page ---
 export default function YiQingPage() {
+  const lang = useLang();
   return (
     <div
       className="relative w-full overflow-hidden select-none"
@@ -897,7 +901,7 @@ export default function YiQingPage() {
             marginBottom: '0.25rem',
           }}
         >
-          Yi Jing
+          {lang === 'en' ? 'The I Ching' : 'Le Yi Jing'}
         </h1>
         <p
           style={{
@@ -909,7 +913,7 @@ export default function YiQingPage() {
             fontSize: 'clamp(0.7rem, 2vw, 1rem)',
           }}
         >
-          La sagesse des hexagrammes
+          {lang === 'en' ? 'The wisdom of the hexagrams' : 'La sagesse des hexagrammes'}
         </p>
       </div>
     </div>

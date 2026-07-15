@@ -1,0 +1,82 @@
+/* Polices auto-hébergées (locales) — robuste, pas de dépendance Google Fonts.
+   Servies depuis /public/fonts. */
+
+@font-face {
+  font-family: 'Hoshiko Satsuki';
+  src: url('/fonts/hoshiko-satsuki.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Spell of Asia';
+  src: url('/fonts/spell-of-asia.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Klee One Local';
+  src: url('/fonts/klee-one-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zen Kurenaido Local';
+  src: url('/fonts/zen-kurenaido-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kaisei HarunoUmi Local';
+  src: url('/fonts/kaisei-harunoami-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kaisei HarunoUmi Local';
+  src: url('/fonts/kaisei-harunoami-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Khiara Script';
+  src: url('/fonts/khiara-script.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Korean Calligraphy';
+  src: url('/fonts/korean-calligraphy.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Korean Calligraphy Accent';
+  src: url('/fonts/korean-calligraphy-accent-v2.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Hogback';
+  src: url('/fonts/hogback.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

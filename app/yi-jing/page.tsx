@@ -64,7 +64,7 @@ export default function YiJingHubPage() {
               "0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)",
           }}
         >
-          Le Yi Jing
+          {t('hubs.yijing.title') || 'Le Yi Jing'}
         </h1>
         <p
           className="text-sm sm:text-base md:text-lg font-medium italic"
@@ -103,7 +103,7 @@ export default function YiJingHubPage() {
             >
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
               <img
-                src="/images/yi-jing-simple-icon.png"
+                src="/images/yi-jing-simple.png"
                 alt="Yi Jing Simple"
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
                 style={{ filter: "drop-shadow(0 0 8px rgba(180,140,200,0.6))" }}
@@ -158,7 +158,12 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
-              <div className="text-3xl mb-1">🌅</div>
+              <img
+                src="/images/yi-jing-du-jour.png"
+                alt="Hexagramme du Jour"
+                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 0 8px rgba(180,140,200,0.6))" }}
+              />
               <h2
                 className="text-base font-bold text-center leading-tight mb-1"
                 style={{
@@ -210,7 +215,12 @@ export default function YiJingHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-purple-300/40 rounded-lg pointer-events-none" />
-                <div className="text-3xl mb-1">🪶</div>
+                <img
+                  src="/images/yi-jing-question.png"
+                  alt="Yi Jing avec Question"
+                  className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
+                  style={{ filter: "drop-shadow(0 0 8px rgba(200,160,240,0.6))" }}
+                />
                 <h2
                   className="text-base font-bold text-center leading-tight mb-1"
                   style={{
@@ -258,7 +268,12 @@ export default function YiJingHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-purple-300/20 rounded-lg pointer-events-none" />
-                <div className="text-3xl mb-1 opacity-50"></div>
+                <img
+                  src="/images/yi-jing-question.png"
+                  alt="Yi Jing avec Question"
+                  className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md opacity-50"
+                  style={{ filter: "drop-shadow(0 0 8px rgba(200,160,240,0.6))" }}
+                />
                 <h2
                   className="text-base font-bold text-center leading-tight mb-1 opacity-50"
                   style={{
