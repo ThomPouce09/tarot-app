@@ -15,6 +15,8 @@ export const DICT = {
   'landing.tile.yijingSub': { fr: "Interroger les baguettes d'achillée", en: 'Consult the yarrow stalks' },
   'landing.tile.runes': { fr: 'Runes Scandinaves', en: 'Norse Runes' },
   'landing.tile.runesSub': { fr: 'Interroger le Futhark', en: 'Consult the Futhark' },
+  'landing.tile.des': { fr: 'Les dés divinatoires', en: 'Divinatory Dice' },
+  'landing.tile.desSub': { fr: 'Jeter les sorts du hasard', en: 'Cast the lots of chance' },
   'landing.runes.building': { fr: 'En cours de construction', en: 'Under construction' },
   'landing.runes.close': { fr: 'Fermer', en: 'Close' },
 

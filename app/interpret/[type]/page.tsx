@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import YiSlideNav from '@/components/yi-slide-nav';
 import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT } from '@/lib/i18n';
@@ -178,18 +179,12 @@ function InterpretationInner() {
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto">
-      {/* En-tête : titre + croix sur la même ligne */}
+      <YiSlideNav />
+      {/* En-tête : titre seul (le menu tiroir remplace la croix) */}
       <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
         <h1 className="text-2xl text-yellow-400" style={{ fontFamily: "'Hoshiko Satsuki', serif" }}>
           {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
         </h1>
-        <Link
-          href="/"
-          className="text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors shrink-0 leading-none"
-          aria-label="Retour à l'accueil"
-        >
-          ×
-        </Link>
       </div>
 
       <div className="w-full max-w-md text-left space-y-5">

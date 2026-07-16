@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { TAROT_CARDS } from "@/lib/tarot-data";
+import YiSlideNav from '@/components/yi-slide-nav';
 
 const CARD_WIDTH = 85;
 const CARD_HEIGHT = 145;
@@ -108,13 +109,8 @@ export default function Tarot5CartesPage() {
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden flex flex-col items-center justify-center p-4">
-      <a
-        href="/"
-        className="fixed top-3 right-3 text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors z-50"
-        aria-label="Retour à l'accueil"
-      >
-        ×
-      </a>
+      {/* Menu parchemin (remplace la croix) */}
+      <YiSlideNav />
 
       <div className="absolute top-14 text-center z-20 pointer-events-none">
         <h1

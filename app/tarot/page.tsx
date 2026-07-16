@@ -7,6 +7,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
+import YiSlideNav from '@/components/yi-slide-nav';
 
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,15 +43,8 @@ export default function TarotHubPage() {
         }}
       />
 
-      {/* Croix retour à l'accueil */}
-      <Link
-        href="/"
-        className="fixed top-4 right-4 text-amber-400 text-3xl font-bold hover:text-amber-300 transition-colors z-50 leading-none"
-        aria-label="Retour à l'accueil"
-        style={{ textShadow: "0 0 12px rgba(251, 191, 36, 0.3)" }}
-      >
-        ×
-      </Link>
+      {/* Menu parchemin (remplace la croix) */}
+      <YiSlideNav />
 
       {/* Titre */}
       <div

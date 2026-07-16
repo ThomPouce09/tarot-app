@@ -7,6 +7,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
+import YiSlideNav from '@/components/yi-slide-nav';
 
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,15 +43,8 @@ export default function YiJingHubPage() {
         }}
       />
 
-      {/* Croix retour */}
-      <Link
-        href="/"
-        className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none"
-        aria-label="Retour à l'accueil"
-        style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
-      >
-        ×
-      </Link>
+      {/* Menu parchemin (remplace la croix) */}
+      <YiSlideNav />
 
       {/* Titre */}
       <div className="absolute top-[8%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none">

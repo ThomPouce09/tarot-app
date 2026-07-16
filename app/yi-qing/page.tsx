@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import YiSlideNav from '@/components/yi-slide-nav';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -575,6 +576,8 @@ export default function YiQingPage() {
         minHeight: '-webkit-fill-available',
       }}
     >
+      {/* Menu parchemin */}
+      <YiSlideNav />
       {/* VIDEO BACKGROUND */}
       <div className="absolute inset-0 z-0 bg-black" style={{ pointerEvents: 'none' }}>
         <video

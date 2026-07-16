@@ -8,6 +8,7 @@ import DrawnCards from './drawn-cards';
 import InterpretationModal from './interpretation-modal';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import YiSlideNav from '@/components/yi-slide-nav';
 
 export interface DrawnCardData {
   card: TarotCard;
@@ -137,6 +138,8 @@ export default function TarotApp() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
+      {/* Menu parchemin */}
+      <YiSlideNav />
       {/* ========== CINEMATIC BACKGROUND ========== */}
       <motion.div
         className="absolute inset-0 z-0 overflow-hidden"

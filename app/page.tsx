@@ -25,6 +25,7 @@ export default function HomePage() {
   // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
   const yijingShimmer = useShimmer(t('landing.tile.yijing'), 4000, 18000);
+  const desShimmer = useShimmer(t('landing.tile.des'), 4000, 18000);
 
   // Scintillement occasionnel de l'etoile du bouton Mon espace (pas trop frequent)
   const [ctaTwinkle, setCtaTwinkle] = useState(false);
@@ -137,12 +138,12 @@ export default function HomePage() {
 
       {/* CHOICE CARDS */}
       <div
-        className="absolute top-[36%] sm:top-[32%] md:top-[30%] left-1/2 -translate-x-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
+        className="absolute top-[40%] sm:top-[36%] md:top-[34%] left-1/2 -translate-x-1/2 z-30 grid grid-cols-2 place-items-center w-[310px] sm:w-[350px] md:w-[390px] gap-y-6 px-2"
       >
         {/* Tarot Card Button */}
         <Link href="/tarot" className="block">
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow: '0 0 20px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)',
               border: '2px solid rgba(218,165,32,0.3)',
@@ -164,7 +165,7 @@ export default function HomePage() {
                 style={{ filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.5))' }}
               />
               <h2
-                className="text-sm sm:text-base font-bold text-center leading-tight"
+                className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
                   color: '#FFD700',
@@ -198,7 +199,7 @@ export default function HomePage() {
         {/* Yi Qing Card Button */}
         <Link href="/yi-jing" className="block">
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 '0 0 22px rgba(160,130,200,0.45), 0 4px 12px rgba(0,0,0,0.5)',
@@ -221,7 +222,7 @@ export default function HomePage() {
                 style={{ filter: 'drop-shadow(0 0 10px rgba(180,140,200,0.6))' }}
               />
               <h2
-                className="text-sm sm:text-base font-bold text-center leading-tight"
+                className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
                   color: '#E0CFF0',
@@ -261,7 +262,7 @@ export default function HomePage() {
           className="block cursor-pointer outline-none"
         >
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden transition-all"
+            className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden transition-all"
             style={{
               boxShadow:
                 '0 0 22px rgba(60,120,80,0.45), 0 4px 12px rgba(0,0,0,0.5)',
@@ -284,7 +285,7 @@ export default function HomePage() {
                 style={{ filter: 'drop-shadow(0 0 10px rgba(138,109,59,0.5))' }}
               />
               <h2
-                className="text-sm sm:text-base font-bold text-center leading-tight"
+                className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
                   color: '#D4B483',
@@ -333,6 +334,62 @@ export default function HomePage() {
             )}
           </motion.div>
         </div>
+
+        {/* Dés divinatoires Card Button */}
+        <Link href="/des" className="block">
+          <motion.div
+            className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            style={{
+              boxShadow:
+                '0 0 22px rgba(200,90,80,0.42), 0 4px 12px rgba(0,0,0,0.5)',
+              border: '2px solid rgba(210,110,100,0.4)',
+            }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
+              style={{
+                background: 'linear-gradient(135deg, #3a1414 0%, #2a0d0d 50%, #3a1414 100%)',
+              }}
+            >
+              <div className="absolute inset-1.5 border border-red-400/30 rounded-lg pointer-events-none" />
+              {/* Icône temporaire — à remplacer par l'image livrée */}
+              <span
+                className="text-4xl mb-2"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(220,120,110,0.55))' }}
+                aria-hidden
+              >🎲</span>
+              <h2
+                className="text-xs sm:text-sm font-bold text-center leading-tight"
+                style={{
+                  fontFamily: 'var(--font-cinzel-deco), serif',
+                  color: '#F0A88C',
+                  textShadow: '0 0 8px rgba(220,120,110,0.5)',
+                }}
+              >
+                <ShimmerChars text={t('landing.tile.des')} col={desShimmer.col} color="#F0A88C" />
+              </h2>
+              <p
+                className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
+                style={{
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: 'rgba(230,160,150,0.75)',
+                }}
+              >
+                {t('landing.tile.desSub')}
+              </p>
+            </div>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(220,120,110,0.2) 0%, transparent 70%)',
+              }}
+            />
+            {desShimmer.sweeping && (
+              <div className="tile-sweep-des absolute inset-0 pointer-events-none rounded-xl" />
+            )}
+          </motion.div>
+        </Link>
       </div>
 
       {/* LOGIN MODAL */}

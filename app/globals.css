@@ -345,6 +345,10 @@ html, body {
   background: linear-gradient(90deg, transparent 40%, rgba(230,210,255,0.9) 50%, transparent 60%);
   background-size: 220% 100%;
 }
+.tile-sweep-des {
+  background: linear-gradient(90deg, transparent 40%, rgba(250,180,170,0.85) 50%, transparent 60%);
+  background-size: 220% 100%;
+}
 @keyframes tile-sweep {
   0% { background-position: 160% 0; }
   100% { background-position: -60% 0; }

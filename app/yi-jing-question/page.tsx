@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import { useLang } from '@/lib/i18n';
+import YiSlideNav from '@/components/yi-slide-nav';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 const BOX_IMG = "/images/boite.png";
@@ -19,9 +19,9 @@ const MOVEMENT_THRESHOLD = 1200; // drag desktop : declenchement moins sensible
 const STICK_LEFT_OFFSET = -3;
 const MAX_BOX_SHIFT_X = 15;
 const MAX_BOX_SHIFT_Y = 10;
-const STICK_JUMP_HEIGHT = 55;
-const STICK_LIFT_HEIGHT = 48; // sortie modérée, visible
-const STICK_RISE_EASE = 0.022;  // extraction: douce (réglage user)
+const STICK_JUMP_HEIGHT = 38;
+const STICK_LIFT_HEIGHT = 38; // sortie modérée, visible
+const STICK_RISE_EASE = 0.055;  // extraction: montée plus rapide (réglage user)
 const STICK_SWING_K = 0.06;    // raideur forte = rebond COURT et RAPIDE (table en bois)
 const STICK_SWING_DAMP = 0.9; // amortissement plus doux = plusieurs rebonds avant stabilisation
 const MAX_INITIAL_RISE = 15;
@@ -60,8 +60,7 @@ const SWIPE_ICON_OPACITY = 0.5;
 const SWIPE_TEXT_FONT_SIZE = '0.65rem';
 const SWIPE_TEXT_MAX_WIDTH = '140px';
 
-const PROGRESS_BAR_ABOVE_BOX = 45; // POSITIF = remonte la barre (top = 50% - (RIG_H/2 + val))
-const TITLE_TOP = 48;
+const TITLE_TOP = 32;
 
 const RESULT_CONTAINER_BOTTOM = '34%';
 const RESULT_SUBTITLE_FONT_SIZE = '0.875rem';
@@ -129,7 +128,7 @@ function getStickRise(stick: Stick, progress: number): number {
 }
 
 // --- YiJingQuestionRig Component ---
-function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
+function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boolean; onProgress?: (progress: number, phase: string) => void }) {
   const lang = useLang();
   const [sticks] = useState<Stick[]>(makeSticks);
   const [shiftX, setShiftX] = useState(0);
@@ -161,12 +160,26 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
   const SHAKE_REVERSALS_REQUIRED = 4;        // secousses reelles (aller-retour) minimum
   // Audio de tirage : instance réutilisable + déverrouillage autoplay au 1er geste/capteur.
   const drawSoundRef = useRef<HTMLAudioElement | null>(null);
+  const spellSoundRef = useRef<HTMLAudioElement | null>(null);
   const unlockAudio = useCallback(() => {
     try {
       const a = new Audio('/audio/stick-draw.mp3');
       a.volume = 0.8;
       a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
       drawSoundRef.current = a;
+      const s = new Audio('/audio/spell.mp3');
+      s.volume = 0;
+      s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(() => {});
+      spellSoundRef.current = s;
+    } catch {}
+  }, []);
+  const playSpellSound = useCallback(() => {
+    try {
+      const snd = spellSoundRef.current || new Audio('/audio/spell.mp3');
+      spellSoundRef.current = snd;
+      snd.volume = 0.7;
+      snd.currentTime = 0;
+      snd.play().catch(() => {});
     } catch {}
   }, []);
   const playDrawSound = useCallback(() => {
@@ -388,7 +401,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
     const tMsg = setTimeout(() => setMessageGone(true), 10000);
     const tSpark = setTimeout(() => setWinSparkOn(true), 1500);
     // baguette + numero derivent vers le centre 0.8s apres le tirage
-    const tCenter = setTimeout(() => setCentered(true), 800);
+    const tCenter = setTimeout(() => { setCentered(true); playSpellSound(); }, 800);
     return () => { clearTimeout(tMsg); clearTimeout(tSpark); clearTimeout(tCenter); };
   }, [phase]);
 
@@ -432,6 +445,11 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
   const effectiveProgress = drawn !== null
     ? frozenProgressRef.current
     : Math.min(1, totalMovement / MOVEMENT_THRESHOLD);
+
+  // Remonte la progression + la phase au parent (barre rendue sous la question)
+  useEffect(() => {
+    onProgress?.(effectiveProgress, phase);
+  }, [effectiveProgress, phase, onProgress]);
 
   const TITLE_BLOCK_RESERVE = 60;
   const showSwipeHint = phase === 'idle' && totalMovement === 0 && questionAsked;
@@ -503,28 +521,7 @@ function YiJingQuestionRig({ questionAsked }: { questionAsked: boolean }) {
           100% { opacity: 0; transform: translate(var(--dx, 6px), var(--dy, -8px)) scale(1); }
         }
       ` }} />
-      {/* ✅ Barre de progression */}
-      {phase === 'idle' && questionAsked && (
-        <div
-          className="w-32 h-1.5 rounded-full overflow-hidden z-30"
-          style={{
-            position: 'absolute',
-            top: `calc(50% - ${RIG_H / 2 + PROGRESS_BAR_ABOVE_BOX}px)`,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(255, 215, 0, 0.2)'
-          }}
-        >
-          <div
-            style={{
-              width: `${effectiveProgress * 100}%`,
-              height: '100%',
-              backgroundColor: '#FFD700',
-              transition: 'width 0.1s',
-            }}
-          />
-        </div>
-      )}
+      {/* Barre de progression : rendue par le parent, sous la question */}
 
       <div
         style={{
@@ -808,6 +805,12 @@ export default function YiJingQuestionPage() {
   const lang = useLang();
   const [question, setQuestion] = useState('');
   const [questionAsked, setQuestionAsked] = useState(false);
+  const [drawProgress, setDrawProgress] = useState(0);
+  const [drawPhase, setDrawPhase] = useState('idle');
+  const handleProgress = useCallback((p: number, ph: string) => {
+    setDrawProgress(p);
+    setDrawPhase(ph);
+  }, []);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
@@ -857,18 +860,11 @@ export default function YiJingQuestionPage() {
         <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'none' }} />
       </div>
 
-      {/* Croix retour vers /yi-jing */}
-      <Link
-        href="/yi-jing"
-        className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none p-2 -m-2"
-        aria-label="Retour au Yi Jing"
-        style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
-      >
-        ×
-      </Link>
+      {/* Languette de navigation (prototype) — bord gauche, tap pour ouvrir */}
+      <YiSlideNav />
 
       {/* YI JING QUESTION RIG */}
-      <YiJingQuestionRig questionAsked={questionAsked} />
+      <YiJingQuestionRig questionAsked={questionAsked} onProgress={handleProgress} />
 
       {/* Google Material Symbols */}
       <link
@@ -901,7 +897,7 @@ export default function YiJingQuestionPage() {
             marginBottom: '0.25rem',
           }}
         >
-          {lang === 'en' ? 'The I Ching — Question' : 'Yi Jing — Question'}
+          {lang === 'en' ? 'I Ching' : 'Yi Jing'}
         </h1>
       </div>
 
@@ -962,7 +958,7 @@ export default function YiJingQuestionPage() {
       {questionAsked && (
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-sm px-6"
-          style={{ top: TITLE_TOP + 60 }}
+          style={{ top: TITLE_TOP + 36 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -971,6 +967,20 @@ export default function YiJingQuestionPage() {
             <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">{lang === 'en' ? 'Your question' : 'Votre question'}</p>
             <p className="text-yellow-200 italic text-sm">"{question}"</p>
           </div>
+
+          {/* Barre de progression du tirage : toujours juste sous la question */}
+          {drawPhase === 'idle' && (
+            <div className="mx-auto mt-3 w-32 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255, 215, 0, 0.2)' }}>
+              <div
+                style={{
+                  width: `${drawProgress * 100}%`,
+                  height: '100%',
+                  backgroundColor: '#FFD700',
+                  transition: 'width 0.1s',
+                }}
+              />
+            </div>
+          )}
         </motion.div>
       )}
     </div>

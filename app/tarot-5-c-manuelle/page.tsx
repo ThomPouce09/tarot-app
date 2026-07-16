@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { TarotPicker } from '@/app/components/tarot-picker';
+import YiSlideNav from '@/components/yi-slide-nav';
 import {
   SLOT_POSITIONS,
   type SlotPos,
@@ -208,14 +209,8 @@ export default function TarotUpgradePage() {
         <div className="pointer-events-none absolute inset-0" style={{ background: 'rgba(0,0,0,0.15)' }} />
       )}
 
-      {/* Croix retour */}
-      <Link
-        href="/tarot"
-        className="fixed top-3 right-3 text-amber-400 text-3xl font-bold hover:text-amber-300 transition-colors z-50"
-        aria-label="Retour à l'accueil"
-      >
-        ×
-      </Link>
+      {/* Menu parchemin (remplace la croix) */}
+      <YiSlideNav />
 
       {/* ETAPE QUESTION */}
       {phase === 'question' && (

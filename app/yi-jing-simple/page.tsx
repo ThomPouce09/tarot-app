@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useLang } from '@/lib/i18n';
+import YiSlideNav from '@/components/yi-slide-nav';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -842,15 +843,7 @@ export default function YiQingPage() {
         minHeight: '-webkit-fill-available',
       }}
     >
-      {/* Croix retour vers /yi-jing */}
-      <Link
-        href="/yi-jing"
-        className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none p-2 -m-2"
-        aria-label="Retour au Yi Jing"
-        style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
-      >
-        ×
-      </Link>
+      <YiSlideNav />
 
       {/* VIDEO BACKGROUND */}
       <div className="absolute inset-0 z-0 bg-black" style={{ pointerEvents: 'none' }}>

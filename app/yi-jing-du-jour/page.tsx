@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import YiSlideNav from '@/components/yi-slide-nav';
 
 // ─── Types ───────────────────────────────────────────────
 interface HexagramData {
@@ -124,15 +125,8 @@ export default function YiJingDuJourPage() {
 
   return (
       <div className="relative min-h-screen w-full" style={{ backgroundImage: `url("/backgrounds/yi-jing-bg.jpg")`, backgroundRepeat: "repeat-y", backgroundSize: "contain", backgroundPosition: "center top" }}>
-        {/* Croix retour vers /yi-jing */}
-        <Link
-          href="/yi-jing"
-          className="fixed top-4 right-4 text-purple-300 text-3xl font-bold hover:text-purple-200 transition-colors z-50 leading-none p-2 -m-2"
-          aria-label="Retour au Yi Jing"
-          style={{ textShadow: "0 0 12px rgba(180,140,200,0.35)" }}
-        >
-          ×
-        </Link>
+        {/* Menu parchemin (remplace la croix) */}
+        <YiSlideNav />
 
         {/* Overlay sombre pour assombrir le background */}
         <div className="absolute inset-0 bg-black/30 z-0" />
