@@ -19,6 +19,7 @@ import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
 const ENABLE_SPARKLES = true;
 const ENABLE_HAPTICS = true;
 const ENABLE_BREATH = true;
+const ENABLE_HAND_DUST = true;
 
 const TOTAL_PICKS = 3;
 const N = 78;
@@ -32,7 +33,34 @@ const ZOOM_SCALE = 0.6;
 const TABLE_BG_WITH_VERSION = '/backgrounds/table-tarot-bg.jpg?v=11';
 const VISUAL_SHIFT_DOWN = 36;
 
-type CinematicPhase = 0 | 1 | 2 | 3;
+/* ---------- Chronologie d'apparition (timing) ---------- */
+const ZOOM_START_MS = 120;                              // 1) fond + zoom dès le chargement
+const ZOOM_DURATION_MS = 1200;                          // durée du zoom du fond (aligné sur la transition scale)
+const ZOOM_END_MS = ZOOM_START_MS + ZOOM_DURATION_MS;   // fin du zoom
+const DECK_DELAY_MS = 500;                              // pioche + main retardées de 0.5s
+const DECK_SHOW_MS = ZOOM_END_MS + DECK_DELAY_MS;       // 3) pioche + navbar, 0.5s après fin du zoom
+const UI_PREVIEW_MS = ZOOM_END_MS - 350;                // 2) titre + menu + sélecteurs ~350ms avant fin zoom
+const HAND_APPEAR_MS = DECK_SHOW_MS + 400;              // 4) main sur la pioche, 0.4s après la pioche
+const SPREAD_START_MS = HAND_APPEAR_MS + 300;           // 5) déploiement + balayage + particules, 0.3s après la main
+
+// Délai après la fin du balayage avant d'activer transitions + breath sur la pioche
+// (évite le scintillement / saut de z-index à l'instant exact où la main disparaît)
+const SPREAD_SETTLE_MS = 500;
+// Durée du fondu de la main (CSS pur — taille constante, pas de framer-motion)
+const HAND_FADE_MS = 450;
+
+type CinematicPhase = 0 | 1 | 2 | 3 | 4;
+
+/* ---------- Poussière magique dorée (traînée de la main) ---------- */
+interface DustParticle {
+  id: number;
+  x: number;
+  yJitter: number;
+  size: number;
+  dx: number;
+  dy: number;
+  dur: number;
+}
 
 /* ---------- Dos de carte ---------- */
 const CARD_BACK_URL = '/images/card-back.png?v=2';
@@ -200,12 +228,17 @@ export default function TarotApp() {
   const router = useRouter();
 
   /* ---- Cinématique (tarot-3-cartes) ---- */
+  // Phase 1: fade-in du fond. Phase 2: zoom (début à ZOOM_START_MS).
+  // Phase 3: UI (titre/menu/sélecteurs) apparaît juste avant la fin du zoom.
+  // Phase 4: pioche + navbar visibles (fin du zoom), puis main + déploiement
+  //          pilotés indépendamment par handStarted/spreadFront via leurs propres timers.
   const [cinematicPhase, setCinematicPhase] = useState<CinematicPhase>(0);
   useEffect(() => {
-    const t1 = setTimeout(() => setCinematicPhase(1), 300);
-    const t2 = setTimeout(() => setCinematicPhase(2), 1200);
-    const t3 = setTimeout(() => setCinematicPhase(3), 3000);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t1 = setTimeout(() => setCinematicPhase(1), ZOOM_START_MS);          // 1) fond apparaît
+    const t2 = setTimeout(() => setCinematicPhase(2), ZOOM_START_MS);          // 1) zoom démarre aussitôt (transition gérée par l'échelle)
+    const t3 = setTimeout(() => setCinematicPhase(3), UI_PREVIEW_MS);          // 2) titre + menu + sélecteurs
+    const t4 = setTimeout(() => setCinematicPhase(4), DECK_SHOW_MS);          // 3) fin du zoom + 0.5s => pioche + navbar
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   /* ---- Deck 78 cartes (tarot-test) ---- */
@@ -229,11 +262,19 @@ export default function TarotApp() {
   const [progress, setProgress] = useState(0);
   const [handDone, setHandDone] = useState(false);
   const [handStarted, setHandStarted] = useState(false);
+  // spreadSettled : devient true SPREAD_SETTLE_MS après la fin du balayage.
+  // Tant que false, la pioche reste 100% statique (pas de transition CSS, pas de breath)
+  // => aucun scintillement ni saut de z-index au moment où la main disparaît.
+  const [spreadSettled, setSpreadSettled] = useState(false);
   const [liftIdx, setLiftIdx] = useState<number | null>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; key: number } | null>(null);
   const [sparkles, setSparkles] = useState<{ x: number; y: number; key: number } | null>(null);
   const [litSlot, setLitSlot] = useState<number | null>(null);
   const [vw, setVw] = useState(375);
+
+  /* ---- Poussière dorée derrière la main ---- */
+  const [dust, setDust] = useState<DustParticle[]>([]);
+  const dustIdRef = useRef(0);
 
   const zoomRef = useRef({ center: N / 2, amount: 0 });
   const [, force] = useState(0);
@@ -251,7 +292,8 @@ export default function TarotApp() {
     return () => window.removeEventListener("resize", onR);
   }, []);
 
-  const isReady = cinematicPhase >= 3;
+  const isReady = cinematicPhase >= 3;        // titre + menu + sélecteurs (étape 2)
+  const zoomDone = cinematicPhase >= 4;       // fin du zoom => pioche + navbar (étape 3)
   const haptic = (ms: number | number[]) => { if (ENABLE_HAPTICS && navigator.vibrate) navigator.vibrate(ms as number); };
 
   /* ---- Sélection d'une carte ---- */
@@ -300,7 +342,10 @@ export default function TarotApp() {
   /* ---- Animation d'ouverture (tarot-test) ---- */
   useEffect(() => {
     let raf = 0;
-    const toHand = window.setTimeout(() => setHandStarted(true), 1400);
+    // Étape 4: la main apparaît 0.4s après la fin du zoom.
+    const toHand = window.setTimeout(() => setHandStarted(true), HAND_APPEAR_MS);
+    // Étape 5: le jeu s'étale (gauche->droite) 0.3s après l'apparition de la main,
+    // en même temps que la main balaye et que les particules dorées se diffusent.
     const toStart = window.setTimeout(() => {
       const start = performance.now();
       const tick = (now: number) => {
@@ -310,9 +355,17 @@ export default function TarotApp() {
         else setHandDone(true);
       };
       raf = requestAnimationFrame(tick);
-    }, 2000);
+    }, SPREAD_START_MS);
     return () => { window.clearTimeout(toHand); window.clearTimeout(toStart); cancelAnimationFrame(raf); };
   }, []);
+
+  /* ---- Activation différée des transitions de la pioche (anti-scintillement) ---- */
+  useEffect(() => {
+    if (handDone) {
+      const t = window.setTimeout(() => setSpreadSettled(true), SPREAD_SETTLE_MS);
+      return () => window.clearTimeout(t);
+    }
+  }, [handDone]);
 
   /* ---- Géométrie ---- */
   const gap = (vw - EDGE * 2 - CARD_W) / (N - 1);
@@ -331,6 +384,41 @@ export default function TarotApp() {
     return 1 + Math.exp(-x * x) * ZOOM_SCALE * z.amount;
   };
   const clampX = (x: number) => Math.max(EDGE + CARD_W / 2, Math.min(vw - EDGE - CARD_W / 2, x));
+
+  // Clampé à N-1 : la main et la dernière carte restent dans l'écran,
+  // pas d'index "fantôme" (N) sur la dernière frame du balayage.
+  const spreadFront = Math.min(N - 1, Math.floor(progress * N));
+
+  /* ---- Émission de poussière dorée pendant le balayage de la main ---- */
+  useEffect(() => {
+    if (!ENABLE_HAND_DUST || !handStarted || handDone || spreadFront <= 0) return;
+    const hx = clampX(slotFor(spreadFront));
+    const created: DustParticle[] = Array.from({ length: 2 }, () => ({
+      id: dustIdRef.current++,
+      // "derrière" la main = légèrement à gauche (la main balaye vers la droite)
+      x: hx - 14 - Math.random() * 34,
+      yJitter: Math.random() * 34 - 8,
+      size: 2 + Math.random() * 3.5,
+      dx: -(8 + Math.random() * 28),
+      dy: -(10 + Math.random() * 30),
+      dur: 0.7 + Math.random() * 0.7,
+    }));
+    // On garde au max ~50 particules vivantes pour la perf
+    setDust((d) => [...d.slice(-48), ...created]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spreadFront, handStarted, handDone]);
+
+  // Vide la traînée une fois le balayage terminé
+  useEffect(() => {
+    if (handDone) {
+      const t = window.setTimeout(() => setDust([]), 1600);
+      return () => window.clearTimeout(t);
+    }
+  }, [handDone]);
+
+  const removeDust = useCallback((id: number) => {
+    setDust((d) => d.filter((p) => p.id !== id));
+  }, []);
 
   /* ---- Gestes ---- */
   const pinchStartDist = useRef(0);
@@ -415,7 +503,6 @@ export default function TarotApp() {
     }
   };
 
-  const spreadFront = Math.floor(progress * N);
   const z = zoomRef.current;
   const zoomActive = z.amount > 0.15;
   const leftCount = Math.max(0, Math.round(z.center - ZONE));
@@ -429,7 +516,24 @@ export default function TarotApp() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
-      <YiSlideNav />
+      {/* Keyframes dédiés à la poussière dorée (nom unique pour éviter tout conflit) */}
+      <style>{`
+        @keyframes goldDustTrail {
+          0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+          18%  { opacity: 1; }
+          100% { opacity: 0; transform: translate(var(--gdx), var(--gdy)) scale(1.15); }
+        }
+      `}</style>
+
+      {/* ========== MENU (navbar) — apparaît à l'étape 2 avec le reste de l'UI ========== */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isReady ? 1 : 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ pointerEvents: isReady ? 'auto' : 'none' }}
+      >
+        <YiSlideNav />
+      </motion.div>
 
       {/* ========== CINEMATIC BACKGROUND ========== */}
       <motion.div
@@ -488,22 +592,62 @@ export default function TarotApp() {
       {/* ========== CARTES TIRÉES (Passé/Présent/Avenir) ========== */}
       <DrawnCards drawnCards={drawnCards} isReady={isReady} slotRefs={slotRefs} />
 
-      {/* ========== MAIN — déploiement ========== */}
-      {handStarted && (
-        <motion.div
-          className="absolute z-40 pointer-events-none"
-          style={{ left: clampX(slotFor(spreadFront)), bottom: "20%", transform: "translate(-50%, 75%)", filter: "drop-shadow(0 0 16px rgba(255,220,150,0.75))" }}
+      {/* ========== POUSSIÈRE DORÉE — traînée derrière la main ========== */}
+      {ENABLE_HAND_DUST && dust.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 39 }} aria-hidden>
+          {dust.map((p) => (
+            <div
+              key={p.id}
+              onAnimationEnd={() => removeDust(p.id)}
+              style={{
+                position: 'absolute',
+                left: p.x,
+                bottom: `calc(20% + ${44 + p.yJitter}px)`,
+                width: p.size,
+                height: p.size,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, #fffbe6 0%, #ffd76a 55%, rgba(255,190,60,0) 100%)',
+                boxShadow: '0 0 6px rgba(255,215,110,0.95), 0 0 14px rgba(255,190,80,0.55)',
+                animation: `goldDustTrail ${p.dur}s ease-out forwards`,
+                '--gdx': p.dx + 'px',
+                '--gdy': p.dy + 'px',
+              } as CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ========== MAIN — déploiement ==========
+          Fondu 100% CSS (pas de framer-motion) : taille verrouillée (width + height
+          explicites, scale(1) figé), seule l'opacité change à la fin.
+          On démonte la main une fois le fondu terminé (spreadSettled). */}
+      {handStarted && !spreadSettled && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: clampX(slotFor(spreadFront)),
+            bottom: "20%",
+            transform: "translate(-50%, 75%) scale(1)",
+            transformOrigin: "center center",
+            zIndex: 360,
+            opacity: handDone ? 0 : 1,
+            transition: `opacity ${HAND_FADE_MS}ms ease-out`,
+            filter: "drop-shadow(0 0 16px rgba(255,220,150,0.75))",
+          }}
           aria-hidden
-          initial={{ opacity: 1 }}
-          animate={{ opacity: handDone ? 0 : 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
         >
-          <img src="/images/main.png?v=2" alt="" style={{ width: 72, height: "auto" }} draggable={false} />
-        </motion.div>
+          <img
+            src="/images/main.png?v=2"
+            alt=""
+            width={72}
+            style={{ width: 72, minWidth: 72, maxWidth: 72, height: "auto", display: "block" }}
+            draggable={false}
+          />
+        </div>
       )}
 
       {/* ========== MINI-CARTE / JAUGE — entre pioche et emplacements ========== */}
-      {!reveal && handDone && (
+      {!reveal && zoomDone && (
         <div className="absolute z-30 pointer-events-none" style={{ left: "50%", top: "59%", transform: "translate(-50%, 0)", width: "min(86vw, 560px)" }}>
           <div className="flex items-center" style={{ gap: 10 }}>
             <span style={{ color: zoomActive ? "#fcd58a" : "rgba(255,220,160,0.35)", fontFamily: "serif", fontSize: 13, minWidth: 34, textAlign: "right", textShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "color .3s" }}>
@@ -539,7 +683,7 @@ export default function TarotApp() {
       )}
 
       {/* ========== ZONE CARTES — pioche dépliante ========== */}
-      {!reveal && (
+      {!reveal && zoomDone && (
         <div
           ref={stageRef}
           onPointerDown={onPointerDown}
@@ -552,45 +696,58 @@ export default function TarotApp() {
           className="absolute z-20"
           style={{ left: 0, right: 0, bottom: 0, height: "32%", touchAction: "none" }}
         >
-          {deck.map((c, i) => {
-            const deployed = i <= spreadFront;
-            if (!deployed) {
+          {/* Pile (cartes non déployées) : stacking context propre, TOUJOURS
+              sous l'éventail (zIndex 1 < 2). Évite que la carte de gauche ne
+              "se glisse" sous les autres pendant le déploiement. */}
+          <div className="absolute inset-0" style={{ zIndex: 1 }} aria-hidden>
+            {deck.map((c, i) => {
+              if (i <= spreadFront) return null;
               return (
-                <div key={c.id} className="absolute" style={{ left: EDGE, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3", zIndex: i }} aria-hidden>
+                <div key={c.id} className="absolute" style={{ left: EDGE, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3", zIndex: 100 + (N - 1 - i), transform: "translateX(0)" }} aria-hidden>
                   <CardBack />
                 </div>
               );
-            }
-            if (pickedIdx.current.has(i) && flyingIdx.current !== i) return null;
-            if (flyingIdx.current === i) return null;
-            const x = clampX(slotFor(i) + zoomOffset(i));
-            const near = Math.abs(i - z.center) <= ZONE && zoomActive;
-            const isCenter = Math.abs(i - z.center) < 0.7 && zoomActive;
-            const sc = zoomScale(i);
-            const deploying = spreadFront < N - 1;
-            const lifting = liftIdx === i;
-            return (
-              <div key={c.id} data-deck-index={i} className="absolute" style={{
-                left: x, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3",
-                "--sc": sc,
-                transform: `translateX(-50%) scale(${sc})`,
-                transformOrigin: "bottom center",
-                zIndex: lifting ? 350 : near ? 300 - Math.round(Math.abs(i - z.center) * 10) : 100 + i,
-                transition: deploying ? "none" : "left .08s linear, transform .12s ease-out, filter .2s",
-                animation: lifting ? "liftUp 0.42s ease-out forwards" : (ENABLE_BREATH && near && !deploying ? "breath 2.4s ease-in-out infinite" : "none"),
-                filter: lifting
-                  ? "drop-shadow(0 0 26px rgba(255,225,140,1)) brightness(1.35)"
-                  : isCenter
-                    ? "drop-shadow(0 0 16px rgba(255,215,120,0.95)) brightness(1.12)"
-                    : near
-                      ? "drop-shadow(0 0 10px rgba(255,200,90,0.7))"
-                      : "drop-shadow(0 3px 5px rgba(0,0,0,0.5))",
-                willChange: "transform",
-              } as React.CSSProperties}>
-                <CardBack glow={near || lifting} />
-              </div>
-            );
-          })}
+            })}
+          </div>
+          {/* Éventail déployé : stacking context au-dessus de la pile (zIndex 2). */}
+          <div className="absolute inset-0" style={{ zIndex: 2 }}>
+            {deck.map((c, i) => {
+              if (!(i <= spreadFront)) return null;
+              if (pickedIdx.current.has(i) && flyingIdx.current !== i) return null;
+              if (flyingIdx.current === i) return null;
+              const x = clampX(slotFor(i) + zoomOffset(i));
+              const near = Math.abs(i - z.center) <= ZONE && zoomActive;
+              const isCenter = Math.abs(i - z.center) < 0.7 && zoomActive;
+              const sc = zoomScale(i);
+              // Les transitions et l'animation "breath" ne s'activent qu'une fois
+              // le balayage terminé + délai de stabilisation (spreadSettled).
+              const deploying = !spreadSettled;
+              const lifting = liftIdx === i;
+              return (
+                <div key={c.id} data-deck-index={i} className="absolute" style={{
+                  left: x, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3",
+                  "--sc": sc,
+                  transform: `translateX(-50%) scale(${sc})`,
+                  transformOrigin: "bottom center",
+                  // Éventail : droite (i=N-1) au-dessus, gauche recouverte.
+                  // near/lift gardent des z supérieurs (zoom/lift).
+                  zIndex: lifting ? 350 : near ? 300 - Math.round(Math.abs(i - z.center) * 10) : 100 + i,
+                  transition: deploying ? "none" : "left .08s linear, transform .12s ease-out, filter .2s",
+                  animation: lifting ? "liftUp 0.42s ease-out forwards" : (ENABLE_BREATH && near && !deploying ? "breath 2.4s ease-in-out infinite" : "none"),
+                  filter: lifting
+                    ? "drop-shadow(0 0 26px rgba(255,225,140,1)) brightness(1.35)"
+                    : isCenter
+                      ? "drop-shadow(0 0 16px rgba(255,215,120,0.95)) brightness(1.12)"
+                      : near
+                        ? "drop-shadow(0 0 10px rgba(255,200,90,0.7))"
+                        : "drop-shadow(0 3px 5px rgba(0,0,0,0.5))",
+                  willChange: "transform",
+                } as React.CSSProperties}>
+                  <CardBack glow={near || lifting} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

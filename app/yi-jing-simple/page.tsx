@@ -805,7 +805,7 @@ function YiQingRig() {
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Interpret the draw' : 'Interprétation du tirage')}
+              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Consult the Oracle' : 'Consulter l\'Oracle')}
             </span>
           </motion.button>
           <p

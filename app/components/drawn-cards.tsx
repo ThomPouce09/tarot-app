@@ -88,7 +88,7 @@ function DrawnCardSlot({ position, drawnCard, isMobile }: DrawnCardSlotProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ marginTop: '-20px', marginBottom: '20px' }}>
+    <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ marginTop: '-20px', marginBottom: '20px', position: 'relative', zIndex: 25 + (2 - position) }}>
       {/* Position label - mis en valeur mobile */}
       <motion.div
         className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full"
