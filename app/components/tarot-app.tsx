@@ -271,6 +271,11 @@ export default function TarotApp() {
   const [sparkles, setSparkles] = useState<{ x: number; y: number; key: number } | null>(null);
   const [litSlot, setLitSlot] = useState<number | null>(null);
   const [vw, setVw] = useState(375);
+  // Indice "Choisis tes cartes dans la pioche" : apparaît avec la main,
+  // écriture machine à écrire, disparaît 5s après la fin de la main.
+  const [showHint, setShowHint] = useState(false);
+  const [hintLen, setHintLen] = useState(0);
+  const HINT_TEXT = "Choisis tes cartes dans la pioche";
 
   /* ---- Poussière dorée derrière la main ---- */
   const [dust, setDust] = useState<DustParticle[]>([]);
@@ -343,7 +348,7 @@ export default function TarotApp() {
   useEffect(() => {
     let raf = 0;
     // Étape 4: la main apparaît 0.4s après la fin du zoom.
-    const toHand = window.setTimeout(() => setHandStarted(true), HAND_APPEAR_MS);
+    const toHand = window.setTimeout(() => { setHandStarted(true); setShowHint(true); }, HAND_APPEAR_MS);
     // Étape 5: le jeu s'étale (gauche->droite) 0.3s après l'apparition de la main,
     // en même temps que la main balaye et que les particules dorées se diffusent.
     const toStart = window.setTimeout(() => {
@@ -365,6 +370,27 @@ export default function TarotApp() {
       const t = window.setTimeout(() => setSpreadSettled(true), SPREAD_SETTLE_MS);
       return () => window.clearTimeout(t);
     }
+  }, [handDone]);
+
+  /* ---- Indice "Choisis tes cartes..." : écriture machine à écrire + disparition 5s ---- */
+  // Écriture lettre par lettre dès que showHint devient true (avec la main).
+  useEffect(() => {
+    if (!showHint) { setHintLen(0); return; }
+    setHintLen(0);
+    let n = 0;
+    const id = window.setInterval(() => {
+      n += 1;
+      setHintLen(n);
+      if (n >= HINT_TEXT.length) window.clearInterval(id);
+    }, 45);
+    return () => window.clearInterval(id);
+  }, [showHint]);
+
+  // Disparaît 5s après la fin de la main (handDone).
+  useEffect(() => {
+    if (!handDone) return;
+    const t = window.setTimeout(() => setShowHint(false), 5000);
+    return () => window.clearTimeout(t);
   }, [handDone]);
 
   /* ---- Géométrie ---- */
@@ -602,7 +628,7 @@ export default function TarotApp() {
               style={{
                 position: 'absolute',
                 left: p.x,
-                bottom: `calc(20% + ${44 + p.yJitter}px)`,
+                bottom: `calc(20% + ${6 + p.yJitter}px)`,
                 width: p.size,
                 height: p.size,
                 borderRadius: '50%',
@@ -615,6 +641,71 @@ export default function TarotApp() {
             />
           ))}
         </div>
+      )}
+
+      {/* ========== INDICE — "Choisis tes cartes dans la pioche" + flèches ↓ ==========
+          Texte ancré à gauche (écriture gauche->droite synchronisée avec le balayage).
+          Flèches clignotantes centrées sur l'écran, juste sous le texte.
+          Les deux disparaissent 5s après la main (showHint). */}
+      {showHint && (
+        <>
+          {/* Texte machine à écrire, ancré au bord gauche de l'éventail */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: slotFor(0),
+              bottom: "calc(20% + 96px)",
+              transform: "translateX(0)",
+              textAlign: "left",
+              zIndex: 340,
+              opacity: hintLen > 0 ? 1 : 0,
+              transition: "opacity .4s ease-out",
+              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontSize: "clamp(15px, 4.4vw, 22px)",
+              fontWeight: 600,
+              letterSpacing: "0.5px",
+              whiteSpace: "nowrap",
+              color: "#f3d27a",
+              textShadow: "0 0 10px rgba(255,190,90,0.85), 0 1px 2px rgba(0,0,0,0.9)",
+              fontVariant: "small-caps",
+            }}
+            aria-hidden
+          >
+            {HINT_TEXT.slice(0, hintLen)}
+            {hintLen < HINT_TEXT.length && (
+              <span style={{ opacity: 0.8, marginLeft: 1, animation: "hintBlink 0.7s steps(1) infinite" }}>▌</span>
+            )}
+          </div>
+          {/* Flèches clignotantes pointées vers la pioche (centrées sur l'écran)
+              — affichées seulement une fois le texte complet */}
+          {hintLen >= HINT_TEXT.length && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: "50%",
+              bottom: "calc(20% + 60px)",
+              transform: "translateX(-50%)",
+              zIndex: 340,
+              display: "flex",
+              justifyContent: "center",
+              gap: 32,
+              animation: "hintBlink 1.1s steps(1) infinite",
+            }}
+            aria-hidden
+          >
+            {[0, 1, 2].map((k) => (
+              <span key={k} style={{
+                color: "#f3d27a",
+                fontSize: "clamp(22px, 6vw, 32px)",
+                fontWeight: 700,
+                lineHeight: 1,
+                textShadow: "0 0 10px rgba(255,190,90,0.9)",
+                animation: "hintArrow 1.1s ease-in-out infinite",
+              }}>▼</span>
+            ))}
+          </div>
+          )}
+        </>
       )}
 
       {/* ========== MAIN — déploiement ==========
@@ -648,9 +739,12 @@ export default function TarotApp() {
 
       {/* ========== MINI-CARTE / JAUGE — entre pioche et emplacements ========== */}
       {!reveal && zoomDone && (
-        <div className="absolute z-30 pointer-events-none" style={{ left: "50%", top: "59%", transform: "translate(-50%, 0)", width: "min(86vw, 560px)" }}>
+        <div className="absolute z-30 pointer-events-none" style={{
+          left: "50%", top: "59%", transform: "translate(-50%, 0)",
+          width: "min(86vw, 560px)",
+        }}>
           <div className="flex items-center" style={{ gap: 10 }}>
-            <span style={{ color: zoomActive ? "#fcd58a" : "rgba(255,220,160,0.35)", fontFamily: "serif", fontSize: 13, minWidth: 34, textAlign: "right", textShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "color .3s" }}>
+            <span style={{ color: zoomActive ? "#ffe6a6" : "rgba(255,224,170,0.7)", fontFamily: "serif", fontSize: 13, minWidth: 34, textAlign: "right", textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s" }}>
               {zoomActive ? "◂ " + leftCount : ""}
             </span>
             <div className="relative flex-1 rounded-full overflow-hidden" style={{ height: 8, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,200,110,0.25)" }}>
@@ -669,13 +763,18 @@ export default function TarotApp() {
                 boxShadow: zoomActive ? "0 0 10px rgba(255,200,90,0.8)" : "none",
               }} />
             </div>
-            <span style={{ color: zoomActive ? "#fcd58a" : "rgba(255,220,160,0.35)", fontFamily: "serif", fontSize: 13, minWidth: 34, textShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "color .3s" }}>
+            <span style={{ color: zoomActive ? "#ffe6a6" : "rgba(255,224,170,0.7)", fontFamily: "serif", fontSize: 13, minWidth: 34, textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s" }}>
               {zoomActive ? rightCount + " ▸" : ""}
             </span>
           </div>
           <div className="text-center" style={{
-            color: "rgba(255,230,180,0.6)", fontSize: 10, fontFamily: "serif", marginTop: 3,
+            color: "rgba(255,230,180,0.6)", fontSize: 9, fontFamily: "serif", marginTop: 4,
             opacity: zoomActive ? 1 : 0.4, transition: "opacity .3s",
+            display: "block", margin: "0 auto", width: "fit-content",
+            background: "#241810",
+            border: "1px solid rgba(255,200,110,0.15)",
+            borderRadius: 8,
+            padding: "2px 9px",
           }}>
             carte {Math.round(z.center) + 1} / {N}
           </div>

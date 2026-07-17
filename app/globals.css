@@ -394,3 +394,5 @@ html, body {
 @keyframes breath { 0%,100% { transform: translateX(-50%) scale(var(--sc)); } 50% { transform: translateX(-50%) scale(calc(var(--sc) * 1.03)); } }
 @keyframes slotPulse { 0% { box-shadow: 0 0 8px rgba(255,190,70,0.3); } 50% { box-shadow: 0 0 34px rgba(255,210,110,0.95); } 100% { box-shadow: 0 0 22px rgba(255,190,70,0.4); } }
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
+@keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
+@keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
