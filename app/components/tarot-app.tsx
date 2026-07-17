@@ -386,10 +386,10 @@ export default function TarotApp() {
     return () => window.clearInterval(id);
   }, [showHint]);
 
-  // Disparaît 5s après la fin de la main (handDone).
+  // Disparaît 2,6s après la fin de la main (handDone).
   useEffect(() => {
     if (!handDone) return;
-    const t = window.setTimeout(() => setShowHint(false), 5000);
+    const t = window.setTimeout(() => setShowHint(false), 2600);
     return () => window.clearTimeout(t);
   }, [handDone]);
 
@@ -506,6 +506,19 @@ export default function TarotApp() {
       }
     }
   };
+  // Tap en dehors de la zone de pioche (stage) : si la pioche est pincée,
+  // on remet les cartes à plat (même comportement que le tap dans le stage).
+  const onBgTap = (e: React.PointerEvent) => {
+    if (pinching.current) return;
+    const tgt = e.target as HTMLElement | null;
+    if (tgt && stageRef.current && stageRef.current.contains(tgt)) return;
+    if (tgt && tgt.closest && tgt.closest("[data-deck-index]")) return;
+    if (zoomRef.current.amount > 0.02) {
+      zoomRef.current.amount = 0;
+      zoomRef.current.center = N / 2;
+      rerender();
+    }
+  };
   const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       dragId.current = null;
@@ -541,7 +554,7 @@ export default function TarotApp() {
   }));
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
+    <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }} onPointerUp={onBgTap}>
       {/* Keyframes dédiés à la poussière dorée (nom unique pour éviter tout conflit) */}
       <style>{`
         @keyframes goldDustTrail {
