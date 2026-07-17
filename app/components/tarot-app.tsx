@@ -309,6 +309,15 @@ export default function TarotApp() {
     const slotEl = slotRefs.current[slot];
     const card = deck[deckIndex];
     haptic(30);
+    // Son de carte sélectionnée : l'un des 2 sons au hasard à chaque fois
+    // (tap utilisateur => lecture autorisée)
+    try {
+      const src = Math.random() < 0.5 ? '/audio/card-flipped.mp3' : '/audio/card-flipped2.mp3';
+      const a = new Audio(src);
+      a.volume = 0.7;
+      const p = a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch { /* audio indisponible : on ignore */ }
     if (cardEl) {
       const r = (cardEl as HTMLElement).getBoundingClientRect();
       setRipple({ x: r.left + r.width / 2, y: r.top + r.height / 2, key: Date.now() });
