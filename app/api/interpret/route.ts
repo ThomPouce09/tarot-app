@@ -11,6 +11,9 @@ interface Interpretation {
   soutien?: string;
   issue?: string;
   conseil?: string;
+  passe?: string;
+  present?: string;
+  avenir?: string;
   resume?: string;
 }
 
@@ -93,21 +96,10 @@ function generateTarotInterpretation(cards: CardInfo[], question?: string): Inte
     const [pas, present, avenir] = cardData;
 
     return {
-      situation: `
-Votre passé a été marqué par ${pas.name} (${pas.keywords.join(', ')}), 
-façonnant vos défis actuels. Aujourd'hui, ${present.name} vous invite à 
-reconsidérer vos priorités (${present.keywords.join(', ')}).
-`,
-      defis: `
-Les blocages que vous ressentez viennent de l'énergie de ${pas.name},
-toujours active inconsciemment. ${present.name} vous appelle à trancher net.`,
-      soutien: `
-La transition vers ${avenir.name} (${avenir.keywords.join(', ')}) est inévitable.
-Même si elle semble lointaine, elle travaille déjà pour vous.`,
-      issue: `
-L'avenir vous révèle ${avenir.name} : une vibration de ${avenir.keywords.join(', ')}.
-Votre chemin est tracé.`,
-      conseil: "Trois cartes, trois étapes. Avancez pas à pas."
+      passe: `Votre passé a été marqué par ${pas.name} (${pas.keywords.join(', ')}), façonnant qui vous êtes aujourd'hui. Cette racine vit encore en vous, avec douceur et patience.`,
+      present: `Aujourd'hui, ${present.name} vous entoure de son énergie (${present.keywords.join(', ')}). C'est le moment présent qui vous invite à écouter votre cœur et à avancer.`,
+      avenir: `La transition vers ${avenir.name} (${avenir.keywords.join(', ')}) est en marche. Même lointaine, elle travaille déjà pour vous et vous porte vers la lumière.`,
+      resume: `Vos trois cartes tracent un chemin de tendresse : du passé qui vous a façonné, au présent qui vous habite, jusqu'à l'avenir qui vous attend. Avancez pas à pas, en confiance.`
     };
   }
 
@@ -226,24 +218,27 @@ export async function POST(request: NextRequest) {
     });
     const positionsFr = type === 'tarot-5-c-manuelle'
       ? ['Sommet (Situation)', 'Orient (Forces)', 'Synthèse (Issue)', 'Occident (Défis)', 'Base (Soutien)']
-      : ['Passé', 'Présent', 'Futur'];
+      : ['Présent', 'Passé', 'Avenir'];
     const positionsEn = type === 'tarot-5-c-manuelle'
       ? ['Top (Situation)', 'East (Strengths)', 'Synthesis (Outcome)', 'West (Challenges)', 'Base (Support)']
-      : ['Past', 'Present', 'Future'];
+      : ['Present', 'Past', 'Future'];
     const positions = language === 'en' ? positionsEn : positionsFr;
 
-    prompt = `Tu es un oracle expert du Tarot de Marseille.
+    prompt = `Tu es un voyant, un tireur de bonne aventure d'une profonde bonté, qui reçoit cette personne comme un être cher venu chercher du réconfort et des réponses. Tu te mets à son service, corps et âme, avec toute la chaleur humaine, la présence et l'empathie d'un véritable mentor qui l'écoute vraiment.
 L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"
-Cartes tirées (${positions.join(', ')}) :
+Cartes tirées, analysées strictement selon leur axe temporel (1 = Présent, 2 = Passé, 3 = Avenir) :
 ${cartes.map((id: number, i: number) => `${i+1}. ${cardNames[i]} — ${positions[i]}`).join('\n')}
+Consigne d'âme :
+- Place-toi tout entier dans la peau de cette personne. Ressens ce qu'elle ressent, ses doutes, ses blessures silencieuses et ses espoirs. Parle-lui comme on parle à quelqu'un qu'on aime : avec le "tu", la tendresse, la vérité douce et la proximité d'un être humain, jamais comme une machine.
+- Sois pleinement humain et chaleureux : rassure, accompagne, touche le cœur. Évite tout ton froid ou académique.
+- À l'échelle MICROSCOPIQUE : pour chaque période (Présent, Passé, Avenir), décris précisément et avec délicatesse ce que la carte représente pour elle/lui, étape par étape, comme si tu lui prenais la main pour le lui montrer.
+- À l'échelle MACROSCOPIQUE : dans "resume", offre une synthèse globale et bienveillante de ce que ce tirage signifie pour sa vie tout entière, au-delà des périodes — un message de lumière qu'elle/il pourra garder.
 Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 {
-"situation": "<3-4 phrases : analyse combinée de la situation>",
-"defis": "<3-4 phrases : obstacles révélés>",
-"soutien": "<3-4 phrases : forces d'ancrage>",
-"issue": "<3-4 phrases : évolution probable>",
-"conseil": "<2-3 phrases : message clair et puissant>",
-"resume": "<2-3 phrases : synthèse globale et conclusion du tirage>"
+"passe": "<OBLIGATOIREMENT entre 550 et 750 caractères, sinon ta réponse est incomplète : ce que la carte du Passé révèle pour elle/lui, avec délicatesse et empathie. Explore les racines, les souvenirs, les conditionnements encore présents, les leçons de l'ombre et de la lumière.>",
+"present": "<OBLIGATOIREMENT entre 550 et 750 caractères, sinon ta réponse est incomplète : ce que la carte du Présent éclaire dans son vécu immédiat. Décris ses émotions, ses relations, ses blocages et ses forces, comme si tu lui tenais la main dans le moment présent.>",
+"avenir": "<OBLIGATOIREMENT entre 550 et 750 caractères, sinon ta réponse est incomplète : ce que la carte de l'Avenir lui annonce, comme une promesse de lumière. Esquisse le cheminement, les ouvertures possibles, les évolutions douces et les invitations de demain.>",
+"resume": "<OBLIGATOIREMENT entre 350 et 500 caractères, sinon ta réponse est incomplète : synthèse globale et conclusion bienveillante du tirage, un message de lumière qu'elle/il pourra garder et relire.>"
 }${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
   } else {
     // Yi Jing

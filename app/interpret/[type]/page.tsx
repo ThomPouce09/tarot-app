@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useState, useRef } from 'react';
+import { Fragment, Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
+import { TAROT_CARDS } from '@/lib/tarot-data';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
 
 interface Interpretation {
@@ -175,17 +176,72 @@ function InterpretationInner() {
   // Determine if it's Tarot or Yi Jing based on type prefix
   const isTarot = type.startsWith('tarot');
   const isYiJing = type.startsWith('yi-jing') || type === 'yi-qing';
+  // Titres d'interprétation : Allura (script féerique) pour le Tarot,
+  // Hoshiko Satsuki (calligraphie) pour le Yi Jing.
+  const titleFont = isTarot ? "'Allura', cursive" : "'Hoshiko Satsuki', serif";
   const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
+  // Cartes tirées (Tarot) : id + nom + position, pour le récap visuel en haut de page
+  const tarotCards = isTarot
+    ? (searchParams.get('cartes') || '')
+        .split(',')
+        .map((s) => parseInt(s, 10))
+        .filter((n) => !isNaN(n))
+        .map((id, i) => ({
+          id,
+          name: TAROT_CARDS.find((c) => c.id === id)?.name || `Carte ${id}`,
+          position: i === 0 ? 'Présent' : i === 1 ? 'Passé' : 'Avenir',
+        }))
+    : [];
+
+  // Sections d'analyse (Tarot 3 cartes : Passé/Présent/Avenir ; sinon situation/défis/...)
+  const isTarot3 = isTarot && type === 'tarot-3-cartes';
+  const sections: { label: string; value?: string | number; Icon?: React.ComponentType<{ className?: string }> }[] = isTarot3
+    ? [
+        { label: 'Passé', value: interpretation.passe },
+        { label: 'Présent', value: interpretation.present },
+        { label: 'Avenir', value: interpretation.avenir },
+      ]
+    : [
+        { label: t('interpret.situation'), value: interpretation.situation, Icon: IconSituation },
+        { label: t('interpret.defis'), value: interpretation.defis, Icon: IconDefis },
+        { label: t('interpret.soutien'), value: interpretation.soutien, Icon: IconSoutien },
+        { label: t('interpret.issue'), value: interpretation.issue, Icon: IconIssue },
+        { label: t('interpret.conseil'), value: interpretation.conseil, Icon: IconConseil },
+      ];
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto">
       <YiSlideNav />
       {/* En-tête : titre seul (le menu tiroir remplace la croix) */}
       <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
-        <h1 className="text-2xl text-yellow-400" style={{ fontFamily: "'Hoshiko Satsuki', serif" }}>
+        <h1 className="text-3xl text-yellow-400" style={{ fontFamily: titleFont }}>
           {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
         </h1>
       </div>
+
+      {/* Votre tirage — cartes tirées (miniatures) en haut de page */}
+      {isTarot && tarotCards.length > 0 && (
+        <div className="w-full max-w-md mb-2">
+          <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3 text-center">Votre tirage</p>
+          <div className="flex justify-center items-end gap-3">
+            {tarotCards.map((c, i) => (
+              <div key={c.id} className="flex flex-col items-center gap-1.5 w-1/3 max-w-[110px]">
+                <div className="relative rounded-lg overflow-hidden border border-yellow-500/40 shadow-[0_0_14px_rgba(255,200,90,0.35)] bg-black/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/cards/arcana/${c.id}.png`}
+                    alt={c.name}
+                    className="w-full h-auto block"
+                    style={{ aspectRatio: '764 / 1286' }}
+                  />
+                </div>
+                <span className="text-yellow-300 text-xs font-semibold tracking-wide">{c.position}</span>
+                <span className="text-yellow-100/90 text-[11px] leading-tight text-center line-clamp-2">{c.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="w-full max-w-md text-left space-y-5">
           <>
@@ -258,21 +314,24 @@ function InterpretationInner() {
               </div>
             )}
 
-            {/* Analyse détaillée — situation / défis / soutien / issue / conseil */}
-            {[
-              { label: t('interpret.situation'), value: interpretation.situation, Icon: IconSituation },
-              { label: t('interpret.defis'), value: interpretation.defis, Icon: IconDefis },
-              { label: t('interpret.soutien'), value: interpretation.soutien, Icon: IconSoutien },
-              { label: t('interpret.issue'), value: interpretation.issue, Icon: IconIssue },
-              { label: t('interpret.conseil'), value: interpretation.conseil, Icon: IconConseil },
-            ].filter((s) => s.value).map((section) => (
-              <div key={section.label} className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
-                <h2 className="text-yellow-500 font-semibold text-base tracking-wide mb-2 flex items-center gap-2.5" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>
-                  {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
-                  {section.label}
-                </h2>
-                <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
-              </div>
+            {/* Analyse détaillée — Tarot 3 cartes : Passé/Présent/Avenir ; sinon situation/défis/... */}
+            {sections.filter((s) => s.value).map((section, idx, arr) => (
+              <Fragment key={section.label}>
+                <div className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
+                  <h2 className="text-yellow-500 font-semibold text-lg tracking-wide mb-2 flex items-center gap-2.5" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>
+                    {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
+                    {section.label}
+                  </h2>
+                  <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
+                </div>
+                {isTarot3 && idx < arr.length - 1 && (
+                  <div className="flex items-center justify-center py-1" aria-hidden>
+                    <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+                    <span className="mx-2 text-yellow-400/70 text-lg leading-none">→</span>
+                    <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+                  </div>
+                )}
+              </Fragment>
             ))}
 
             {/* ✶ Résumé du tirage — en fin (synthèse globale) */}
@@ -280,7 +339,7 @@ function InterpretationInner() {
               <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
-                  <h3 className="text-yellow-300 font-serif text-lg tracking-wide" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>Résumé</h3>
+                  <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>Résumé</h3>
                 </div>
                 <p className="text-gray-100 leading-relaxed italic text-[15px]">
                   {interpretation.resume}

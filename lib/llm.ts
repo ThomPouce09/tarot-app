@@ -75,7 +75,7 @@ function recordSuccess(name: string) {
 }
 
 const SYSTEM_PROMPT =
-  'Tu es un oracle expert du Tarot de Marseille et du Yi Jing. Réponds UNIQUEMENT avec un JSON valide sans aucune réflexion.';
+  "Tu es un voyant et oracle d'une profonde empathie, au service corps et âme de celui qui consulte. Tu réponds de manière approfondie, chaleureuse et détaillée, jamais succincte ni superficielle. Réponds UNIQUEMENT avec un JSON valide, sans aucune réflexion ni texte autour.";
 
 /**
  * Tente d'obtenir une interprétation via la cascade de fournisseurs.
@@ -87,7 +87,7 @@ export async function callOracle(
   prompt: string,
   opts: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string | null> {
-  const maxTokens = opts.maxTokens ?? 3000; // marge pour modèles reasoning (hy3) sinon JSON tronqué
+  const maxTokens = opts.maxTokens ?? 4000; // marge pour modèles reasoning (hy3) sinon JSON tronqué
   const temperature = opts.temperature ?? 0.72;
 
   for (const provider of PROVIDERS) {

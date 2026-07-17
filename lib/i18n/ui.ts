@@ -63,7 +63,7 @@ export const DICT = {
   'readings.questionLabel': { fr: 'Votre question', en: 'Your question' },
 
   // ─── Interpretation page ───
-  'interpret.titleTarot': { fr: 'Interprétation du Tirage', en: 'Reading Interpretation' },
+  'interpret.titleTarot': { fr: "L'oracle lève le voile...", en: 'The oracle lifts the veil...' },
   'interpret.yijingSpoke': { fr: 'Le Yi Jing a parlé', en: 'The I Ching has spoken' },
   'interpret.baguette': { fr: 'Baguette tirée', en: 'Stalk drawn' },
   'interpret.titleYiJing': { fr: 'Interprétation du Yi Jing', en: 'I Ching Interpretation' },
