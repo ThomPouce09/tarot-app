@@ -18,7 +18,6 @@ export default function HomePage() {
   const t = useT();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRunesNotice, setShowRunesNotice] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -254,13 +253,7 @@ export default function HomePage() {
         </Link>
 
         {/* Runes Card Button */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setShowRunesNotice(true)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowRunesNotice(true); }}
-          className="block cursor-pointer outline-none"
-        >
+        <Link href="/runes" className="block">
           <motion.div
             className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden transition-all"
             style={{
@@ -309,40 +302,17 @@ export default function HomePage() {
                 background: 'radial-gradient(ellipse at center, rgba(138,109,59,0.2) 0%, transparent 70%)',
               }}
             />
-            {showRunesNotice && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl px-3 text-center backdrop-blur-sm"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(10,31,21,0.92) 0%, rgba(26,58,42,0.92) 100%)',
-                  border: '1px solid rgba(138,109,59,0.5)',
-                }}
-              >
-                <div className="text-2xl mb-1" style={{ filter: 'drop-shadow(0 0 8px rgba(138,109,59,0.6))' }}>🔨</div>
-                <p
-                  className="text-[11px] sm:text-xs font-bold leading-tight"
-                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#D4B483', textShadow: '0 0 8px rgba(138,109,59,0.5)' }}
-                >
-                  {t('landing.runes.building')}
-                </p>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowRunesNotice(false); }}
-                  className="mt-2 px-3 py-1 rounded-md text-[10px] font-medium transition-all hover:opacity-80"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', background: 'rgba(138,109,59,0.25)', color: '#E8D5B0', border: '1px solid rgba(138,109,59,0.4)' }}
-                >
-                  {t('landing.runes.close')}
-                </button>
-              </div>
-            )}
           </motion.div>
-        </div>
+        </Link>
 
         {/* Dés divinatoires Card Button */}
-        <Link href="/des" className="block">
+        <Link href="/des-divinatoires" className="block">
           <motion.div
             className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                '0 0 22px rgba(200,90,80,0.42), 0 4px 12px rgba(0,0,0,0.5)',
-              border: '2px solid rgba(210,110,100,0.4)',
+                '0 0 22px rgba(60,90,180,0.42), 0 4px 12px rgba(0,0,0,0.5)',
+              border: '2px solid rgba(212,175,55,0.4)',
             }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -350,31 +320,31 @@ export default function HomePage() {
             <div
               className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                background: 'linear-gradient(135deg, #3a1414 0%, #2a0d0d 50%, #3a1414 100%)',
+                background: 'linear-gradient(135deg, #0a1430 0%, #050a1c 50%, #0a1430 100%)',
               }}
             >
-              <div className="absolute inset-1.5 border border-red-400/30 rounded-lg pointer-events-none" />
+              <div className="absolute inset-1.5 border border-amber-300/25 rounded-lg pointer-events-none" />
               {/* Icône temporaire — à remplacer par l'image livrée */}
               <span
                 className="text-4xl mb-2"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(220,120,110,0.55))' }}
+                style={{ filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.55))' }}
                 aria-hidden
               >🎲</span>
               <h2
                 className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: '#F0A88C',
-                  textShadow: '0 0 8px rgba(220,120,110,0.5)',
+                  color: '#E8C66A',
+                  textShadow: '0 0 8px rgba(212,175,55,0.5)',
                 }}
               >
-                <ShimmerChars text={t('landing.tile.des')} col={desShimmer.col} color="#F0A88C" />
+                <ShimmerChars text={t('landing.tile.des')} col={desShimmer.col} color="#E8C66A" />
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(230,160,150,0.75)',
+                  color: 'rgba(200,214,245,0.75)',
                 }}
               >
                 {t('landing.tile.desSub')}

@@ -133,7 +133,7 @@ const MENU_LINKS: { href: string; label: string; disabled?: boolean }[] = [
   { href: '/', label: 'Accueil' },
   { href: '/tarot', label: 'Tarot' },
   { href: '/yi-jing', label: 'Yi Jing' },
-  { href: '#', label: 'Runes', disabled: true },
-  { href: '#', label: 'Dés du destin', disabled: true },
+  { href: '/runes', label: 'Runes' },
+  { href: '/des-divinatoires', label: 'Dés Divinatoires' },
   { href: '/dashboard/account', label: 'Mon espace' },
 ];
