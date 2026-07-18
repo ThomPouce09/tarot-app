@@ -400,7 +400,7 @@ function FilledSlot({
         }}
       >
         <Image
-          src={`/cards/arcana/${pick.cardId}.png`}
+          src={`/cards/arcana/${pick.cardId}.jpg`}
           alt={pick.name}
           fill
           style={{ objectFit: 'contain' }}

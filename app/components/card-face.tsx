@@ -20,8 +20,8 @@ export default function CardFace({ card, reversed }: CardFaceProps) {
     );
   }
 
-  // Construire l'URL de l'image de la carte - les fichiers publics sont en .png sur GitHub/Vercel
-  const cardImageUrl = `/cards/arcana/${card.id}.png`;
+  // Construire l'URL de l'image de la carte - les fichiers publics sont en .jpg (optimises)
+  const cardImageUrl = `/cards/arcana/${card.id}.jpg`;
 
   const isMajor = card?.arcana === 'major';
   const suitColors = card?.suit ? SUIT_COLORS[card.suit] : null;

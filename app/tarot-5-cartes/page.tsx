@@ -52,7 +52,7 @@ function CardComponent({ card, label }: { card: Card; label?: string }) {
         }}
       >
         <Image
-          src={`/cards/arcana/${card.id}.png`}
+          src={`/cards/arcana/${card.id}.jpg`}
           alt={card.name}
           fill
           style={{ objectFit: "contain", backgroundColor: "#000" }}

@@ -229,7 +229,7 @@ function InterpretationInner() {
                 <div className="relative rounded-lg overflow-hidden border border-yellow-500/40 shadow-[0_0_14px_rgba(255,200,90,0.35)] bg-black/40">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`/cards/arcana/${c.id}.png`}
+                    src={`/cards/arcana/${c.id}.jpg`}
                     alt={c.name}
                     className="w-full h-auto block"
                     style={{ aspectRatio: '764 / 1286' }}
