@@ -12,7 +12,6 @@ import {
   RuneButton,
   RuneReading,
   SageCard,
-  RunePouch,
   BackToRunes,
   RUNE_THEME,
 } from '../_shared';
@@ -71,13 +70,12 @@ export default function NornesPage() {
           <RuneButton onClick={roll}>Interroger les Nornes</RuneButton>
         </div>
 
-        <RunePouch />
         <RuneStonesSet
-          count={hasAdvice ? 4 : 3}
+          count={3}
           layout="horizontal"
           isRolling={isRolling}
-          onRest={hasAdvice ? handleAdviceRest : handleRest}
-          height={340}
+          onRest={handleRest}
+          height={440}
         />
 
         {/* Lecture des 3 Nornes */}
@@ -131,6 +129,18 @@ export default function NornesPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
+            ré-affiché pour ce round : count=1, layout horizontal. */}
+        {hasAdvice && (
+          <RuneStonesSet
+            count={1}
+            layout="horizontal"
+            isRolling={isRolling}
+            onRest={handleAdviceRest}
+            height={260}
+          />
+        )}
 
         {/* 4ème rune : Conseil d'Odin */}
         <AnimatePresence>

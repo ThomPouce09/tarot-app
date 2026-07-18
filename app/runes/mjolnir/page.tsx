@@ -12,7 +12,6 @@ import {
   RuneButton,
   RuneReading,
   BackToRunes,
-  RunePouch,
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
@@ -72,13 +71,12 @@ export default function MjolnirPage() {
           <RuneButton onClick={roll}>Invoquer la force de Mjölnir</RuneButton>
         </div>
 
-        <RunePouch />
         <RuneStonesSet
           count={5}
           layout="hammer"
           isRolling={isRolling}
           onRest={handleRest}
-          height={400}
+          height={500}
         />
 
         <AnimatePresence>

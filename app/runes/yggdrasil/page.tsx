@@ -12,7 +12,6 @@ import {
   RuneReading,
   RuneReveal,
   BackToRunes,
-  RunePouch,
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
@@ -70,13 +69,12 @@ export default function YggdrasilPage() {
           <RuneButton onClick={roll}>Observer l’Arbre-Monde</RuneButton>
         </div>
 
-        <RunePouch />
         <RuneStonesSet
           count={4}
           layout="vertical"
           isRolling={isRolling}
           onRest={handleRest}
-          height={440}
+          height={520}
         />
 
         <RuneReveal className="mt-6 space-y-3">
