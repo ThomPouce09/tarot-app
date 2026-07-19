@@ -11,9 +11,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { PLANETS, SIGNS, HOUSES, type DieKind } from '@/components/astro-dice/glyphs';
 
-type Mode = 'global' | 'zoom-action' | 'zoom-domaine' | 'choix';
+type Mode = 'global' | 'zoom-action' | 'zoom-domaine' | 'choix' | 'obstacle-solution';
 
-const VALID_MODES: Mode[] = ['global', 'zoom-action', 'zoom-domaine', 'choix'];
+const VALID_MODES: Mode[] = ['global', 'zoom-action', 'zoom-domaine', 'choix', 'obstacle-solution'];
 
 // Noms lisibles des glyphes pour le prompt.
 const PLANET_NAMES: Record<string, string> = {
@@ -103,6 +103,69 @@ Réponds STRICTEMENT en JSON (pas de texte avant ni après, pas de markdown) sel
 Réponds UNIQUEMENT avec l'objet JSON.`;
 }
 
+function buildObstacleSolutionPrompt(
+  faces: Record<string, string | number>,
+  kinds: DieKind[],
+  kind: 'obstacle' | 'solution',
+): string {
+  const parts = kinds.map((k) => `• ${k} = ${faces[k]} (${nameOf(k, faces[k])})`);
+  const tirage = parts.join('\n');
+
+  if (kind === 'obstacle') {
+    return `Tu es un astrologue de la tradition occidentale, ton chaleureux et TRÈS SIMPLE, en français courant (langage clair, pas d'effet oracle pompeux).
+
+RAPPEL DES 3 PILIERS :
+• La PLANÈTE = le "Qui / Quoi" : l'énergie en jeu.
+• Le SIGNE = le "Comment" : l'attitude ou le tempérament.
+• La MAISON (1 à 12) = le "Où" : le domaine de vie touché.
+
+Tirage de l'OBSTACLE :
+${tirage}
+
+IMPORTANT : utilise IMPÉRATIVEMENT ces valeurs réelles.
+
+Explique de façon SIMPLE et rassurante ce qui bloque la personne. Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
+{
+  "sections": [
+    { "key": "planet", "label": "L'énergie en jeu", "text": "1 phrase simple sur la planète tirée et ce qu'elle représente ici." },
+    { "key": "sign", "label": "L'attitude qui coince", "text": "1 phrase simple sur le signe et l'attitude inadaptée à comprendre." },
+    { "key": "house", "label": "Le domaine touché", "text": "1 phrase simple sur la maison et où ça se passe dans la vie." }
+  ],
+  "synthese": "1 phrase qui résume le blocage de façon limpide et bienveillante."
+}
+Réponds UNIQUEMENT avec l'objet JSON.`;
+  }
+
+  // kind === 'solution'
+  return `Tu es un astrologue de la tradition occidentale, ton PRATIQUE et TRÈS SIMPLE, en français courant (langage clair, concret, pas d'effet oracle pompeux).
+
+RAPPEL DES 3 PILIERS :
+• La PLANÈTE = la force intérieure à réveiller.
+• Le SIGNE = la posture juste à incarner.
+• La MAISON = le levier d'action concret.
+
+Tirage de la SOLUTION :
+${tirage}
+
+IMPORTANT : utilise IMPÉRATIVEMENT ces valeurs réelles.
+
+Aide la personne à COMPRENDRE et INTÉGRER concrètement la solution. Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
+{
+  "sections": [
+    { "key": "planet", "label": "La force à réveiller", "text": "1 phrase simple sur la planète et la ressource intérieure à activer." },
+    { "key": "sign", "label": "La posture juste", "text": "1 phrase simple sur le signe et le comportement idéal à adopter." },
+    { "key": "house", "label": "Le levier d'action", "text": "1 phrase simple sur la maison et où agir concrètement." }
+  ],
+  "synthese": "1 phrase qui résume la direction à prendre, simplement.",
+  "actions": [
+    "Action concrète 1 : un petit pas clair et réalisable dès cette semaine.",
+    "Action concrète 2 : un deuxième pas simple et précis.",
+    "Action concrète 3 : un troisième pas qui ancre la nouvelle habitude."
+  ]
+}
+Les actions sont en langage courant, CHACUNE commence par "Action concrète N :", courtes (10-20 mots), vraiment faisables. Réponds UNIQUEMENT avec l'objet JSON.`;
+}
+
 export async function POST(request: NextRequest) {
   let body: any = {};
   try {
@@ -142,6 +205,42 @@ export async function POST(request: NextRequest) {
       // ignore → fallback ci-dessous
     }
     return NextResponse.json({ comparaison: content.trim() });
+  }
+
+  // Mode Obstacle & Solution : on attend 'kind' (= 'obstacle' | 'solution').
+  if (m === 'obstacle-solution') {
+    const kind = body.kind === 'solution' ? 'solution' : 'obstacle';
+    if (!faces || typeof faces !== 'object') {
+      return NextResponse.json({ error: 'faces requis' }, { status: 400 });
+    }
+    const prompt = buildObstacleSolutionPrompt(faces, kinds, kind);
+    const content = (await callOracle(prompt)) || '';
+    if (!content || content.trim().length === 0) {
+      return NextResponse.json(
+        { texte: "Les étoiles se voilent un instant… L'analyse n'a pas pu être générée. Recommence plus tard." },
+        { status: 200 },
+      );
+    }
+    try {
+      const json = extractJson(content);
+      if (json && Array.isArray(json.sections)) {
+        const sections = (json.sections as any[])
+          .filter((s) => s && s.text && String(s.text).trim().length > 0)
+          .map((s) => ({ key: s.key, label: s.label, text: s.text }));
+        const actions = Array.isArray(json.actions)
+          ? json.actions.map((a: string) => String(a)).filter((a: string) => a.trim().length > 0)
+          : [];
+        return NextResponse.json({
+          sections,
+          synthese: json.synthese || '',
+          actions,
+          texte: content.trim(),
+        });
+      }
+    } catch {
+      // ignore → fallback ci-dessous
+    }
+    return NextResponse.json({ texte: content.trim() });
   }
 
   if (!faces || typeof faces !== 'object') {

@@ -1,9 +1,12 @@
 'use client';
 
 // app/des-divinatoires/obstacle-solution/page.tsx — Niveau 2.3 : Obstacle & Solution
+// Intègre le gobelet (AstroDiceCup) au geste, comme sur /choix et /affinage,
+// en gardant les specs : 2 lancers (Obstacle → Solution) chacun avec sa
+// légende de lecture (ReadingLegend) personnalisée.
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
 import {
@@ -13,13 +16,13 @@ import {
   OcreCard,
   ResultLine,
   ReadingLegend,
-  BackToHub,
+  DiceAnalysis,
   DICE_THEME,
 } from '../_shared';
-import { randomTargetFaces, type TargetFaces } from '@/components/astro-dice';
+import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 
-const AstroDiceSet = dynamic(
-  () => import('@/components/astro-dice').then((m) => m.AstroDiceSet),
+const AstroDiceCup = dynamic(
+  () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
   {
     ssr: false,
     loading: () => (
@@ -42,51 +45,89 @@ type Step =
   | 'solution_roll'
   | 'solution_done';
 
+// Les 3 dés sont toujours lancés (Planète / Signe / Maison).
+const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
+
 const OBSTACLE_LEGEND = [
-  { die: 'Planète' as const, text: 'L\u2019énergie que vous utilisez mal ou qui vous submerge.' },
-  { die: 'Signe' as const, text: 'L\u2019attitude inadaptée (trop passive, trop agressive, etc.).' },
-  { die: 'Maison' as const, text: 'Le domaine d\u2019où provient la perturbation.' },
+  { die: 'Planète' as const, text: 'L’énergie que vous utilisez mal ou qui vous submerge.' },
+  { die: 'Signe' as const, text: 'L’attitude inadaptée (trop passive, trop agressive, etc.).' },
+  { die: 'Maison' as const, text: 'Le domaine d’où provient la perturbation.' },
 ];
 
 const SOLUTION_LEGEND = [
   { die: 'Planète' as const, text: 'La force intérieure à réveiller et à utiliser.' },
   { die: 'Signe' as const, text: 'La posture juste ou le comportement idéal à incarner.' },
-  { die: 'Maison' as const, text: 'Le levier d\u2019action concret sur lequel vous appuyer.' },
+  { die: 'Maison' as const, text: 'Le levier d’action concret sur lequel vous appuyer.' },
 ];
 
 export default function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
   const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
-  const [isRolling, setIsRolling] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [resetSignal, setResetSignal] = useState(0);
   const [obstacle, setObstacle] = useState<TargetFaces | null>(null);
   const [solution, setSolution] = useState<TargetFaces | null>(null);
+
+  // Cibles de scroll.
+  const cupRef = useRef<HTMLDivElement | null>(null);
+  const resultRef = useRef<HTMLDivElement | null>(null); // bloc Obstacle
+  const solutionRef = useRef<HTMLDivElement | null>(null); // bloc Solution
+  // Épaisseur du menu fixe en haut → laisser de la marge au scroll.
+  const MENU_OFFSET = 90;
+
+  const scrollToCup = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        if (cupRef.current) {
+          const top = cupRef.current.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: Math.max(0, top - MENU_OFFSET), behavior: 'smooth' });
+        }
+      }, 60);
+    });
+  }, []);
+
+  const scrollToEl = useCallback((el: HTMLDivElement | null) => {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: Math.max(0, top - MENU_OFFSET), behavior: 'smooth' });
+        }
+      }, 60);
+    });
+  }, []);
 
   const rollObstacle = useCallback(() => {
     setFaces(randomTargetFaces());
     setStep('obstacle_roll');
-    requestAnimationFrame(() => setIsRolling(true));
-  }, []);
+    scrollToCup();
+  }, [scrollToCup]);
 
   const rollSolution = useCallback(() => {
     setFaces(randomTargetFaces());
     setStep('solution_roll');
-    requestAnimationFrame(() => setIsRolling(true));
-  }, []);
+    setResetSignal((n) => n + 1); // remount propre du gobelet pour le 2e lancer
+    scrollToCup();
+  }, [scrollToCup]);
 
-  const handleRest = useCallback((f: TargetFaces) => {
-    setIsRolling(false);
-    setStep((s) => {
-      if (s === 'obstacle_roll') {
-        setObstacle(f);
-        return 'obstacle_done';
-      }
-      if (s === 'solution_roll') {
-        setSolution(f);
-        return 'solution_done';
-      }
-      return s;
-    });
-  }, []);
+  const handleRest = useCallback(
+    (f: TargetFaces) => {
+      setStep((s) => {
+        if (s === 'obstacle_roll') {
+          setObstacle(f);
+          scrollToEl(resultRef.current);
+          return 'obstacle_done';
+        }
+        if (s === 'solution_roll') {
+          setSolution(f);
+          scrollToEl(solutionRef.current);
+          return 'solution_done';
+        }
+        return s;
+      });
+    },
+    [scrollToEl],
+  );
 
   const diceVisible = step !== 'intro';
 
@@ -113,31 +154,44 @@ export default function ObstacleSolutionPage() {
 
         {step === 'intro' && (
           <div className="pb-6 text-center">
-            <DiceButton onClick={rollObstacle}>Lancer — L&apos;Obstacle</DiceButton>
+            <DiceButton onClick={rollObstacle}>Lancer les dés du Zodiaque</DiceButton>
           </div>
         )}
 
-        {/* Zone dés (partagée par les deux étapes) : montée dès le chargement de
-            la page (préchargée INVISIBLE en intro) → WebGL + police prêts →
-            lancer instantané au clic. */}
+        {/* Zone gobelet (partagée par les deux étapes) : monté dès le chargement
+            (préchargé INVISIBLE en intro, révélé à onReady) → le lancer se fait
+            AU GESTE (secousse / appui) — pas de bouton de lancer automatique. */}
         <div
+          ref={cupRef}
           style={{
-            height: step === 'intro' ? 0 : 440,
-            opacity: step === 'intro' ? 0 : 1,
+            height: diceVisible ? 460 : 0,
+            opacity: diceVisible && ready ? 1 : 0,
             overflow: 'hidden',
-            transition: 'opacity 350ms ease',
-            pointerEvents: step === 'intro' ? 'none' : 'auto',
+            transition: 'opacity 450ms ease',
+            pointerEvents: diceVisible ? 'auto' : 'none',
           }}
         >
-          <AstroDiceSet
-            isRolling={isRolling}
+          <AstroDiceCup
+            key={resetSignal}
             targetFaces={faces}
-            onRest={handleRest}
-            height={440}
             skin="moon"
-            background="transparent"
+            height={460}
+            activeKinds={ACTIVE_DICE}
+            onRest={handleRest}
+            onReady={() => setReady(true)}
+            resetSignal={resetSignal}
+            launchSignal={0}
           />
         </div>
+
+        {(step === 'obstacle_roll' || step === 'solution_roll') && (
+          <p
+            className="mt-3 text-center text-xs italic"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.7 }}
+          >
+            ✋ Secouez le gobelet puis poussez vers le haut (ou appuyez) pour lancer les dés.
+          </p>
+        )}
 
         {/* Résultat + légende de l'obstacle */}
         <AnimatePresence>
@@ -146,6 +200,7 @@ export default function ObstacleSolutionPage() {
               step === 'solution_roll' ||
               step === 'solution_done') && (
               <motion.div
+                ref={resultRef}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-5"
@@ -156,6 +211,7 @@ export default function ObstacleSolutionPage() {
                     <ReadingLegend items={OBSTACLE_LEGEND} />
                   </OcreCard>
                 </div>
+                <DiceAnalysis faces={obstacle} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="obstacle" />
               </motion.div>
             )}
         </AnimatePresence>
@@ -196,6 +252,7 @@ export default function ObstacleSolutionPage() {
         <AnimatePresence>
           {solution && step === 'solution_done' && (
             <motion.div
+              ref={solutionRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-5"
@@ -206,6 +263,7 @@ export default function ObstacleSolutionPage() {
                   <ReadingLegend items={SOLUTION_LEGEND} />
                 </OcreCard>
               </div>
+              <DiceAnalysis faces={solution} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="solution" />
 
               <div className="mt-8 text-center">
                 <DiceButton
@@ -223,7 +281,6 @@ export default function ObstacleSolutionPage() {
         </AnimatePresence>
       </div>
 
-      <BackToHub />
-    </DiceBackground>
+      </DiceBackground>
   );
 }

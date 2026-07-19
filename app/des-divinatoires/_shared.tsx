@@ -6,9 +6,11 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { TargetFaces } from '@/components/astro-dice';
+import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
+import { meaningFor } from '@/components/astro-dice/meanings';
 
 /* Palette centralisée — Bleu nuit & Or fin.
    Les clés historiques (brick/ocre/...) sont conservées pour ne pas casser les
@@ -250,6 +252,216 @@ export function BackToHub() {
       >
         ← Retour aux Dés du zodiaque
       </Link>
+    </div>
+  );
+}
+
+/* Encart Analyse du tirage : statique immédiate (glyphes + meanings) +
+   bouton IA qui interroge /api/astro-dice-interpretation et rend les
+   sections (Planète / Signe / Maison) + synthèse en belles cartes.
+   Partagé par toutes les pages Dés du Zodiaque pour un rendu harmonieux. */
+export function DiceAnalysis({
+  faces,
+  activeKinds,
+  mode = 'global',
+  kind,
+}: {
+  faces: TargetFaces;
+  activeKinds: DieKind[];
+  mode?: 'global' | 'zoom-action' | 'zoom-domaine' | 'obstacle-solution';
+  kind?: 'obstacle' | 'solution';
+}) {
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [sections, setSections] = useState<
+    { key: string; label: string; text: string }[] | null
+  >(null);
+  const [synthese, setSynthese] = useState<string>('');
+  const [actions, setActions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const run = useCallback(async () => {
+    setLoading(true);
+    setAnalysis(null);
+    setSections(null);
+    setSynthese('');
+    setActions([]);
+    try {
+      const res = await fetch('/api/astro-dice-interpretation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ faces, activeKinds, mode, kind }),
+      });
+      const data = await res.json();
+      if (data.sections && Array.isArray(data.sections)) {
+        setSections(data.sections);
+        setSynthese(data.synthese || '');
+        setActions(Array.isArray(data.actions) ? data.actions : []);
+      } else {
+        setAnalysis(data.texte || 'Analyse indisponible.');
+      }
+    } catch {
+      setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
+    } finally {
+      setLoading(false);
+    }
+  }, [faces, activeKinds, mode, kind]);
+
+  return (
+    <div
+      className="mx-auto mt-5 max-w-2xl rounded-3xl p-5 sm:p-6"
+      style={{
+        background: `linear-gradient(135deg, ${DICE_THEME.ocre}14 0%, ${DICE_THEME.brick} 100%)`,
+        border: `1.5px solid ${DICE_THEME.ocre}55`,
+        boxShadow: `inset 0 0 30px ${DICE_THEME.ocre}14`,
+      }}
+    >
+      <h3
+        className="mb-4 text-center text-lg font-bold"
+        style={{
+          fontFamily: 'var(--font-cinzel-deco), serif',
+          color: DICE_THEME.ocreLight,
+          textShadow: `0 0 12px ${DICE_THEME.gold}44`,
+        }}
+      >
+        Analyse du tirage
+      </h3>
+
+      {/* Partie statique — instantanée (fait patienter) */}
+      <div className="space-y-3">
+        {activeKinds.map((k) => {
+          const val = faces[k] as string | number;
+          return (
+            <div
+              key={k}
+              className="flex gap-3 text-sm leading-relaxed"
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+            >
+              <span
+                className="mt-0.5 text-2xl leading-none"
+                style={{ color: DICE_THEME.ocreLight }}
+              >
+                {val}
+              </span>
+              <span style={{ opacity: 0.92 }}>{meaningFor(k, val)}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Zone LLM — chargement puis texte généré */}
+      <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
+        {loading && (
+          <div
+            className="text-center text-sm italic"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
+          >
+            Les astres réfléchissent… ✨
+          </div>
+        )}
+
+        {/* Analyse structurée en belles cartes */}
+        {sections && !loading && (
+          <div className="space-y-3">
+            {sections.map((s) => (
+              <div
+                key={s.key}
+                className="rounded-2xl p-4"
+                style={{
+                  background: `linear-gradient(135deg, ${DICE_THEME.ocre}1f 0%, ${DICE_THEME.ocre}0a 100%)`,
+                  border: `1px solid ${DICE_THEME.ocre}44`,
+                }}
+              >
+                <p
+                  className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+                >
+                  {s.label}
+                </p>
+                <p
+                  className="text-center text-sm leading-relaxed italic"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                >
+                  {s.text}
+                </p>
+              </div>
+            ))}
+
+            {synthese && (
+              <div
+                className="mt-4 rounded-2xl p-4"
+                style={{
+                  background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.ocre}14 100%)`,
+                  border: `1px solid ${DICE_THEME.gold}55`,
+                  boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
+                }}
+              >
+                <p
+                  className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+                >
+                  Synthèse
+                </p>
+                <p
+                  className="text-center text-sm leading-relaxed italic"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                >
+                  {synthese}
+                </p>
+              </div>
+            )}
+
+            {actions.length > 0 && (
+              <div
+                className="mt-4 rounded-2xl p-4"
+                style={{
+                  background: `linear-gradient(135deg, ${DICE_THEME.gold}26 0%, ${DICE_THEME.ocre}1c 100%)`,
+                  border: `1.5px solid ${DICE_THEME.gold}66`,
+                  boxShadow: `inset 0 0 28px ${DICE_THEME.gold}1f`,
+                }}
+              >
+                <p
+                  className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+                >
+                  Passer à l'action
+                </p>
+                <ul className="mx-auto max-w-xl space-y-2">
+                  {actions.map((a, i) => (
+                    <li
+                      key={i}
+                      className="flex gap-2 text-sm leading-relaxed"
+                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                    >
+                      <span style={{ color: DICE_THEME.ocreLight }}>✦</span>
+                      <span style={{ opacity: 0.94 }}>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fallback texte libre */}
+        {analysis && !loading && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-sm leading-relaxed italic"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+          >
+            {analysis}
+          </motion.p>
+        )}
+
+        {!analysis && !sections && !loading && (
+          <div className="text-center">
+            <DiceButton variant="ocre" onClick={run}>
+              ✨ Analyser en profondeur
+            </DiceButton>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
