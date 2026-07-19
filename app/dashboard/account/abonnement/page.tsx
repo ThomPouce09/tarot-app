@@ -26,10 +26,40 @@ export default function AbonnementPage() {
   const [current, setCurrent] = useState<Plan>('initie');
   const [status, setStatus] = useState<'actif' | 'suspendu'>('actif');
   const [msg, setMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState<Plan | null>(null);
 
-  const choose = (p: Plan) => {
-    setCurrent(p);
-    setMsg(t('sub.selected').replace('{name}', t(PLAN_NAMES[p])));
+  const choose = async (p: Plan) => {
+    // Forfait gratuit : bascule locale immédiate (pas de paiement).
+    if (p === 'gratuit') {
+      setCurrent(p);
+      setMsg(t('sub.selected').replace('{name}', t(PLAN_NAMES[p])));
+      return;
+    }
+    // Forfaits payants : on initie le paiement Stripe (CB + PayPal).
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
+    const email = stored ? (JSON.parse(stored).email as string) : '';
+    if (!email) {
+      setMsg(t('sub.loginRequired') || 'Connecte-toi pour souscrire.');
+      return;
+    }
+    setLoading(p);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: p, email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setMsg(data.error || "Échec de l'initialisation du paiement.");
+    } catch {
+      setMsg("Erreur de connexion au serveur de paiement.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -61,6 +91,7 @@ export default function AbonnementPage() {
         {(Object.keys(PLAN_NAMES) as Plan[]).map((p) => {
           const isCurrent = p === current;
           const features = t(PLAN_FEATURES[p]).split('|');
+          const isPaid = p !== 'gratuit';
           return (
             <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-amber-500/60' : ''}`}>
               <div className="text-3xl mb-2">{PLAN_ICONS[p]}</div>
@@ -73,10 +104,10 @@ export default function AbonnementPage() {
               </ul>
               <button
                 onClick={() => choose(p)}
-                disabled={isCurrent}
-                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : 'mystic-btn'}`}
+                disabled={isCurrent || loading !== null}
+                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : isPaid ? 'mystic-btn' : 'mystic-btn-ghost'}`}
               >
-                {isCurrent ? t('sub.currentPlan') : t('sub.choose')}
+                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : isPaid ? t('sub.subscribe') : t('sub.choose')}
               </button>
             </div>
           );

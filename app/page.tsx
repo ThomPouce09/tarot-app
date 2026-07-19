@@ -90,7 +90,8 @@ export default function HomePage() {
 
       {/* MAIN TITLE */}
       <div
-        className="absolute top-[3%] sm:top-[3%] md:top-[4%] left-1/2 -translate-x-1/2 z-40 text-center px-4"
+        className="absolute top-[3%] sm:top-[3%] md:top-[4%] inset-x-0 text-center px-4"
+        style={{ zIndex: 70 }}
       >
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-wider uppercase mb-3"
@@ -115,10 +116,11 @@ export default function HomePage() {
           {t('landing.subtitle')}
         </p>
 
-        {/* CTA central unique */}
-        <motion.button
-          onClick={() => isLoggedIn ? router.push('/dashboard/account') : setShowLoginModal(true)}
-          className="mx-auto px-5 py-1.5 rounded-full font-semibold transition-all"
+        {/* CTA central unique — fixed au-dessus de tout (luciole incluse) */}
+        <button
+          type="button"
+          onClick={() => (isLoggedIn ? router.push('/dashboard/account') : setShowLoginModal(true))}
+          className="fixed left-1/2 -translate-x-1/2 top-[15%] z-[99998] mx-auto px-5 py-1.5 rounded-full font-semibold transition-all hover:scale-[1.04] active:scale-[0.97]"
           style={{
             fontFamily: 'var(--font-cinzel), serif',
             background: 'rgba(26, 14, 10, 0.55)',
@@ -129,11 +131,9 @@ export default function HomePage() {
             fontSize: '0.95rem',
             backdropFilter: 'blur(4px)',
           }}
-          whileHover={{ scale: 1.04, boxShadow: '0 0 24px rgba(218,165,32,0.55)' }}
-          whileTap={{ scale: 0.97 }}
         >
           <span className={ctaTwinkle ? 'star-twinkle inline-block' : 'inline-block'}>✨</span> {isLoggedIn ? t('landing.cta.logged') : t('landing.cta.guest')}
-        </motion.button>
+        </button>
       </div>
 
       {/* CHOICE CARDS */}
