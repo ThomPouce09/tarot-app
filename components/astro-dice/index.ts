@@ -1,6 +1,8 @@
 // components/astro-dice/index.ts
 export { default as AstroDiceSet } from './AstroDiceSet';
 export type { AstroDiceSetProps } from './AstroDiceSet';
+export { default as AstroDiceCup } from './AstroDiceCup';
+export type { AstroDiceCupProps } from './AstroDiceCup';
 export {
   PLANETS,
   SIGNS,

@@ -58,6 +58,19 @@ export interface AstroDiceSetProps {
   background?: string;
   /** Classe CSS du conteneur. */
   className?: string;
+  /**
+   * Point de départ commun des 3 dés (repère monde XZ de l'arène). Si fourni,
+   * tous les dés apparaissent à cet endroit et roulent vers le centre — utilisé
+   * par <AstroDiceCup/> pour simuler une chute depuis le gobelet. Par défaut :
+   * départs dispersés près du centre.
+   */
+  spawn?: { x: number; z: number };
+  /**
+   * Si true, les dés sont masqués tant que `isRolling` est false (aucun dé
+   * visible au repos). Utilisé par <AstroDiceCup/> pour ne révéler les dés
+   * qu'au moment du renversement du gobelet. Défaut false.
+   */
+  hideIdle?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -66,7 +79,7 @@ export interface AstroDiceSetProps {
 
 const DIE_RADIUS = 0.62;
 // Rayon de l'arène circulaire (vue de dessus).
-const ARENA_R = 3.3;
+const ARENA_R = 4.8;
 
 // Police par défaut : DejaVuSans couvre les 24 glyphes astro.
 const DEFAULT_FONT = '/fonts/DejaVuSans.ttf';
@@ -233,14 +246,20 @@ function DiceArena({
   rollDurationMs,
   skin,
   font,
+  spawn,
   onAllRest,
+  hideIdle,
+  background,
 }: {
   isRolling: boolean;
   targetIndices: Record<DieKind, number>;
   rollDurationMs: number;
   skin: DiceSkin;
   font?: string;
+  spawn?: { x: number; z: number };
   onAllRest: () => void;
+  hideIdle: boolean;
+  background?: string;
 }) {
   const groups = [
     useRef<THREE.Group>(null!),
@@ -279,22 +298,34 @@ function DiceArena({
     s.prevTime = now;
     s.notified = false;
 
-    // Lance les 3 dés depuis des points de départ dispersés, vers le centre,
-    // avec vitesses et spins aléatoires → trajectoires organiques + collisions.
+    // Départs des 3 dés. Par défaut : points dispersés près du centre, vitesses
+    // et spins aléatoires → trajectoires organiques + collisions. Si `spawn`
+    // est fourni (gobelet), tous les dés partent DU MÊME point (rebord de
+    // l'arène côté gobelet) et roulent vers le centre → illusion de chute.
     s.bodies = DICE_KINDS.map((kind, i) => {
-      const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.8;
-      const startR = 0.6;
-      const pos = new THREE.Vector2(
-        Math.cos(angle) * startR * ARENA_R * 0.4,
-        Math.sin(angle) * startR * ARENA_R * 0.4,
-      );
-      // Vitesse initiale forte, direction semi-aléatoire.
-      const speed = 6 + Math.random() * 3;
-      const vdir = Math.random() * Math.PI * 2;
-      const vel = new THREE.Vector2(
-        Math.cos(vdir) * speed,
-        Math.sin(vdir) * speed,
-      );
+      let pos: THREE.Vector2;
+      let vel: THREE.Vector2;
+      if (spawn) {
+        pos = new THREE.Vector2(spawn.x, spawn.z);
+        const toCenter = new THREE.Vector2(0, 0).sub(pos);
+        const base = Math.atan2(toCenter.y, toCenter.x);
+        const ang = base + (Math.random() - 0.5) * 0.7;
+        const speed = 5 + Math.random() * 2.5;
+        vel = new THREE.Vector2(Math.cos(ang) * speed, Math.sin(ang) * speed);
+      } else {
+        const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.8;
+        const startR = 0.6;
+        pos = new THREE.Vector2(
+          Math.cos(angle) * startR * ARENA_R * 0.4,
+          Math.sin(angle) * startR * ARENA_R * 0.4,
+        );
+        const speed = 6 + Math.random() * 3;
+        const vdir = Math.random() * Math.PI * 2;
+        vel = new THREE.Vector2(
+          Math.cos(vdir) * speed,
+          Math.sin(vdir) * speed,
+        );
+      }
       const spinAxis = new THREE.Vector3(
         Math.random() - 0.5,
         Math.random() - 0.5,
@@ -305,12 +336,12 @@ function DiceArena({
         vel,
         spinAxis,
         spinSpeed: 16 + Math.random() * 10,
-        hop: 0,
+        hop: spawn ? 0.28 : 0,
         target: faceUpQuaternion(faces, targetIndices[kind]),
         settlePos: new THREE.Vector2(...restSlots[i]),
       } as Body;
     });
-  }, [isRolling, targetIndices, faces, restSlots]);
+  }, [isRolling, targetIndices, faces, restSlots, spawn]);
 
   useFrame(() => {
     const s = sim.current;
@@ -474,6 +505,7 @@ function DiceArena({
           key={kind}
           ref={groups[i]}
           position={[restSlots[i][0], DIE_RADIUS, restSlots[i][1]]}
+          visible={!hideIdle || isRolling}
         >
           <DieMesh kind={kind} faces={faces} skin={skin} font={font} />
         </group>
@@ -492,7 +524,7 @@ function CameraRig() {
     const aspect = size.width / size.height;
     // Demi-étendue à cadrer (ellipse + marge). En portrait (aspect<1),
     // c'est la hauteur (axe Z) qui contraint → on recule davantage.
-    const margin = 1.32;
+    const margin = 1.05;
     const halfX = ARENA_R * margin;
     const halfZ = ARENA_R * margin;
     const cam = camera as THREE.PerspectiveCamera;
@@ -553,11 +585,18 @@ function Scene({
   rollDurationMs,
   skin,
   font,
+  spawn,
   onRest,
+  hideIdle,
+  background,
 }: Required<
   Pick<AstroDiceSetProps, 'isRolling' | 'targetFaces' | 'rollDurationMs'>
 > &
-  Pick<AstroDiceSetProps, 'font' | 'onRest'> & { skin: DiceSkin }) {
+  Pick<AstroDiceSetProps, 'font' | 'onRest' | 'spawn'> & {
+    skin: DiceSkin;
+    hideIdle: boolean;
+    background?: string;
+  }) {
   const targetIndices = useMemo<Record<DieKind, number>>(() => {
     const planet = DIE_FACES.planet.indexOf(targetFaces.planet);
     const sign = DIE_FACES.sign.indexOf(targetFaces.sign);
@@ -598,62 +637,58 @@ function Scene({
       />
 
       {/* ── Arène RONDE vue de dessus : lisible comme une zone de lancer ── */}
-      {/* Sol */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0, 0]}
-        receiveShadow
-      >
-        <circleGeometry args={[ARENA_R, 96]} />
-        <meshStandardMaterial
-          color={skin.mat}
-          roughness={0.95}
-          metalness={0.02}
-        />
-      </mesh>
+      {/* Tout le décor d'arène (sol, étoiles, rebord, cercles gravés) est
+          masqué si un fond image est fourni : le PNG devient le tapis. */}
+      {!background && (
+        <>
+          {/* Sol */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+            <circleGeometry args={[ARENA_R, 96]} />
+            <meshStandardMaterial color={skin.mat} roughness={0.95} metalness={0.02} />
+          </mesh>
 
-      {/* Champ d'étoiles sur le tapis (skin à thème nuit) */}
-      {skin.stars && <StarField radius={ARENA_R} color={skin.glyph === '#3a2f4a' ? '#fdf6d8' : skin.accent} />}
+          {/* Champ d'étoiles sur le tapis (skin à thème nuit) */}
+          {skin.stars && (
+            <StarField radius={ARENA_R} color={skin.glyph === '#3a2f4a' ? '#fdf6d8' : skin.accent} />
+          )}
 
-      {/* Liseré ÉPAIS = rebord de l'arène (se lit bien de dessus) */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.003, 0]}
-      >
-        <ringGeometry args={[ARENA_R * 0.92, ARENA_R, 96]} />
-        <meshStandardMaterial
-          color={skin.accent}
-          roughness={0.4}
-          metalness={0.6}
-          emissive={skin.accent}
-          emissiveIntensity={0.18}
-        />
-      </mesh>
+          {/* Liseré ÉPAIS = rebord de l'arène (se lit bien de dessus) */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+            <ringGeometry args={[ARENA_R * 0.92, ARENA_R, 96]} />
+            <meshStandardMaterial
+              color={skin.accent}
+              roughness={0.4}
+              metalness={0.6}
+              emissive={skin.accent}
+              emissiveIntensity={0.18}
+            />
+          </mesh>
 
-      {/* Cercles concentriques gravés = repère de zone de lancer, vu de dessus */}
-      {[0.62, 0.34].map((r) => (
-        <mesh
-          key={r}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.004, 0]}
-        >
-          <ringGeometry args={[r * ARENA_R - 0.012, r * ARENA_R + 0.012, 96]} />
-          <meshBasicMaterial color={skin.edges} transparent opacity={0.4} />
-        </mesh>
-      ))}
+          {/* Cercles concentriques gravés = repère de zone de lancer */}
+          {[0.62, 0.34].map((r) => (
+            <mesh key={r} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
+              <ringGeometry args={[r * ARENA_R - 0.012, r * ARENA_R + 0.012, 96]} />
+              <meshBasicMaterial color={skin.edges} transparent opacity={0.4} />
+            </mesh>
+          ))}
+        </>
+      )}
       <DiceArena
         isRolling={isRolling}
         targetIndices={targetIndices}
         rollDurationMs={rollDurationMs}
         skin={skin}
         font={font}
+        spawn={spawn}
         onAllRest={handleAllRest}
+        hideIdle={hideIdle}
+        background={background}
       />
 
       <ContactShadows
         position={[0, 0.01, 0]}
-        opacity={0.5}
-        scale={10}
+        opacity={0.3}
+        scale={6}
         blur={2.4}
         far={4}
         color={skin.shadow}
@@ -677,6 +712,8 @@ export default function AstroDiceSet({
   skin,
   background,
   className,
+  spawn,
+  hideIdle = false,
 }: AstroDiceSetProps) {
   const resolvedSkin = useMemo(() => resolveSkin(skin), [skin]);
   // Fond : chaîne CSS personnalisée, 'transparent' possible, sinon dégradé par
@@ -695,6 +732,8 @@ export default function AstroDiceSet({
         height: typeof height === 'number' ? `${height}px` : height,
         background: resolvedBg,
         borderRadius: 16,
+        boxSizing: 'border-box',
+        padding: 10,
         overflow: 'hidden',
       }}
     >
@@ -703,7 +742,7 @@ export default function AstroDiceSet({
         dpr={[1, 2]}
         // Position initiale neutre : c'est CameraRig (dans Scene) qui règle la
         // vue zénithale dès onCreated, pas cette valeur (sinon on garde un 3/4).
-        camera={{ position: [0, 1, 0], fov: 42, near: 0.1, far: 100 }}
+        camera={{ position: [0, 1, 0], fov: 52, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true }}
         onCreated={({ camera }) => {
           camera.up.set(0, 0, -1);
@@ -716,7 +755,10 @@ export default function AstroDiceSet({
           rollDurationMs={rollDurationMs}
           skin={resolvedSkin}
           font={font}
+          spawn={spawn}
+          hideIdle={hideIdle}
           onRest={onRest}
+          background={background}
         />
       </Canvas>
     </div>
