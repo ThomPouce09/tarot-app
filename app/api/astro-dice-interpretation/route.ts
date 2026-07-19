@@ -11,9 +11,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { PLANETS, SIGNS, HOUSES, type DieKind } from '@/components/astro-dice/glyphs';
 
-type Mode = 'global' | 'zoom-action' | 'zoom-domaine';
+type Mode = 'global' | 'zoom-action' | 'zoom-domaine' | 'choix';
 
-const VALID_MODES: Mode[] = ['global', 'zoom-action', 'zoom-domaine'];
+const VALID_MODES: Mode[] = ['global', 'zoom-action', 'zoom-domaine', 'choix'];
 
 // Noms lisibles des glyphes pour le prompt.
 const PLANET_NAMES: Record<string, string> = {
@@ -50,12 +50,14 @@ ${tirage}
 
 IMPORTANT : utilise IMPÉRATIVEMENT les valeurs ci-dessus (planète, signe, maison réellement tirés). Ne fais jamais semblant qu'elles manquent ou restent voilées — elles sont données, construis ton analyse DESSUS.
 
-Donne une analyse en 3 parties qui respectent strictement les rôles ci-dessus :
-1) PLANÈTE — l'énergie / l'acteur (le "Qui/Quoi") ;
-2) SIGNE — la coloration et le tempérament de cette énergie (le "Comment") ;
-3) MAISON — le domaine de vie concret concerné (le "Où").
-Puis une synthèse d'un paragraphe sur la leçon ou l'orientation que ce tirage offre à la personne.
-Écris de manière chaleureuse, comme un oracle bienveillant qui s'adresse à un être cher. 140-200 mots. Réponds UNIQUEMENT en texte libre (pas de JSON).`;
+Réponds STRICTEMENT en JSON (pas de texte avant ni après, pas de markdown) selon ce schéma :
+{
+  "planet": "Analyse de la planète (le Qui/Quoi) : 2 à 3 phrases chaleureuses, comme un oracle bienveillant.",
+  "sign": "Analyse du signe (le Comment) : 2 à 3 phrases sur la coloration et le tempérament.",
+  "house": "Analyse de la maison (le Où) : 2 à 3 phrases sur le domaine de vie concerné.",
+  "synthese": "Synthèse d'un paragraphe (3-4 phrases) sur la leçon ou l'orientation que ce tirage offre."
+}
+Chaque champ fait 30 à 60 mots. Réponds UNIQUEMENT avec l'objet JSON.`;
   }
 
   if (mode === 'zoom-action') {
@@ -72,6 +74,35 @@ On a relancé le dé des Maisons pour préciser le domaine. Indique quel autre d
 Ton prospectif, en français, à la 2e personne. 90-140 mots. Réponds UNIQUEMENT en texte libre (pas de JSON).`;
 }
 
+function buildChoixPrompt(
+  a: Record<string, string | number>,
+  b: Record<string, string | number>,
+  kinds: DieKind[],
+): string {
+  const fmt = (label: string, faces: Record<string, string | number>) =>
+    `${label} :\n` +
+    kinds.map((k) => `• ${k} = ${faces[k]} (${nameOf(k, faces[k])})`).join('\n');
+  const bloc = `${fmt('PREMIER CHOIX', a)}\n\n${fmt('SECOND CHOIX', b)}`;
+
+  return `Tu es un astrologue de la tradition occidentale, ton de voix poétique mais précis, en français.
+
+RAPPEL DES 3 PILIERS DES DÉS DU ZODIAQUE :
+• La PLANÈTE (☉ ☽ ☿ ♀ ♂ ♃ ♄ ♅ ♆ ♇) = le "Qui / Quoi" : l'énergie active, l'acteur.
+• Le SIGNE (♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓) = le "Comment" : la coloration, le tempérament.
+• La MAISON (1 à 12) = le "Où" : le domaine concret de la vie concerné.
+
+Deux tirages ont été faits, un pour chaque choix de la personne :
+${bloc}
+
+IMPORTANT : utilise IMPÉRATIVEMENT les valeurs ci-dessus (les deux tirages sont réels). Ne fais jamais semblant qu'elles manquent.
+
+Réponds STRICTEMENT en JSON (pas de texte avant ni après, pas de markdown) selon ce schéma :
+{
+  "comparaison": "Comparaison des deux chemins, en répondant EXACTEMENT à ces questions : l'option du Premier Choix apporte-t-elle de la stabilité ou de la stagnation ? L'option du Second Choix génère-t-elle du renouveau ou de l'instabilité ? 4 à 6 phrases chaleureuses, comme un oracle bienveillant qui aide la personne à sentir la fluidité des énergies de chaque chemin."
+}
+Réponds UNIQUEMENT avec l'objet JSON.`;
+}
+
 export async function POST(request: NextRequest) {
   let body: any = {};
   try {
@@ -80,17 +111,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { faces, activeKinds, mode } = body;
+  const { faces, activeKinds, mode, facesA, facesB } = body;
   const m = (mode as Mode) || 'global';
-  if (!VALID_MODES.includes(m)) {
-    return NextResponse.json({ error: `mode invalide : ${mode}` }, { status: 400 });
-  }
-  if (!faces || typeof faces !== 'object') {
-    return NextResponse.json({ error: 'faces requis' }, { status: 400 });
-  }
   const kinds = Array.isArray(activeKinds)
     ? (activeKinds.filter((k: string) => k === 'planet' || k === 'sign' || k === 'house') as DieKind[])
     : (['planet', 'sign', 'house'] as DieKind[]);
+  if (!VALID_MODES.includes(m)) {
+    return NextResponse.json({ error: `mode invalide : ${mode}` }, { status: 400 });
+  }
+
+  // Mode comparaison de choix : on attend facesA + facesB.
+  if (m === 'choix') {
+    if (!facesA || !facesB || typeof facesA !== 'object' || typeof facesB !== 'object') {
+      return NextResponse.json({ error: 'facesA et facesB requis' }, { status: 400 });
+    }
+    const prompt = buildChoixPrompt(facesA, facesB, kinds);
+    const content = (await callOracle(prompt)) || '';
+    if (!content || content.trim().length === 0) {
+      return NextResponse.json(
+        { comparaison: "Les étoiles se voilent un instant… La comparaison n'a pas pu être générée. Recommence plus tard." },
+        { status: 200 },
+      );
+    }
+    try {
+      const json = extractJson(content);
+      if (json && json.comparaison) {
+        return NextResponse.json({ comparaison: json.comparaison.trim() });
+      }
+    } catch {
+      // ignore → fallback ci-dessous
+    }
+    return NextResponse.json({ comparaison: content.trim() });
+  }
+
+  if (!faces || typeof faces !== 'object') {
+    return NextResponse.json({ error: 'faces requis' }, { status: 400 });
+  }
   if (kinds.length === 0) {
     return NextResponse.json({ error: 'activeKinds vide' }, { status: 400 });
   }
@@ -105,5 +161,37 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Pour le mode global, le LLM renvoie du JSON structuré → on le parse et
+  // on le renvoie sous forme de sections (planet / sign / house / synthese).
+  // Fallback : si le parsing échoue, on renvoie le texte brut dans `texte`.
+  if (m === 'global') {
+    try {
+      const json = extractJson(content);
+      if (json && (json.planet || json.sign || json.house || json.synthese)) {
+        const sections = [
+          { key: 'planet', label: 'La Planète — le Qui / Quoi', text: json.planet || '' },
+          { key: 'sign', label: 'Le Signe — le Comment', text: json.sign || '' },
+          { key: 'house', label: 'La Maison — le Où', text: json.house || '' },
+        ].filter((s) => s.text.trim().length > 0);
+        return NextResponse.json({
+          sections,
+          synthese: json.synthese || '',
+          texte: content.trim(),
+        });
+      }
+    } catch {
+      // ignore → fallback ci-dessous
+    }
+  }
+
   return NextResponse.json({ texte: content.trim() });
+}
+
+/** Extrait le 1er objet JSON valide d'une chaîne (parfois entourée de texte). */
+function extractJson(raw: string): any {
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  const slice = raw.slice(start, end + 1);
+  return JSON.parse(slice);
 }

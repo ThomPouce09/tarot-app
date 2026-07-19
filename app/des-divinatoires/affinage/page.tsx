@@ -130,6 +130,10 @@ export default function AffinagePage() {
   const [result, setResult] = useState<Partial<TargetFaces>>(faces);
   // Analyse LLM (profondeur).
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysisSections, setAnalysisSections] = useState<
+    { key: string; label: string; text: string }[] | null
+  >(null);
+  const [analysisSynthese, setAnalysisSynthese] = useState<string>('');
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
   // Dés réellement lancés (pilotés par la fenêtre appelante via activeDice).
@@ -202,6 +206,8 @@ export default function AffinagePage() {
   const runAnalysis = useCallback(async () => {
     setAnalysisLoading(true);
     setAnalysis(null);
+    setAnalysisSections(null);
+    setAnalysisSynthese('');
     try {
       const payload = {
         faces: result,
@@ -214,7 +220,12 @@ export default function AffinagePage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      setAnalysis(data.texte || 'Analyse indisponible.');
+      if (data.sections && Array.isArray(data.sections)) {
+        setAnalysisSections(data.sections);
+        setAnalysisSynthese(data.synthese || '');
+      } else {
+        setAnalysis(data.texte || 'Analyse indisponible.');
+      }
     } catch {
       setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
     } finally {
@@ -430,6 +441,61 @@ export default function AffinagePage() {
                       Les astres réfléchissent… ✨
                     </div>
                   )}
+
+                  {/* Analyse structurée en belles cartes */}
+                  {analysisSections && !analysisLoading && (
+                    <div className="space-y-3">
+                      {analysisSections.map((s) => (
+                        <div
+                          key={s.key}
+                          className="rounded-2xl p-4"
+                          style={{
+                            background: `linear-gradient(135deg, ${DICE_THEME.ocre}1f 0%, ${DICE_THEME.ocre}0a 100%)`,
+                            border: `1px solid ${DICE_THEME.ocre}44`,
+                          }}
+                        >
+                          <p
+                            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+                          >
+                            {s.label}
+                          </p>
+                          <p
+                            className="text-center text-sm leading-relaxed italic"
+                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                          >
+                            {s.text}
+                          </p>
+                        </div>
+                      ))}
+
+                      {analysisSynthese && (
+                        <div
+                          className="mt-4 rounded-2xl p-4"
+                          style={{
+                            background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.ocre}14 100%)`,
+                            border: `1px solid ${DICE_THEME.gold}55`,
+                            boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
+                          }}
+                        >
+                          <p
+                            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+                          >
+                            Synthèse
+                          </p>
+                          <p
+                            className="text-center text-sm leading-relaxed italic"
+                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                          >
+                            {analysisSynthese}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fallback texte libre */}
                   {analysis && !analysisLoading && (
                     <motion.p
                       initial={{ opacity: 0 }}
@@ -440,7 +506,8 @@ export default function AffinagePage() {
                       {analysis}
                     </motion.p>
                   )}
-                  {!analysis && !analysisLoading && (
+
+                  {!analysis && !analysisSections && !analysisLoading && (
                     <div className="text-center">
                       <DiceButton
                         variant="ocre"
