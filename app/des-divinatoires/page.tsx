@@ -17,7 +17,7 @@ interface Tile {
 const TILES: Tile[] = [
   {
     href: '/des-divinatoires/affinage',
-    title: "Affinage d'un tirage",
+    title: "Tirage par Affinage",
     desc: 'Un zoom intuitif pour préciser une nuance ou savoir comment surmonter un détail après un premier tirage clair.',
     icon: '🔍',
   },

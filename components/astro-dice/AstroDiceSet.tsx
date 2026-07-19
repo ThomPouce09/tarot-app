@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   DIE_FACES,
   DICE_PALETTE,
+  ALL_KINDS,
   type DieKind,
   type TargetFaces,
   type DiceSkinInput,
@@ -36,10 +37,22 @@ export interface AstroDiceSetProps {
   isRolling: boolean;
   /** Faces sur lesquelles les 3 dés doivent impérativement s'arrêter. */
   targetFaces: TargetFaces;
+  /**
+   * Dés réellement lancés/affichés. Défaut : les 3 ('planet' | 'sign' |
+   * 'house'). Pour un lancer à 1 dé, passez ex. ['planet']. Les dés absents
+   * sont masqués à l'écran et exclus du résultat remonté via `onRest`
+   * (qui devient alors `Partial<TargetFaces>`).
+   */
+  activeKinds?: DieKind[];
   /** Durée totale approximative du lancer (ms). Défaut 2200. */
   rollDurationMs?: number;
-  /** Callback appelé quand les 3 dés sont immobilisés sur leurs faces cibles. */
+  /** Callback appelé quand les dés actifs sont immobilisés sur leurs faces
+   *  cibles. Avec un seul dé, seules les clés présentes sont renseignées
+   *  (les autres sont `undefined`) — la page appelante filtre via Object.keys. */
   onRest?: (faces: TargetFaces) => void;
+  /** Callback appelé quand le contexte WebGL du canvas est prêt (arène
+   *  jouable). Utilisé pour révéler le composant uniquement une fois chargé. */
+  onReady?: () => void;
   /** Hauteur du canvas (CSS). Défaut 420. */
   height?: number | string;
   /** Police .ttf/.woff des glyphes astro. Défaut DejaVuSans (couvre ♃♆♇♈…). */
@@ -222,7 +235,7 @@ interface Body {
   settlePos: THREE.Vector2;
 }
 
-const DICE_KINDS: DieKind[] = ['planet', 'sign', 'house'];
+const DICE_KINDS: DieKind[] = ALL_KINDS;
 const FRICTION = 1.35; // amortissement linéaire (par seconde)
 const WALL_RESTITUTION = 0.82;
 const DIE_RESTITUTION = 0.9;
@@ -250,6 +263,7 @@ function DiceArena({
   onAllRest,
   hideIdle,
   background,
+  activeKinds,
 }: {
   isRolling: boolean;
   targetIndices: Record<DieKind, number>;
@@ -260,6 +274,7 @@ function DiceArena({
   onAllRest: () => void;
   hideIdle: boolean;
   background?: string;
+  activeKinds: DieKind[];
 }) {
   const groups = [
     useRef<THREE.Group>(null!),
@@ -505,7 +520,7 @@ function DiceArena({
           key={kind}
           ref={groups[i]}
           position={[restSlots[i][0], DIE_RADIUS, restSlots[i][1]]}
-          visible={!hideIdle || isRolling}
+          visible={activeKinds.includes(kind) && (!hideIdle || isRolling)}
         >
           <DieMesh kind={kind} faces={faces} skin={skin} font={font} />
         </group>
@@ -589,6 +604,7 @@ function Scene({
   onRest,
   hideIdle,
   background,
+  activeKinds,
 }: Required<
   Pick<AstroDiceSetProps, 'isRolling' | 'targetFaces' | 'rollDurationMs'>
 > &
@@ -596,6 +612,7 @@ function Scene({
     skin: DiceSkin;
     hideIdle: boolean;
     background?: string;
+    activeKinds?: DieKind[];
   }) {
   const targetIndices = useMemo<Record<DieKind, number>>(() => {
     const planet = DIE_FACES.planet.indexOf(targetFaces.planet);
@@ -608,9 +625,16 @@ function Scene({
     };
   }, [targetFaces]);
 
+  // Remonte UNIQUEMENT les dés actifs (Partial<TargetFaces>) → la page
+  // appelante reçoit exactement ce qui a été lancé (1 dé ou 3).
   const handleAllRest = useCallback(() => {
-    onRest?.(targetFaces);
-  }, [onRest, targetFaces]);
+    const kinds = activeKinds ?? ALL_KINDS;
+    const result: Partial<TargetFaces> = {};
+    if (kinds.includes('planet')) result.planet = targetFaces.planet;
+    if (kinds.includes('sign')) result.sign = targetFaces.sign;
+    if (kinds.includes('house')) result.house = targetFaces.house;
+    onRest?.(result as TargetFaces);
+  }, [onRest, targetFaces, activeKinds]);
 
   return (
     <>
@@ -683,6 +707,7 @@ function Scene({
         onAllRest={handleAllRest}
         hideIdle={hideIdle}
         background={background}
+        activeKinds={activeKinds ?? ALL_KINDS}
       />
 
       <ContactShadows
@@ -707,6 +732,7 @@ export default function AstroDiceSet({
   targetFaces,
   rollDurationMs = 3000,
   onRest,
+  onReady,
   height = 420,
   font,
   skin,
@@ -714,8 +740,11 @@ export default function AstroDiceSet({
   className,
   spawn,
   hideIdle = false,
+  activeKinds,
 }: AstroDiceSetProps) {
   const resolvedSkin = useMemo(() => resolveSkin(skin), [skin]);
+  // Dés réellement lancés : tous par défaut, sinon filtrés selon la prop.
+  const kinds = activeKinds ?? ALL_KINDS;
   // Fond : chaîne CSS personnalisée, 'transparent' possible, sinon dégradé par
   // défaut. Le canvas est en alpha:true → 'transparent' laisse voir le dessous.
   // Le skin 'moon' bascule par défaut sur un ciel bleu nuit pour le bac.
@@ -744,9 +773,11 @@ export default function AstroDiceSet({
         // vue zénithale dès onCreated, pas cette valeur (sinon on garde un 3/4).
         camera={{ position: [0, 1, 0], fov: 52, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true }}
+        style={{ touchAction: 'pan-y' }}
         onCreated={({ camera }) => {
           camera.up.set(0, 0, -1);
           (camera as THREE.PerspectiveCamera).lookAt(0, 0, 0);
+          onReady?.();
         }}
       >
         <Scene
@@ -759,6 +790,7 @@ export default function AstroDiceSet({
           hideIdle={hideIdle}
           onRest={onRest}
           background={background}
+          activeKinds={kinds}
         />
       </Canvas>
     </div>

@@ -11,6 +11,7 @@ export {
   DICE_PALETTE,
   DICE_SKINS,
   randomTargetFaces,
+  ALL_KINDS,
 } from './glyphs';
 export type {
   TargetFaces,

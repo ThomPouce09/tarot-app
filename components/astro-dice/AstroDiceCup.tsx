@@ -159,17 +159,22 @@ export interface AstroDiceCupProps
    * renversé vers le haut.
    */
   spawn?: { x: number; z: number };
-  /** Affiche un texte d'aide contextuel dans le pad. Défaut true. */
-  hints?: boolean;
+  /** Callback appelé quand le contexte WebGL du canvas est prêt (arène
+   *  jouable). Permet à la page parente de révéler le composant uniquement
+   *  une fois entièrement chargé (gobelet prêt à être secoué). */
+  onReady?: () => void;
   /** Incrémenter ce nombre remet le composant à son état initial
    *  (mini-dés visibles dans gobelet1, dés d'animation invisibles). */
   resetSignal?: number;
+  /** Incrémenter ce nombre déclenche un lancer programmatique du gobelet
+   *  (équivalent au geste push). Permet un bouton « Lancer » côté page. */
+  launchSignal?: number;
 }
 
 /* Gobelet : taille validée (60px). Positionné au BORD BAS de l'arène, pas au
    centre → on le place à ~80% de la hauteur du conteneur. */
 const GOBLET_SIZE = 52; // px (taille intermédiaire commune aux 3 gobelets)
-const GOBLET_TOP = '80%'; // bord bas de l'arène
+const GOBLET_TOP = '88%'; // bord bas de l'arène (un peu plus bas)
 
 /* Mini-dés simulant les dés dans le gobelet : ils rebondissent librement
    dans la circonférence interne du gobelet (physique 2D : murs + collisions
@@ -196,8 +201,13 @@ export default function AstroDiceCup({
   background,
   className,
   spawn = { x: 0, z: 3.2 },
-  hints = true,
   resetSignal = 0,
+  /** Incrémenter ce compteur (depuis la page) déclenche un lancer
+   *  programmatique du gobelet (équivalent au geste push). Permet un
+   *  bouton « Lancer » sans dépendre du geste tactile. */
+  launchSignal = 0,
+  onReady,
+  activeKinds,
 }: AstroDiceCupProps) {
   // `rolling` est PILOTÉ EN INTERNE par le wrapper : au 2e push (gobelet3),
   // on passe rolling=true → l'ANIM 1 se déclenche (dés qui "tombent" en
@@ -217,14 +227,19 @@ export default function AstroDiceCup({
   const rotate = useMotionValue(0);
   // transform réellement réactif aux MotionValue (sinon rien ne bouge).
   const transform = useMotionTemplate`translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-  // Mini-dés : simulation physique dans le gobelet (rebond murs + collisions).
-  const cupDice = useCupDice(CUP_DICE_COUNT, CUP_CIRCLE_R, x);
+  // Mini-dés : simulation physique dans le gobelet. Leur nombre suit
+  // activeKinds (1 dé → 1 mini-dé, sinon 3).
+  const cupDice = useCupDice(activeKinds?.length === 1 ? 1 : CUP_DICE_COUNT, CUP_CIRCLE_R, x);
 
   // Suivi du mouvement pour détecter les secousses (gauche↔droite).
   const lastX = useRef(0);
   const lastDir = useRef(0);
   const shaking = useRef(false);
-  // Pour le tip : on détecte des "montées" (push vers le haut) discrètes.
+  // Détection d'un TAP (pour déclencher le lancer sans bloquer le scroll
+  // vertical : touchAction: pan-y laisse passer le tap mais pas le drag Y).
+  const downX = useRef(0);
+  const downY = useRef(0);
+  const downT = useRef(0);
   const pushStartY = useRef<number | null>(null);
 
   // ── Quand l'ANIM 1 a fini de rouler, on fige l'overlay sur 'done'. ──
@@ -248,6 +263,36 @@ export default function AstroDiceCup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);
 
+  /* --- Déclenchement programmatique (bouton « Lancer ») ------------------- */
+  // Même cascade que le push tactile : gobelet2 → 0.4s → gobelet3 + lancer.
+  const launch = useCallback(() => {
+    if (revealed || rolling) return;
+    setPhase('done');
+    setShowCupDice(false);
+    setCupImg('/images/gobelet2.png');
+    rotate.set(-9);
+    y.set(-13);
+    window.setTimeout(() => {
+      setCupImg('/images/gobelet3.png');
+      rotate.set(-18);
+      y.set(-26);
+      setRevealed(true);
+      setRolling(true);
+    }, 400);
+  }, [revealed, rolling, rotate, y]);
+
+  // Incrémenter launchSignal (depuis la page) → lancer programmatique.
+  // On initialise la ref à 0 (et non à launchSignal) : au 1er montage le
+  // signal vaut 0 → pas d'autolancement (le 1er lancer vient du geste tap).
+  // Après un remount (key=resetSignal), launchSignal > 0 → on lance.
+  const prevLaunch = useRef(0);
+  useEffect(() => {
+    if (launchSignal !== prevLaunch.current) {
+      prevLaunch.current = launchSignal;
+      launch();
+    }
+  }, [launchSignal, launch]);
+
   /* --- Pointeur (sur le PAD du bas) ----------------------------------------- */
 
   const onPointerDown = useCallback(
@@ -264,6 +309,10 @@ export default function AstroDiceCup({
         if (phase === 'idle') setPhase('shake');
         // On mémorise la position de départ pour détecter un drag vertical.
         pushStartY.current = e.clientY;
+        // Mémorise le point de départ + temps pour détecter un TAP.
+        downX.current = e.clientX;
+        downY.current = e.clientY;
+        downT.current = Date.now();
       }
     },
     [phase, revealed],
@@ -309,18 +358,36 @@ export default function AstroDiceCup({
     [phase, x, y, rotate],
   );
 
-  const onPointerUp = useCallback(() => {
-    shaking.current = false;
-    pushStartY.current = null;
-    // On ne ramène PAS le gobelet à 0 pendant le shake : l'utilisateur doit
-    // pouvoir enchaîner autant d'A/R que voulu. On ne recentre que si le
-    // gobelet est déjà renversé (phase done) ou au reset complet.
-    if (phase === 'done') {
-      animate(x, 0, { type: 'spring', stiffness: 260, damping: 18 });
-      animate(y, 0, { type: 'spring', stiffness: 260, damping: 18 });
-      animate(rotate, 0, { type: 'spring', stiffness: 260, damping: 18 });
-    }
-  }, [phase, x, y, rotate, revealed]);
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      shaking.current = false;
+      pushStartY.current = null;
+      // TAP (sans drag) → lance le tirage. Permet de déclencher sans
+      // bloquer le scroll vertical (pan-y laisse passer le tap).
+      const movedX = Math.abs(e.clientX - downX.current);
+      const movedY = Math.abs(e.clientY - downY.current);
+      const dt = Date.now() - downT.current;
+      if (
+        !revealed &&
+        (phase === 'idle' || phase === 'shake') &&
+        movedX < 12 &&
+        movedY < 12 &&
+        dt < 250
+      ) {
+        launch();
+        return;
+      }
+      // On ne ramène PAS le gobelet à 0 pendant le shake : l'utilisateur doit
+      // pouvoir enchaîner autant d'A/R que voulu. On ne recentre que si le
+      // gobelet est déjà renversé (phase done) ou au reset complet.
+      if (phase === 'done') {
+        animate(x, 0, { type: 'spring', stiffness: 260, damping: 18 });
+        animate(y, 0, { type: 'spring', stiffness: 260, damping: 18 });
+        animate(rotate, 0, { type: 'spring', stiffness: 260, damping: 18 });
+      }
+    },
+    [phase, x, y, rotate, revealed, launch],
+  );
 
   // ── Réception du résultat de l'ANIM 1 : on remonte au parent + reset. ──
   const handleRest = useCallback(
@@ -362,17 +429,6 @@ export default function AstroDiceCup({
     zIndex: 5,
   };
 
-  const hintText =
-    revealed && !rolling
-      ? 'Les dés sont jetés… Les dés ont parlé !'
-      : phase === 'idle'
-        ? 'Secoue le gobelet pour mélanger les dés'
-        : phase === 'shake'
-          ? 'Secoue autant que tu veux, puis pousse vers le haut'
-          : phase === 'tip'
-            ? 'Pousse vers le haut pour renverser le gobelet'
-            : 'Les dés roulent…';
-
   return (
     <div
       style={{
@@ -397,6 +453,8 @@ export default function AstroDiceCup({
           background="url(/backgrounds/des-divinatoires-bg.png) center / contain no-repeat"
           spawn={spawn}
           hideIdle={!revealed}
+          onReady={onReady}
+          activeKinds={activeKinds}
         />
       </div>
 
@@ -457,7 +515,7 @@ export default function AstroDiceCup({
           bottom: 0,
           height: PAD_HEIGHT,
           zIndex: 7,
-          touchAction: 'none',
+          touchAction: 'pan-y',
           userSelect: 'none',
           display: 'flex',
           alignItems: 'center',
@@ -475,7 +533,6 @@ export default function AstroDiceCup({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        {hints ? hintText : ''}
       </div>
     </div>
   );

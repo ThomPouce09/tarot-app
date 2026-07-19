@@ -31,11 +31,22 @@ export const DICE_THEME = {
   steel: '#2a3a6b',        // bleu acier
 } as const;
 
-/* Fond commun — bleu nuit profond + voile doré subtil */
-export function DiceBackground({ children }: { children: ReactNode }) {
+/* Fond commun — bleu nuit profond + voile doré subtil.
+   `scrollable` : en mode scrollable, le fond devient un conteneur de
+   hauteur viewport avec défilement interne (utile quand le contenu dépasse
+   l'écran, ex. gobelet + tutoriel). Les autres pages gardent min-h-screen. */
+export function DiceBackground({
+  children,
+  scrollable = false,
+}: {
+  children: ReactNode;
+  scrollable?: boolean;
+}) {
   return (
     <div
-      className="relative min-h-screen w-full overflow-x-hidden"
+      className={`relative w-full overflow-x-hidden ${
+        scrollable ? 'h-[100dvh] overflow-y-auto' : 'min-h-screen'
+      }`}
       style={{
         background: `radial-gradient(ellipse at 50% 0%, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 55%, #02040c 100%)`,
       }}

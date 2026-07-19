@@ -50,6 +50,9 @@ export type HouseNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 /** Identifiant des trois dés. */
 export type DieKind = 'planet' | 'sign' | 'house';
 
+/** Les trois dés, dans l'ordre planète / signe / maison. */
+export const ALL_KINDS: DieKind[] = ['planet', 'sign', 'house'];
+
 /** Faces cibles sur lesquelles les dés doivent impérativement s'immobiliser. */
 export interface TargetFaces {
   planet: PlanetGlyph;
