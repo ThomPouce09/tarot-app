@@ -1,6 +1,6 @@
 'use client';
 
-// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés Divinatoires
+// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés du Zodiaque
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -40,7 +40,7 @@ export default function DesDivinatoiresHub() {
     <DiceBackground>
       <YiSlideNav />
       <DiceTitle
-        title="Les Dés Divinatoires"
+        title="Les Dés du zodiaque"
         subtitle="Trois dés à douze faces — la Planète (qui/quoi), le Signe (comment) et la Maison (où) — pour éclairer vos questions avec précision."
       />
 

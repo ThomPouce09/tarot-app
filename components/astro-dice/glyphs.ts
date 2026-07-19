@@ -1,5 +1,5 @@
 // components/astro-dice/glyphs.ts
-// Données & types des trois dés divinatoires (dodécaèdres à 12 faces).
+// Données & types des trois dés du zodiaque (dodécaèdres à 12 faces).
 //
 // ⚠️ Les glyphes planétaires (☉☽☿…) et zodiacaux (♈♉♊…) appartiennent au bloc
 // Unicode "Miscellaneous Symbols". Toutes les polices ne les embarquent pas :

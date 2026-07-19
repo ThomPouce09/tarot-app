@@ -327,7 +327,9 @@ html, body {
    de droite a gauche. Le centre reste transparent (mask creux) -> la tuile ne
    devient pas noire. Synchronise avec le balayage des lettres. */
 .tile-sweep-tarot,
-.tile-sweep-yijing {
+.tile-sweep-yijing,
+.tile-sweep-des,
+.tile-sweep-runes {
   padding: 2px;                 /* epaisseur de la bande lumineuse */
   background-repeat: no-repeat;
   -webkit-mask:
@@ -347,6 +349,10 @@ html, body {
 }
 .tile-sweep-des {
   background: linear-gradient(90deg, transparent 40%, rgba(250,180,170,0.85) 50%, transparent 60%);
+  background-size: 220% 100%;
+}
+.tile-sweep-runes {
+  background: linear-gradient(90deg, transparent 40%, rgba(170,210,140,0.9) 50%, transparent 60%);
   background-size: 220% 100%;
 }
 @keyframes tile-sweep {

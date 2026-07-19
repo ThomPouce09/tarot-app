@@ -134,6 +134,6 @@ const MENU_LINKS: { href: string; label: string; disabled?: boolean }[] = [
   { href: '/tarot', label: 'Tarot' },
   { href: '/yi-jing', label: 'Yi Jing' },
   { href: '/runes', label: 'Runes' },
-  { href: '/des-divinatoires', label: 'Dés Divinatoires' },
+  { href: '/des-divinatoires', label: 'Dés du zodiaque' },
   { href: '/dashboard/account', label: 'Mon espace' },
 ];

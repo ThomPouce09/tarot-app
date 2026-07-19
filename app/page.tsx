@@ -25,6 +25,7 @@ export default function HomePage() {
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
   const yijingShimmer = useShimmer(t('landing.tile.yijing'), 4000, 18000);
   const desShimmer = useShimmer(t('landing.tile.des'), 4000, 18000);
+  const runesShimmer = useShimmer(t('landing.tile.runes'), 4000, 18000);
 
   // Scintillement occasionnel de l'etoile du bouton Mon espace (pas trop frequent)
   const [ctaTwinkle, setCtaTwinkle] = useState(false);
@@ -285,7 +286,7 @@ export default function HomePage() {
                   textShadow: '0 0 8px rgba(138,109,59,0.5)',
                 }}
               >
-                {t('landing.tile.runes')}
+                <ShimmerChars text={t('landing.tile.runes')} col={runesShimmer.col} color="#D4B483" />
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
@@ -302,10 +303,13 @@ export default function HomePage() {
                 background: 'radial-gradient(ellipse at center, rgba(138,109,59,0.2) 0%, transparent 70%)',
               }}
             />
+            {runesShimmer.sweeping && (
+              <div className="tile-sweep-runes absolute inset-0 pointer-events-none rounded-xl" />
+            )}
           </motion.div>
         </Link>
 
-        {/* Dés divinatoires Card Button */}
+        {/* Dés du zodiaque Card Button */}
         <Link href="/des-divinatoires" className="block">
           <motion.div
             className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
@@ -324,12 +328,12 @@ export default function HomePage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-300/25 rounded-lg pointer-events-none" />
-              {/* Icône temporaire — à remplacer par l'image livrée */}
-              <span
-                className="text-4xl mb-2"
+              <img
+                src="/images/des-zodiaque.png"
+                alt="Les dés du zodiaque"
+                className="w-11 h-11 mb-2 object-contain"
                 style={{ filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.55))' }}
-                aria-hidden
-              >🎲</span>
+              />
               <h2
                 className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{

@@ -407,7 +407,7 @@ export default function AstroDiceCup({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cupImg}
-          alt="Gobelet divinatoire"
+          alt="Gobelet du zodiaque"
           draggable={false}
           style={{
             width: '100%',

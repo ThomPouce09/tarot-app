@@ -1,7 +1,7 @@
 'use client';
 
 // app/des-divinatoires/_shared.tsx
-// Primitives visuelles partagées de la section "Dés Divinatoires".
+// Primitives visuelles partagées de la section "Dés du Zodiaque".
 // Palette provisoire : rouge brique + ocre (à remplacer par tes visuels définitifs).
 
 import Link from 'next/link';
@@ -237,7 +237,7 @@ export function BackToHub() {
         className="text-sm underline-offset-4 hover:underline"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
       >
-        ← Retour aux Dés Divinatoires
+        ← Retour aux Dés du zodiaque
       </Link>
     </div>
   );

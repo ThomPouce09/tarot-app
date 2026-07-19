@@ -2,7 +2,7 @@
 
 // components/astro-dice/AstroDiceSet.tsx
 //
-// <AstroDiceSet/> — Trois dés à 12 faces (dodécaèdres) divinatoires lancés dans
+// <AstroDiceSet/> — Trois dés à 12 faces (dodécaèdres) du zodiaque lancés dans
 // une ARÈNE OVOÏDE (elliptique) vue de dessus (top-down). Les dés roulent
 // librement, rebondissent contre la paroi de l'arène et les uns contre les
 // autres, puis s'immobilisent en douceur sur les faces cibles imposées.

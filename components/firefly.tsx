@@ -26,6 +26,7 @@ export default function Firefly({ page }: { page: string }) {
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [burst, setBurst] = useState<{ id: number; dx: number; dy: number; size: number }[] | null>(null);
   const aliveRef = useRef(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null); // son du tap (jongle 1..5)
   const wanderResolveRef = useRef<null | (() => void)>(null); // permet au clic de court-circuiter l'attente
   const popupActiveRef = useRef(false); // une créature/popup est-elle active ? (bloque tout nouveau spawn)
   const resumeRef = useRef<null | (() => void)>(null); // reprend le cycle quand le popup se ferme
@@ -127,6 +128,12 @@ export default function Firefly({ page }: { page: string }) {
             title={creature.name}
             onClick={() => {
               if (!pending) return;
+              // Jongle : un des 5 sons creature1..5 au hasard à chaque tap.
+              const n = 1 + Math.floor(Math.random() * 5);
+              const snd = new Audio(`/audio/creatures${n}.mp3`);
+              snd.volume = 0.7;
+              audioRef.current = snd;
+              snd.play().catch(() => {}); // navigateur peut couper avant 1er geste
               // Explosion de la luciole en petites particules qui fondent dans le fond
               const parts = Array.from({ length: 42 }).map((_, i) => ({
                 id: i,
