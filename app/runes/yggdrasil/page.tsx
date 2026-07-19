@@ -11,7 +11,6 @@ import {
   RuneButton,
   RuneReading,
   RuneReveal,
-  BackToRunes,
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
@@ -96,8 +95,6 @@ export default function YggdrasilPage() {
           </div>
         )}
       </div>
-
-      <BackToRunes />
     </RuneBackground>
   );
 }

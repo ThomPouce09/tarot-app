@@ -11,8 +11,8 @@ import {
   RuneTitle,
   RuneButton,
   RuneReading,
+  RuneAnalysis,
   SageCard,
-  BackToRunes,
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
@@ -108,6 +108,18 @@ export default function NornesPage() {
           )}
         </AnimatePresence>
 
+        {/* Analyse IA du fil des Nornes (3 premières runes) */}
+        {phase === 'done' && runes.length >= 3 && (
+          <RuneAnalysis
+            mode="nornes"
+            runes={[
+              { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
+              { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
+              { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
+            ]}
+          />
+        )}
+
         {/* Variation "Briser le Destin" */}
         <AnimatePresence>
           {phase === 'done' && !hasAdvice && (
@@ -132,19 +144,19 @@ export default function NornesPage() {
 
         {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
             ré-affiché pour ce round : count=1, layout horizontal. */}
-        {hasAdvice && (
+        {phase === 'advice' && (
           <RuneStonesSet
             count={1}
             layout="horizontal"
             isRolling={isRolling}
             onRest={handleAdviceRest}
-            height={260}
+            height={340}
           />
         )}
 
         {/* 4ème rune : Conseil d'Odin */}
         <AnimatePresence>
-          {hasAdvice && runes[3] && (
+          {phase === 'advice' && runes[3] && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -161,6 +173,18 @@ export default function NornesPage() {
                   position="Conseil d'Odin"
                 />
               </SageCard>
+              {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
+              <RuneAnalysis
+                mode="nornes"
+                focus="odin"
+                buttonLabel="Consulter l'Oracle sur le conseil d'Odin"
+                runes={[
+                  { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
+                  { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
+                  { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
+                  { rune: runes[3].rune, reversed: runes[3].reversed, position: 'Conseil d’Odin' },
+                ]}
+              />
               <div className="mt-6 text-center">
                 <RuneButton onClick={roll}>Recommencer un tirage</RuneButton>
               </div>
@@ -174,8 +198,6 @@ export default function NornesPage() {
           </div>
         )}
       </div>
-
-      <BackToRunes />
     </RuneBackground>
   );
 }

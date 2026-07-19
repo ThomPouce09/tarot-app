@@ -34,6 +34,8 @@ const POUCH = { x: 50, y: 74 };
 const FLIGHT_DURATION = 1.15;
 
 function slotsFor(layout: RuneLayout, count: number): Array<[number, number]> {
+  // Tirage d'une rune seule (ex: Conseil d'Odin) → centrée, en face du pochon.
+  if (count === 1) return [[50, 26]];
   switch (layout) {
     case 'horizontal':
       return Array.from({ length: count }, (_, i) => [

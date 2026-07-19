@@ -11,7 +11,6 @@ import {
   RuneTitle,
   RuneButton,
   RuneReading,
-  BackToRunes,
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
@@ -105,8 +104,6 @@ export default function MjolnirPage() {
           </div>
         )}
       </div>
-
-      <BackToRunes />
     </RuneBackground>
   );
 }

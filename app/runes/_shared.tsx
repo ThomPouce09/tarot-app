@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
 
@@ -358,5 +359,163 @@ export function RuneReveal({
     >
       {children}
     </motion.div>
+  );
+}
+
+/* Analyse IA structurée d'un tirage de runes (appelle /api/rune-interpretation). */
+export function RuneAnalysis({
+  runes,
+  mode,
+  focus,
+  buttonLabel = "✨ Interroger l'Oracle",
+}: {
+  runes: { rune: Rune; reversed: boolean; position: string }[];
+  mode: 'nornes' | 'mjolnir' | 'yggdrasil';
+  focus?: 'odin';
+  buttonLabel?: string;
+}) {
+  const [sections, setSections] = useState<
+    { position: string; rune: string; sens: string; lecture: string }[] | null
+  >(null);
+  const [synthese, setSynthese] = useState('');
+  const [conseil, setConseil] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const run = useCallback(async () => {
+    setLoading(true);
+    setSections(null);
+    setSynthese('');
+    setConseil('');
+    try {
+      const payload = runes.map((r) => ({
+        name: r.rune.name,
+        symbol: r.rune.symbol,
+        position: r.position,
+        sense: r.reversed ? r.rune.reversed : r.rune.upright,
+        reversed: r.reversed,
+      }));
+      const res = await fetch('/api/rune-interpretation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runes: payload, mode, focus }),
+      });
+      const data = await res.json();
+      if (data.sections && Array.isArray(data.sections)) {
+        setSections(data.sections);
+        setSynthese(data.synthese || '');
+        setConseil(data.conseil_action || '');
+      }
+    } catch {
+      // silencieux : l'utilisateur peut relancer
+    } finally {
+      setLoading(false);
+    }
+  }, [runes, mode]);
+
+  return (
+    <div className="mt-6">
+      {!sections && !loading && (
+        <div className="text-center">
+          <RuneButton variant="gold" onClick={run}>
+            {buttonLabel}
+          </RuneButton>
+        </div>
+      )}
+
+      {loading && (
+        <div
+          className="text-center text-sm italic"
+          style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale, opacity: 0.8 }}
+        >
+          L&apos;Oracle déchiffre les runes… ✦
+        </div>
+      )}
+
+      {sections && !loading && (
+        <div className="space-y-3">
+          {sections.map((s, i) => (
+            <div
+              key={i}
+              className="rounded-2xl p-4"
+              style={{
+                background: `linear-gradient(135deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forest}22 100%)`,
+                border: `1px solid ${RUNE_THEME.goldPale}44`,
+              }}
+            >
+              <p
+                className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
+              >
+                {s.position}
+              </p>
+              <p
+                className="mb-2 text-center text-base"
+                style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}
+              >
+                {s.rune}
+              </p>
+              <p
+                className="mb-2 text-center text-xs italic"
+                style={{ color: RUNE_THEME.sage, opacity: 0.85 }}
+              >
+                {s.sens}
+              </p>
+              <p
+                className="text-center text-sm leading-relaxed"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.stone }}
+              >
+                {s.lecture}
+              </p>
+            </div>
+          ))}
+
+          {synthese && (
+            <div
+              className="mt-4 rounded-2xl p-4"
+              style={{
+                background: `linear-gradient(135deg, ${RUNE_THEME.goldPale}22 0%, ${RUNE_THEME.forestMid}14 100%)`,
+                border: `1px solid ${RUNE_THEME.goldPale}55`,
+              }}
+            >
+              <p
+                className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}
+              >
+                Synthèse
+              </p>
+              <p
+                className="text-center text-sm leading-relaxed italic"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.stone }}
+              >
+                {synthese}
+              </p>
+            </div>
+          )}
+
+          {conseil && (
+            <div
+              className="mt-4 rounded-2xl p-4"
+              style={{
+                background: `linear-gradient(135deg, ${RUNE_THEME.sage}22 0%, ${RUNE_THEME.forestMid}18 100%)`,
+                border: `1px solid ${RUNE_THEME.sage}66`,
+              }}
+            >
+              <p
+                className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.sage }}
+              >
+                Conseil d&apos;Odin
+              </p>
+              <p
+                className="text-center text-sm leading-relaxed italic"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.stone }}
+              >
+                {conseil}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
