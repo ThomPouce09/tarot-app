@@ -8,12 +8,17 @@
 // En local, exposer via : stripe listen --forward-to localhost:3002/api/webhooks/stripe
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
+  if (!stripe) {
+    return NextResponse.json({ error: 'Paiements désactivés (clé Stripe manquante)' }, { status: 503 });
+  }
+
   const sig = request.headers.get('stripe-signature');
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!sig || !secret) {
