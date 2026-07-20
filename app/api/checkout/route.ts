@@ -7,12 +7,13 @@
 // l'idempotence en mode test).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, priceIdForPlan, PLAN_AMOUNTS, type PlanId } from '@/lib/stripe';
+import Stripe from 'stripe';
+import { getStripe, priceIdForPlan, PLAN_AMOUNTS, type PlanId } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-async function ensurePrice(plan: PlanId): Promise<string> {
+async function ensurePrice(stripe: Stripe, plan: PlanId): Promise<string> {
   const existing = priceIdForPlan(plan);
   if (existing) return existing;
 
@@ -34,6 +35,11 @@ async function ensurePrice(plan: PlanId): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return NextResponse.json({ error: 'Paiements désactivés (clé Stripe manquante)' }, { status: 503 });
+    }
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3007';
     const { plan, email } = await request.json();
     if (plan !== 'initie' && plan !== 'oracle') {
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
 
-    const priceId = await ensurePrice(plan as PlanId);
+    const priceId = await ensurePrice(stripe, plan as PlanId);
 
     // Customer Stripe (réutilisé si déjà créé).
     let customerId: string | undefined;

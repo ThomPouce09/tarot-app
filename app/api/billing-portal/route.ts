@@ -2,7 +2,7 @@
 // Ouvre le Stripe Billing Portal pour gérer l'abonnement (carte, annulation…).
 // Côté serveur uniquement (STRIPE_SECRET_KEY).
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +11,11 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
     if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+
+    const stripe = getStripe();
+    if (!stripe) {
+      return NextResponse.json({ error: 'Paiements désactivés (clé Stripe manquante)' }, { status: 503 });
+    }
 
     const user = await prisma.user.findUnique({
       where: { email: String(email).toLowerCase().trim() },

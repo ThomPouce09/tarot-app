@@ -1,17 +1,27 @@
 // lib/stripe.ts
 // Client Stripe côté serveur UNIQUEMENT (la clé secrète ne doit jamais
 // apparaître côté client). On lit STRIPE_SECRET_KEY depuis l'environnement.
+//
+// IMPORTANT : instanciation PARESSEUSE. En dev / build sans clé (ex. Vercel
+// avant configuration des vars d'env), on ne crashe PAS le build : getStripe()
+// renvoie null et les routes retournent une 503 propre ("paiements désactivés").
 
 import Stripe from 'stripe';
 import { PLAN_PRICE_EUR } from './plans';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  // En dev sans clé, on ne plante pas le build : le client est créé paresseusement.
-  console.warn('[stripe] STRIPE_SECRET_KEY manquant — paiements désactivés.');
-}
+let _stripe: Stripe | null | undefined;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-});
+export function getStripe(): Stripe | null {
+  if (_stripe !== undefined) return _stripe; // cache (null inclus)
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    console.warn('[stripe] STRIPE_SECRET_KEY manquant — paiements désactivés.');
+    _stripe = null;
+    return null;
+  }
+  _stripe = new Stripe(key);
+  return _stripe;
+}
 
 // Plans -> Prix Stripe (récupérés/créés côté serveur).
 // On stocke les Price ID dans l'env pour ne pas les coder en dur ici.
