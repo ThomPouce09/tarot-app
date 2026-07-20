@@ -23,6 +23,14 @@ export default function YiSlideNav() {
   const go = (href: string) => {
     playSound();
     setOpen(false);
+    // "Mon espace" : si non identifié, on ouvre la mire de connexion (2) restylée.
+    if (href === '/dashboard/account') {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
+      if (!stored) {
+        router.push('/login');
+        return;
+      }
+    }
     router.push(href);
   };
 

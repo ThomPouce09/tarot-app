@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
+import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
@@ -85,7 +86,7 @@ function ZodiacFrieze({ position }: { position: 'top' | 'bottom' }) {
   return (
     <div
       className={`pointer-events-none absolute inset-x-2 flex justify-center gap-3 overflow-hidden ${
-        position === 'top' ? 'top-1.5' : 'bottom-1.5'
+        position === 'top' ? 'top-2.5' : 'bottom-2.5'
       }`}
       style={{ opacity: 1 }}
       aria-hidden
@@ -93,8 +94,8 @@ function ZodiacFrieze({ position }: { position: 'top' | 'bottom' }) {
       {ZODIAC_GLYPHS.map((glyph, i) => (
         <svg
           key={i}
-          width="18"
-          height="18"
+          width="24"
+          height="24"
           viewBox="0 0 100 100"
           fill="none"
           stroke={DICE_THEME.ocreLight}
@@ -212,6 +213,7 @@ export default function DesDivinatoiresHub() {
           </Link>
         ))}
       </div>
+      <Firefly page="des-divinatoires" />
     </DiceBackground>
   );
 }

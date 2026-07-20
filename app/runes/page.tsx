@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
+import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
 
@@ -135,6 +136,7 @@ export default function RunesHub() {
           </Link>
         ))}
       </div>
+      <Firefly page="runes" />
     </RuneBackground>
   );
 }

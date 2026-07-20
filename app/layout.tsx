@@ -2,7 +2,7 @@ import { Cinzel, Cinzel_Decorative, MedievalSharp, Cormorant_Garamond } from 'ne
 import './globals.css'
 import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
-import { ContactWidget } from '@/components/contact-widget'
+import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
 
 export const dynamic = 'force-dynamic';
@@ -74,7 +74,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
-          <ContactWidget />
+          <LoginModal />
           {/* Portal root pour affichage garanti au-dessus de tout */}
           <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
         </LanguageProvider>
