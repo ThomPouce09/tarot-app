@@ -8,9 +8,35 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
+
+// Frise décorative de runes — rendue uniquement après hydratation pour
+// éviter le mismatch d'hydratation (glyphes runiques = Unicode hors-BMP).
+const FRIEZE_TOP = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
+const FRIEZE_BOTTOM = 'ᛟᛞᛜᛚᛗᛖᛒᛏᛊᛉᛈᛇᛃᛁᚾᚺᚹᚷᚲᚱᚨᚦᚢᚠ';
+
+function RuneFrieze({ position }: { position: 'top' | 'bottom' }) {
+  return (
+    <div
+      className={`pointer-events-none absolute inset-x-1.5 select-none overflow-hidden whitespace-nowrap text-center ${
+        position === 'top' ? 'top-1.5' : 'bottom-1.5'
+      }`}
+      style={{
+        fontFamily: 'var(--font-cinzel-deco), serif',
+        color: RUNE_THEME.goldPale,
+        opacity: 0.1,
+        fontSize: 11,
+        letterSpacing: '0.35em',
+      }}
+      aria-hidden
+    >
+      {position === 'top' ? FRIEZE_TOP : FRIEZE_BOTTOM}
+    </div>
+  );
+}
 
 const TILES = [
   {
@@ -18,7 +44,7 @@ const TILES = [
     glyph: 'ᚾ', // N – Norn (Urdhr, Verdandi, Skuld)
     title: 'Le Fil des Nornes',
     subtitle: 'Passé, présent, avenir — et le conseil d’Odin.',
-    bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forestDeep} 100%)`,
+    bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forest} 100%)`,
     border: `${RUNE_THEME.goldPale}55`,
   },
   {
@@ -34,12 +60,14 @@ const TILES = [
     glyph: 'ᛟ', // O – Yggdrasil / Odin
     title: "Les Racines d'Yggdrasil",
     subtitle: 'Un bilan profond pour s’ancrer et grandir.',
-    bg: `linear-gradient(135deg, #1a3d28 0%, ${RUNE_THEME.forestDeep} 100%)`,
+    bg: `linear-gradient(135deg, #163a26 0%, ${RUNE_THEME.forestDeep} 100%)`,
     border: `${RUNE_THEME.sage}66`,
   },
 ];
 
 export default function RunesHub() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   return (
     <RuneBackground>
       <YiSlideNav />
@@ -62,6 +90,9 @@ export default function RunesHub() {
               whileHover={{ scale: 1.04, y: -3 }}
               whileTap={{ scale: 0.98 }}
             >
+              {/* frise de runes discrètes le long du liseré (après hydratation) */}
+              {mounted && <RuneFrieze position="top" />}
+              {mounted && <RuneFrieze position="bottom" />}
               <div className="relative flex h-full w-full flex-col items-center justify-center p-2">
                 <div className="absolute inset-1.5 rounded-lg border border-[rgba(233,217,172,0.25)] pointer-events-none" />
                 <span

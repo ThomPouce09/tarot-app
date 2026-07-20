@@ -2,6 +2,7 @@ import { Cinzel, Cinzel_Decorative, MedievalSharp, Cormorant_Garamond } from 'ne
 import './globals.css'
 import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
+import { ContactWidget } from '@/components/contact-widget'
 import { LanguageProvider } from '@/lib/i18n'
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,10 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
+        {/* Widget de chat tiers retiré : script externe (apps.abacus.ai) qui
+            posait un overlay captant les taps sur l'ensemble des pages.
+            Remplacé par un widget de contact maison (components/contact-widget). */}
+        {/* <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script> */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -70,6 +74,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
+          <ContactWidget />
           {/* Portal root pour affichage garanti au-dessus de tout */}
           <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
         </LanguageProvider>
