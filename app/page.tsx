@@ -116,12 +116,14 @@ export default function HomePage() {
           {t('landing.subtitle')}
         </p>
 
-        {/* CTA central unique — fixed au-dessus de tout (luciole incluse) */}
+        {/* CTA central unique — dans le flux, au-dessus de la luciole via z-index */}
         <button
           type="button"
           onClick={() => (isLoggedIn ? router.push('/dashboard/account') : setShowLoginModal(true))}
-          className="fixed left-1/2 -translate-x-1/2 top-[15%] z-[99998] mx-auto px-5 py-1.5 rounded-full font-semibold transition-all hover:scale-[1.04] active:scale-[0.97]"
+          className="relative z-[99998] mx-auto mt-2 px-5 py-1.5 rounded-full font-semibold transition-all hover:scale-[1.04] active:scale-[0.97]"
           style={{
+            position: 'relative',
+            zIndex: 99998,
             fontFamily: 'var(--font-cinzel), serif',
             background: 'rgba(26, 14, 10, 0.55)',
             color: '#FFD700',

@@ -44,11 +44,11 @@ export default function DesDivinatoiresHub() {
         subtitle="Trois dés à douze faces — la Planète (qui/quoi), le Signe (comment) et la Maison (où) — pour éclairer vos questions avec précision."
       />
 
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
         {TILES.map((tile, i) => (
-          <Link key={tile.href} href={tile.href}>
+          <Link key={tile.href} href={tile.href} className="block">
             <motion.div
-              className="group relative flex h-full flex-col items-center overflow-hidden rounded-2xl p-6 text-center"
+              className="group relative flex h-[180px] w-full flex-col items-center overflow-hidden rounded-2xl p-4 text-center"
               style={{
                 background: `linear-gradient(150deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
                 border: `1.5px solid ${DICE_THEME.ocre}66`,

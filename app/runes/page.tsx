@@ -1,15 +1,43 @@
 'use client';
 
-// app/runes/page.tsx — Niveau 1 : Tableau de bord des Runes Scandinaves
+// app/runes/page.tsx — Tableau de bord des Runes Scandinaves
+// Tuiles visuelles type /tarot & /yi-jing (image/glyphe + titre + sous-titre),
+// thème runes respecté (vert forêt / doré pâle / vert sauge), tout sur un écran
+// mobile sans scroller.
 
-import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
-import {
-  RuneBackground,
-  RuneTitle,
-  RuneTile,
-  BackToRunes,
-} from './_shared';
+import { RuneBackground, RuneTitle } from './_shared';
+import { RUNE_THEME } from './_shared';
+
+const TILES = [
+  {
+    href: '/runes/nornes',
+    glyph: 'ᚾ', // N – Norn (Urdhr, Verdandi, Skuld)
+    title: 'Le Fil des Nornes',
+    subtitle: 'Passé, présent, avenir — et le conseil d’Odin.',
+    bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forestDeep} 100%)`,
+    border: `${RUNE_THEME.goldPale}55`,
+  },
+  {
+    href: '/runes/mjolnir',
+    glyph: 'ᛗ', // M – Mjölnir
+    title: 'Le Marteau de Mjölnir',
+    subtitle: 'Briser un obstacle, trouver la force d’agir.',
+    bg: `linear-gradient(135deg, ${RUNE_THEME.forest} 0%, ${RUNE_THEME.ink} 100%)`,
+    border: `${RUNE_THEME.goldSoft}55`,
+  },
+  {
+    href: '/runes/yggdrasil',
+    glyph: 'ᛟ', // O – Yggdrasil / Odin
+    title: "Les Racines d'Yggdrasil",
+    subtitle: 'Un bilan profond pour s’ancrer et grandir.',
+    bg: `linear-gradient(135deg, #1a3d28 0%, ${RUNE_THEME.forestDeep} 100%)`,
+    border: `${RUNE_THEME.sage}66`,
+  },
+];
 
 export default function RunesHub() {
   return (
@@ -20,25 +48,62 @@ export default function RunesHub() {
         subtitle="Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin."
       />
 
-      <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 px-4 pb-4 sm:grid-cols-3">
-        <RuneTile
-          title="Le Fil des Nornes"
-          description="Comprendre le passé, saisir le présent et tisser l'avenir."
-          href="/runes/nornes"
-        />
-        <RuneTile
-          title="Le Marteau de Mjölnir"
-          description="Briser un obstacle et trouver la force d'agir."
-          href="/runes/mjolnir"
-        />
-        <RuneTile
-          title="Les Racines d'Yggdrasil"
-          description="Un bilan profond pour s'ancrer et grandir."
-          href="/runes/yggdrasil"
-        />
+      {/* TUILES : 2 colonnes sur mobile (comme /tarot & /yi-jing) */}
+      <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
+        {TILES.map((tile) => (
+          <Link key={tile.href} href={tile.href} className="block">
+            <motion.div
+              className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl cursor-pointer transition-all"
+              style={{
+                background: tile.bg,
+                border: `2px solid ${tile.border}`,
+                boxShadow: `0 0 16px ${RUNE_THEME.goldGlow}, 0 4px 12px rgba(0,0,0,0.5)`,
+              }}
+              whileHover={{ scale: 1.04, y: -3 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="relative flex h-full w-full flex-col items-center justify-center p-2">
+                <div className="absolute inset-1.5 rounded-lg border border-[rgba(233,217,172,0.25)] pointer-events-none" />
+                <span
+                  className="mb-2 text-5xl leading-none sm:text-6xl"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: RUNE_THEME.goldPale,
+                    textShadow: `0 0 16px ${RUNE_THEME.goldGlow}`,
+                  }}
+                >
+                  {tile.glyph}
+                </span>
+                <h2
+                  className="px-1 text-center text-[13px] font-bold leading-tight sm:text-base"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: RUNE_THEME.goldPale,
+                    textShadow: `0 0 10px ${RUNE_THEME.goldGlow}`,
+                  }}
+                >
+                  {tile.title}
+                </h2>
+                <p
+                  className="mt-1 px-1 text-center text-[9px] leading-tight sm:text-[11px]"
+                  style={{
+                    fontFamily: 'var(--font-cinzel), serif',
+                    color: RUNE_THEME.sage,
+                  }}
+                >
+                  {tile.subtitle}
+                </p>
+              </div>
+              <div
+                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  background: `radial-gradient(ellipse at center, ${RUNE_THEME.goldGlow} 0%, transparent 70%)`,
+                }}
+              />
+            </motion.div>
+          </Link>
+        ))}
       </div>
-
-      <BackToRunes />
     </RuneBackground>
   );
 }

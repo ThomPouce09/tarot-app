@@ -34,6 +34,7 @@ async function ensurePrice(plan: PlanId): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3007';
     const { plan, email } = await request.json();
     if (plan !== 'initie' && plan !== 'oracle') {
       return NextResponse.json({ error: 'Plan invalide' }, { status: 400 });
@@ -59,11 +60,10 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       customer_email: customerId ? undefined : email,
       line_items: [{ price: priceId, quantity: 1 }],
-      // PayPal activé nativement par Stripe si configuré dans le dashboard.
-      payment_method_types: ['card'],
+      // Aucune restriction : Stripe propose CB + PayPal selon la config dashboard.
       metadata: { userId: user.id, plan },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/account/abonnement?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/account/abonnement?status=cancel`,
+      success_url: `${baseUrl}/dashboard/account/abonnement?session_id={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${baseUrl}/dashboard/account/abonnement?status=cancel`,
       allow_promotion_codes: true,
     });
 

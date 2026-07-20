@@ -3,6 +3,7 @@
 // apparaître côté client). On lit STRIPE_SECRET_KEY depuis l'environnement.
 
 import Stripe from 'stripe';
+import { PLAN_PRICE_EUR } from './plans';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   // En dev sans clé, on ne plante pas le build : le client est créé paresseusement.
