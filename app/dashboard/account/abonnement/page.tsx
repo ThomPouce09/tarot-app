@@ -150,8 +150,6 @@ export default function AbonnementPage() {
     }
   };
 
-  const isSubscribed = current !== 'gratuit' && status !== 'suspendu';
-
   return (
     <div className="space-y-6">
       <header>
@@ -178,18 +176,14 @@ export default function AbonnementPage() {
         </p>
       )}
 
-      {/* Actions */}
-      <div className="flex flex-wrap gap-3">
-        {isSubscribed ? (
+      {/* Actions — uniquement pour les abonnés payants */}
+      {current !== 'gratuit' && (
+        <div className="flex flex-wrap gap-3">
           <button onClick={manage} disabled={manageLoading} className="mystic-btn-ghost">
-            {manageLoading ? '…' : (t('sub.manage') || 'Gérer mon abonnement')}
+            {manageLoading ? '…' : t('sub.manage')}
           </button>
-        ) : (
-          <button onClick={() => setMsg(t('sub.previewNote'))} className="mystic-btn-ghost">
-            {t('sub.suspend') || 'Changer de forfait'}
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Cartes de forfaits */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
