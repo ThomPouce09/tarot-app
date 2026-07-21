@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
+import { useLang } from '@/lib/i18n';
 
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
 // rendue uniquement après hydratation (cohérent avec /runes) pour éviter
@@ -114,6 +115,7 @@ interface Tile {
   href: string;
   title: string;
   desc: string;
+  descEn: string;
   icon: string;
   bg: string;
 }
@@ -122,14 +124,16 @@ const TILES: Tile[] = [
   {
     href: '/des-divinatoires/affinage',
     title: "Tirage par Affinage",
-    desc: 'Un zoom intuitif pour préciser une nuance ou savoir comment surmonter un détail après un premier tirage clair.',
+    desc: 'Préciser une nuance ou ajuster votre posture sans refaire tout le tirage',
+    descEn: 'Refine a nuance or adjust your stance without redoing the whole reading',
     icon: '🔍',
     bg: `linear-gradient(150deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
   },
   {
     href: '/des-divinatoires/choix',
     title: 'Le tirage du choix',
-    desc: "Une alternative pour aider à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
+    desc: "Une aide à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
+    descEn: "A decision aid: compare the energy of two options when you're torn between two paths.",
     icon: '⚖️',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.brickDark} 100%)`,
   },
@@ -137,6 +141,7 @@ const TILES: Tile[] = [
     href: '/des-divinatoires/obstacle-solution',
     title: 'Obstacle & Solution',
     desc: "Une méthode en deux lancers pour comprendre l'origine d'un blocage et obtenir un conseil précis pour le débloquer.",
+    descEn: 'A two-throw method to understand the source of a block and get precise advice to overcome it.',
     icon: '🗝️',
     bg: `linear-gradient(150deg, ${DICE_THEME.steel} 0%, ${DICE_THEME.brickDeep} 100%)`,
   },
@@ -144,6 +149,7 @@ const TILES: Tile[] = [
 
 export default function DesDivinatoiresHub() {
   const [mounted, setMounted] = useState(false);
+  const lang = useLang();
   useEffect(() => setMounted(true), []);
   return (
     <DiceBackground>
@@ -157,7 +163,7 @@ export default function DesDivinatoiresHub() {
         {TILES.map((tile, i) => (
           <Link key={tile.href} href={tile.href} className="block">
             <motion.div
-              className="group relative flex h-[180px] w-full flex-col items-center overflow-hidden rounded-2xl p-4 text-center"
+              className="group relative flex min-h-[180px] h-full w-full flex-col items-center rounded-2xl p-4 text-center"
               style={{
                 background: tile.bg,
                 border: `1.5px solid ${DICE_THEME.ocre}66`,
@@ -207,7 +213,7 @@ export default function DesDivinatoiresHub() {
                   opacity: 0.88,
                 }}
               >
-                {tile.desc}
+                {lang === 'en' ? tile.descEn : tile.desc}
               </p>
             </motion.div>
           </Link>

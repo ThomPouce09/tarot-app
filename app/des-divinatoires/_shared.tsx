@@ -40,9 +40,11 @@ export const DICE_THEME = {
 export function DiceBackground({
   children,
   scrollable = false,
+  bgImage,
 }: {
   children: ReactNode;
   scrollable?: boolean;
+  bgImage?: string;
 }) {
   return (
     <div
@@ -53,6 +55,18 @@ export function DiceBackground({
         background: `radial-gradient(ellipse at 50% 0%, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 55%, #02040c 100%)`,
       }}
     >
+      {/* fond d'écran personnalisé (optionnel) */}
+      {bgImage && (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: `url(${bgImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.35,
+          }}
+        />
+      )}
       {/* voile doré subtil */}
       <div
         className="pointer-events-none absolute inset-0"

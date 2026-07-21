@@ -169,6 +169,9 @@ export interface AstroDiceCupProps
   /** Incrémenter ce nombre déclenche un lancer programmatique du gobelet
    *  (équivalent au geste push). Permet un bouton « Lancer » côté page. */
   launchSignal?: number;
+  /** Callback appelé dès que l'utilisateur commence à secouer le gobelet
+   *  (premier touch/pointer down sur le pad de secousse). */
+  onShake?: () => void;
 }
 
 /* Gobelet : taille validée (60px). Positionné au BORD BAS de l'arène, pas au
@@ -208,6 +211,7 @@ export default function AstroDiceCup({
   launchSignal = 0,
   onReady,
   activeKinds,
+  onShake,
 }: AstroDiceCupProps) {
   // `rolling` est PILOTÉ EN INTERNE par le wrapper : au 2e push (gobelet3),
   // on passe rolling=true → l'ANIM 1 se déclenche (dés qui "tombent" en
@@ -306,7 +310,10 @@ export default function AstroDiceCup({
         shaking.current = true;
         lastX.current = e.clientX;
         lastDir.current = 0;
-        if (phase === 'idle') setPhase('shake');
+        if (phase === 'idle') {
+          setPhase('shake');
+          onShake?.();
+        }
         // On mémorise la position de départ pour détecter un drag vertical.
         pushStartY.current = e.clientY;
         // Mémorise le point de départ + temps pour détecter un TAP.
@@ -315,7 +322,7 @@ export default function AstroDiceCup({
         downT.current = Date.now();
       }
     },
-    [phase, revealed],
+    [phase, revealed, onShake],
   );
 
   const onPointerMove = useCallback(

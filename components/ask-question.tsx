@@ -2,7 +2,8 @@
 
 // components/ask-question.tsx
 // Mini champ de question optionnelle, affiché avant le 1er tirage.
-// Fondu si l'utilisateur ne veut pas poser de question.
+// Comporte un champ + bouton "Enregistrer" + bouton "Lancer les dés zodiacaux !"
+// qui enregistre la question (ou null) puis appelle onLaunch.
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,17 +14,33 @@ interface AskQuestionProps {
   onConfirm: (question: string | null) => void;
   /** Couleur principale (texte au choix dans le thème) */
   accentColor?: string;
+  /** Texte du label au-dessus du champ */
+  label?: string;
+  /** Placeholder du champ */
   placeholder?: string;
+  /** Texte du bouton de confirmation (ex: 'Enregistrer') */
+  confirmLabel?: string;
+  /** Texte du bouton « Lancer les dés » */
+  launchLabel?: string;
+  /** Appelé quand on clique sur le bouton de lancement */
+  onLaunch?: () => void;
 }
 
-export function AskQuestion({ onConfirm, accentColor, placeholder }: AskQuestionProps) {
+export function AskQuestion({
+  onConfirm,
+  accentColor,
+  label,
+  placeholder,
+  confirmLabel,
+  launchLabel,
+  onLaunch,
+}: AskQuestionProps) {
   const t = useT();
   const [question, setQuestion] = useState('');
   const [visible, setVisible] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Focus automatique
     const timer = setTimeout(() => inputRef.current?.focus(), 300);
     return () => clearTimeout(timer);
   }, []);
@@ -32,11 +49,14 @@ export function AskQuestion({ onConfirm, accentColor, placeholder }: AskQuestion
     const q = question.trim();
     onConfirm(q || null);
     setVisible(false);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
 
-  const handleSkip = () => {
-    onConfirm(null);
+  const handleLaunch = () => {
+    const q = question.trim();
+    onConfirm(q || null);
     setVisible(false);
+    onLaunch?.();
   };
 
   return (
@@ -48,12 +68,6 @@ export function AskQuestion({ onConfirm, accentColor, placeholder }: AskQuestion
           exit={{ opacity: 0, y: -8 }}
           className="mb-6 text-center"
         >
-          <label
-            className="block text-sm mb-2"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: accentColor || '#D4B483' }}
-          >
-            {t('askQuestion.label')}
-          </label>
           <div className="flex items-center gap-2 justify-center flex-wrap">
             <input
               ref={inputRef}
@@ -64,31 +78,42 @@ export function AskQuestion({ onConfirm, accentColor, placeholder }: AskQuestion
               className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
               style={{
                 background: 'rgba(0,0,0,0.35)',
-                border: `1px solid ${accentColor || 'rgba(212,180,131,0.4)'}`,
+                border: `1px solid ${accentColor || 'rgba(100,180,255,0.4)'}`,
                 color: '#f0e6d3',
                 fontFamily: 'var(--font-cormorant), serif',
               }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleConfirm();
+              }}
             />
             <button
               onClick={handleConfirm}
-              className="rounded-lg px-4 py-[9px] text-sm font-semibold transition-all hover:opacity-80"
+              className="rounded-full px-4 py-[9px] text-sm font-semibold transition-all hover:opacity-80"
               style={{
-                background: accentColor || 'linear-gradient(135deg, #D4B483, #B8860B)',
-                color: '#1a0e0a',
+                background: '#005f6a',
+                color: '#fff',
                 fontFamily: 'var(--font-cinzel), serif',
+                boxShadow: '0 0 12px rgba(0,95,106,0.5)',
               }}
             >
-              {t('askQuestion.confirm')}
+              {confirmLabel || t('askQuestion.confirm')}
             </button>
           </div>
-          <button
-            onClick={handleSkip}
-            className="mt-1.5 text-xs underline opacity-50 hover:opacity-80 transition-all"
-            style={{ color: accentColor || '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}
-          >
-            {t('askQuestion.skip')}
-          </button>
+          {onLaunch && launchLabel && (
+            <button
+              onClick={handleLaunch}
+              className="mt-12 rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+              style={{
+                background: '#005f6a',
+                color: '#fff',
+                fontFamily: 'var(--font-cinzel-deco), serif',
+                boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                border: '1px solid rgba(0,95,106,0.6)',
+              }}
+            >
+              {launchLabel}
+            </button>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
