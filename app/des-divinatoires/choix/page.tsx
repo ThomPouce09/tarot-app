@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   DiceBackground,
   DiceTitle,
@@ -16,6 +17,8 @@ import {
   OcreCard,
   ResultLine,
   DICE_THEME,
+  PLANET_NAMES,
+  SIGN_NAMES,
 } from '../_shared';
 import {
   randomTargetFaces,
@@ -23,6 +26,8 @@ import {
   type DieKind,
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { saveReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -45,6 +50,18 @@ type Step = 'A_intro' | 'A_roll' | 'A_done' | 'B_intro' | 'B_roll' | 'B_done';
 
 // Les 3 dés sont toujours lancés (Planète / Signe / Maison).
 const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
+
+// Helpers de sérialisation pour l'historique (dés du zodiaque).
+function diceCards(f: TargetFaces) {
+  return ACTIVE_DICE.map((k) => ({
+    kind: k,
+    value: f[k],
+    label: k === 'planet' ? PLANET_NAMES[f[k] as string] : k === 'sign' ? SIGN_NAMES[f[k] as string] : `Maison ${f[k]}`,
+  }));
+}
+function diceStaticText(f: TargetFaces) {
+  return ACTIVE_DICE.map((k) => `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
+}
 
 /** Encart Analyse : statique immédiate + bouton IA (même pattern que /affinage). */
 function DiceAnalysis({
@@ -220,6 +237,7 @@ function DiceAnalysis({
 
 export default function ChoixPage() {
   const [step, setStep] = useState<Step>('A_intro');
+  const t = useT();
   const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
@@ -227,6 +245,7 @@ export default function ChoixPage() {
   const [resultB, setResultB] = useState<TargetFaces | null>(null);
   const [comparaison, setComparaison] = useState<string | null>(null);
   const [comparaisonLoading, setComparaisonLoading] = useState(false);
+  const [question, setQuestion] = useState<string | null>(null);
   // Cible de scroll après un lancer (pointe sur le bloc résultat monté).
   const resultRef = useRef<HTMLDivElement | null>(null);
   // Cible de scroll vers l'arène des dés (gobelet).
@@ -282,14 +301,31 @@ export default function ChoixPage() {
     setStep((s) => {
       if (s === 'A_roll') {
         setResultA(f);
+        // Sauvegarde historique — Premier Choix
+        saveReading({
+          type: 'des-choix',
+          spread: 'Premier Choix',
+          cards: diceCards(f),
+          interpretation: diceStaticText(f),
+          question,
+        });
         return 'A_done';
       }
       if (s === 'B_roll') {
         setResultB(f);
+        // Sauvegarde historique — Second Choix
+        saveReading({
+          type: 'des-choix',
+          spread: 'Second Choix',
+          cards: diceCards(f),
+          interpretation: diceStaticText(f),
+          question,
+        });
         return 'B_done';
       }
       return s;
     });
+    setQuestion(null);
     // Descente directe vers le résultat + analyse (après rendu du bloc).
     window.requestAnimationFrame(() => {
       window.setTimeout(() => {
@@ -299,11 +335,12 @@ export default function ChoixPage() {
         }
       }, 60);
     });
-  }, []);
+  }, [question]);
 
   const restart = useCallback(() => {
     setResultA(null);
     setResultB(null);
+    setQuestion(null);
     setReady(false);
     setResetSignal((n) => n + 1);
     setStep('A_intro');
@@ -315,14 +352,18 @@ export default function ChoixPage() {
     <DiceBackground>
       <YiSlideNav />
       <DiceTitle
-        title="Le tirage du choix"
-        subtitle="Vous hésitez entre deux chemins ? Comparez l'énergie de chaque option."
+        title={t('des.choix.title')}
+        subtitle={t('des.choix.subtitle')}
       />
 
       <div className="mx-auto max-w-2xl px-4">
+        {/* Question avant le tirage */}
+        {step === 'A_intro' && (
+          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+        )}
         {/* Consigne Premier Choix */}
         {(step === 'A_intro') && (
-          <OcreCard title="Premier Choix">
+          <OcreCard title={t('des.choix.first')}>
             <p className="text-center">
               Formulez clairement votre <b>premier choix</b> dans votre esprit
               (ex : « changer d&apos;emploi »), puis lancez les dés.
@@ -403,7 +444,7 @@ export default function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <OcreCard title="Premier Choix">
+              <OcreCard title={t('des.choix.first')}>
                 <p className="text-center">
                   Voici la vibration de votre <b>premier choix</b>. Lisez-la puis
                   analysez-la.
@@ -463,7 +504,7 @@ export default function ChoixPage() {
 
                 <div className="mt-5 text-center">
                   <DiceButton variant="ocre" onClick={runComparaison}>
-                    ✨ Comparer les deux choix
+                    {t('des.choix.compare')}
                   </DiceButton>
                 </div>
 

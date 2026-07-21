@@ -22,17 +22,19 @@ const TYPE_META: Record<string, { key: string; label: string; icon: string; colo
   tarot:  { key: 'tarot',  label: 'Tarot',            icon: '/images/tarot-icon.png',   color: '#FFD700', bg: 'rgba(218,165,32,0.12)',  border: 'rgba(218,165,32,0.35)',  glow: 'rgba(255,215,0,0.45)' },
   yijing: { key: 'yijing', label: 'Yi Jing',          icon: '/images/yi-jing-icon.png', color: '#E0CFF0', bg: 'rgba(180,140,220,0.12)', border: 'rgba(180,140,220,0.35)', glow: 'rgba(180,140,220,0.5)' },
   rune:   { key: 'rune',   label: 'Runes Scandinaves', icon: '/images/runes-icon.png',   color: '#D4B483', bg: 'rgba(138,109,59,0.12)',  border: 'rgba(138,109,59,0.35)',  glow: 'rgba(138,109,59,0.45)' },
+  des:    { key: 'des',    label: 'Dés du Zodiaque',   icon: '🎲',                         color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
 };
 
 function classifyType(t: string): keyof typeof TYPE_META {
   const s = (t || '').toLowerCase().replace(/[_-]/g, '');
   if (s.includes('yi') || s.includes('jing') || s.includes('yijing')) return 'yijing';
   if (s.includes('rune') || s.includes('futhark')) return 'rune';
+  if (s.includes('des') || s.includes('zodiaque') || s.includes('astro') || s.includes('dice')) return 'des';
   return 'tarot'; // tarot, null, et tout le reste
 }
 
 // --- Mapping fin (par type stocke) -> libellé précis + groupe ---
-const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune'; label: string }> = {
+const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des'; label: string }> = {
   'tarot-3-cartes':      { group: 'tarot',  label: 'Tarot 3 cartes' },
   'tarot-5-cartes':      { group: 'tarot',  label: 'Tarot 5 cartes' },
   'tarot-5-c-manuelle':  { group: 'tarot',  label: 'Tarot 5 cartes (✋)' },
@@ -43,7 +45,13 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune'; label: 
   'yi-jing-question':    { group: 'yijing', label: 'Yi Jing (question)' },
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
   'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
+  'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes' },
+  'runes-mjolnir':       { group: 'rune',   label: 'Le Marteau de Mjölnir' },
+  'runes-yggdrasil':     { group: 'rune',   label: "Les Racines d'Yggdrasil" },
   'runes':               { group: 'rune',   label: 'Runes Scandinaves' },
+  'des-choix':           { group: 'des',    label: 'Le Tirage du Choix' },
+  'des-obstacle-solution': { group: 'des',  label: 'Obstacle & Solution' },
+  'des-affinage':        { group: 'des',    label: 'Tirage par Affinage' },
   'tarot':               { group: 'tarot',  label: 'Tarot' },
   'yi-jing':             { group: 'yijing', label: 'Yi Jing' },
   'yijing':              { group: 'yijing', label: 'Yi Jing' },
@@ -85,6 +93,7 @@ const FILTERS = [
   { key: 'tarot', labelKey: 'history.filter.tarot',  icon: '/images/tarot-icon.png', color: '#FFD700' },
   { key: 'yijing', labelKey: 'history.filter.yijing', icon: '/images/yi-jing-icon.png', color: '#E0CFF0' },
   { key: 'rune',  labelKey: 'history.filter.rune',   icon: '/images/runes-icon.png', color: '#D4B483' },
+  { key: 'des',   labelKey: 'history.filter.des',    icon: '🎲',                        color: '#7FB3D5' },
 ] as const;
 
 const tarot3Positions = [
@@ -366,6 +375,7 @@ export default function ReadingsPage() {
                                   <span className="text-sm font-medium flex items-center gap-2" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>
                                     <img src={m.icon} alt="" className="w-7 h-7 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
                                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: m.bg, border: `1px solid ${m.border}` }}>{m.label}</span>
+                                    {r.spread && <span className="text-xs text-gray-400 italic ml-2">— {r.spread}</span>}
                                   </span>
                                   <span className="text-gray-400 text-xs">🕐 {formatTime(r.createdAt)}</span>
                                 </div>
@@ -381,6 +391,10 @@ export default function ReadingsPage() {
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
                                 {m.group === 'yijing' ? (
                                   <YiJingView r={r} interp={yiQing} query={search} />
+                                ) : m.group === 'rune' ? (
+                                  <RuneView r={r} query={search} />
+                                ) : m.group === 'des' ? (
+                                  <AstroView r={r} query={search} />
                                 ) : (
                                   <TarotView r={r} interpretation={r.interpretation || ''} query={search} />
                                 )}
@@ -448,6 +462,10 @@ function EmptyState() {
           style={{ background: 'rgba(218,165,32,0.2)', border: '1px solid rgba(218,165,32,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doTarot')}</Link>
         <Link href="/yi-jing" className="inline-block px-4 py-2 rounded-lg text-purple-300 text-sm hover:opacity-80 transition-all"
           style={{ background: 'rgba(180,140,220,0.2)', border: '1px solid rgba(180,140,220,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doYijing')}</Link>
+        <Link href="/runes" className="inline-block px-4 py-2 rounded-lg text-amber-200 text-sm hover:opacity-80 transition-all"
+          style={{ background: 'rgba(138,109,59,0.2)', border: '1px solid rgba(138,109,59,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doRunes')}</Link>
+        <Link href="/des-divinatoires" className="inline-block px-4 py-2 rounded-lg text-blue-300 text-sm hover:opacity-80 transition-all"
+          style={{ background: 'rgba(46,134,193,0.2)', border: '1px solid rgba(46,134,193,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doDes')}</Link>
       </div>
     </div>
   );
@@ -536,6 +554,199 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// --- Vue détaillée : Runes Scandinaves ---
+function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
+  const t = useT();
+  const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+
+  // Tente une interprétation structurée (JSON de l'API IA)
+  let structured: { sections?: any[]; synthese?: string; conseil_action?: string } | null = null;
+  let rawInterpretation = '';
+  if (r.interpretation) {
+    try {
+      const parsed = JSON.parse(r.interpretation);
+      if (parsed && typeof parsed === 'object' && (parsed.sections || parsed.synthese)) {
+        structured = parsed;
+      } else {
+        rawInterpretation = r.interpretation;
+      }
+    } catch {
+      rawInterpretation = r.interpretation;
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {/* Petit guide runique */}
+      <details className="group text-xs rounded-lg border p-2.5" style={{ borderColor: 'rgba(138,109,59,0.25)', background: 'rgba(40,30,15,0.40)' }}>
+        <summary className="cursor-pointer text-xs font-semibold flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+          <span>ᚠ</span> Qu'est-ce que les runes ?
+          <span className="ml-auto group-open:rotate-180 transition-transform text-[10px] opacity-60">▼</span>
+        </summary>
+        <div className="mt-2 text-xs leading-relaxed space-y-1.5" style={{ color: '#c4b998' }}>
+          <p>Les runes sont un ancien alphabet divinatoire d'origine nordique et germanique, le <em>Futhark</em>. Chaque rune n'est pas qu'une lettre : elle porte un nom, un sens symbolique et une énergie.</p>
+          <p>Dans le <strong>Fil des Nornes</strong>, trois runes sont tirées : <strong>Urd</strong> (Passé), <strong>Verdandi</strong> (Présent), <strong>Skuld</strong> (Avenir). Une 4ᵉ rune peut être ajoutée comme <strong>Conseil d'Odin</strong> pour indiquer une action.</p>
+          <p>Une rune <strong>renversée</strong> (retournée) exprime son ombre ou son blocage. L'Oracle IA interprète l'ensemble comme un récit.</p>
+        </div>
+      </details>
+
+      {r.question && (
+        <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
+          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+        </div>
+      )}
+      {cards.length === 0 ? (
+        <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
+      ) : (
+        cards.map((c, i) => (
+          <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(138,109,59,0.10)' }}>
+            <h4 className="font-semibold text-sm mb-1 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+              <span className="text-2xl leading-none" style={{ color: '#e9d9ac' }}>{c.symbol || 'ᛟ'}</span>
+              <span>{c.position || `Rune ${i + 1}`}</span>
+              {c.reversed && <em className="text-amber-400 text-xs">— renversée</em>}
+            </h4>
+            <p className="text-gray-100 font-serif italic text-sm"><Highlight text={c.name || ''} query={query} /></p>
+          </div>
+        ))
+      )}
+
+      {/* Interprétation structurée */}
+      {structured && (
+        <div className="space-y-2 mt-3">
+          {/* Synthèse */}
+          {structured.synthese && (
+            <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
+              <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>📜</span>{t('readings.synthese')}
+              </h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.synthese} query={query} /></p>
+            </div>
+          )}
+          {/* Sections par position */}
+          {structured.sections?.map((s, i) => (
+            <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(52,42,28,0.50)' }}>
+              <h4 className="font-semibold text-xs mb-1.5 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+                <span className="text-base">{s.rune}</span>
+                <span>{s.position} — <em className="text-amber-400 not-italic">{s.sens}</em></span>
+              </h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.lecture} query={query} /></p>
+            </div>
+          ))}
+          {/* Conseil d'action */}
+          {structured.conseil_action && (
+            <div className="bg-amber-950/20 border border-amber-800/30 rounded-lg p-3">
+              <h4 className="text-amber-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>💡</span>{t('readings.advice')}
+              </h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.conseil_action} query={query} /></p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fallback : interprétation texte brut (anciens tirages) */}
+      {!structured && rawInterpretation && (
+        <div className="bg-gray-800/40 rounded-lg p-3">
+          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={rawInterpretation} query={query} /></p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Vue détaillée : Dés du Zodiaque ---
+function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
+  const t = useT();
+  const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+  const kindLabel: Record<string, string> = {
+    planet: t('des.kind.planet'),
+    sign: t('des.kind.sign'),
+    house: t('des.kind.house'),
+  };
+
+  // Tente une interprétation structurée (JSON de l'API astro-dice-interpretation)
+  // Format 1 (global) : { planet, sign, house, synthese }
+  // Format 2 (sections) : { sections: [{ kind, title, text }], synthese }
+  let structured: { sections?: { kind: string; title: string; text: string }[]; synthese?: string } | null = null;
+  let rawInterpretation = '';
+  if (r.interpretation) {
+    try {
+      const parsed = JSON.parse(r.interpretation);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.sections || parsed.synthese) {
+          // Format sections
+          structured = parsed;
+        } else if (parsed.planet || parsed.sign || parsed.house) {
+          // Format clés-valeurs (global) → convertir en sections
+          const sections: { kind: string; title: string; text: string }[] = [];
+          if (parsed.planet) sections.push({ kind: 'planet', title: kindLabel['planet'] || 'Planète', text: parsed.planet });
+          if (parsed.sign)   sections.push({ kind: 'sign',   title: kindLabel['sign'] || 'Signe',     text: parsed.sign });
+          if (parsed.house)  sections.push({ kind: 'house',  title: kindLabel['house'] || 'Maison',   text: parsed.house });
+          structured = { sections, synthese: parsed.synthese || '' };
+        } else {
+          rawInterpretation = r.interpretation;
+        }
+      } else {
+        rawInterpretation = r.interpretation;
+      }
+    } catch {
+      rawInterpretation = r.interpretation;
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {r.question && (
+        <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
+          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+        </div>
+      )}
+      {cards.length === 0 ? (
+        <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cards.length}, minmax(0, 1fr))` }}>
+          {cards.map((c, i) => (
+            <div key={i} className="flex flex-col items-center rounded-xl p-3 text-center" style={{ background: 'rgba(46,134,193,0.10)', border: '1px solid rgba(46,134,193,0.35)' }}>
+              <div className="text-3xl leading-none" style={{ color: '#7FB3D5' }}>{c.value}</div>
+              <div className="mt-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#cfe3f5', opacity: 0.7 }}>{kindLabel[c.kind] || c.kind}</div>
+              <p className="mt-1.5 text-sm font-semibold leading-snug" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#cfe3f5' }}>{c.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Interprétation structurée */}
+      {structured && (
+        <div className="space-y-2 mt-3">
+          {structured.synthese && (
+            <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
+              <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>📜</span>{t('readings.synthese')}
+              </h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.synthese} query={query} /></p>
+            </div>
+          )}
+          {structured.sections?.map((s, i) => (
+            <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(46,134,193,0.35)', background: 'rgba(15,45,65,0.40)' }}>
+              <h4 className="font-semibold text-xs mb-1" style={{ color: '#7FB3D5', fontFamily: 'var(--font-cinzel), serif' }}>{s.title || s.kind}</h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.text} query={query} /></p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Fallback : interprétation texte brut (anciens tirages) */}
+      {!structured && rawInterpretation && (
+        <div className="bg-gray-800/40 rounded-lg p-3">
+          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={rawInterpretation} query={query} /></p>
+        </div>
+      )}
     </div>
   );
 }

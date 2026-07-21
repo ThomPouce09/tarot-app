@@ -161,10 +161,10 @@ export async function POST(request: Request) {
 
     // Create the reading record
     try {
-      await prisma.reading.create({
+      const created = await prisma.reading.create({
         data,
       });
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, id: created.id });
     } catch (createError) {
       console.error('Error creating reading:', createError);
       return NextResponse.json({ error: 'Failed to save reading' }, { status: 500 });
@@ -174,6 +174,63 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// --- PUT : met à jour les champs cards / interpretation d'une lecture existante ---
+export async function PUT(request: Request) {
+  try {
+    let reqBody;
+    try {
+      reqBody = await request.json();
+    } catch (parseError) {
+      console.error('Invalid JSON in PUT body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
+    const { userId, id, cards, interpretation, spread } = reqBody;
+
+    if (!userId || typeof userId !== 'string') return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'reading id required' }, { status: 400 });
+    const email = userId.trim();
+    if (email === '') return NextResponse.json({ error: 'userId required' }, { status: 400 });
+
+    let user;
+    try { user = await prisma.user.findUnique({ where: { email } }); } catch { return NextResponse.json({ error: 'Invalid user' }, { status: 400 }); }
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // Vérifier que la lecture appartient bien à cet utilisateur
+    const existing = await prisma.reading.findUnique({ where: { id: String(id) } });
+    if (!existing || existing.userId !== user.id) {
+      return NextResponse.json({ error: 'Reading not found or not owned' }, { status: 404 });
+    }
+
+    const updateData: any = {};
+    if (cards !== undefined) {
+      updateData.cards = Array.isArray(cards) ? JSON.stringify(cards) : (typeof cards === 'string' ? cards : '[]');
+    }
+    if (interpretation !== undefined) {
+      updateData.interpretation = typeof interpretation === 'string' && interpretation.trim() !== '' ? interpretation : existing.interpretation;
+    }
+    if (spread !== undefined) {
+      updateData.spread = typeof spread === 'string' && spread.trim() !== '' ? spread : existing.spread;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+    }
+
+    try {
+      await prisma.reading.update({ where: { id: String(id) }, data: updateData });
+      return NextResponse.json({ success: true });
+    } catch (updateError) {
+      console.error('Error updating reading:', updateError);
+      return NextResponse.json({ error: 'Failed to update reading' }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('Error in /api/readings PUT:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     let reqBody;

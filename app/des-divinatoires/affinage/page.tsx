@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   DiceBackground,
   DiceTitle,
@@ -38,6 +39,8 @@ import {
   type HouseNumber,
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { saveReading, updateReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
 const AstroDiceCup = dynamic(
@@ -101,8 +104,22 @@ const KIND_LABEL: Record<DieKind, string> = {
   house: 'Maison',
 };
 
+// Helpers de sérialisation pour l'historique (dés du zodiaque).
+function diceCardsFor(f: TargetFaces, kinds: DieKind[]) {
+  return kinds.map((k) => ({
+    kind: k,
+    value: f[k],
+    label: k === 'planet' ? PLANET_NAMES[f[k] as string] : k === 'sign' ? SIGN_NAMES[f[k] as string] : `Maison ${f[k]}`,
+  }));
+}
+function diceStaticTextFor(f: TargetFaces, kinds: DieKind[]) {
+  return kinds.map((k) => `${KIND_LABEL[k]} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
+}
+
 export default function AffinagePage() {
   const [phase, setPhase] = useState<Phase>('initial');
+  const [question, setQuestion] = useState<string | null>(null);
+  const t = useT();
   const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
   const [option, setOption] = useState<Option | null>(null);
   // Thème des dés figé sur « moon » pour l'instant (sélecteur d'apparence
@@ -136,6 +153,10 @@ export default function AffinagePage() {
   const [analysisSynthese, setAnalysisSynthese] = useState<string>('');
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
+  // Références pour la persistance historique (anti-doublon + update IA)
+  const readingIdRef = useRef<string | null>(null);
+  const savedRef = useRef(false);
+
   // Dés réellement lancés (pilotés par la fenêtre appelante via activeDice).
   // En mode 1 dé, seule cette carte s'affiche.
   const presentKinds = activeDice;
@@ -150,6 +171,8 @@ export default function AffinagePage() {
     setFaces(randomTargetFaces());
     setPhase('firstRoll');
     setResetSignal((n) => n + 1);
+    savedRef.current = false;
+    readingIdRef.current = null;
   }, []);
 
   // Relance sélective : on ne relance QUE le dé concerné. On réduit
@@ -181,11 +204,37 @@ export default function AffinagePage() {
   // plus déclenchés par un bouton). Si une option d'affinage est active,
   // on bascule en refineDone, sinon en firstDone.
   const handleRest = useCallback(
-    (faces: TargetFaces) => {
+    async (faces: TargetFaces) => {
       setResult({ ...faces });
       setPhase(option ? 'refineDone' : 'firstDone');
+      // Sauvegarde historique UNIQUEMENT au 1er lancer et une seule fois.
+      if (!option && !savedRef.current) {
+        savedRef.current = true;
+        const id = await saveReading({
+          type: 'des-affinage',
+          spread: 'Tirage complet',
+          cards: diceCardsFor(faces, activeDice),
+          interpretation: diceStaticTextFor(faces, activeDice),
+          question,
+        });
+        if (id) readingIdRef.current = id;
+        // Réinitialiser la question pour le prochain tirage
+        setQuestion(null);
+      }
+      // Après affinage : mettre à jour la même lecture avec les nouvelles cartes
+      // et le type de zoom.
+      // NOTE : on merge result (qui contient les 3 dés du 1er lancer) avec
+      // les faces fraîches du gobelet (qui ne contient qu'1 dé pendant l'affinage).
+      if (option && readingIdRef.current) {
+        const merged = { ...result, ...faces };
+        const zoomLabel = option === 'action' ? 'Zoom Signe' : 'Zoom Maison';
+        updateReading(readingIdRef.current, {
+          cards: diceCardsFor(merged, ['planet', 'sign', 'house']),
+          spread: `Tirage complet — ${zoomLabel}`,
+        });
+      }
     },
-    [option],
+    [option, activeDice, question],
   );
 
   // Au repos, on capture les faces effectivement présentes.
@@ -220,11 +269,19 @@ export default function AffinagePage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      let interpretationText = '';
       if (data.sections && Array.isArray(data.sections)) {
         setAnalysisSections(data.sections);
         setAnalysisSynthese(data.synthese || '');
+        // Persister la réponse structurée complète
+        interpretationText = JSON.stringify(data);
       } else {
+        interpretationText = data.texte || 'Analyse indisponible.';
         setAnalysis(data.texte || 'Analyse indisponible.');
+      }
+      // Persister l'interprétation IA dans la lecture existante
+      if (readingIdRef.current && interpretationText) {
+        updateReading(readingIdRef.current, { interpretation: interpretationText });
       }
     } catch {
       setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
@@ -248,11 +305,14 @@ export default function AffinagePage() {
   return (
     <DiceBackground>
       <YiSlideNav />
-      <DiceTitle
-        title="Tirage par Affinage"
-      />
+      <DiceTitle title={t('des.affinage.title')} />
 
       <div className="mx-auto max-w-2xl px-4 pb-20">
+        {/* Question avant le premier tirage */}
+        {phase === 'initial' && (
+          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+        )}
+
         {/* Gobelet */}
         <div
           style={{
@@ -338,7 +398,7 @@ export default function AffinagePage() {
                     textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                   }}
                 >
-                  Vos dés ont parlé
+                  {t('des.affinage.yourDice')}
                 </h3>
                 <div
                   className="grid gap-4"
@@ -406,7 +466,7 @@ export default function AffinagePage() {
                     textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                   }}
                 >
-                  Analyse du tirage
+                  {t('des.affinage.analysisTitle')}
                 </h3>
 
                 {/* Partie statique — instantanée (fait patienter) */}
@@ -438,7 +498,7 @@ export default function AffinagePage() {
                       className="text-center text-sm italic"
                       style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
                     >
-                      Les astres réfléchissent… ✨
+                      {t('des.affinage.thinking')}
                     </div>
                   )}
 
@@ -509,11 +569,8 @@ export default function AffinagePage() {
 
                   {!analysis && !analysisSections && !analysisLoading && (
                     <div className="text-center">
-                      <DiceButton
-                        variant="ocre"
-                        onClick={runAnalysis}
-                      >
-                        ✨ Analyser en profondeur
+                      <DiceButton variant="ocre" onClick={runAnalysis}>
+                        {t('des.affinage.analyze')}
                       </DiceButton>
                     </div>
                   )}
@@ -539,15 +596,15 @@ export default function AffinagePage() {
                   opacity: 0.85,
                 }}
               >
-                Choisissez la nuance à préciser :
+                {t('des.affinage.choose')}
               </p>
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <DiceButton onClick={() => refine('action')}>
-                  🔁 Option A — Le zoom d&apos;action
-                </DiceButton>
-                <DiceButton variant="ocre" onClick={() => refine('domaine')}>
-                  🔁 Option B — Le zoom de domaine
-                </DiceButton>
+                                  {t('des.affinage.optA')}
+                                </DiceButton>
+                                <DiceButton variant="ocre" onClick={() => refine('domaine')}>
+                                  {t('des.affinage.optB')}
+                                </DiceButton>
               </div>
               <p
                 className="mt-3 text-center text-xs"
@@ -557,8 +614,7 @@ export default function AffinagePage() {
                   opacity: 0.6,
                 }}
               >
-                A : relance le dé des Signes · B : relance le dé des Maisons
-                (les autres dés restent en place).
+                {t('des.affinage.hint')}
               </p>
             </motion.div>
           )}
@@ -588,21 +644,15 @@ export default function AffinagePage() {
                     textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                   }}
                 >
-                  {option === 'action'
-                    ? 'Le zoom d’action'
-                    : 'Le zoom de domaine'}
+                  {option === 'action' ? t('des.affinage.zoomAction') : t('des.affinage.zoomDomaine')}
                 </h3>
                 <p className="text-center italic" style={{ color: DICE_THEME.glyph }}>
-                  {option === 'action'
-                    ? '« Quelle est la meilleure attitude ou posture à adopter maintenant pour débloquer cette situation ? »'
-                    : '« Quel autre domaine de ma vie va être impacté par ricochet par cette décision ? »'}
+                  {option === 'action' ? t('des.affinage.qAction') : t('des.affinage.qDomaine')}
                 </p>
               </div>
 
               <div className="mt-6 text-center">
-                <DiceButton onClick={rollFirst}>
-                  Recommencer un tirage
-                </DiceButton>
+                <DiceButton onClick={rollFirst}>{t('runes.retry')}</DiceButton>
               </div>
             </motion.div>
           )}

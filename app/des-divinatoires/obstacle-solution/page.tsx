@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   DiceBackground,
   DiceTitle,
@@ -20,6 +21,9 @@ import {
   DICE_THEME,
 } from '../_shared';
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
+import { meaningFor } from '@/components/astro-dice/meanings';
+import { saveReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -48,6 +52,18 @@ type Step =
 // Les 3 dés sont toujours lancés (Planète / Signe / Maison).
 const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
 
+// Helpers de sérialisation pour l'historique (dés du zodiaque).
+function diceCards(f: TargetFaces) {
+  return ACTIVE_DICE.map((k) => ({
+    kind: k,
+    value: f[k],
+    label: k === 'planet' ? String(f[k]) : k === 'sign' ? String(f[k]) : `Maison ${f[k]}`,
+  }));
+}
+function diceStaticText(f: TargetFaces) {
+  return ACTIVE_DICE.map((k) => `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
+}
+
 const OBSTACLE_LEGEND = [
   { die: 'Planète' as const, text: 'L’énergie que vous utilisez mal ou qui vous submerge.' },
   { die: 'Signe' as const, text: 'L’attitude inadaptée (trop passive, trop agressive, etc.).' },
@@ -62,11 +78,13 @@ const SOLUTION_LEGEND = [
 
 export default function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
+  const t = useT();
   const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [obstacle, setObstacle] = useState<TargetFaces | null>(null);
   const [solution, setSolution] = useState<TargetFaces | null>(null);
+  const [question, setQuestion] = useState<string | null>(null);
 
   // Cibles de scroll.
   const cupRef = useRef<HTMLDivElement | null>(null);
@@ -116,17 +134,34 @@ export default function ObstacleSolutionPage() {
         if (s === 'obstacle_roll') {
           setObstacle(f);
           scrollToEl(resultRef.current);
+          // Sauvegarde historique — Obstacle
+          saveReading({
+            type: 'des-obstacle-solution',
+            spread: 'Obstacle',
+            cards: diceCards(f),
+            interpretation: diceStaticText(f),
+            question,
+          });
           return 'obstacle_done';
         }
         if (s === 'solution_roll') {
           setSolution(f);
           scrollToEl(solutionRef.current);
+          // Sauvegarde historique — Solution
+          saveReading({
+            type: 'des-obstacle-solution',
+            spread: 'Solution',
+            cards: diceCards(f),
+            interpretation: diceStaticText(f),
+            question,
+          });
           return 'solution_done';
         }
         return s;
       });
+      setQuestion(null);
     },
-    [scrollToEl],
+    [scrollToEl, question],
   );
 
   const diceVisible = step !== 'intro';
@@ -135,11 +170,15 @@ export default function ObstacleSolutionPage() {
     <DiceBackground>
       <YiSlideNav />
       <DiceTitle
-        title="Obstacle & Solution"
-        subtitle="Comprenez l'origine d'un blocage, puis obtenez un conseil précis pour le surmonter — en deux lancers."
+        title={t('des.obstacle.title')}
+        subtitle={t('des.obstacle.subtitle')}
       />
 
       <div className="mx-auto max-w-2xl px-4">
+        {/* Question avant le tirage */}
+        {step === 'intro' && (
+          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+        )}
         {/* Étape 1 */}
         <h2
           className="mb-4 text-center text-xl font-bold"
@@ -149,12 +188,12 @@ export default function ObstacleSolutionPage() {
             textShadow: `0 0 12px ${DICE_THEME.gold}44`,
           }}
         >
-          Étape 1 : Qu&apos;est-ce qui me bloque actuellement ?
+          {t('des.obstacle.step1')}
         </h2>
 
         {step === 'intro' && (
           <div className="pb-6 text-center">
-            <DiceButton onClick={rollObstacle}>Lancer les dés du Zodiaque</DiceButton>
+            <DiceButton onClick={rollObstacle}>{t('des.obstacle.cta')}</DiceButton>
           </div>
         )}
 
@@ -207,7 +246,7 @@ export default function ObstacleSolutionPage() {
               >
                 <ResultLine faces={obstacle} />
                 <div className="mt-4">
-                  <OcreCard title="Lecture de l'Obstacle">
+                  <OcreCard title={t('des.obstacle.readObstacle')}>
                     <ReadingLegend items={OBSTACLE_LEGEND} />
                   </OcreCard>
                 </div>
@@ -234,13 +273,13 @@ export default function ObstacleSolutionPage() {
                   textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                 }}
               >
-                Étape 2 : Comment puis-je débloquer cela ?
+                {t('des.obstacle.step2')}
               </h2>
 
               {step === 'obstacle_done' && (
                 <div className="pb-2 text-center">
                   <DiceButton variant="ocre" onClick={rollSolution}>
-                    Lancer — La Solution
+                    {t('des.obstacle.ctaSolution')}
                   </DiceButton>
                 </div>
               )}
@@ -259,7 +298,7 @@ export default function ObstacleSolutionPage() {
             >
               <ResultLine faces={solution} />
               <div className="mt-4">
-                <OcreCard title="Lecture de la Solution">
+                <OcreCard title={t('des.obstacle.readSolution')}>
                   <ReadingLegend items={SOLUTION_LEGEND} />
                 </OcreCard>
               </div>
@@ -270,10 +309,11 @@ export default function ObstacleSolutionPage() {
                   onClick={() => {
                     setObstacle(null);
                     setSolution(null);
+                    setQuestion(null);
                     setStep('intro');
                   }}
                 >
-                  Recommencer
+                  {t('des.obstacle.retry')}
                 </DiceButton>
               </div>
             </motion.div>

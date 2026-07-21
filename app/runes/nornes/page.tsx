@@ -3,9 +3,10 @@
 // app/runes/nornes/page.tsx — Niveau 2.1 : Le Fil des Nornes (Passé/Présent/Avenir)
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   RuneBackground,
   RuneTitle,
@@ -16,37 +17,97 @@ import {
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
+import { saveReading, updateReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
   { ssr: false },
 );
 
+const NORNES_POS = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir'];
+
 export default function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
+  const [question, setQuestion] = useState<string | null>(null);
+  const t = useT();
+  const readingIdRef = useRef<string | null>(null);
+  const savedRef = useRef(false);
+
+  // Construit un texte d'interprétation statique à partir des runes tirées.
+  const staticInterpretation = useCallback((r: DrawnRune[], count: number) => {
+    return r.slice(0, count).map((d, i) => {
+      const name = d.rune?.name || 'Rune';
+      const sense = d.reversed ? d.rune?.reversed : d.rune?.upright;
+      const pos = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir', 'Conseil d’Odin'][i] || `Rune ${i + 1}`;
+      return `**${pos} : ${name}**\n${sense || ''}`;
+    }).join('\n\n');
+  }, []);
 
   const roll = useCallback(() => {
     setRunes([]);
     setPhase('idle');
     setIsRolling(true);
+    savedRef.current = false;
+    readingIdRef.current = null;
   }, []);
 
-  const handleRest = useCallback((r: DrawnRune[]) => {
+  const handleRest = useCallback(async (r: DrawnRune[]) => {
     setIsRolling(false);
     setRunes(r);
     setPhase('done');
-  }, []);
+    if (!savedRef.current) {
+      savedRef.current = true;
+      const id = await saveReading({
+        type: 'runes-nornes',
+        spread: 'Le Fil des Nornes',
+        cards: r.slice(0, 3).map((d, i) => ({
+          name: d.rune?.name,
+          symbol: d.rune?.symbol,
+          reversed: d.reversed,
+          position: NORNES_POS[i],
+        })),
+        interpretation: staticInterpretation(r, 3),
+        question,
+      });
+      if (id) readingIdRef.current = id;
+      // Réinitialiser la question pour le prochain tirage
+      setQuestion(null);
+    }
+  }, [staticInterpretation, question]);
 
   const adviceRoll = useCallback(() => {
     setPhase('advice');
     setIsRolling(true);
   }, []);
 
-  const handleAdviceRest = useCallback((r: DrawnRune[]) => {
+  const handleAdviceRest = useCallback(async (r: DrawnRune[]) => {
     setIsRolling(false);
-    setRunes((prev) => [...prev.slice(0, 3), r[0]]);
+    setRunes((prev) => {
+      const all = [...prev.slice(0, 3), r[0]];
+      // Mettre à jour la lecture historique avec la 4e rune + interprétation combinée
+      if (readingIdRef.current) {
+        const allCards = all.map((d, i) => ({
+          name: d.rune?.name,
+          symbol: d.rune?.symbol,
+          reversed: d.reversed,
+          position: NORNES_POS[i] || 'Conseil d’Odin',
+        }));
+        updateReading(readingIdRef.current, {
+          cards: allCards,
+          interpretation: staticInterpretation(all, 4),
+        });
+      }
+      return all;
+    });
+  }, [staticInterpretation]);
+
+  const onAnalysis = useCallback((text: string) => {
+    if (readingIdRef.current && text) {
+      updateReading(readingIdRef.current, { interpretation: text });
+    }
   }, []);
 
   const hasAdvice = runes.length === 4;
@@ -56,18 +117,23 @@ export default function NornesPage() {
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title="Le Fil des Nornes"
-        subtitle="Urd, Verdandi, Skuld tissent le destin : ce qui fut, ce qui est, ce qui sera."
+        title={t('runes.nornes.title')}
+        subtitle={t('runes.nornes.subtitle')}
       />
 
       <div className="mx-auto max-w-2xl px-4">
+        {/* Question avant le tirage */}
+        {phase === 'idle' && (
+          <AskQuestion onConfirm={setQuestion} accentColor={RUNE_THEME.goldPale} />
+        )}
+
         {/* Conteneur de hauteur constante : le bouton reste monté (visibility
             bascule) pour ne pas décaler le composant au moment du tirage. */}
         <div
           className="py-8 text-center"
           style={{ visibility: phase === 'idle' ? 'visible' : 'hidden' }}
         >
-          <RuneButton onClick={roll}>Interroger les Nornes</RuneButton>
+          <RuneButton onClick={roll}>{t('runes.nornes.cta')}</RuneButton>
         </div>
 
         <RuneStonesSet
@@ -108,8 +174,9 @@ export default function NornesPage() {
           )}
         </AnimatePresence>
 
-        {/* Analyse IA du fil des Nornes (3 premières runes) */}
-        {phase === 'done' && runes.length >= 3 && (
+        {/* Analyse IA du fil des Nornes (3 premières runes) — reste monté même
+            pendant la phase advice pour ne pas tuer une analyse en cours. */}
+        {phase !== 'idle' && runes.length >= 3 && (
           <RuneAnalysis
             mode="nornes"
             runes={[
@@ -117,6 +184,7 @@ export default function NornesPage() {
               { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
               { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
             ]}
+            onAnalysis={onAnalysis}
           />
         )}
 
@@ -136,7 +204,7 @@ export default function NornesPage() {
                 nouvelle voie.
               </p>
               <RuneButton variant="gold" onClick={adviceRoll}>
-                Tisser une nouvelle voie
+                {t('runes.nornes.advice')}
               </RuneButton>
             </motion.div>
           )}
@@ -162,7 +230,7 @@ export default function NornesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <SageCard title="Le Conseil d’Odin">
+              <SageCard title={t('runes.conseilOdin')}>
                 <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
                   L’action précise à mener au présent (Verdandi) pour modifier
                   l’avenir (Skuld).
@@ -184,9 +252,10 @@ export default function NornesPage() {
                   { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
                   { rune: runes[3].rune, reversed: runes[3].reversed, position: 'Conseil d’Odin' },
                 ]}
+                onAnalysis={onAnalysis}
               />
               <div className="mt-6 text-center">
-                <RuneButton onClick={roll}>Recommencer un tirage</RuneButton>
+                <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
               </div>
             </motion.div>
           )}
@@ -194,7 +263,7 @@ export default function NornesPage() {
 
         {phase === 'done' && !hasAdvice && (
           <div className="mt-8 text-center">
-            <RuneButton onClick={roll}>Recommencer un tirage</RuneButton>
+            <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
           </div>
         )}
       </div>
