@@ -162,6 +162,7 @@ export const DICT = {
   'sub.perMonth': { fr: '/ mois', en: '/ month' },
   'sub.currentPlan': { fr: '✓ Forfait actuel', en: '✓ Current plan' },
   'sub.choose': { fr: 'Choisir', en: 'Choose' },
+  'sub.subscribe': { fr: 'S\'abonner', en: 'Subscribe' },
   'sub.selected': { fr: 'Forfait « {name} » sélectionné. (Ébauche : branchement paiement à venir)', en: 'Plan « {name} » selected. (Draft: payment integration pending)' },
   'sub.previewNote': { fr: 'Ébauche de prévisualisation — le paiement réel (Stripe/PayPal) sera branché ultérieurement.', en: 'Preview draft — real payment (Stripe/PayPal) will be wired later.' },
   'sub.freeName': { fr: 'Apprenti', en: 'Apprentice' },
