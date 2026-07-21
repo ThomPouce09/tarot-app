@@ -38,26 +38,51 @@ export default function AbonnementPage() {
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('status') === 'success') {
-      setMsg(t('sub.successMsg') || "Merci ! Votre abonnement est actif.");
+      setMsg(t('sub.successMsg'));
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('status') === 'cancel') {
-      setMsg(t('sub.cancelMsg') || "Paiement annulé.");
+      setMsg(t('sub.cancelMsg'));
       window.history.replaceState({}, '', window.location.pathname);
     }
 
-    if (userEmail) {
-      fetch(`/api/subscription?email=${encodeURIComponent(userEmail)}`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.plan) setCurrent(d.plan);
-          setStatus(d.status ?? null);
-        })
-        .catch(() => { /* reste sur gratuit */ });
-    }
+    if (!userEmail) return;
+
+    // Fonction de chargement du statut abonnement
+    const loadSubscription = async () => {
+      try {
+        const res = await fetch(`/api/subscription?email=${encodeURIComponent(userEmail)}`);
+        const d = await res.json();
+        if (d.plan) setCurrent(d.plan);
+        setStatus(d.status ?? null);
+        return d.plan;
+      } catch {
+        return null;
+      }
+    };
+
+    loadSubscription().then(async (plan) => {
+      // Si on revient d'un paiement réussi mais que le plan est encore gratuit,
+      // le webhook Stripe n'a pas encore mis à jour la DB → on poll.
+      if (params.get('status') === 'success' && plan === 'gratuit') {
+        for (let i = 0; i < 15; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const newPlan = await loadSubscription();
+          if (newPlan && newPlan !== 'gratuit') {
+            setMsg(t('sub.successMsg'));
+            break;
+          }
+        }
+      }
+    });
   }, [t]);
 
   const choose = async (p: PlanId) => {
     if (p === 'gratuit') {
+      if (current !== 'gratuit') {
+        // Sur un plan payant : rediriger vers Stripe portal pour résilier
+        manage();
+        return;
+      }
       setCurrent(p);
       setStatus(null);
       setMsg(t('sub.selected').replace('{name}', t(PLAN_NAME_KEY[p])));
@@ -178,10 +203,10 @@ export default function AbonnementPage() {
               </ul>
               <button
                 onClick={() => choose(p)}
-                disabled={isCurrent || loading !== null || (!info.isPaid && !isCurrent)}
-                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : info.isPaid ? 'mystic-btn' : 'hidden'}`}
+                disabled={isCurrent || loading !== null}
+                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : info.isPaid ? 'mystic-btn' : 'mystic-btn-ghost'}`}
               >
-                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : info.isPaid ? t('sub.subscribe') : ''}
+                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : info.isPaid ? t('sub.subscribe') : t('sub.choose')}
               </button>
             </div>
           );

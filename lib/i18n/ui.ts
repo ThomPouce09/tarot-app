@@ -163,8 +163,8 @@ export const DICT = {
   'sub.currentPlan': { fr: '✓ Forfait actuel', en: '✓ Current plan' },
   'sub.choose': { fr: 'Choisir', en: 'Choose' },
   'sub.subscribe': { fr: 'S\'abonner', en: 'Subscribe' },
-  'sub.selected': { fr: 'Forfait « {name} » sélectionné. (Ébauche : branchement paiement à venir)', en: 'Plan « {name} » selected. (Draft: payment integration pending)' },
-  'sub.previewNote': { fr: 'Ébauche de prévisualisation — le paiement réel (Stripe/PayPal) sera branché ultérieurement.', en: 'Preview draft — real payment (Stripe/PayPal) will be wired later.' },
+  'sub.selected': { fr: 'Forfait « {name} » sélectionné.', en: 'Plan « {name} » selected.' },
+  'sub.previewNote': { fr: 'Paiement sécurisé par Stripe — carte bancaire ou PayPal.', en: 'Secure payment powered by Stripe — credit card or PayPal.' },
   'sub.freeName': { fr: 'Apprenti', en: 'Apprentice' },
   'sub.free': { fr: 'Gratuit', en: 'Free' },
   'sub.initieName': { fr: 'Initié', en: 'Initiate' },
@@ -172,6 +172,10 @@ export const DICT = {
   'sub.freeFeatures': { fr: '3 tirages / jour|Tirages Tarot & Yi Jing|Historique 7 jours', en: '3 draws / day|Tarot & I Ching draws|7-day history' },
   'sub.initieFeatures': { fr: 'Tirages illimités|Toutes les formules|Historique complet|Interprétations IA avancées', en: 'Unlimited draws|All spreads|Full history|Advanced AI readings' },
   'sub.oracleFeatures': { fr: 'Tout Initié +|Tirages à la demande|Consultations prioritaires|Thèmes visuels exclusifs', en: 'All Initiate +|On-demand draws|Priority consultations|Exclusive visual themes' },
+  'sub.successMsg': { fr: 'Merci ! Votre abonnement est actif.', en: 'Thank you! Your subscription is now active.' },
+  'sub.cancelMsg': { fr: 'Paiement annulé.', en: 'Payment cancelled.' },
+  'sub.manage': { fr: 'Gérer mon abonnement', en: 'Manage my subscription' },
+  'sub.loginRequired': { fr: 'Connecte-toi pour souscrire.', en: 'Log in to subscribe.' },
 
   // ─── Statistics ───
   'stats.title': { fr: 'Statistiques', en: 'Statistics' },

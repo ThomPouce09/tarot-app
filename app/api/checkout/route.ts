@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       customer_email: customerId ? undefined : email,
       line_items: [{ price: priceId, quantity: 1 }],
-      // Aucune restriction : Stripe propose CB + PayPal selon la config dashboard.
+      payment_method_types: ['card', 'paypal'],
       metadata: { userId: user.id, plan },
       success_url: `${baseUrl}/dashboard/account/abonnement?session_id={CHECKOUT_SESSION_ID}&status=success`,
       cancel_url: `${baseUrl}/dashboard/account/abonnement?status=cancel`,
