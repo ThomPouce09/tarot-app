@@ -166,6 +166,7 @@ export const DICT = {
   'sub.selected': { fr: 'Forfait « {name} » sélectionné. (Ébauche : branchement paiement à venir)', en: 'Plan « {name} » selected. (Draft: payment integration pending)' },
   'sub.previewNote': { fr: 'Ébauche de prévisualisation — le paiement réel (Stripe/PayPal) sera branché ultérieurement.', en: 'Preview draft — real payment (Stripe/PayPal) will be wired later.' },
   'sub.freeName': { fr: 'Apprenti', en: 'Apprentice' },
+  'sub.free': { fr: 'Gratuit', en: 'Free' },
   'sub.initieName': { fr: 'Initié', en: 'Initiate' },
   'sub.oracleName': { fr: 'Oracle', en: 'Oracle' },
   'sub.freeFeatures': { fr: '3 tirages / jour|Tirages Tarot & Yi Jing|Historique 7 jours', en: '3 draws / day|Tarot & I Ching draws|7-day history' },

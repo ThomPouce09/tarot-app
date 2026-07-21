@@ -178,10 +178,10 @@ export default function AbonnementPage() {
               </ul>
               <button
                 onClick={() => choose(p)}
-                disabled={isCurrent || loading !== null}
-                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : info.isPaid ? 'mystic-btn' : 'mystic-btn-ghost'}`}
+                disabled={isCurrent || loading !== null || (!info.isPaid && !isCurrent)}
+                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : info.isPaid ? 'mystic-btn' : 'hidden'}`}
               >
-                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : info.isPaid ? t('sub.subscribe') : t('sub.choose')}
+                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : info.isPaid ? t('sub.subscribe') : ''}
               </button>
             </div>
           );
