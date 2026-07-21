@@ -75,7 +75,7 @@ export function DiceTitle({
   subtitle?: string;
 }) {
   return (
-    <div className="px-4 pt-16 pb-6 text-center">
+    <div className="px-4 pt-12 pb-4 text-center">
       <h1
         className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-wide"
         style={{

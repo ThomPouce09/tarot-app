@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   RuneBackground,
   RuneTitle,
@@ -14,6 +15,8 @@ import {
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
+import { saveReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
@@ -39,6 +42,8 @@ export default function MjolnirPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [done, setDone] = useState(false);
+  const t = useT();
+  const [question, setQuestion] = useState<string | null>(null);
 
   const roll = useCallback(() => {
     setRunes([]);
@@ -50,15 +55,33 @@ export default function MjolnirPage() {
     setIsRolling(false);
     setRunes(r);
     setDone(true);
-  }, []);
+    // Sauvegarde dans l'historique (5 runes en T)
+    saveReading({
+      type: 'runes-mjolnir',
+      spread: 'Le Marteau de Mjölnir',
+      cards: r.slice(0, 5).map((d, i) => ({
+        name: d.rune?.name,
+        symbol: d.rune?.symbol,
+        reversed: d.reversed,
+        position: POS[i],
+      })),
+      question,
+    });
+    setQuestion(null);
+  }, [question]);
 
   return (
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title="Le Marteau de Mjölnir"
-        subtitle="Affronter un obstacle majeur : cinq runes en forme de T pour briser le blocage."
+        title={t('runes.mjolnir.title')}
+        subtitle={t('runes.mjolnir.subtitle')}
       />
+
+      {/* Question avant le tirage */}
+      {!done && (
+        <AskQuestion onConfirm={setQuestion} accentColor={RUNE_THEME.goldPale} />
+      )}
 
       <div className="mx-auto max-w-2xl px-4">
         {/* Conteneur de hauteur constante : le bouton reste monté (visibility
@@ -67,7 +90,7 @@ export default function MjolnirPage() {
           className="py-8 text-center"
           style={{ visibility: done ? 'hidden' : 'visible' }}
         >
-          <RuneButton onClick={roll}>Invoquer la force de Mjölnir</RuneButton>
+          <RuneButton onClick={roll}>{t('runes.mjolnir.cta')}</RuneButton>
         </div>
 
         <RuneStonesSet
@@ -100,7 +123,7 @@ export default function MjolnirPage() {
 
         {done && (
           <div className="mt-8 text-center">
-            <RuneButton onClick={roll}>Recommencer un tirage</RuneButton>
+            <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
           </div>
         )}
       </div>

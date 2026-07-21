@@ -23,6 +23,22 @@ model User {
   comment           String?
   gender            String?
   readings          Reading[]
+  subscription      Subscription?
+}
+
+model Subscription {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId    String    @unique
+  stripeSubscriptionId String   @unique
+  stripePriceId       String
+  plan                String // 'initie' | 'oracle'
+  status              String // active | canceled | past_due | trialing
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model Reading {

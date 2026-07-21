@@ -9,8 +9,8 @@ const LINKS = [
   { href: '/dashboard/account/security', img: '/images/nav-security.png', key: 'nav.security' },
   { href: '/dashboard/account/abonnement', img: '/images/nav-abonnement.png', key: 'nav.abonnement' },
   { href: '/dashboard/account/stats', img: '/images/nav-stats.png', key: 'nav.stats' },
-  { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
   { href: '/dashboard/account/readings', img: '/images/nav-historique.png', key: 'nav.historique' },
+  { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
 ];
 
 export default function AccountNav({ user }: { user: any }) {
@@ -108,12 +108,14 @@ export default function AccountNav({ user }: { user: any }) {
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex justify-around items-center px-1 py-1.5 bg-gray-950/95 backdrop-blur border-t border-amber-800/20 overflow-x-auto">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex justify-around items-center px-1 py-1.5 bg-gray-950/95 backdrop-blur border-t border-amber-800/20" style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}>
         {LINKS.map((l) => (
           <Link
             key={l.href}
             href={l.href}
+            onClick={(e) => { e.preventDefault(); router.push(l.href); }}
             className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
+            style={{ pointerEvents: 'auto' }}
           >
             <span className="text-lg">
               <img src={l.img} alt="" className="h-5 w-5 object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.35))' }} />

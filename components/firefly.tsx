@@ -151,8 +151,9 @@ export default function Firefly({ page }: { page: string }) {
                 setBurst(null);
               }, 620);
             }}
-            className="fixed z-[60] cursor-pointer rounded-full"
+            className="firefly-dot fixed cursor-pointer rounded-full"
             style={{
+              zIndex: 35,
               // Taille VISUELLE stricte : 12px, aucun padding
               width: FIREFLY_CONFIG.dotSize,
               height: FIREFLY_CONFIG.dotSize,
@@ -182,7 +183,7 @@ export default function Firefly({ page }: { page: string }) {
             <span
               aria-hidden
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{ width: 44, height: 44, pointerEvents: 'auto' }}
+              style={{ width: 28, height: 28, pointerEvents: 'auto' }}
             />
           </motion.button>
         )}
@@ -191,7 +192,7 @@ export default function Firefly({ page }: { page: string }) {
       {/* Explosion de la luciole : petites particules dorées qui s'éparpillent
           et fondent dans le fond noir, depuis la position de la luciole. */}
       {burst && (
-        <div className="pointer-events-none fixed inset-0 z-[65]">
+        <div className="pointer-events-none fixed inset-0 z-[45]">
           {burst.map((p) => (
             <motion.span
               key={p.id}

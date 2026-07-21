@@ -9,7 +9,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
 
@@ -368,11 +368,14 @@ export function RuneAnalysis({
   mode,
   focus,
   buttonLabel = "✨ Interroger l'Oracle",
+  onAnalysis,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
   focus?: 'odin';
   buttonLabel?: string;
+  /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
+  onAnalysis?: (text: string) => void;
 }) {
   const [sections, setSections] = useState<
     { position: string; rune: string; sens: string; lecture: string }[] | null
@@ -380,8 +383,12 @@ export function RuneAnalysis({
   const [synthese, setSynthese] = useState('');
   const [conseil, setConseil] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const run = useCallback(async () => {
+    setError('');
     setLoading(true);
     setSections(null);
     setSynthese('');
@@ -399,22 +406,31 @@ export function RuneAnalysis({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runes: payload, mode, focus }),
       });
+      if (!res.ok) {
+        throw new Error(`API ${res.status}`);
+      }
       const data = await res.json();
+      if (!mountedRef.current) return;
       if (data.sections && Array.isArray(data.sections)) {
         setSections(data.sections);
         setSynthese(data.synthese || '');
         setConseil(data.conseil_action || '');
+        // Propager la réponse structurée complète à la page parente (pour persistance historique)
+        onAnalysis?.(JSON.stringify(data));
+      } else {
+        setError("L'Oracle n'a pas répondu de façon structurée. Réessaie.");
       }
-    } catch {
-      // silencieux : l'utilisateur peut relancer
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setError("L'Oracle est silencieux… Réessaie dans un instant.");
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [runes, mode]);
+  }, [runes, mode, focus]);
 
   return (
     <div className="mt-6">
-      {!sections && !loading && (
+      {!sections && !loading && !error && (
         <div className="text-center">
           <RuneButton variant="gold" onClick={run}>
             {buttonLabel}
@@ -428,6 +444,15 @@ export function RuneAnalysis({
           style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale, opacity: 0.8 }}
         >
           L&apos;Oracle déchiffre les runes… ✦
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="text-center space-y-2">
+          <p className="text-amber-400/70 text-xs italic">{error}</p>
+          <RuneButton variant="gold" onClick={run}>
+            {buttonLabel}
+          </RuneButton>
         </div>
       )}
 

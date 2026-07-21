@@ -5,6 +5,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useState } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { AskQuestion } from '@/components/ask-question';
 import {
   RuneBackground,
   RuneTitle,
@@ -14,6 +15,8 @@ import {
   RUNE_THEME,
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
+import { saveReading } from '@/lib/save-reading';
+import { useT } from '@/lib/i18n';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
@@ -37,6 +40,8 @@ export default function YggdrasilPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [done, setDone] = useState(false);
+  const t = useT();
+  const [question, setQuestion] = useState<string | null>(null);
 
   const roll = useCallback(() => {
     setRunes([]);
@@ -48,15 +53,33 @@ export default function YggdrasilPage() {
     setIsRolling(false);
     setRunes(r);
     setDone(true);
-  }, []);
+    // Sauvegarde dans l'historique (4 runes verticales)
+    saveReading({
+      type: 'runes-yggdrasil',
+      spread: "Les Racines d'Yggdrasil",
+      cards: r.slice(0, 4).map((d, i) => ({
+        name: d.rune?.name,
+        symbol: d.rune?.symbol,
+        reversed: d.reversed,
+        position: POS[i],
+      })),
+      question,
+    });
+    setQuestion(null);
+  }, [question]);
 
   return (
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title="Les Racines d'Yggdrasil"
-        subtitle="L’Arbre-Monde : un bilan profond, des racines aux branches, pour s’ancrer et grandir."
+        title={t('runes.yggdrasil.title')}
+        subtitle={t('runes.yggdrasil.subtitle')}
       />
+
+      {/* Question avant le tirage */}
+      {!done && (
+        <AskQuestion onConfirm={setQuestion} accentColor={RUNE_THEME.goldPale} />
+      )}
 
       <div className="mx-auto max-w-2xl px-4">
         {/* Conteneur de hauteur constante : le bouton reste monté (visibility
@@ -65,7 +88,7 @@ export default function YggdrasilPage() {
           className="py-8 text-center"
           style={{ visibility: done ? 'hidden' : 'visible' }}
         >
-          <RuneButton onClick={roll}>Observer l’Arbre-Monde</RuneButton>
+          <RuneButton onClick={roll}>{t('runes.yggdrasil.cta')}</RuneButton>
         </div>
 
         <RuneStonesSet
@@ -91,7 +114,7 @@ export default function YggdrasilPage() {
 
         {done && (
           <div className="mt-8 text-center">
-            <RuneButton onClick={roll}>Recommencer un tirage</RuneButton>
+            <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
           </div>
         )}
       </div>

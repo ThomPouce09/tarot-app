@@ -1,10 +1,17 @@
 'use client';
 
+// app/login/page.tsx
+// Mire de connexion (2) — accès "Mon espace" depuis le menu (non identifié).
+// Restylee pour matcher la mire (1) "Entrer dans le temple" :
+// meme typo (Cinzel / Cormorant), memes codes couleurs or/parchemin, meme ambience.
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +26,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isBlocked) {
       setError(`Trop d'essais. Réessayez plus tard ou utilisez "Mot de passe oublié".`);
       return;
@@ -45,10 +52,10 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
-        router.push('/');
+        router.push('/dashboard/account');
       } else {
         setFailedAttempts(prev => prev + 1);
-        setError(failedAttempts + 1 >= maxAttempts 
+        setError(failedAttempts + 1 >= maxAttempts
           ? "Trop d'essais infructueux. Utilisez 'Mot de passe oublié'."
           : "Email ou mot de passe incorrect");
       }
@@ -63,7 +70,7 @@ export default function LoginPage() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg('');
-    
+
     try {
       await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -77,98 +84,202 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4">
-        <div className="bg-gray-900/80 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
-          <h2 className="text-2xl font-bold text-amber-300 mb-4 my-auto mx-auto text-center">🔐 Connexion</h2>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'radial-gradient(ellipse at top, #2a1810 0%, #1a0e0a 60%, #0d0604 100%)',
+      }}
+    >
+      <div
+        className="w-full max-w-md p-8 rounded-2xl"
+        style={{
+          background: 'rgba(26, 14, 10, 0.92)',
+          border: '1px solid rgba(218, 165, 32, 0.3)',
+          boxShadow: '0 0 40px rgba(218,165,32,0.15)',
+        }}
+      >
+        <h2
+          className="text-3xl font-bold text-center mb-2"
+          style={{
+            fontFamily: 'var(--font-cinzel-deco), serif',
+            color: '#FFD700',
+            textShadow: '0 0 15px rgba(255,215,0,0.4)',
+          }}
+        >
+          {t('login.title')}
+        </h2>
+        <p
+          className="text-center mb-8"
+          style={{
+            fontFamily: 'var(--font-cormorant), serif',
+            fontSize: '1.1rem',
+            color: 'rgba(255,215,0,0.65)',
+          }}
+        >
+          {t('login.slogan')}
+        </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-gray-300 text-sm">📧 Email</label>
-              <input
-                type="email"
-                autoComplete="off"
-                autoCapitalize="none"
-                value={email}
-                onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1"
-                placeholder="votre@email.com"
-                required
-                disabled={isBlocked}
-              />
-            </div>
-
-            <div>
-              <label className="text-gray-300 text-sm">🔒 Mot de passe</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm mt-1 pr-10"
-                  placeholder="••••••••"
-                  required
-                  disabled={isBlocked}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  disabled={isBlocked}
-                >
-                  {showPassword ? '👁️' : '👁‍🗨'}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-red-500 bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-xs animate-shake">
-                ⚠️ {error}
-              </p>
-            )}
-
-            {isBlocked && (
-              <p className="text-red-400 text-xs my-auto mx-auto text-center">
-                🔒 Compte temporairement bloqué
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading || isBlocked}
-              className="w-full py-3 mystic-btn-glow bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white font-semibold disabled:opacity-50"
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFD700' }}
             >
-              {isLoading ? 'Connexion...' : isBlocked ? 'Bloqué' : 'Se connecter'}
-            </button>
-          </form>
-
-          <div className="mt-4 pt-4 border-t border-amber-800/30 space-y-2 my-auto mx-auto text-center">
-            <button
-              onClick={() => setShowForgotPassword(true)}
-              className="text-amber-500 text-xs hover:underline block mx-auto"
-            >
-              🔑 Mot de passe oublié ?
-            </button>
-            <a href="/auth/signup" className="text-amber-500 text-xs hover:underline block mx-auto">
-              ✨ Pas encore inscrit ?
-            </a>
+              {t('login.email')}
+            </label>
+            <input
+              type="email"
+              value={email}
+              inputMode="email"
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(e) => setEmail(e.target.value.toLowerCase())}
+              required
+              disabled={isBlocked}
+              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(218,165,32,0.3)',
+                color: '#FFE9B0',
+                fontFamily: 'var(--font-cormorant), serif',
+                fontSize: '1.1rem',
+                letterSpacing: '0.02em',
+                textTransform: 'lowercase',
+              }}
+              placeholder="votre@email.com"
+            />
           </div>
+
+          <div>
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFD700' }}
+            >
+              {t('login.password')}
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isBlocked}
+                className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40 pr-10"
+                style={{
+                  background: 'rgba(0,0,0,0.45)',
+                  border: '1px solid rgba(218,165,32,0.3)',
+                  color: '#FFE9B0',
+                  fontFamily: 'var(--font-cormorant), serif',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.02em',
+                }}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/70 hover:text-amber-300"
+                disabled={isBlocked}
+                aria-label="Afficher le mot de passe"
+              >
+                {showPassword ? '◉' : '○'}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <p
+              className="text-center text-xs rounded px-2 py-1"
+              style={{
+                color: '#fca5a5',
+                background: 'rgba(127,29,29,0.25)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                fontFamily: 'var(--font-cormorant), serif',
+              }}
+            >
+              {error}
+            </p>
+          )}
+
+          {isBlocked && (
+            <p
+              className="text-center text-xs"
+              style={{ color: '#fca5a5', fontFamily: 'var(--font-cormorant), serif' }}
+            >
+              Compte temporairement bloqué
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading || isBlocked}
+            className="w-full py-3 rounded-lg font-bold transition-all disabled:opacity-50"
+            style={{
+              fontFamily: 'var(--font-cinzel-deco), serif',
+              background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
+              color: '#1a0e0a',
+              boxShadow: '0 0 20px rgba(218,165,32,0.4)',
+              border: '1px solid rgba(218,165,32,0.5)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            {isLoading ? 'Connexion...' : isBlocked ? 'Bloqué' : t('login.submit')}
+          </button>
+        </form>
+
+        <div className="mt-6 pt-4 text-center text-sm space-y-2" style={{ borderTop: '1px solid rgba(218,165,32,0.2)' }}>
+          <button
+            onClick={() => setShowForgotPassword(true)}
+            className="text-amber-300 hover:underline block mx-auto"
+            style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1rem' }}
+          >
+            {t('login.forgot')}
+          </button>
+          <a
+            href="/auth/signup"
+            className="text-amber-300 hover:underline block mx-auto"
+            style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1rem' }}
+          >
+            {t('login.signup')}
+          </a>
         </div>
       </div>
 
       {/* Modal Mot de passe oublié */}
       {showForgotPassword && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-amber-300 mb-4">🔑 Réinitialiser le mot de passe</h3>
-            
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.8)' }}>
+          <div
+            className="w-full max-w-sm p-6 rounded-2xl"
+            style={{
+              background: 'rgba(26, 14, 10, 0.95)',
+              border: '1px solid rgba(218,165,32,0.3)',
+              boxShadow: '0 0 40px rgba(218,165,32,0.2)',
+            }}
+          >
+            <h3
+              className="text-xl font-bold mb-4"
+              style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700' }}
+            >
+              Réinitialiser le mot de passe
+            </h3>
+
             {msg ? (
               <div className="text-center space-y-4">
-                <p className="text-green-400">✅ {msg}</p>
-                <p className="text-gray-400 text-xs">Vérifiez votre boîte mail (y compris spam)</p>
+                <p style={{ color: '#86efac', fontFamily: 'var(--font-cormorant), serif', fontSize: '1.05rem' }}>{msg}</p>
+                <p style={{ color: 'rgba(255,215,0,0.5)', fontSize: '0.8rem' }}>Vérifiez votre boîte mail (y compris spam)</p>
                 <button
                   onClick={() => setShowForgotPassword(false)}
-                  className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white"
+                  className="w-full py-2 rounded-lg"
+                  style={{
+                    fontFamily: 'var(--font-cinzel), serif',
+                    background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
+                    color: '#1a0e0a',
+                    border: '1px solid rgba(218,165,32,0.5)',
+                  }}
                 >
                   Fermer
                 </button>
@@ -177,25 +288,47 @@ export default function LoginPage() {
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <input
                   type="email"
+                  value={email}
+                  inputMode="email"
                   autoComplete="off"
                   autoCapitalize="none"
-                  value={email}
+                  autoCorrect="off"
+                  spellCheck={false}
                   onChange={(e) => setEmail(e.target.value.toLowerCase())}
                   placeholder="Votre email"
-                  className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
                   required
+                  className="w-full px-4 py-3 rounded-lg border"
+                  style={{
+                    background: 'rgba(0,0,0,0.45)',
+                    border: '1px solid rgba(218,165,32,0.3)',
+                    color: '#FFE9B0',
+                    fontFamily: 'var(--font-cormorant), serif',
+                    fontSize: '1.1rem',
+                    textTransform: 'lowercase',
+                  }}
                 />
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(false)}
-                    className="flex-1 py-2 border border-amber-800/50 rounded-lg text-amber-300"
+                    className="flex-1 py-2 rounded-lg"
+                    style={{
+                      fontFamily: 'var(--font-cinzel), serif',
+                      border: '1px solid rgba(218,165,32,0.4)',
+                      color: '#FFD700',
+                    }}
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white"
+                    className="flex-1 py-2 rounded-lg"
+                    style={{
+                      fontFamily: 'var(--font-cinzel-deco), serif',
+                      background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
+                      color: '#1a0e0a',
+                      border: '1px solid rgba(218,165,32,0.5)',
+                    }}
                   >
                     Envoyer
                   </button>
@@ -205,6 +338,6 @@ export default function LoginPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

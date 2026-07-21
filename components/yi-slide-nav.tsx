@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function YiSlideNav() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const openSound = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     openSound.current = new Audio('/audio/scroll1.mp3');
@@ -17,6 +18,20 @@ export default function YiSlideNav() {
     if (!a) return;
     a.currentTime = 0;
     a.play().catch(() => {});
+  };
+
+  const go = (href: string) => {
+    playSound();
+    setOpen(false);
+    // "Mon espace" : si non identifié, on ouvre la mire de connexion (2) restylée.
+    if (href === '/dashboard/account') {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
+      if (!stored) {
+        router.push('/login');
+        return;
+      }
+    }
+    router.push(href);
   };
 
   return (
@@ -65,7 +80,7 @@ export default function YiSlideNav() {
               top: '-0.5rem',         // coïncide avec le haut de menu-close (-top-2)
               width: '171px',         // = largeur rendue de menu-close (32px * 300/56)
               transformOrigin: 'top center',
-              pointerEvents: 'none',
+              pointerEvents: 'auto',
             }}
             initial={{ scaleY: 0, opacity: 0 }}
             animate={{ scaleY: 1, opacity: 1 }}
@@ -110,14 +125,14 @@ export default function YiSlideNav() {
                       {l.label}
                     </span>
                   ) : (
-                    <Link
-                      href={l.href}
-                      onClick={() => { playSound(); setOpen(false); }}
+                    <button
+                      type="button"
+                      onClick={() => go(l.href)}
                       className="block whitespace-nowrap rounded px-2 py-px text-[11px] font-bold tracking-wide text-[#3e2a12] transition-colors hover:bg-[#7a5a30]/20"
                       style={{ fontFamily: 'var(--font-cinzel), serif' }}
                     >
                       {l.label}
-                    </Link>
+                    </button>
                   )}
                 </motion.div>
               ))}

@@ -1,36 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n';
+import { PLAN_PRICE_EUR, PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, type PlanId } from '@/lib/plans';
 
-type Plan = 'gratuit' | 'initie' | 'oracle';
+type PlanInfo = { priceEur?: number; isPaid: boolean };
 
-const PLAN_NAMES: Record<Plan, string> = {
-  gratuit: 'sub.freeName',
-  initie: 'sub.initieName',
-  oracle: 'sub.oracleName',
+const PLANS: PlanId[] = ['gratuit', 'initie', 'oracle'];
+
+const PLAN_INFO: Record<PlanId, PlanInfo> = {
+  gratuit: { isPaid: false },
+  initie: { priceEur: PLAN_PRICE_EUR.initie, isPaid: true },
+  oracle: { priceEur: PLAN_PRICE_EUR.oracle, isPaid: true },
 };
-const PLAN_ICONS: Record<Plan, string> = {
-  gratuit: '🌙',
-  initie: '✦',
-  oracle: '🔮',
-};
-const PLAN_FEATURES: Record<Plan, string> = {
-  gratuit: 'sub.freeFeatures',
-  initie: 'sub.initieFeatures',
-  oracle: 'sub.oracleFeatures',
-};
+
+function formatPrice(eur: number): string {
+  return `${eur.toFixed(2).replace('.', ',')} €`;
+}
 
 export default function AbonnementPage() {
   const t = useT();
-  const [current, setCurrent] = useState<Plan>('initie');
-  const [status, setStatus] = useState<'actif' | 'suspendu'>('actif');
+  const [current, setCurrent] = useState<PlanId>('gratuit');
+  const [status, setStatus] = useState<'actif' | 'suspendu' | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState<PlanId | null>(null);
+  const [manageLoading, setManageLoading] = useState(false);
+  const [email, setEmail] = useState<string>('');
 
-  const choose = (p: Plan) => {
-    setCurrent(p);
-    setMsg(t('sub.selected').replace('{name}', t(PLAN_NAMES[p])));
+  // Charge l'abonnement réel (Gratuit par défaut si aucun).
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
+    let userEmail = '';
+    if (stored) {
+      try { userEmail = JSON.parse(stored).email ?? ''; } catch { /* noop */ }
+    }
+    setEmail(userEmail);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('status') === 'success') {
+      setMsg(t('sub.successMsg') || "Merci ! Votre abonnement est actif.");
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('status') === 'cancel') {
+      setMsg(t('sub.cancelMsg') || "Paiement annulé.");
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (userEmail) {
+      fetch(`/api/subscription?email=${encodeURIComponent(userEmail)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.plan) setCurrent(d.plan);
+          setStatus(d.status ?? null);
+        })
+        .catch(() => { /* reste sur gratuit */ });
+    }
+  }, [t]);
+
+  const choose = async (p: PlanId) => {
+    if (p === 'gratuit') {
+      setCurrent(p);
+      setStatus(null);
+      setMsg(t('sub.selected').replace('{name}', t(PLAN_NAME_KEY[p])));
+      return;
+    }
+    if (!email) {
+      setMsg(t('sub.loginRequired') || 'Connecte-toi pour souscrire.');
+      return;
+    }
+    setLoading(p);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: p, email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setMsg(data.error || "Échec de l'initialisation du paiement.");
+    } catch {
+      setMsg("Erreur de connexion au serveur de paiement.");
+    } finally {
+      setLoading(null);
+    }
   };
+
+  const manage = async () => {
+    if (!email) {
+      setMsg(t('sub.loginRequired') || 'Connecte-toi pour gérer ton abonnement.');
+      return;
+    }
+    setManageLoading(true);
+    try {
+      const res = await fetch('/api/billing-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setMsg(data.error || "Échec de l'ouverture du portail.");
+    } catch {
+      setMsg("Erreur de connexion au serveur.");
+    } finally {
+      setManageLoading(false);
+    }
+  };
+
+  const isSubscribed = current !== 'gratuit' && status !== 'suspendu';
 
   return (
     <div className="space-y-6">
@@ -40,32 +122,55 @@ export default function AbonnementPage() {
           {t('sub.title')}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          {t('sub.statusLabel')} <span className={status === 'actif' ? 'text-amber-300' : 'text-gray-400'}>{status === 'actif' ? t('sub.active') : t('sub.suspended')}</span>
-          {status === 'actif' && <span className="ml-2 badge-mystic">{t(PLAN_NAMES[current])}</span>}
+          {t('sub.statusLabel')}{' '}
+          {current === 'gratuit' ? (
+            <span className="text-gray-400">{t('sub.freeName')}</span>
+          ) : (
+            <span className={status === 'suspendu' ? 'text-gray-400' : 'text-amber-300'}>
+              {status === 'suspendu' ? t('sub.suspended') : t('sub.active')}
+            </span>
+          )}
+          {current !== 'gratuit' && <span className="ml-2 badge-mystic">{t(PLAN_NAME_KEY[current])}</span>}
         </p>
       </header>
 
-      {msg && <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">{msg}</p>}
+      {msg && (
+        <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
+          {msg}
+        </p>
+      )}
 
-      {/* Actions abonnement */}
+      {/* Actions */}
       <div className="flex flex-wrap gap-3">
-        {status === 'actif' ? (
-          <button onClick={() => { setStatus('suspendu'); setMsg(t('sub.suspendedMsg')); }} className="mystic-btn-ghost">{t('sub.suspend')}</button>
+        {isSubscribed ? (
+          <button onClick={manage} disabled={manageLoading} className="mystic-btn-ghost">
+            {manageLoading ? '…' : (t('sub.manage') || 'Gérer mon abonnement')}
+          </button>
         ) : (
-          <button onClick={() => { setStatus('actif'); setMsg(t('sub.resumedMsg')); }} className="mystic-btn">{t('sub.resume')}</button>
+          <button onClick={() => setMsg(t('sub.previewNote'))} className="mystic-btn-ghost">
+            {t('sub.suspend') || 'Changer de forfait'}
+          </button>
         )}
       </div>
 
       {/* Cartes de forfaits */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(Object.keys(PLAN_NAMES) as Plan[]).map((p) => {
+        {PLANS.map((p) => {
           const isCurrent = p === current;
-          const features = t(PLAN_FEATURES[p]).split('|');
+          const info = PLAN_INFO[p];
+          const features = t(PLAN_FEATURES_KEY[p]).split('|');
           return (
             <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-amber-500/60' : ''}`}>
-              <div className="text-3xl mb-2">{PLAN_ICONS[p]}</div>
-              <h2 className="mystic-title text-lg">{t(PLAN_NAMES[p])}</h2>
-              <p className="mystic-subtitle text-xs mb-3"><span className="text-gray-500">{t('sub.perMonth')}</span></p>
+              <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
+              <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
+              <p className="mystic-subtitle text-sm mb-3">
+                {info.isPaid ? (
+                  <span className="text-amber-300 font-semibold">{formatPrice(info.priceEur!)}</span>
+                ) : (
+                  <span className="text-gray-500">{t('sub.free')}</span>
+                )}
+                {info.isPaid && <span className="text-gray-500"> {t('sub.perMonth')}</span>}
+              </p>
               <ul className="space-y-1.5 text-sm text-gray-300 flex-1">
                 {features.map((f) => (
                   <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{f}</span></li>
@@ -73,10 +178,10 @@ export default function AbonnementPage() {
               </ul>
               <button
                 onClick={() => choose(p)}
-                disabled={isCurrent}
-                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : 'mystic-btn'}`}
+                disabled={isCurrent || loading !== null}
+                className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : info.isPaid ? 'mystic-btn' : 'mystic-btn-ghost'}`}
               >
-                {isCurrent ? t('sub.currentPlan') : t('sub.choose')}
+                {isCurrent ? t('sub.currentPlan') : loading === p ? '…' : info.isPaid ? t('sub.subscribe') : t('sub.choose')}
               </button>
             </div>
           );

@@ -55,6 +55,10 @@ const CREATURES = [
   { slug: 'elfe1-runes', name: 'Elfe Aëlin', image: '/images/creatures/elfe1.png', page: 'runes', color: '#FFE9A8' },
   { slug: 'elfe2-runes', name: 'Elfe Bëor', image: '/images/creatures/elfe2.png', page: 'runes', color: '#E0CFF0' },
   { slug: 'trollinet2', name: 'Trollinet Bûrr', image: '/images/creatures/trollinet2.png', page: 'runes', color: '#D4B483' },
+  // Dés du Zodiaque : elfes + bohémien
+  { slug: 'elfe3-des', name: 'Elfe Cael', image: '/images/creatures/elfe3.png', page: 'des-divinatoires', color: '#C8E6FF' },
+  { slug: 'elfe4-des', name: 'Elfe Dore', image: '/images/creatures/elfe4.png', page: 'des-divinatoires', color: '#FFD700' },
+  { slug: 'bohemien1-des', name: 'Bohémien Lou', image: '/images/creatures/bohemien1.png', page: 'des-divinatoires', color: '#D4B483' },
 ];
 
 // Messages par créature (FR + EN). categories: tips|credits|lore|advice|joke|history
@@ -125,6 +129,18 @@ const MESSAGES: Record<string, { category: string; textFr: string; textEn: strin
     { category: 'joke', textFr: 'Le trollinet a renversé la pierre runique… elle a roulé vers la vérité.', textEn: 'The trollkin knocked over the rune stone… it rolled toward the truth.' },
     { category: 'lore', textFr: 'Sous la terre, les runes dorment. Le trollinet les réveille.', textEn: 'Beneath the earth, runes sleep. The trollkin wakes them.' },
   ],
+  'elfe3-des': [
+    { category: 'advice', textFr: 'Dés du Zodiaque : laisse le hasard choisir la face. La planète, le signe et la maison parleront.', textEn: 'Dice of the Zodiac: let chance choose the face. Planet, sign and house will speak.' },
+    { category: 'lore', textFr: 'Trois dés, douze faces : un mini-univers pour éclairer ta question.', textEn: 'Three dice, twelve faces: a mini-universe to light your question.' },
+  ],
+  'elfe4-des': [
+    { category: 'tips', textFr: 'Astuce : affine un tirage déjà clair avec le mode Affinage.', textEn: 'Tip: refine a clear draw with the Affinage mode.' },
+    { category: 'history', textFr: 'Les dés astraux relient l’astrologie aux tirages depuis l’Antiquité.', textEn: 'Astral dice link astrology to draws since antiquity.' },
+  ],
+  'bohemien1-des': [
+    { category: 'advice', textFr: 'Hésite entre deux chemins ? Le tirage du Choix compare leurs énergies.', textEn: 'Torn between two paths? The Choice draw compares their energies.' },
+    { category: 'lore', textFr: 'Chaque dé est une porte sur le destin. Laquelle lances-tu ?', textEn: 'Each die is a door to fate. Which do you cast?' },
+  ],
 };
 
 async function main() {
@@ -157,9 +173,10 @@ async function main() {
       );
       console.log(`↻ ${c.slug} mis à jour`);
     } else {
+      const creatureId = crypto.randomUUID();
       const ins = await prisma.$queryRawUnsafe<{ id: string }[]>(
-        `INSERT INTO "Creature" ("slug","name","image","page","color") VALUES ($1,$2,$3,$4,$5) RETURNING "id"`,
-        c.slug, c.name, c.image, c.page, c.color,
+        `INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id"`,
+        creatureId, c.slug, c.name, c.image, c.page, c.color,
       );
       id = ins[0].id;
       console.log(`＋ ${c.slug} créé`);
@@ -167,9 +184,10 @@ async function main() {
     // (Ré)seed des messages (idempotent : on vide puis réinsère)
     await prisma.$executeRawUnsafe(`DELETE FROM "CreatureMessage" WHERE "creatureId" = $1`, id);
     for (const m of MESSAGES[c.slug] || []) {
+      const msgId = crypto.randomUUID();
       await prisma.$executeRawUnsafe(
-        `INSERT INTO "CreatureMessage" ("creatureId","category","textFr","textEn") VALUES ($1,$2,$3,$4)`,
-        id, m.category, m.textFr, m.textEn,
+        `INSERT INTO "CreatureMessage" ("id","creatureId","category","textFr","textEn") VALUES ($1,$2,$3,$4,$5)`,
+        msgId, id, m.category, m.textFr, m.textEn,
       );
     }
   }

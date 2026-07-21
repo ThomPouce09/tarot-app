@@ -402,3 +402,11 @@ html, body {
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+/* Luciole : rester SOUS les contrôles UI (CTA landing z-index 70).
+   Framer-motion impose position:absolute en animant left/top ; on force
+   fixed + z-index bas via !important pour ne jamais capter les taps UI. */
+.firefly-dot {
+  position: fixed !important;
+  z-index: 35 !important;
+}
