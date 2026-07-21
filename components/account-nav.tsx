@@ -9,8 +9,8 @@ const LINKS = [
   { href: '/dashboard/account/security', img: '/images/nav-security.png', key: 'nav.security' },
   { href: '/dashboard/account/abonnement', img: '/images/nav-abonnement.png', key: 'nav.abonnement' },
   { href: '/dashboard/account/stats', img: '/images/nav-stats.png', key: 'nav.stats' },
-  { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
   { href: '/dashboard/account/readings', img: '/images/nav-historique.png', key: 'nav.historique' },
+  { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
 ];
 
 export default function AccountNav({ user }: { user: any }) {
