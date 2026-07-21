@@ -61,38 +61,6 @@ function DiceLoader() {
   );
 }
 
-/* Tutoriel : texte qui disparaît après 8 s (timer interne). La page le coupe
-   aussi au 1er lancer. Démarre au chargement de la page (voir useEffect). */
-function TutorialText({ onDone }: { onDone: () => void }) {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      setVisible(false);
-      window.setTimeout(onDone, 600);
-    }, 8000);
-    return () => window.clearTimeout(t);
-  }, [onDone]);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.6 }}
-      style={{
-        maxWidth: 300,
-        textAlign: 'center',
-        fontSize: 15,
-        lineHeight: 1.5,
-        fontFamily: 'var(--font-cinzel), serif',
-        color: DICE_THEME.glyph,
-        textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-        paddingBottom: 8,
-      }}
-    >
-      Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour
-      les jeter. Ou appuyez sur « Lancer les dés ».
-    </motion.div>
-  );
-}
 
 type Phase = 'initial' | 'firstRoll' | 'firstDone' | 'refineRoll' | 'refineDone';
 type Option = 'action' | 'domaine';
@@ -130,6 +98,8 @@ export default function AffinagePage() {
   const [resetSignal, setResetSignal] = useState(0);
   // Cible du défilement automatique vers le haut du résultat après le tirage.
   const resultRef = useRef<HTMLDivElement>(null);
+  const tutorialRef = useRef<HTMLDivElement>(null);
+  const questionRef = useRef<HTMLParagraphElement>(null);
 
   // Tutoriel : démarre au chargement complet de la page (après un court
   // délai pour laisser le gobelet s'afficher), puis se masque tout seul
@@ -303,14 +273,65 @@ export default function AffinagePage() {
   }, [showResult]);
 
   return (
-    <DiceBackground>
+    <><style>{`
+      @keyframes glow-pulse {
+              0%, 100% { text-shadow: 0 0 6px rgba(100,180,255,0.4), 0 0 16px rgba(100,180,255,0.25); }
+              50%      { text-shadow: 0 0 12px rgba(100,220,255,0.9), 0 0 30px rgba(100,220,255,0.5), 0 0 50px rgba(100,220,255,0.2); }
+            }
+            .affinage-glow {
+              color: #99d4ff;
+              font-family: 'var(--font-cinzel), serif';
+              font-size: 0.85rem;
+              letter-spacing: 0.05em;
+              animation: glow-pulse 2.2s ease-in-out infinite;
+            }
+    `}</style><DiceBackground>
       <YiSlideNav />
       <DiceTitle title={t('des.affinage.title')} />
 
       <div className="mx-auto max-w-2xl px-4 pb-20">
         {/* Question avant le premier tirage */}
         {phase === 'initial' && (
-          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+          <>
+            {!question && (
+            <p
+              className="text-center mt-6 mb-4 affinage-glow"
+            >
+              Concentrez-vous sur votre question
+            </p>
+            )}
+            <AskQuestion
+            onConfirm={setQuestion}
+            label="Garder votre question en mémoire (facultatif)"
+            placeholder="Garder votre question en mémoire (facultatif)"
+            confirmLabel="Enregistrer"
+            launchLabel="Lancer les dés zodiacaux !"
+            onLaunch={() => {
+              setShowTutorial(true);
+              setTimeout(() => {
+                tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 500);
+            }}
+          />
+          </>
+        )}
+
+        {/* Question persistante après enregistrement */}
+        {question && (
+          <p
+            ref={questionRef}
+            className="text-center mx-auto mb-2"
+            style={{
+              fontFamily: 'var(--font-cinzel), serif',
+              color: DICE_THEME.gold,
+              fontSize: '0.8rem',
+              maxWidth: 260,
+              lineHeight: 1.4,
+              opacity: 0.75,
+            }}
+          >
+            {question}
+          </p>
         )}
 
         {/* Gobelet */}
@@ -336,39 +357,47 @@ export default function AffinagePage() {
             }}
             resetSignal={resetSignal}
             launchSignal={0}
+            onShake={() => setShowTutorial(false)}
           />
         </div>
 
-        {/* Tutoriel sous le composant */}
+        {/* Tutoriel — calqué sur yi-jing-simple : icône Material "swipe" + texte */  }
         {showTutorial && (
           <motion.div
+            ref={tutorialRef}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-10 flex flex-col items-center gap-2"
+            className="mt-10 flex flex-col items-center gap-1"
           >
-            <motion.div
-              initial={{ x: -22 }}
-              animate={{
-                x: [-22, 22, -22, 22, -22, 0],
-                y: [0, 0, 0, 0, 0, -18],
-              }}
-              transition={{
-                duration: 2.6,
-                times: [0, 0.16, 0.32, 0.48, 0.62, 1],
-                repeat: Infinity,
-                repeatDelay: 0.5,
-                ease: 'easeInOut',
-              }}
+            <style>{`
+              @keyframes swipe-shake-affinage {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-16px); }
+                75% { transform: translateX(16px); }
+              }
+              .swipe-icon-affinage {
+                animation: swipe-shake-affinage 0.6s ease-in-out infinite;
+                font-size: 48px;
+                color: #87CEEB;
+                opacity: 0.5;
+                user-select: none;
+                -webkit-user-select: none;
+              }
+            `}</style>
+            <span className="material-symbols-outlined swipe-icon-affinage">swipe</span>
+            <p
+              className="text-center leading-tight"
               style={{
-                fontSize: 40,
-                opacity: 0.5,
-                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+                fontFamily: 'var(--font-cinzel), serif',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '0.65rem',
+                maxWidth: 140,
+                lineHeight: 1.3,
               }}
             >
-              ✋
-            </motion.div>
-            <TutorialText onDone={() => setShowTutorial(false)} />
+              Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter
+            </p>
           </motion.div>
         )}
 
@@ -659,5 +688,9 @@ export default function AffinagePage() {
         </AnimatePresence>
       </div>
     </DiceBackground>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=swipe"
+      /></>
   );
 }
