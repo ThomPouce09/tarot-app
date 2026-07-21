@@ -37,6 +37,7 @@ export default function AbonnementPage() {
     setEmail(userEmail);
 
     const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
     if (params.get('status') === 'success') {
       setMsg(t('sub.successMsg'));
       window.history.replaceState({}, '', window.location.pathname);
@@ -60,20 +61,32 @@ export default function AbonnementPage() {
       }
     };
 
-    loadSubscription().then(async (plan) => {
-      // Si on revient d'un paiement réussi mais que le plan est encore gratuit,
-      // le webhook Stripe n'a pas encore mis à jour la DB → on poll.
-      if (params.get('status') === 'success' && plan === 'gratuit') {
+    // Si on revient d'un paiement, on confirme la session Stripe directement
+    // (contourne le besoin du webhook pour la mise à jour immédiate)
+    const confirmAndLoad = async () => {
+      if (sessionId) {
+        try {
+          const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
+          const confirmData = await confirmRes.json();
+          if (confirmData.plan && confirmData.plan !== 'gratuit') {
+            setCurrent(confirmData.plan);
+            setStatus(confirmData.status ?? null);
+            setMsg(t('sub.successMsg'));
+            return; // déjà à jour, pas besoin de poller
+          }
+        } catch { /* fallback: on poll */ }
+      }
+      // Si pas de session_id ou si la confirmation n'a pas marché, on poll
+      const plan = await loadSubscription();
+      if (params.get('status') === 'success' && (!plan || plan === 'gratuit')) {
         for (let i = 0; i < 15; i++) {
           await new Promise((r) => setTimeout(r, 2000));
           const newPlan = await loadSubscription();
-          if (newPlan && newPlan !== 'gratuit') {
-            setMsg(t('sub.successMsg'));
-            break;
-          }
+          if (newPlan && newPlan !== 'gratuit') break;
         }
       }
-    });
+    };
+    confirmAndLoad();
   }, [t]);
 
   const choose = async (p: PlanId) => {
