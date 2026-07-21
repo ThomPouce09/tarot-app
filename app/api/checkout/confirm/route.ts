@@ -23,9 +23,6 @@ export async function GET(request: NextRequest) {
 
     // Récupère la session Stripe complète
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
-      return NextResponse.json({ error: 'Paiement non confirmé', plan: 'gratuit' });
-    }
 
     const userId = session.metadata?.userId;
     const plan = session.metadata?.plan;
@@ -33,11 +30,14 @@ export async function GET(request: NextRequest) {
     const customerId = session.customer as string;
 
     if (!userId || !plan || !subscriptionId) {
-      return NextResponse.json({ error: 'Données session incomplètes' }, { status: 400 });
+      return NextResponse.json({ error: 'Données session incomplètes', plan: 'gratuit' }, { status: 400 });
     }
 
     // Récupère les détails abonnement Stripe
     const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    if (!sub) {
+      return NextResponse.json({ error: 'Abonnement introuvable', plan: 'gratuit' }, { status: 404 });
+    }
     const priceId = sub.items.data[0]?.price?.id as string;
     const periodEnd = new Date((sub as any).current_period_end * 1000);
 
