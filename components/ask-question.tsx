@@ -24,6 +24,8 @@ interface AskQuestionProps {
   launchLabel?: string;
   /** Appelé quand on clique sur le bouton de lancement */
   onLaunch?: () => void;
+  /** Texte à afficher en glow au-dessus du champ (B) */
+  glowLabel?: string;
 }
 
 export function AskQuestion({
@@ -34,6 +36,7 @@ export function AskQuestion({
   confirmLabel,
   launchLabel,
   onLaunch,
+  glowLabel,
 }: AskQuestionProps) {
   const t = useT();
   const [question, setQuestion] = useState('');
@@ -66,8 +69,14 @@ export function AskQuestion({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          className="mb-6 text-center"
+          className="mb-4 text-center rounded-2xl border p-4"
+          style={{
+            borderColor: 'rgba(100,180,255,0.35)',
+          }}
         >
+          {glowLabel && (
+            <p className="mb-3 affinage-glow">{glowLabel}</p>
+          )}
           <div className="flex items-center gap-2 justify-center flex-wrap">
             <input
               ref={inputRef}
@@ -99,22 +108,25 @@ export function AskQuestion({
               {confirmLabel || t('askQuestion.confirm')}
             </button>
           </div>
-          {onLaunch && launchLabel && (
-            <button
-              onClick={handleLaunch}
-              className="mt-12 rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
-              style={{
-                background: '#005f6a',
-                color: '#fff',
-                fontFamily: 'var(--font-cinzel-deco), serif',
-                boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-                border: '1px solid rgba(0,95,106,0.6)',
-              }}
-            >
-              {launchLabel}
-            </button>
-          )}
         </motion.div>
+      )}
+      {visible && onLaunch && launchLabel && (
+        <motion.button
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          onClick={handleLaunch}
+          className="mt-12 rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+          style={{
+            background: '#005f6a',
+            color: '#fff',
+            fontFamily: 'var(--font-cinzel-deco), serif',
+            boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+            border: '1px solid rgba(0,95,106,0.6)',
+          }}
+        >
+          {launchLabel}
+        </motion.button>
       )}
     </AnimatePresence>
   );

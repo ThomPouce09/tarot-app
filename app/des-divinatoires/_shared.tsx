@@ -127,10 +127,14 @@ export function DiceButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'ocre';
+  variant?: 'primary' | 'ocre' | 'blue' | 'blueLight';
 }) {
   const bg =
-    variant === 'ocre'
+    variant === 'blueLight'
+      ? 'linear-gradient(135deg, #0a3050 0%, #2070a0 50%, #50b8e8 100%)'
+      : variant === 'blue'
+      ? 'linear-gradient(135deg, #020d18 0%, #062040 50%, #0a3a60 100%)'
+      : variant === 'ocre'
       ? disabled
         ? DICE_THEME.brickDark
         : DICE_THEME.ocre
@@ -149,10 +153,12 @@ export function DiceButton({
         fontFamily: 'var(--font-cinzel), serif',
         background: bg,
         color: DICE_THEME.glyph,
-        border: `1.5px solid ${DICE_THEME.gold}`,
+        border: variant === 'blue' || variant === 'blueLight' ? '1.5px solid #5db8e8' : `1.5px solid ${DICE_THEME.gold}`,
         boxShadow: disabled
           ? 'none'
-          : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
+          : variant === 'blue' || variant === 'blueLight'
+            ? '0 0 24px rgba(93,184,232,0.5), 0 4px 12px rgba(0,0,0,0.4)'
+            : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
         letterSpacing: '0.04em',
       }}
     >

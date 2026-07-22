@@ -285,6 +285,7 @@ export default function AffinagePage() {
               letter-spacing: 0.05em;
               animation: glow-pulse 2.2s ease-in-out infinite;
             }
+            .bleu-ciel-glyph { color: #87CEEB !important; }
     `}</style><DiceBackground>
       <YiSlideNav />
       <DiceTitle title={t('des.affinage.title')} />
@@ -293,15 +294,9 @@ export default function AffinagePage() {
         {/* Question avant le premier tirage */}
         {phase === 'initial' && (
           <>
-            {!question && (
-            <p
-              className="text-center mt-6 mb-4 affinage-glow"
-            >
-              Concentrez-vous sur votre question
-            </p>
-            )}
             <AskQuestion
             onConfirm={setQuestion}
+            glowLabel={!question ? "Concentrez-vous sur votre question" : undefined}
             label="Garder votre question en mémoire (facultatif)"
             placeholder="Garder votre question en mémoire (facultatif)"
             confirmLabel="Enregistrer"
@@ -361,14 +356,12 @@ export default function AffinagePage() {
           />
         </div>
 
-        {/* Tutoriel — calqué sur yi-jing-simple : icône Material "swipe" + texte */  }
-        {showTutorial && (
-          <motion.div
+        {/* Tutoriel — toujours dans le DOM, opacité seule pour éviter le saut d'écran */}
+        <div style={{ minHeight: 100 }}>
+          <div
             ref={tutorialRef}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mt-10 flex flex-col items-center gap-1"
+            className="mt-10 flex flex-col items-center gap-1 transition-opacity duration-300"
+            style={{ opacity: showTutorial ? 1 : 0, pointerEvents: showTutorial ? 'auto' : 'none' }}
           >
             <style>{`
               @keyframes swipe-shake-affinage {
@@ -398,8 +391,8 @@ export default function AffinagePage() {
             >
               Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter
             </p>
-          </motion.div>
-        )}
+          </div>
+        </div>
 
         {/* CARTE-RÉSULTAT PROÉMINENTE + ENCART ANALYSE */}
         <AnimatePresence>
@@ -451,8 +444,7 @@ export default function AffinagePage() {
                         }}
                       >
                         <div
-                          className="text-4xl leading-none"
-                          style={{ color: DICE_THEME.ocreLight }}
+                          className="text-4xl leading-none bleu-ciel-glyph"
                         >
                           {val}
                         </div>
@@ -509,8 +501,7 @@ export default function AffinagePage() {
                         style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
                       >
                         <span
-                          className="mt-0.5 text-2xl leading-none"
-                          style={{ color: DICE_THEME.ocreLight }}
+                          className="mt-0.5 text-2xl leading-none bleu-ciel-glyph"
                         >
                           {val}
                         </span>
@@ -598,7 +589,7 @@ export default function AffinagePage() {
 
                   {!analysis && !analysisSections && !analysisLoading && (
                     <div className="text-center">
-                      <DiceButton variant="ocre" onClick={runAnalysis}>
+                      <DiceButton variant="blue" onClick={runAnalysis}>
                         {t('des.affinage.analyze')}
                       </DiceButton>
                     </div>
@@ -628,10 +619,10 @@ export default function AffinagePage() {
                 {t('des.affinage.choose')}
               </p>
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <DiceButton onClick={() => refine('action')}>
+                <DiceButton variant="blue" onClick={() => refine('action')}>
                                   {t('des.affinage.optA')}
                                 </DiceButton>
-                                <DiceButton variant="ocre" onClick={() => refine('domaine')}>
+                                <DiceButton variant="blueLight" onClick={() => refine('domaine')}>
                                   {t('des.affinage.optB')}
                                 </DiceButton>
               </div>
