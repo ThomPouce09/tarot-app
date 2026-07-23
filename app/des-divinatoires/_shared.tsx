@@ -48,6 +48,7 @@ export function DiceBackground({
 }) {
   return (
     <div
+      id={scrollable ? 'dice-scroll-container' : undefined}
       className={`relative w-full overflow-x-hidden ${
         scrollable ? 'h-[100dvh] overflow-y-auto' : 'min-h-screen'
       }`}
@@ -127,10 +128,14 @@ export function DiceButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'ocre';
+  variant?: 'primary' | 'ocre' | 'blue' | 'blueLight';
 }) {
   const bg =
-    variant === 'ocre'
+    variant === 'blueLight'
+      ? 'linear-gradient(135deg, #0a3050 0%, #2070a0 50%, #50b8e8 100%)'
+      : variant === 'blue'
+      ? 'linear-gradient(135deg, #020d18 0%, #062040 50%, #0a3a60 100%)'
+      : variant === 'ocre'
       ? disabled
         ? DICE_THEME.brickDark
         : DICE_THEME.ocre
@@ -149,10 +154,12 @@ export function DiceButton({
         fontFamily: 'var(--font-cinzel), serif',
         background: bg,
         color: DICE_THEME.glyph,
-        border: `1.5px solid ${DICE_THEME.gold}`,
+        border: variant === 'blue' || variant === 'blueLight' ? '1.5px solid #5db8e8' : `1.5px solid ${DICE_THEME.gold}`,
         boxShadow: disabled
           ? 'none'
-          : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
+          : variant === 'blue' || variant === 'blueLight'
+            ? '0 0 24px rgba(93,184,232,0.5), 0 4px 12px rgba(0,0,0,0.4)'
+            : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
         letterSpacing: '0.04em',
       }}
     >
@@ -279,11 +286,15 @@ export function DiceAnalysis({
   activeKinds,
   mode = 'global',
   kind,
+  question,
+  dbInterpretation,
 }: {
   faces: TargetFaces;
   activeKinds: DieKind[];
   mode?: 'global' | 'zoom-action' | 'zoom-domaine' | 'obstacle-solution';
   kind?: 'obstacle' | 'solution';
+  question?: string | null;
+  dbInterpretation?: string | null;
 }) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [sections, setSections] = useState<
@@ -292,9 +303,11 @@ export function DiceAnalysis({
   const [synthese, setSynthese] = useState<string>('');
   const [actions, setActions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasErrored, setHasErrored] = useState(false);
 
   const run = useCallback(async () => {
     setLoading(true);
+    setHasErrored(false);
     setAnalysis(null);
     setSections(null);
     setSynthese('');
@@ -303,7 +316,7 @@ export function DiceAnalysis({
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode, kind }),
+        body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
       });
       const data = await res.json();
       if (data.sections && Array.isArray(data.sections)) {
@@ -314,6 +327,7 @@ export function DiceAnalysis({
         setAnalysis(data.texte || 'Analyse indisponible.');
       }
     } catch {
+      setHasErrored(true);
       setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
     } finally {
       setLoading(false);
@@ -466,6 +480,15 @@ export function DiceAnalysis({
           >
             {analysis}
           </motion.p>
+        )}
+
+        {/* Bouton de relance si erreur */}
+        {hasErrored && !loading && (
+          <div className="mt-4 text-center">
+            <DiceButton variant="ocre" onClick={run}>
+              🔄 Relancer l'analyse
+            </DiceButton>
+          </div>
         )}
 
         {!analysis && !sections && !loading && (

@@ -6,7 +6,7 @@
 // consigne B → lancer → résultat B (analyse) → synthèse.
 
 import dynamic from 'next/dynamic';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { AskQuestion } from '@/components/ask-question';
@@ -68,16 +68,20 @@ function DiceAnalysis({
   faces,
   activeKinds,
   mode = 'global',
+  question,
 }: {
   faces: TargetFaces;
   activeKinds: DieKind[];
   mode?: 'global' | 'zoom-action' | 'zoom-domaine';
+  question?: string | null;
 }) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [sections, setSections] = useState<
     { key: string; label: string; text: string }[] | null
   >(null);
   const [synthese, setSynthese] = useState<string>('');
+  const [dbInterpretation, setDbInterpretation] = useState<string | null>(null);
+  const [dbLoading, setDbLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const run = useCallback(async () => {
@@ -89,7 +93,7 @@ function DiceAnalysis({
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode }),
+        body: JSON.stringify({ faces, activeKinds, mode, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
       });
       const data = await res.json();
       if (data.sections && Array.isArray(data.sections)) {
@@ -104,6 +108,34 @@ function DiceAnalysis({
       setLoading(false);
     }
   }, [faces, activeKinds, mode]);
+
+  // ── Fetch DB interpretation automatiquement après chaque lancer ──
+  useEffect(() => {
+    if (!faces.planet || !faces.sign || !faces.house) return;
+    const planet = PLANET_NAMES[faces.planet as string];
+    const sign = SIGN_NAMES[faces.sign as string];
+    const house = `Maison ${faces.house}`;
+    if (!planet || !sign) return;
+
+    setDbLoading(true);
+    setDbInterpretation(null);
+
+    fetch('/api/astro-interpretation-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planet, sign, house }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.found && data.interpretation) {
+          setDbInterpretation(data.interpretation);
+        }
+      })
+      .catch(() => {
+        // silencieux — la DB est un bonus, pas un blocage
+      })
+      .finally(() => setDbLoading(false));
+  }, [faces.planet, faces.sign, faces.house]);
 
   return (
     <div
@@ -146,6 +178,39 @@ function DiceAnalysis({
           );
         })}
       </div>
+
+      {/* ── Carte DB — interprétation combinée planète×signe×maison ── */}
+      {dbLoading && (
+        <div
+          className="mt-4 text-center text-xs italic"
+          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
+        >
+          Recherche de l'interprétation…
+        </div>
+      )}
+      {dbInterpretation && !dbLoading && (
+        <div
+          className="mt-5 rounded-2xl p-4"
+          style={{
+            background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
+            border: `1.5px solid ${DICE_THEME.gold}66`,
+            boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
+          }}
+        >
+          <p
+            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+          >
+            Interprétation combinée
+          </p>
+          <p
+            className="text-center text-sm leading-relaxed"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+          >
+            {dbInterpretation}
+          </p>
+        </div>
+      )}
 
       {/* Zone LLM — chargement puis texte généré */}
       <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
@@ -238,7 +303,9 @@ function DiceAnalysis({
 export default function ChoixPage() {
   const [step, setStep] = useState<Step>('A_intro');
   const t = useT();
-  const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
+  const [faces, setFaces] = useState<TargetFaces>(() =>
+    typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
+  );
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [resultA, setResultA] = useState<TargetFaces | null>(null);
@@ -430,7 +497,7 @@ export default function ChoixPage() {
                 📝 Notez la vibration (ex : Lune en Cancer en Maison 4 =
                 introspection, confort, protection du foyer).
               </p>
-              <DiceAnalysis faces={resultA} activeKinds={ACTIVE_DICE} />
+              <DiceAnalysis faces={resultA} activeKinds={ACTIVE_DICE} question={question} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -482,7 +549,7 @@ export default function ChoixPage() {
                 📝 Notez la vibration (ex : Uranus en Verseau en Maison 10 =
                 grand changement pro, liberté, rupture de routine).
               </p>
-              <DiceAnalysis faces={resultB} activeKinds={ACTIVE_DICE} />
+              <DiceAnalysis faces={resultB} activeKinds={ACTIVE_DICE} question={question} />
             </motion.div>
           )}
         </AnimatePresence>

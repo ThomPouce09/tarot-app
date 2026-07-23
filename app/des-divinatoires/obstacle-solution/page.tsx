@@ -6,7 +6,7 @@
 // légende de lecture (ReadingLegend) personnalisée.
 
 import dynamic from 'next/dynamic';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { AskQuestion } from '@/components/ask-question';
@@ -19,6 +19,8 @@ import {
   ReadingLegend,
   DiceAnalysis,
   DICE_THEME,
+  PLANET_NAMES,
+  SIGN_NAMES,
 } from '../_shared';
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
@@ -79,12 +81,20 @@ const SOLUTION_LEGEND = [
 export default function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
   const t = useT();
-  const [faces, setFaces] = useState<TargetFaces>(() => randomTargetFaces());
+  const [faces, setFaces] = useState<TargetFaces>(() =>
+    typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
+  );
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [obstacle, setObstacle] = useState<TargetFaces | null>(null);
   const [solution, setSolution] = useState<TargetFaces | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
+
+  // Interprétation DB (curated, combo planète×signe×maison).
+  const [obstacleDbInterpretation, setObstacleDbInterpretation] = useState<string | null>(null);
+  const [obstacleDbLoading, setObstacleDbLoading] = useState(false);
+  const [solutionDbInterpretation, setSolutionDbInterpretation] = useState<string | null>(null);
+  const [solutionDbLoading, setSolutionDbLoading] = useState(false);
 
   // Cibles de scroll.
   const cupRef = useRef<HTMLDivElement | null>(null);
@@ -165,6 +175,72 @@ export default function ObstacleSolutionPage() {
   );
 
   const diceVisible = step !== 'intro';
+
+  // ── Fetch DB interpretation après chaque tirage Obstacle ──
+  useEffect(() => {
+    if (!obstacle) return;
+    const planetGlyph = obstacle.planet;
+    const signGlyph = obstacle.sign;
+    const houseNum = obstacle.house;
+    if (!planetGlyph || !signGlyph || !houseNum) return;
+
+    const planet = PLANET_NAMES[planetGlyph as string];
+    const sign = SIGN_NAMES[signGlyph as string];
+    const house = `Maison ${houseNum}`;
+    if (!planet || !sign) return;
+
+    setObstacleDbLoading(true);
+    setObstacleDbInterpretation(null);
+
+    fetch('/api/astro-interpretation-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planet, sign, house }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.found && data.interpretation) {
+          setObstacleDbInterpretation(data.interpretation);
+        }
+      })
+      .catch(() => {
+        // silencieux — la DB est un bonus, pas un blocage
+      })
+      .finally(() => setObstacleDbLoading(false));
+  }, [obstacle]);
+
+  // ── Fetch DB interpretation après chaque tirage Solution ──
+  useEffect(() => {
+    if (!solution) return;
+    const planetGlyph = solution.planet;
+    const signGlyph = solution.sign;
+    const houseNum = solution.house;
+    if (!planetGlyph || !signGlyph || !houseNum) return;
+
+    const planet = PLANET_NAMES[planetGlyph as string];
+    const sign = SIGN_NAMES[signGlyph as string];
+    const house = `Maison ${houseNum}`;
+    if (!planet || !sign) return;
+
+    setSolutionDbLoading(true);
+    setSolutionDbInterpretation(null);
+
+    fetch('/api/astro-interpretation-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planet, sign, house }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.found && data.interpretation) {
+          setSolutionDbInterpretation(data.interpretation);
+        }
+      })
+      .catch(() => {
+        // silencieux — la DB est un bonus, pas un blocage
+      })
+      .finally(() => setSolutionDbLoading(false));
+  }, [solution]);
 
   return (
     <DiceBackground>
@@ -250,7 +326,40 @@ export default function ObstacleSolutionPage() {
                     <ReadingLegend items={OBSTACLE_LEGEND} />
                   </OcreCard>
                 </div>
-                <DiceAnalysis faces={obstacle} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="obstacle" />
+                <DiceAnalysis faces={obstacle} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="obstacle" question={question} dbInterpretation={obstacleDbInterpretation} />
+
+                {/* ── Carte DB — interprétation combinée Obstacle ── */}
+                {obstacleDbLoading && (
+                  <div
+                    className="mt-4 text-center text-xs italic"
+                    style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
+                  >
+                    Recherche de l'interprétation…
+                  </div>
+                )}
+                {obstacleDbInterpretation && !obstacleDbLoading && (
+                  <div
+                    className="mt-5 rounded-2xl p-4"
+                    style={{
+                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
+                      border: `1.5px solid ${DICE_THEME.gold}66`,
+                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
+                    }}
+                  >
+                    <p
+                      className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                      style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+                    >
+                      Interprétation combinée
+                    </p>
+                    <p
+                      className="text-center text-sm leading-relaxed"
+                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+                    >
+                      {obstacleDbInterpretation}
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
         </AnimatePresence>
@@ -302,7 +411,40 @@ export default function ObstacleSolutionPage() {
                   <ReadingLegend items={SOLUTION_LEGEND} />
                 </OcreCard>
               </div>
-              <DiceAnalysis faces={solution} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="solution" />
+              <DiceAnalysis faces={solution} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="solution" question={question} dbInterpretation={solutionDbInterpretation} />
+
+              {/* ── Carte DB — interprétation combinée Solution ── */}
+              {solutionDbLoading && (
+                <div
+                  className="mt-4 text-center text-xs italic"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
+                >
+                  Recherche de l'interprétation…
+                </div>
+              )}
+              {solutionDbInterpretation && !solutionDbLoading && (
+                <div
+                  className="mt-5 rounded-2xl p-4"
+                  style={{
+                    background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
+                    border: `1.5px solid ${DICE_THEME.gold}66`,
+                    boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
+                  }}
+                >
+                  <p
+                    className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+                    style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+                  >
+                    Interprétation combinée
+                  </p>
+                  <p
+                    className="text-center text-sm leading-relaxed"
+                    style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+                  >
+                    {solutionDbInterpretation}
+                  </p>
+                </div>
+              )}
 
               <div className="mt-8 text-center">
                 <DiceButton

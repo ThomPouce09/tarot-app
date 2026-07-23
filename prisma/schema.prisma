@@ -92,3 +92,16 @@ model MessagesAttente {
   minDurationMs Int      @default(2500)
   updatedAt     DateTime @updatedAt
 }
+
+// ─── Interprétations des Dés du Zodiaque (Affinage) ─────────
+// 144 combinaisons Planète × Signe × Maison pour le tirage par affinage.
+model AstroInterpretation {
+  id            String   @id @default(cuid())
+  planet        String   // ex: Mercure
+  sign          String   // Bélier, Taureau...
+  house         String   // Maison 1 … Maison 12
+  interpretation String  // Texte de l'interprétation générale
+
+  @@unique([planet, sign, house])
+  @@index([planet])
+}
