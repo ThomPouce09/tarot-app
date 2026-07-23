@@ -44,6 +44,10 @@ export interface AstroDiceSetProps {
    * (qui devient alors `Partial<TargetFaces>`).
    */
   activeKinds?: DieKind[];
+  /** Quand true, le canvas passe en touchAction:'none' (bloque le scroll). */
+  lockScroll?: boolean;
+  /** Décalage vertical (axe Z) : valeurs négatives remontent piste+gobelet vers le haut. */
+  verticalShift?: number;
   /** Durée totale approximative du lancer (ms). Défaut 2200. */
   rollDurationMs?: number;
   /** Callback appelé quand les dés actifs sont immobilisés sur leurs faces
@@ -84,6 +88,8 @@ export interface AstroDiceSetProps {
    * qu'au moment du renversement du gobelet. Défaut false.
    */
   hideIdle?: boolean;
+  /** Hauteur du saut vertical des dés au lancement (défaut: 0.28). */
+  diceHop?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -264,6 +270,7 @@ function DiceArena({
   hideIdle,
   background,
   activeKinds,
+  diceHop = 0.28,
 }: {
   isRolling: boolean;
   targetIndices: Record<DieKind, number>;
@@ -275,6 +282,7 @@ function DiceArena({
   hideIdle: boolean;
   background?: string;
   activeKinds: DieKind[];
+  diceHop?: number;
 }) {
   const groups = [
     useRef<THREE.Group>(null!),
@@ -351,7 +359,7 @@ function DiceArena({
         vel,
         spinAxis,
         spinSpeed: 16 + Math.random() * 10,
-        hop: spawn ? 0.28 : 0,
+        hop: spawn ? diceHop : 0,
         target: faceUpQuaternion(faces, targetIndices[kind]),
         settlePos: new THREE.Vector2(...restSlots[i]),
       } as Body;
@@ -605,6 +613,8 @@ function Scene({
   hideIdle,
   background,
   activeKinds,
+  verticalShift,
+  diceHop,
 }: Required<
   Pick<AstroDiceSetProps, 'isRolling' | 'targetFaces' | 'rollDurationMs'>
 > &
@@ -613,6 +623,8 @@ function Scene({
     hideIdle: boolean;
     background?: string;
     activeKinds?: DieKind[];
+    verticalShift?: number;
+    diceHop?: number;
   }) {
   const targetIndices = useMemo<Record<DieKind, number>>(() => {
     const planet = DIE_FACES.planet.indexOf(targetFaces.planet);
@@ -636,8 +648,11 @@ function Scene({
     onRest?.(result as TargetFaces);
   }, [onRest, targetFaces, activeKinds]);
 
+  /*  Remonte visuellement la piste + gobelet (axe Z)                          */
+  /* -------------------------------------------------------------------------- */
+
   return (
-    <>
+    <group position={[0, 0, verticalShift ?? 0]}>
       <CameraRig />
       <ambientLight intensity={0.55} color="#f6e6c8" />
       <directionalLight
@@ -708,6 +723,7 @@ function Scene({
         hideIdle={hideIdle}
         background={background}
         activeKinds={activeKinds ?? ALL_KINDS}
+        diceHop={diceHop}
       />
 
       <ContactShadows
@@ -719,7 +735,7 @@ function Scene({
         color={skin.shadow}
       />
       <Environment preset="sunset" />
-    </>
+    </group>
   );
 }
 
@@ -741,6 +757,9 @@ export default function AstroDiceSet({
   spawn,
   hideIdle = false,
   activeKinds,
+  lockScroll,
+  verticalShift = 0,
+  diceHop,
 }: AstroDiceSetProps) {
   const resolvedSkin = useMemo(() => resolveSkin(skin), [skin]);
   // Dés réellement lancés : tous par défaut, sinon filtrés selon la prop.
@@ -773,7 +792,7 @@ export default function AstroDiceSet({
         // vue zénithale dès onCreated, pas cette valeur (sinon on garde un 3/4).
         camera={{ position: [0, 1, 0], fov: 52, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true }}
-        style={{ touchAction: 'pan-y' }}
+        style={{ touchAction: lockScroll ? 'none' as const : 'pan-y' as const }}
         onCreated={({ camera }) => {
           camera.up.set(0, 0, -1);
           (camera as THREE.PerspectiveCamera).lookAt(0, 0, 0);
@@ -790,6 +809,8 @@ export default function AstroDiceSet({
           hideIdle={hideIdle}
           onRest={onRest}
           background={background}
+          verticalShift={verticalShift}
+          diceHop={diceHop}
           activeKinds={kinds}
         />
       </Canvas>

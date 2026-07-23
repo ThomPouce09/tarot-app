@@ -172,6 +172,9 @@ export interface AstroDiceCupProps
   /** Callback appelé dès que l'utilisateur commence à secouer le gobelet
    *  (premier touch/pointer down sur le pad de secousse). */
   onShake?: () => void;
+  /** Quand true, le pad tactile passe en touchAction:'none' (bloque le scroll
+   *  pendant la manipulation du gobelet). */
+  lockScroll?: boolean;
 }
 
 /* Gobelet : taille validée (60px). Positionné au BORD BAS de l'arène, pas au
@@ -212,6 +215,9 @@ export default function AstroDiceCup({
   onReady,
   activeKinds,
   onShake,
+  lockScroll,
+  verticalShift = 0,
+  diceHop,
 }: AstroDiceCupProps) {
   // `rolling` est PILOTÉ EN INTERNE par le wrapper : au 2e push (gobelet3),
   // on passe rolling=true → l'ANIM 1 se déclenche (dés qui "tombent" en
@@ -462,6 +468,9 @@ export default function AstroDiceCup({
           hideIdle={!revealed}
           onReady={onReady}
           activeKinds={activeKinds}
+          lockScroll={lockScroll}
+          verticalShift={verticalShift}
+          diceHop={diceHop}
         />
       </div>
 
@@ -522,7 +531,7 @@ export default function AstroDiceCup({
           bottom: 0,
           height: PAD_HEIGHT,
           zIndex: 7,
-          touchAction: 'pan-y',
+          touchAction: lockScroll ? 'none' as const : 'pan-y' as const,
           userSelect: 'none',
           display: 'flex',
           alignItems: 'center',

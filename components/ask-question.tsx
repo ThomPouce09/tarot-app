@@ -123,6 +123,8 @@ export function AskQuestion({
             fontFamily: 'var(--font-cinzel-deco), serif',
             boxShadow: '0 0 24px rgba(0,95,106,0.45)',
             border: '1px solid rgba(0,95,106,0.6)',
+            position: 'relative',
+            zIndex: 20,
           }}
         >
           {launchLabel}

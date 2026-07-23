@@ -48,6 +48,7 @@ export function DiceBackground({
 }) {
   return (
     <div
+      id={scrollable ? 'dice-scroll-container' : undefined}
       className={`relative w-full overflow-x-hidden ${
         scrollable ? 'h-[100dvh] overflow-y-auto' : 'min-h-screen'
       }`}
@@ -285,11 +286,15 @@ export function DiceAnalysis({
   activeKinds,
   mode = 'global',
   kind,
+  question,
+  dbInterpretation,
 }: {
   faces: TargetFaces;
   activeKinds: DieKind[];
   mode?: 'global' | 'zoom-action' | 'zoom-domaine' | 'obstacle-solution';
   kind?: 'obstacle' | 'solution';
+  question?: string | null;
+  dbInterpretation?: string | null;
 }) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [sections, setSections] = useState<
@@ -298,9 +303,11 @@ export function DiceAnalysis({
   const [synthese, setSynthese] = useState<string>('');
   const [actions, setActions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasErrored, setHasErrored] = useState(false);
 
   const run = useCallback(async () => {
     setLoading(true);
+    setHasErrored(false);
     setAnalysis(null);
     setSections(null);
     setSynthese('');
@@ -309,7 +316,7 @@ export function DiceAnalysis({
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode, kind }),
+        body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
       });
       const data = await res.json();
       if (data.sections && Array.isArray(data.sections)) {
@@ -320,6 +327,7 @@ export function DiceAnalysis({
         setAnalysis(data.texte || 'Analyse indisponible.');
       }
     } catch {
+      setHasErrored(true);
       setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
     } finally {
       setLoading(false);
@@ -472,6 +480,15 @@ export function DiceAnalysis({
           >
             {analysis}
           </motion.p>
+        )}
+
+        {/* Bouton de relance si erreur */}
+        {hasErrored && !loading && (
+          <div className="mt-4 text-center">
+            <DiceButton variant="ocre" onClick={run}>
+              🔄 Relancer l'analyse
+            </DiceButton>
+          </div>
         )}
 
         {!analysis && !sections && !loading && (

@@ -1,10 +1,10 @@
 /**
  * Cascade d'appels IA partagée pour toutes les interprétations (Tarot, Yi Jing).
  *
- * Ordre de fallback (selon config souhaitée) :
- *   1. OpenRouter  : poolside/laguna-m.1:free  →  tencent/hy3:free
- *   2. NVIDIA      : deepseek-ai/deepseek-v4-flash  →  mistralai/ministral-14b-instruct-2512
- *   3. DeepSeek    : deepseek-ai/deepseek-chat  →  deepseek-ai/deepseek-v4-flash
+ * Ordre de fallback :
+ *   1. OpenRouter   : openrouter/free (auto-routing)
+ *   2. NVIDIA       : google/gemma-4-31b-it  →  mistralai/mistral-small-4-119b-2603
+ *   3. DeepSeek     : deepseek-v4-flash
  *
  * Chaque fournisseur est testé indépendamment ; dès qu'une réponse OK est obtenue,
  * on la renvoie. Si toutes les clés sont absentes ou tous les appels échouent,
@@ -24,13 +24,13 @@ const PROVIDERS: OracleProvider[] = [
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
     apiKey: process.env.OPENROUTER_API_KEY,
-    models: ['tencent/hy3:free', 'poolside/laguna-m.1:free'],
+    models: ['openrouter/free'],
   },
   {
     name: 'NVIDIA',
     baseUrl: 'https://integrate.api.nvidia.com/v1/chat/completions',
     apiKey: process.env.NVIDIA_API_KEY,
-    models: ['deepseek-ai/deepseek-v4-flash', 'mistralai/ministral-14b-instruct-2512'],
+    models: ['google/gemma-4-31b-it', 'mistralai/mistral-small-4-119b-2603'],
   },
   {
     name: 'DeepSeek',
@@ -40,13 +40,11 @@ const PROVIDERS: OracleProvider[] = [
   },
 ];
 
-// --- Circuit Breaker : désactive temporairement un fournisseur après N échecs ---
-// Évite de spammer les 429/503 et de se faire bannir / bloquer la clé inutilement.
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 30_000;
-// Timeout dur par requête LLM. hy3 (reasoning) répond en ~45-60s -> 75s de marge,
-// sans jamais laisser la page d'attente bloquée indéfiniment.
-const REQUEST_TIMEOUT_MS = 75_000;
+// Timeout réduit à 20s : les modèles flash répondent en ~1-5s, inutile d'attendre 75s
+// alors qu'OpenRouter et NVIDIA sont souvent en échec.
+const REQUEST_TIMEOUT_MS = 20_000;
 const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
 
 function isBlocked(name: string): boolean {
@@ -75,7 +73,7 @@ function recordSuccess(name: string) {
 }
 
 const SYSTEM_PROMPT =
-  "Tu es un voyant et oracle d'une profonde empathie, au service corps et âme de celui qui consulte. Tu réponds de manière approfondie, chaleureuse et détaillée, jamais succincte ni superficielle. Réponds UNIQUEMENT avec un JSON valide, sans aucune réflexion ni texte autour.";
+  "Tu es un voyant et oracle d'une profonde empathie, au service corps et âme de celui qui consulte. Tu réponds de manière approfondie, chaleureuse et détaillée, jamais succincte ni superficielle. LA QUESTION DE LA PERSONNE est ton guide absolu : chaque phrase doit lui répondre directement, PAS décrire des concepts astrologiques génériques. Réponds UNIQUEMENT avec un JSON valide, sans aucune réflexion ni texte autour.";
 
 /**
  * Tente d'obtenir une interprétation via la cascade de fournisseurs.
@@ -87,7 +85,7 @@ export async function callOracle(
   prompt: string,
   opts: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string | null> {
-  const maxTokens = opts.maxTokens ?? 4000; // marge pour modèles reasoning (hy3) sinon JSON tronqué
+  const maxTokens = opts.maxTokens ?? 4000;
   const temperature = opts.temperature ?? 0.72;
 
   for (const provider of PROVIDERS) {
@@ -103,16 +101,15 @@ export async function callOracle(
     for (const model of provider.models) {
       try {
         console.log(`[llm] Tentative ${provider.name} / ${model}`);
-        // Timeout dur par requête : un modèle reasoning (hy3 ~27s) ou un provider
-        // qui hang ne doit JAMAIS bloquer la page d'attente indéfiniment.
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         let res: Response;
         try {
+          const apiKey = provider.apiKey;
           res = await fetch(provider.baseUrl, {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${provider.apiKey}`,
+              'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -133,14 +130,11 @@ export async function callOracle(
         if (!res.ok) {
           const errText = await res.text().catch(() => '');
           console.warn(`[llm] ${provider.name} / ${model} échoué (${res.status}):`, errText.slice(0, 300));
-          // 429 (rate limit) / 503 (saturation) -> comptent pour le circuit breaker
           if (res.status === 429 || res.status === 503) recordFailure(provider.name);
           continue;
         }
 
         const data = await res.json();
-        // Certains modèles "reasoning" (hy3) laissent parfois content vide et
-        // rangent le texte dans reasoning -> on lit les deux, content en priorité.
         const msg = data?.choices?.[0]?.message ?? data?.message ?? {};
         const content: string = msg?.content || msg?.reasoning || '';
         if (content && content.trim().length > 0) {
@@ -173,47 +167,31 @@ export function extractJsonObject(content: string): Record<string, any> {
 
   let text = content.trim();
 
-  // Retirer les délimiteurs Markdown ```json / ```
   if (text.startsWith('```json')) {
     text = text.replace(/^```json\s*/, '').replace(/```\s*$/, '');
   } else if (text.startsWith('```')) {
     text = text.replace(/^```\s*/, '').replace(/```\s*$/, '');
   }
 
-  // Retirer les caractères de contrôle (0x00-0x1F) qui cassent JSON.parse
-  // (sauts de ligne / tabulations littéraux dans les chaînes -> espaces)
   text = text.replace(/[\x00-\x1f]/g, ' ');
 
   const start = text.indexOf('{');
   if (start < 0) return {};
 
-  // Trouver l'accolade fermante équilibrée en respectant les chaînes + échappement
   let depth = 0;
   let inString = false;
   let escape = false;
   let end = -1;
   for (let i = start; i < text.length; i++) {
     const c = text[i];
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (c === '\\') {
-      escape = true;
-      continue;
-    }
-    if (c === '"') {
-      inString = !inString;
-      continue;
-    }
+    if (escape) { escape = false; continue; }
+    if (c === '\\') { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
     if (!inString) {
       if (c === '{') depth++;
       else if (c === '}') {
         depth--;
-        if (depth === 0) {
-          end = i;
-          break;
-        }
+        if (depth === 0) { end = i; break; }
       }
     }
   }

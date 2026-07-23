@@ -70,7 +70,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} ${cormorant.variable} font-sans antialiased`}>
+      <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} ${cormorant.variable} font-sans antialiased`} suppressHydrationWarning>
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
