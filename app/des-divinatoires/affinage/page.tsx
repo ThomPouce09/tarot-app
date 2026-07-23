@@ -158,6 +158,9 @@ export default function AffinagePage() {
   const readingIdRef = useRef<string | null>(null);
   const savedRef = useRef(false);
   const originalFacesRef = useRef<TargetFaces | null>(null);
+  // Accumulateur d'interprétation : on y ajoute les données au fil des étapes
+  // (statique, DB, oracle flash, analyse LLM) et on persist le tout à chaque fois.
+  const interpAccRef = useRef<Record<string, any>>({});
 
   // Dés réellement lancés (pilotés par la fenêtre appelante via activeDice).
   // En mode 1 dé, seule cette carte s'affiche.
@@ -223,11 +226,16 @@ export default function AffinagePage() {
         savedRef.current = true;
         // Sauvegarder les faces originales pour l'affinage flash
         originalFacesRef.current = { ...faces };
+        const staticText = diceStaticTextFor(faces, activeDice);
+        interpAccRef.current = {
+          static: staticText,
+          cards: diceCardsFor(faces, activeDice),
+        };
         const id = await saveReading({
           type: 'des-affinage',
           spread: 'Tirage complet',
           cards: diceCardsFor(faces, activeDice),
-          interpretation: diceStaticTextFor(faces, activeDice),
+          interpretation: JSON.stringify(interpAccRef.current),
           question,
         });
         if (id) readingIdRef.current = id;
@@ -239,13 +247,20 @@ export default function AffinagePage() {
       if (option && readingIdRef.current) {
         const merged = { ...result, ...faces };
         const zoomLabel = option === 'action' ? 'Zoom Signe' : 'Zoom Maison';
-        updateReading(readingIdRef.current, {
-          cards: diceCardsFor(merged, ['planet', 'sign', 'house']),
+        const refineCards = diceCardsFor(merged, ['planet', 'sign', 'house']);
+        interpAccRef.current.refine = {
+          option,
+          originalFaces: originalFacesRef.current,
+        };
+        interpAccRef.current.cards = refineCards;
+        await updateReading(readingIdRef.current, {
+          cards: refineCards,
           spread: `Tirage complet — ${zoomLabel}`,
+          interpretation: JSON.stringify(interpAccRef.current),
         });
       }
     },
-    [option, activeDice, question],
+    [option, activeDice, question, result],
   );
 
   // Au repos, on capture les faces effectivement présentes.
@@ -294,8 +309,13 @@ export default function AffinagePage() {
         setAnalysis(data.texte || 'Analyse indisponible.');
       }
       // Persister l'interprétation IA dans la lecture existante
+      const analysisKey = option ? 'analysisRefine' : 'analysisGlobal';
+      const analysisPayload = data.sections
+        ? { sections: data.sections, synthese: data.synthese || '', mode: llmMode() }
+        : { texte: interpretationText, mode: llmMode() };
+      interpAccRef.current[analysisKey] = analysisPayload;
       if (readingIdRef.current && interpretationText) {
-        updateReading(readingIdRef.current, { interpretation: interpretationText });
+        updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
       }
     } catch {
       setAnalysisErrored(true);
@@ -342,9 +362,10 @@ export default function AffinagePage() {
       .then((data) => {
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
-          // Persister dans la lecture existante
+          // Ajouter DB à l'accumulateur et persister
+          interpAccRef.current.dbInterpretation = data.interpretation;
           if (readingIdRef.current) {
-            updateReading(readingIdRef.current, { interpretation: data.interpretation });
+            updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
           }
         }
       })
@@ -384,7 +405,13 @@ export default function AffinagePage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.oracle) setOracleFlash(data.oracle);
+        if (data.oracle) {
+          setOracleFlash(data.oracle);
+          interpAccRef.current.oracleFlash = data.oracle;
+          if (readingIdRef.current) {
+            updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
+          }
+        }
       })
       .catch(() => {
         // silencieux — l'oracle flash est un bonus
@@ -473,6 +500,7 @@ export default function AffinagePage() {
             }}
           >
           <AstroDiceCup
+            key={resetSignal}
             targetFaces={faces}
             skin={skin}
             height={hasLaunched ? 400 : 460}

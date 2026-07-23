@@ -65,7 +65,7 @@ export function AskQuestion({
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
+        <motion.div key="question"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
@@ -111,7 +111,7 @@ export function AskQuestion({
         </motion.div>
       )}
       {visible && onLaunch && launchLabel && (
-        <motion.button
+        <motion.button key="launch"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}

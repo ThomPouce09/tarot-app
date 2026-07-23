@@ -672,13 +672,24 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
   // Tente une interprétation structurée (JSON de l'API astro-dice-interpretation)
   // Format 1 (global) : { planet, sign, house, synthese }
   // Format 2 (sections) : { sections: [{ kind, title, text }], synthese }
+  // Format 3 (affinage accumulé) : { static, dbInterpretation, oracleFlash, analysisGlobal, analysisRefine, refine }
   let structured: { sections?: { kind: string; title: string; text: string }[]; synthese?: string } | null = null;
   let rawInterpretation = '';
+  // Données accumulées (affinage)
+  let interpData: Record<string, any> | null = null;
+
   if (r.interpretation) {
     try {
       const parsed = JSON.parse(r.interpretation);
       if (parsed && typeof parsed === 'object') {
-        if (parsed.sections || parsed.synthese) {
+        // Nouveau format accumulé (affinage) ?
+        if (parsed.static || parsed.dbInterpretation || parsed.oracleFlash || parsed.analysisGlobal || parsed.refine) {
+          interpData = parsed;
+          // structured = sections de l'analyse globale (compatibilité AstroView)
+          if (parsed.analysisGlobal?.sections) {
+            structured = { sections: parsed.analysisGlobal.sections, synthese: parsed.analysisGlobal.synthese };
+          }
+        } else if (parsed.sections || parsed.synthese) {
           // Format sections
           structured = parsed;
         } else if (parsed.planet || parsed.sign || parsed.house) {
@@ -699,6 +710,31 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
     }
   }
 
+  // Helper pour rendre des sections d'analyse
+  const renderSections = (sections: { key?: string; label?: string; text?: string }[], synthese?: string, title?: string) => (
+    <div className="space-y-2 mt-3">
+      {title && (
+        <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{title}</h4>
+      )}
+      {sections.map((s, i) => (
+        <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(46,134,193,0.35)', background: 'rgba(15,45,65,0.40)' }}>
+          {s.label && (
+            <h4 className="font-semibold text-xs mb-1" style={{ color: '#7FB3D5', fontFamily: 'var(--font-cinzel), serif' }}>{s.label}</h4>
+          )}
+          <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.text || ''} query={query} /></p>
+        </div>
+      ))}
+      {synthese && (
+        <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
+          <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
+            <span>📜</span>Synthèse
+          </h4>
+          <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={synthese} query={query} /></p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="mt-4 space-y-3">
       {r.question && (
@@ -707,10 +743,12 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
         </div>
       )}
+
+      {/* Cartes (dés) */}
       {cards.length === 0 ? (
         <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
       ) : (
-        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cards.length}, minmax(0, 1fr))` }}>
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, minmax(0, 1fr))` }}>
           {cards.map((c, i) => (
             <div key={i} className="flex flex-col items-center rounded-xl p-3 text-center" style={{ background: 'rgba(46,134,193,0.10)', border: '1px solid rgba(46,134,193,0.35)' }}>
               <div className="text-3xl leading-none" style={{ color: '#7FB3D5' }}>{c.value}</div>
@@ -721,8 +759,86 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
         </div>
       )}
 
-      {/* Interprétation structurée */}
-      {structured && (
+      {/* ── Format accumulé (affinage) ── */}
+      {interpData && (
+        <>
+          {/* Interprétation statique */}
+          {interpData.static && (
+            <div className="bg-gray-800/40 rounded-lg p-3">
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Signification</h4>
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={interpData.static} query={query} /></p>
+            </div>
+          )}
+
+          {/* Oracle flash */}
+          {interpData.oracleFlash && (
+            <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
+              <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>🔮</span>Oracle du tirage
+              </h4>
+              <p className="text-gray-200 text-sm italic leading-relaxed">« <Highlight text={interpData.oracleFlash} query={query} /> »</p>
+            </div>
+          )}
+
+          {/* Interprétation combinée (DB) */}
+          {interpData.dbInterpretation && (
+            <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3">
+              <h4 className="text-amber-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>📖</span>Interprétation combinée
+              </h4>
+              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.dbInterpretation} query={query} /></p>
+            </div>
+          )}
+
+          {/* Comparaison affinage */}
+          {interpData.refine && (
+            <div className="bg-blue-950/20 border border-blue-800/30 rounded-lg p-3">
+              <h4 className="text-blue-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                <span>🔎</span>
+                Affinage {interpData.refine.option === 'action' ? 'du Signe' : 'de la Maison'}
+              </h4>
+              {interpData.refine.originalFaces && (
+                <p className="text-gray-400 text-xs italic mb-2">
+                  Valeur initiale : {interpData.refine.option === 'action'
+                    ? `${interpData.refine.originalFaces.sign} → ${cards.find((c: any) => c.kind === 'sign')?.value || '?'}`
+                    : `Maison ${interpData.refine.originalFaces.house} → ${cards.find((c: any) => c.kind === 'house')?.value || '?'}`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Analyse LLM globale */}
+          {interpData.analysisGlobal && renderSections(
+            interpData.analysisGlobal.sections || [],
+            interpData.analysisGlobal.synthese || '',
+            'Analyse complète'
+          )}
+
+          {/* Analyse LLM d'affinage */}
+          {interpData.analysisRefine && renderSections(
+            interpData.analysisRefine.sections || [],
+            interpData.analysisRefine.synthese || '',
+            'Analyse affinée'
+          )}
+
+          {/* Analyse LLM en texte brut (non structurée) */}
+          {interpData.analysisGlobal?.texte && !interpData.analysisGlobal?.sections && (
+            <div className="bg-gray-800/40 rounded-lg p-3">
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Analyse complète</h4>
+              <p className="text-gray-300 text-sm leading-relaxed"><Highlight text={interpData.analysisGlobal.texte} query={query} /></p>
+            </div>
+          )}
+          {interpData.analysisRefine?.texte && !interpData.analysisRefine?.sections && (
+            <div className="bg-gray-800/40 rounded-lg p-3">
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Analyse affinée</h4>
+              <p className="text-gray-300 text-sm leading-relaxed"><Highlight text={interpData.analysisRefine.texte} query={query} /></p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Ancien format structuré (sans accumulateur) */}
+      {!interpData && structured && (
         <div className="space-y-2 mt-3">
           {structured.synthese && (
             <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
@@ -742,7 +858,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       )}
 
       {/* Fallback : interprétation texte brut (anciens tirages) */}
-      {!structured && rawInterpretation && (
+      {!interpData && !structured && rawInterpretation && (
         <div className="bg-gray-800/40 rounded-lg p-3">
           <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={rawInterpretation} query={query} /></p>
         </div>
