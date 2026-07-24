@@ -431,9 +431,10 @@ export default function ChoixPage() {
         {/* Consigne Premier Choix */}
         {(step === 'A_intro') && (
           <OcreCard title={t('des.choix.first')}>
-            <p className="text-center">
-              Formulez clairement votre <b>premier choix</b> dans votre esprit
-              (ex : « changer d&apos;emploi »), puis lancez les dés.
+                      <p className="text-center">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-1" style={{background: '#005f6a', color: '#fff'}}>A</span>
+                        Formulez clairement votre <b>premier choix</b> dans votre esprit
+                        (ex : « changer d&apos;emploi »), puis lancez les dés.
             </p>
             <div className="mt-5 text-center">
               <DiceButton onClick={chooseA}>Lancer les dés astrologiques</DiceButton>
@@ -487,7 +488,7 @@ export default function ChoixPage() {
                 className="mb-1 text-center text-xs uppercase tracking-widest"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
               >
-                Premier Choix
+                ❶ — Premier Choix
               </p>
               <ResultLine faces={resultA} />
               <p
@@ -512,9 +513,10 @@ export default function ChoixPage() {
               className="mt-6"
             >
               <OcreCard title={t('des.choix.first')}>
-                <p className="text-center">
-                  Voici la vibration de votre <b>premier choix</b>. Lisez-la puis
-                  analysez-la.
+                              <p className="text-center">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-1" style={{background: '#005f6a', color: '#fff'}}>B</span>
+                                Voici la vibration de votre <b>premier choix</b>. Lisez-la puis
+                                analysez-la.
                 </p>
                 <div className="mt-5 text-center">
                   <DiceButton variant="blue" onClick={chooseB}>
@@ -539,7 +541,7 @@ export default function ChoixPage() {
                 className="mb-1 text-center text-xs uppercase tracking-widest"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
               >
-                Second Choix
+                ❷ — Second Choix
               </p>
               <ResultLine faces={resultB} />
               <p
@@ -562,7 +564,7 @@ export default function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <OcreCard title="Indicateur de choix">
+              <OcreCard title="❸ — Synthèse (C)">
                 <p className="text-center italic leading-relaxed">
                   Comparez la fluidité des énergies. Le <b>Premier Choix</b> apporte-t-il
                   de la <b>stabilité</b> ou de la <b>stagnation</b> ? Le <b>Second Choix</b>
