@@ -444,15 +444,16 @@ export default function AffinagePage() {
           <>
             <AskQuestion
             onConfirm={(q) => {
-              setQuestion(q);
-              setHasLaunched(true);
-            }}
-            glowLabel={!question ? "Concentrez-vous sur votre question" : undefined}
-            label="Garder votre question en mémoire (facultatif)"
-            placeholder="Garder votre question en mémoire (facultatif)"
-            confirmLabel="Enregistrer"
-            launchLabel="Lancer les dés zodiacaux !"
-            onLaunch={() => {
+                setQuestion(q);
+                setHasLaunched(true);
+              }}
+              glowLabel={!question ? "Concentrez-vous sur votre question" : undefined}
+              label="Garder votre question en mémoire (facultatif)"
+              placeholder="Garder votre question en mémoire (facultatif)"
+              confirmLabel="Enregistrer"
+              launchLabel="Lancer les dés zodiacaux !"
+              accentColor={DICE_THEME.gold}
+              onLaunch={() => {
               setHasLaunched(true);
               setShowTutorial(true);
               setTimeout(() => {
@@ -899,7 +900,7 @@ export default function AffinagePage() {
 
                   {!analysis && !analysisSections && !analysisLoading && (
                     <div className="text-center">
-                      <DiceButton variant="blue" onClick={runAnalysis}>
+                      <DiceButton variant="ocre" onClick={runAnalysis}>
                         {t('des.affinage.analyze')}
                       </DiceButton>
                     </div>
@@ -929,12 +930,12 @@ export default function AffinagePage() {
                 {t('des.affinage.choose')}
               </p>
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <DiceButton variant="blue" onClick={() => refine('action')}>
-                                  {t('des.affinage.optA')}
-                                </DiceButton>
-                                <DiceButton variant="blueLight" onClick={() => refine('domaine')}>
-                                  {t('des.affinage.optB')}
-                                </DiceButton>
+                <DiceButton variant="ocre" onClick={() => refine('action')}>
+                  {t('des.affinage.optA')}
+                </DiceButton>
+                <DiceButton onClick={() => refine('domaine')}>
+                  {t('des.affinage.optB')}
+                </DiceButton>
               </div>
               <p
                 className="mt-3 text-center text-xs"
