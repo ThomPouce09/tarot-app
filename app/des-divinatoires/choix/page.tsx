@@ -290,7 +290,7 @@ function DiceAnalysis({
 
         {!analysis && !sections && !loading && (
           <div className="text-center">
-            <DiceButton variant="ocre" onClick={run}>
+            <DiceButton variant="blue" onClick={run}>
               ✨ Analyser en profondeur
             </DiceButton>
           </div>
@@ -426,7 +426,7 @@ export default function ChoixPage() {
       <div className="mx-auto max-w-2xl px-4">
         {/* Question avant le tirage */}
         {step === 'A_intro' && (
-          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+          <AskQuestion onConfirm={setQuestion} />
         )}
         {/* Consigne Premier Choix */}
         {(step === 'A_intro') && (
@@ -517,7 +517,7 @@ export default function ChoixPage() {
                   analysez-la.
                 </p>
                 <div className="mt-5 text-center">
-                  <DiceButton variant="ocre" onClick={chooseB}>
+                  <DiceButton variant="blue" onClick={chooseB}>
                     Lancer les dés astrologiques
                   </DiceButton>
                 </div>
@@ -570,7 +570,7 @@ export default function ChoixPage() {
                 </p>
 
                 <div className="mt-5 text-center">
-                  <DiceButton variant="ocre" onClick={runComparaison}>
+                  <DiceButton variant="blue" onClick={runComparaison}>
                     {t('des.choix.compare')}
                   </DiceButton>
                 </div>
