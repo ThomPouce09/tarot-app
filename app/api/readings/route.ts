@@ -139,24 +139,14 @@ export async function POST(request: Request) {
       data.cards = '[]';
     }
 
-    // Validate that interpretation is valid JSON object if it's a string
-    try {
-      if (typeof data.interpretation === 'string') {
-        const parsed = JSON.parse(data.interpretation);
-        if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          // Valid object, re-stringify for consistency
-          data.interpretation = JSON.stringify(parsed);
-        } else {
-          data.interpretation = '{}';
-        }
-      } else if (typeof data.interpretation === 'object' && data.interpretation !== null && !Array.isArray(data.interpretation)) {
-        data.interpretation = JSON.stringify(data.interpretation);
-      } else {
-        data.interpretation = '{}';
-      }
-    } catch (interpError) {
-      console.error('Invalid interpretation format:', interpError);
-      data.interpretation = '{}';
+    // If interpretation is a plain text string, store it directly
+    // (it's NOT required to be JSON — static text, LLM responses, etc.)
+    if (typeof data.interpretation === 'string' && data.interpretation.trim() !== '') {
+      // keep as-is: plain text or JSON string
+    } else if (typeof data.interpretation === 'object' && data.interpretation !== null && !Array.isArray(data.interpretation)) {
+      data.interpretation = JSON.stringify(data.interpretation);
+    } else {
+      data.interpretation = null;
     }
 
     // Create the reading record

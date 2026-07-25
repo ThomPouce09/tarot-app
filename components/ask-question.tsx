@@ -52,7 +52,7 @@ export function AskQuestion({
     const q = question.trim();
     onConfirm(q || null);
     setVisible(false);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    onLaunch?.();
   };
 
   const handleLaunch = () => {

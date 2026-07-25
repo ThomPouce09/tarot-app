@@ -1,9 +1,11 @@
 'use client';
 
 // app/des-divinatoires/choix/page.tsx — Niveau 2.2 : Le Tirage du choix
-// Intègre le gobelet (AstroDiceCup) au geste, comme sur /affinage,
-// en gardant les specs : consigne A → lancer → résultat A (analyse) →
-// consigne B → lancer → résultat B (analyse) → synthèse.
+// Intègre le gobelet (AstroDiceCup) au geste, comme sur /affinage :
+//   A_intro → A_roll → A_done (analyse courte + profonde)
+//          → B_intro (question B optionnelle) → B_roll → B_done (analyse courte + profonde)
+//          → Récapitulatif final des 2 options.
+// Tout est traduit EN/FR via useT().
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,8 +28,8 @@ import {
   type DieKind,
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
-import { saveReading } from '@/lib/save-reading';
-import { useT } from '@/lib/i18n';
+import { saveReading, updateReading } from '@/lib/save-reading';
+import { useT, useLang } from '@/lib/i18n';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -48,10 +50,8 @@ const AstroDiceCup = dynamic(
 
 type Step = 'A_intro' | 'A_roll' | 'A_done' | 'B_intro' | 'B_roll' | 'B_done';
 
-// Les 3 dés sont toujours lancés (Planète / Signe / Maison).
 const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
 
-// Helpers de sérialisation pour l'historique (dés du zodiaque).
 function diceCards(f: TargetFaces) {
   return ACTIVE_DICE.map((k) => ({
     kind: k,
@@ -63,27 +63,35 @@ function diceStaticText(f: TargetFaces) {
   return ACTIVE_DICE.map((k) => `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
 }
 
-/** Encart Analyse : statique immédiate + bouton IA (même pattern que /affinage). */
+// ──────────────────────────────────────────────
+// Analyse courte (interprétation combinée) + approfondie
+// ──────────────────────────────────────────────
 function DiceAnalysis({
   faces,
   activeKinds,
-  mode = 'global',
   question,
+  spread,
+  readingId,         // lectureId pour update si analyse profonde générée
 }: {
   faces: TargetFaces;
   activeKinds: DieKind[];
-  mode?: 'global' | 'zoom-action' | 'zoom-domaine';
   question?: string | null;
+  spread?: string;
+  readingId?: string | null;
 }) {
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [sections, setSections] = useState<
-    { key: string; label: string; text: string }[] | null
-  >(null);
+  const t = useT();
+  const lang = useLang();
+
+  const [analysis, setAnalysis] = useState<string | null>(null);       // texte libre (fallback)
+  const [sections, setSections] = useState<{ key: string; label: string; text: string }[] | null>(null);
   const [synthese, setSynthese] = useState<string>('');
   const [dbInterpretation, setDbInterpretation] = useState<string | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);       // analyse structurée (bouton)
+  const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
+  const [deepLoading, setDeepLoading] = useState(false);
 
+  // ── Analyse structurée (bouton "Analyser en profondeur") ──
   const run = useCallback(async () => {
     setLoading(true);
     setAnalysis(null);
@@ -93,7 +101,7 @@ function DiceAnalysis({
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
+        body: JSON.stringify({ faces, activeKinds, mode: 'global', question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
       });
       const data = await res.json();
       if (data.sections && Array.isArray(data.sections)) {
@@ -103,13 +111,47 @@ function DiceAnalysis({
         setAnalysis(data.texte || 'Analyse indisponible.');
       }
     } catch {
-      setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
+      setAnalysis('Les étoiles se sont voilées… Réessaie l\'analyse.');
     } finally {
       setLoading(false);
     }
-  }, [faces, activeKinds, mode]);
+  }, [faces, activeKinds, question, dbInterpretation]);
 
-  // ── Fetch DB interpretation automatiquement après chaque lancer ──
+  // ── Analyse approfondie LLM (prompt long) ──
+  const runDeep = useCallback(async () => {
+    setDeepLoading(true);
+    setDeepAnalysis(null);
+    try {
+      const planet = PLANET_NAMES[faces.planet as string];
+      const sign = SIGN_NAMES[faces.sign as string];
+      const house = `Maison ${faces.house}`;
+      if (!planet || !sign) {
+        setDeepAnalysis(t('des.choix.deepNotAvail'));
+        return;
+      }
+      const res = await fetch('/api/astro-interpretation-approfondie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planet, sign, house, question, spread, lang }),
+      });
+      const data = await res.json();
+      if (data.analysis) {
+        setDeepAnalysis(data.analysis);
+        // Mettre à jour la lecture dans l'historique avec l'analyse longue
+        if (readingId) {
+          updateReading(readingId, { interpretation: data.analysis });
+        }
+      } else {
+        setDeepAnalysis(t('des.choix.deepNotAvail'));
+      }
+    } catch {
+      setDeepAnalysis(t('des.choix.deepNotAvail'));
+    } finally {
+      setDeepLoading(false);
+    }
+  }, [faces, question, spread, readingId, t, lang]);
+
+  // ── Interprétation courte automatique (LLM si question → DB sinon) ──
   useEffect(() => {
     if (!faces.planet || !faces.sign || !faces.house) return;
     const planet = PLANET_NAMES[faces.planet as string];
@@ -120,22 +162,34 @@ function DiceAnalysis({
     setDbLoading(true);
     setDbInterpretation(null);
 
-    fetch('/api/astro-interpretation-db', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planet, sign, house }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
+    const endpoint = question
+      ? '/api/astro-interpretation-choix'
+      : '/api/astro-interpretation-db';
+
+    const body = question
+      ? { planet, sign, house, question, spread }
+      : { planet, sign, house };
+
+    (async () => {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
         }
-      })
-      .catch(() => {
-        // silencieux — la DB est un bonus, pas un blocage
-      })
-      .finally(() => setDbLoading(false));
-  }, [faces.planet, faces.sign, faces.house]);
+      } catch {
+        // silencieux
+      } finally {
+        setDbLoading(false);
+      }
+    })();
+  }, [faces.planet, faces.sign, faces.house, question, spread]);
+
+  const shortReady = dbInterpretation && !dbLoading;
 
   return (
     <div
@@ -146,6 +200,7 @@ function DiceAnalysis({
         boxShadow: `inset 0 0 30px ${DICE_THEME.ocre}14`,
       }}
     >
+      {/* Titre analyse */}
       <h3
         className="mb-4 text-center text-lg font-bold"
         style={{
@@ -154,10 +209,10 @@ function DiceAnalysis({
           textShadow: `0 0 12px ${DICE_THEME.gold}44`,
         }}
       >
-        Analyse du tirage
+        {t('des.choix.analysis')}
       </h3>
 
-      {/* Partie statique — instantanée (fait patienter) */}
+      {/* Partie statique — les 3 dés */}
       <div className="space-y-3">
         {activeKinds.map((k) => {
           const val = faces[k] as string | number;
@@ -179,16 +234,16 @@ function DiceAnalysis({
         })}
       </div>
 
-      {/* ── Carte DB — interprétation combinée planète×signe×maison ── */}
+      {/* ── Interprétation courte (DB ou LLM 1-2 phrases) ── */}
       {dbLoading && (
         <div
           className="mt-4 text-center text-xs italic"
           style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
         >
-          Recherche de l'interprétation…
+          {t('des.choix.searching')}
         </div>
       )}
-      {dbInterpretation && !dbLoading && (
+      {shortReady && (
         <div
           className="mt-5 rounded-2xl p-4"
           style={{
@@ -201,7 +256,7 @@ function DiceAnalysis({
             className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
             style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
           >
-            Interprétation combinée
+            {t('des.choix.shortTitle')}
           </p>
           <p
             className="text-center text-sm leading-relaxed"
@@ -212,18 +267,16 @@ function DiceAnalysis({
         </div>
       )}
 
-      {/* Zone LLM — chargement puis texte généré */}
+      {/* ── Analyse structurée (bouton anal. en profondeur) ── */}
       <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
         {loading && (
           <div
             className="text-center text-sm italic"
             style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
           >
-            Les astres réfléchissent… ✨
+            {t('des.choix.thinkingStars')}
           </div>
         )}
-
-        {/* Analyse structurée en belles cartes */}
         {sections && !loading && (
           <div className="space-y-3">
             {sections.map((s) => (
@@ -249,7 +302,6 @@ function DiceAnalysis({
                 </p>
               </div>
             ))}
-
             {synthese && (
               <div
                 className="mt-4 rounded-2xl p-4"
@@ -263,7 +315,7 @@ function DiceAnalysis({
                   className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                   style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                 >
-                  Synthèse
+                  {t('des.choix.synthesis')}
                 </p>
                 <p
                   className="text-center text-sm leading-relaxed italic"
@@ -275,8 +327,6 @@ function DiceAnalysis({
             )}
           </div>
         )}
-
-        {/* Fallback texte libre */}
         {analysis && !loading && (
           <motion.p
             initial={{ opacity: 0 }}
@@ -287,199 +337,391 @@ function DiceAnalysis({
             {analysis}
           </motion.p>
         )}
-
-        {!analysis && !sections && !loading && (
-          <div className="text-center">
+        {!analysis && !sections && !loading && !shortReady && (
+          <div className="mt-2 text-center">
             <DiceButton variant="blue" onClick={run}>
-              ✨ Analyser en profondeur
+              {t('des.choix.deepBtn')}
             </DiceButton>
           </div>
+        )}
+
+        {/* ── Analyse APPROFONDIE (prompt long) ── */}
+        {!deepAnalysis && !deepLoading && shortReady && (
+          <div className="mt-4 text-center">
+            <DiceButton variant="gold" onClick={runDeep}>
+              {t('des.choix.deepLongBtn')}
+            </DiceButton>
+          </div>
+        )}
+        {deepLoading && (
+          <div
+            className="mt-4 text-center text-sm italic"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.gold, opacity: 0.8 }}
+          >
+            {t('des.choix.deepLoading')}
+          </div>
+        )}
+        {deepAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 rounded-2xl p-5"
+            style={{
+              background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brickDeep} 100%)`,
+              border: `1.5px solid ${DICE_THEME.gold}44`,
+              boxShadow: `inset 0 0 30px ${DICE_THEME.gold}10`,
+            }}
+          >
+            <p
+              className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
+              style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+            >
+              {t('des.choix.deepTitle')}
+            </p>
+            <div
+              className="whitespace-pre-line text-sm leading-relaxed"
+              style={{ fontFamily: 'var(--font-cormorant), serif', color: DICE_THEME.ocreLight, whiteSpace: 'pre-wrap' }}
+            >
+              {deepAnalysis}
+            </div>
+          </motion.div>
         )}
       </div>
     </div>
   );
 }
 
+// ──────────────────────────────────────────────
+// Section de synthèse : question + analyse courte (reprise)
+// ──────────────────────────────────────────────
+function RecapCard({
+  label,
+  faces,
+  question,
+  shortInterpretation,
+  deepAvailable,
+  onToggleDeep,
+}: {
+  label: string;
+  faces: TargetFaces;
+  question?: string | null;
+  shortInterpretation?: string | null;
+  deepAvailable: boolean;
+  onToggleDeep: () => void;
+}) {
+  const t = useT();
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
+        border: `1.5px solid ${DICE_THEME.gold}44`,
+      }}
+    >
+      <p
+        className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
+        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+      >
+        {label}
+      </p>
+      {question && (
+        <p
+          className="mb-2 text-center text-xs italic"
+          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+        >
+          « {question} »
+        </p>
+      )}
+      <ResultLine faces={faces} />
+      {shortInterpretation && (
+        <p
+          className="mt-3 text-center text-xs leading-relaxed"
+          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight, opacity: 0.85 }}
+        >
+          {shortInterpretation}
+        </p>
+      )}
+      {deepAvailable && (
+        <div className="mt-3 text-center">
+          <DiceButton variant="smallGold" onClick={onToggleDeep}>
+            {t('des.choix.seeDeep')}
+          </DiceButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Page principale
+// ──────────────────────────────────────────────
 export default function ChoixPage() {
   const [step, setStep] = useState<Step>('A_intro');
   const t = useT();
+
   const [faces, setFaces] = useState<TargetFaces>(() =>
-    typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
+    typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 } as TargetFaces) : randomTargetFaces()
   );
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [resultA, setResultA] = useState<TargetFaces | null>(null);
   const [resultB, setResultB] = useState<TargetFaces | null>(null);
-  const [comparaison, setComparaison] = useState<string | null>(null);
-  const [comparaisonLoading, setComparaisonLoading] = useState(false);
   const [question, setQuestion] = useState<string | null>(null);
-  // Cible de scroll après un lancer (pointe sur le bloc résultat monté).
+  const [questionB, setQuestionB] = useState<string | null>(null); // 2e choix (optionnel)
+  const questionRef = useRef<string | null>(null);                 // snapshot pour le lancer A
+  const questionBRef = useRef<string | null>(null);                 // snapshot pour le lancer B
+
+  const [showTutorial, setShowTutorial] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
-  // Cible de scroll vers l'arène des dés (gobelet).
   const cupRef = useRef<HTMLDivElement | null>(null);
+  const tutorialRef = useRef<HTMLDivElement | null>(null);
 
-  // Analyse comparative des deux tirages (mode 'choix' côté API).
-  const runComparaison = useCallback(async () => {
-    if (!resultA || !resultB) return;
-    setComparaisonLoading(true);
-    setComparaison(null);
-    try {
-      const res = await fetch('/api/astro-dice-interpretation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'choix',
-          facesA: resultA,
-          facesB: resultB,
-          activeKinds: ACTIVE_DICE,
-        }),
-      });
-      const data = await res.json();
-      setComparaison(data.comparaison || 'Comparaison indisponible.');
-    } catch {
-      setComparaison('Les étoiles se sont voilées… Réessaie la comparaison.');
-    } finally {
-      setComparaisonLoading(false);
-    }
-  }, [resultA, resultB]);
+  // Reading IDs pour update avec analyses
+  const [readingAId, setReadingAId] = useState<string | null>(null);
+  const [readingBId, setReadingBId] = useState<string | null>(null);
 
-  // Le lancer se fait AU GESTE (tap / secousse) — pas d'autolancement.
-  const chooseA = useCallback(() => {
-    setFaces(randomTargetFaces());
-    setStep('A_roll');
-  }, []);
+  // Analyses approfondies stockées pour le récapitulatif
+  const [deepAnalysisA, setDeepAnalysisA] = useState<string | null>(null);
+  const [deepAnalysisB, setDeepAnalysisB] = useState<string | null>(null);
+  const [showDeepA, setShowDeepA] = useState(false);
+  const [showDeepB, setShowDeepB] = useState(false);
 
-  const chooseB = useCallback(() => {
-    setFaces(randomTargetFaces());
-    setStep('B_roll');
-    setResetSignal((n) => n + 1); // remount propre du gobelet pour le lancer B
-    // Retourner devant l'arène des dés (le gobelet est en haut).
-    window.requestAnimationFrame(() => {
-      window.setTimeout(() => {
+  // Scroll vers le gobelet dès qu'il est monté (A_roll ou B_roll)
+  useEffect(() => {
+    if (step === 'A_roll' || step === 'B_roll') {
+      const t = setTimeout(() => {
         if (cupRef.current) {
           const top = cupRef.current.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: Math.max(0, top - 80), behavior: 'smooth' });
+          window.scrollTo({ top: Math.max(0, top - 100), behavior: 'smooth' });
         }
-      }, 60);
-    });
-  }, []);
+      }, 500); // attend le rendu du composant dynamique
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const chooseA = useCallback(() => {
+    questionRef.current = question;
+    setFaces(randomTargetFaces());
+    setStep('A_roll');
+    setShowTutorial(true);
+  }, [question]);
+
+  const chooseB = useCallback(() => {
+    questionBRef.current = questionB;
+    setFaces(randomTargetFaces());
+    setStep('B_roll');
+    setResetSignal((n) => n + 1);
+    setShowTutorial(true);
+  }, [questionB]);
 
   const handleRest = useCallback((f: TargetFaces) => {
     setStep((s) => {
       if (s === 'A_roll') {
         setResultA(f);
-        // Sauvegarde historique — Premier Choix
         saveReading({
           type: 'des-choix',
           spread: 'Premier Choix',
           cards: diceCards(f),
           interpretation: diceStaticText(f),
-          question,
-        });
+          question: questionRef.current,
+        }).then((id) => { if (id) setReadingAId(id); });
         return 'A_done';
       }
       if (s === 'B_roll') {
         setResultB(f);
-        // Sauvegarde historique — Second Choix
         saveReading({
           type: 'des-choix',
           spread: 'Second Choix',
           cards: diceCards(f),
           interpretation: diceStaticText(f),
-          question,
-        });
+          question: questionBRef.current,
+        }).then((id) => { if (id) setReadingBId(id); });
         return 'B_done';
       }
       return s;
     });
-    setQuestion(null);
-    // Descente directe vers le résultat + analyse (après rendu du bloc).
-    window.requestAnimationFrame(() => {
-      window.setTimeout(() => {
-        if (resultRef.current) {
-          const top = resultRef.current.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: top - 80, behavior: 'smooth' });
-        }
-      }, 60);
-    });
-  }, [question]);
+  }, []);
 
   const restart = useCallback(() => {
     setResultA(null);
     setResultB(null);
     setQuestion(null);
+    setQuestionB(null);
     setReady(false);
     setResetSignal((n) => n + 1);
     setStep('A_intro');
+    setReadingAId(null);
+    setReadingBId(null);
+    setDeepAnalysisA(null);
+    setDeepAnalysisB(null);
+    setShowDeepA(false);
+    setShowDeepB(false);
   }, []);
 
-  const cupVisible = step !== 'A_intro';
+  const cupVisible = step !== 'A_intro' && step !== 'B_intro';
 
   return (
     <DiceBackground>
       <YiSlideNav />
-      <DiceTitle
-        title={t('des.choix.title')}
-        subtitle={t('des.choix.subtitle')}
-      />
+      <DiceTitle title={t('des.choix.title')} />
 
       <div className="mx-auto max-w-2xl px-4">
-        {/* Question avant le tirage */}
-        {step === 'A_intro' && (
-          <AskQuestion onConfirm={setQuestion} />
-        )}
-        {/* Consigne Premier Choix */}
-        {(step === 'A_intro') && (
-          <OcreCard title={t('des.choix.first')}>
-                      <p className="text-center">
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-1" style={{background: '#005f6a', color: '#fff'}}>A</span>
-                        Formulez clairement votre <b>premier choix</b> dans votre esprit
-                        (ex : « changer d&apos;emploi »), puis lancez les dés.
-            </p>
-            <div className="mt-5 text-center">
-              <DiceButton onClick={chooseA}>Lancer les dés astrologiques</DiceButton>
-            </div>
-          </OcreCard>
-        )}
-
-        {/* Gobelet (monté dès le départ, révélé à onReady + dès l'étape A_roll).
-            Le lancer se fait au geste (secousse / appui) — pas de bouton. */}
-        <div
-          ref={cupRef}
-          style={{
-            height: cupVisible ? 460 : 0,
-            opacity: cupVisible && ready ? 1 : 0,
-            overflow: 'hidden',
-            transition: 'opacity 450ms ease',
-            pointerEvents: cupVisible ? 'auto' : 'none',
-          }}
-        >
-          <AstroDiceCup
-            key={resetSignal}
-            targetFaces={faces}
-            skin="moon"
-            height={460}
-            activeKinds={ACTIVE_DICE}
-            onRest={handleRest}
-            onReady={() => setReady(true)}
-            resetSignal={resetSignal}
-            launchSignal={0}
-          />
-        </div>
-
-        {(step === 'A_roll' || step === 'B_roll') && (
+        {/* Question sauvegardée affichée en permanence après enregistrement */}
+        {question && (
           <p
-            className="mt-3 text-center text-xs italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.7 }}
+            className="mt-4 text-center text-base"
+            style={{
+              fontFamily: 'var(--font-cinzel-deco), serif',
+              color: '#D4AF37',
+              textShadow: '0 0 12px rgba(212,175,55,0.35)',
+            }}
           >
-            ✋ Secouez le gobelet puis poussez vers le haut (ou appuyez) pour lancer les dés.
+            {question}
           </p>
         )}
 
-        {/* Résultat A + analyse */}
+        {/* ════════════ ÉTAPE INTRO A ════════════ */}
+        {step === 'A_intro' && (
+          <>
+            {/* Question avant le tirage A */}
+            <AskQuestion
+              key="qA"
+              onConfirm={(q) => {
+                setQuestion(q);
+                questionRef.current = q;
+                chooseA();
+              }}
+              label={t('des.choix.askLabel')}
+              placeholder={t('des.choix.askPlaceholder')}
+              confirmLabel={t('des.choix.save')}
+            />
+            {/* Carte Premier Choix */}
+            <div className="mt-6">
+              <div
+                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(100,180,255,0.12) 0%, rgba(60,140,220,0.08) 100%)',
+                  border: '1.5px solid rgba(135,206,235,0.5)',
+                  boxShadow: 'inset 0 0 30px rgba(135,206,235,0.12)',
+                }}
+              >
+                <h3
+                  className="mb-3 text-center text-lg font-bold"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: '#87CEEB',
+                    textShadow: '0 0 12px rgba(135,206,235,0.4)',
+                  }}
+                >
+                  {t('des.choix.first')}
+                </h3>
+                <p
+                  className="text-center text-xs italic"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)', marginBottom: 14 }}
+                >
+                  {t('des.choix.introFirst')}
+                </p>
+                <div
+                  className="text-sm sm:text-base leading-relaxed text-center"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
+                >
+                  <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructFirst') }} />
+                  <div className="mt-5 text-center">
+                    <button
+                      onClick={chooseA}
+                      className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+                      style={{
+                        background: '#005f6a',
+                        color: '#fff',
+                        fontFamily: 'var(--font-cinzel-deco), serif',
+                        boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                        border: '1px solid rgba(0,95,106,0.6)',
+                      }}
+                    >
+                      {t('des.choix.castFirst')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ════════════ GOBELET + TUTORIEL ════════════ */}
+        {(step === 'A_roll' || step === 'B_roll') && (
+          <>
+            <div
+              ref={cupRef}
+              style={{
+                height: 460,
+                opacity: ready ? 1 : 0,
+                transition: 'opacity 450ms ease',
+              }}
+            >
+              <AstroDiceCup
+                key={resetSignal}
+                targetFaces={faces}
+                skin="moon"
+                height={460}
+                activeKinds={ACTIVE_DICE}
+                onRest={handleRest}
+                onReady={() => setReady(true)}
+                resetSignal={resetSignal}
+                launchSignal={0}
+                onShake={() => setShowTutorial(false)}
+              />
+            </div>
+            {/* Tutoriel */}
+            <div
+              ref={tutorialRef}
+              className="flex flex-col items-center transition-opacity duration-300"
+              style={{
+                marginTop: 6,
+                opacity: showTutorial ? 1 : 0,
+                pointerEvents: showTutorial ? 'auto' : 'none',
+              }}
+            >
+              <style>{`
+                @keyframes swipe-shake-choix {
+                  0%, 100% { transform: translateX(0); }
+                  25% { transform: translateX(-16px); }
+                  75% { transform: translateX(16px); }
+                }
+                .swipe-icon-choix {
+                  animation: swipe-shake-choix 0.6s ease-in-out infinite;
+                  font-size: 28px;
+                  line-height: 1;
+                  color: #87CEEB;
+                  opacity: 0.85;
+                  user-select: none;
+                  -webkit-user-select: none;
+                }
+              `}</style>
+              <svg className="swipe-icon-choix" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#87CEEB" d="M9.5 1C8.67 1 8 1.67 8 2.5v7.38l-1.7-.85c-.3-.15-.65-.2-1-.15a1.5 1.5 0 0 0-1.3 1.3c-.15.65.05 1.3.5 1.75l4.35 4.35c.3.3.7.45 1.15.45H18c1.1 0 2-.9 2-2V9.5c0-.65-.45-1.2-1.05-1.4l-5.1-1.85c-.15-.05-.3-.05-.45-.05-.15 0-.3.05-.45.1l-.95.4V2.5C12 1.67 11.33 1 10.5 1h-1Z" opacity="0.6"/>
+                <path fill="#87CEEB" d="m17.5 14.5-2.12-1.06c-.2-.1-.44-.14-.67-.11l-1.83.35.88-3.53a1.25 1.25 0 0 0-.88-1.5c-.65-.18-1.3.2-1.48.85l-1.4 5.6-2.1-1.05.3 1.5 3.5 1.75c.3.15.65.2 1 .15H16c.65 0 1.2-.45 1.4-1.05l.35-1.05c.08-.25.05-.52-.08-.75l-.17-.15Z" opacity="0.4"/>
+              </svg>
+              <p
+                className="text-center leading-tight"
+                style={{
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '0.5rem',
+                  maxWidth: 120,
+                  lineHeight: 1.2,
+                }}
+              >
+                {t('des.choix.tutorial')}
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* ════════════ RÉSULTAT A ════════════ */}
         <AnimatePresence>
-          {resultA && step !== 'A_intro' && (
+          {resultA && step !== 'A_roll' && (
             <motion.div
+              ref={step === 'A_done' ? resultRef : undefined}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-5"
@@ -488,47 +730,93 @@ export default function ChoixPage() {
                 className="mb-1 text-center text-xs uppercase tracking-widest"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
               >
-                ❶ — Premier Choix
+                {t('des.choix.first')}
               </p>
               <ResultLine faces={resultA} />
-              <p
-                className="mt-2 text-center text-xs italic"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.7 }}
-              >
-                📝 Notez la vibration (ex : Lune en Cancer en Maison 4 =
-                introspection, confort, protection du foyer).
-              </p>
-              <DiceAnalysis faces={resultA} activeKinds={ACTIVE_DICE} question={question} />
+              <DiceAnalysis
+                faces={resultA}
+                activeKinds={ACTIVE_DICE}
+                question={questionRef.current}
+                spread="Premier Choix"
+                readingId={readingAId}
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Passage au Second Choix */}
+        {/* ════════════ TRANSITION A → B (saisie 2e choix) ════════════ */}
         <AnimatePresence>
           {step === 'A_done' && (
             <motion.div
-              ref={resultRef}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <OcreCard title={t('des.choix.first')}>
-                              <p className="text-center">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-1" style={{background: '#005f6a', color: '#fff'}}>B</span>
-                                Voici la vibration de votre <b>premier choix</b>. Lisez-la puis
-                                analysez-la.
+              <div
+                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(135,206,235,0.1) 0%, rgba(60,140,220,0.06) 100%)',
+                  border: '1.5px solid rgba(135,206,235,0.4)',
+                  boxShadow: 'inset 0 0 24px rgba(135,206,235,0.1)',
+                }}
+              >
+                <h3
+                  className="mb-3 text-center text-lg font-bold"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: '#87CEEB',
+                    textShadow: '0 0 12px rgba(135,206,235,0.4)',
+                  }}
+                >
+                  {t('des.choix.second')}
+                </h3>
+                <p
+                  className="text-center text-xs italic"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)', marginBottom: 14 }}
+                >
+                  {t('des.choix.introSecond')}
                 </p>
-                <div className="mt-5 text-center">
-                  <DiceButton variant="blue" onClick={chooseB}>
-                    Lancer les dés astrologiques
-                  </DiceButton>
+
+                {/* Question optionnelle pour le 2e choix */}
+                <div className="mb-5">
+                  <textarea
+                    value={questionB || ''}
+                    onChange={(e) => setQuestionB(e.target.value || null)}
+                    placeholder={t('des.choix.secondPlaceholder')}
+                    className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
+                    style={{
+                      background: 'rgba(10,20,48,0.6)',
+                      borderColor: 'rgba(135,206,235,0.3)',
+                      color: '#DCE6F5',
+                      fontFamily: 'var(--font-cinzel), serif',
+                      minHeight: 64,
+                      resize: 'vertical',
+                    }}
+                    rows={2}
+                  />
                 </div>
-              </OcreCard>
+
+                <div className="text-center">
+                  <button
+                    onClick={chooseB}
+                    className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+                    style={{
+                      background: '#005f6a',
+                      color: '#fff',
+                      fontFamily: 'var(--font-cinzel-deco), serif',
+                      boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                      border: '1px solid rgba(0,95,106,0.6)',
+                    }}
+                  >
+                    {t('des.choix.castSecond')}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Résultat B + analyse */}
+        {/* ════════════ RÉSULTAT B ════════════ */}
         <AnimatePresence>
           {resultB && step === 'B_done' && (
             <motion.div
@@ -541,86 +829,116 @@ export default function ChoixPage() {
                 className="mb-1 text-center text-xs uppercase tracking-widest"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
               >
-                ❷ — Second Choix
+                {t('des.choix.second')}
               </p>
               <ResultLine faces={resultB} />
-              <p
-                className="mt-2 text-center text-xs italic"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.7 }}
-              >
-                📝 Notez la vibration (ex : Uranus en Verseau en Maison 10 =
-                grand changement pro, liberté, rupture de routine).
-              </p>
-              <DiceAnalysis faces={resultB} activeKinds={ACTIVE_DICE} question={question} />
+              <DiceAnalysis
+                faces={resultB}
+                activeKinds={ACTIVE_DICE}
+                question={questionBRef.current}
+                spread="Second Choix"
+                readingId={readingBId}
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Synthèse finale */}
+        {/* ════════════ RÉCAPITULATIF FINAL ════════════ */}
         <AnimatePresence>
           {step === 'B_done' && (
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
+              className="mt-8 mb-10"
             >
-              <OcreCard title="❸ — Synthèse (C)">
-                <p className="text-center italic leading-relaxed">
-                  Comparez la fluidité des énergies. Le <b>Premier Choix</b> apporte-t-il
-                  de la <b>stabilité</b> ou de la <b>stagnation</b> ? Le <b>Second Choix</b>
-                  génère-t-il du <b>renouveau</b> ou de l&apos;<b>instabilité</b> ?
-                </p>
+              <div
+                className="mx-auto max-w-2xl"
+                style={{
+                  background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brickDeep} 100%)`,
+                  border: `1.5px solid ${DICE_THEME.gold}33`,
+                  borderRadius: 20,
+                  boxShadow: `inset 0 0 30px ${DICE_THEME.gold}0c`,
+                  padding: 24,
+                }}
+              >
+                <h3
+                  className="mb-6 text-center text-lg font-bold"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: DICE_THEME.gold,
+                    textShadow: `0 0 20px ${DICE_THEME.gold}44`,
+                  }}
+                >
+                  {t('des.choix.recap')}
+                </h3>
 
-                <div className="mt-5 text-center">
-                  <DiceButton variant="blue" onClick={runComparaison}>
-                    {t('des.choix.compare')}
-                  </DiceButton>
+                {/* Grille des 2 options */}
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {/* Option A */}
+                  <div className="space-y-3">
+                    <RecapCard
+                      label={t('des.choix.first')}
+                      faces={resultA!}
+                      question={questionRef.current}
+                      shortInterpretation={'' /* will be filled by children */}
+                      deepAvailable={!!deepAnalysisA}
+                      onToggleDeep={() => setShowDeepA(!showDeepA)}
+                    />
+
+                    {showDeepA && deepAnalysisA && (
+                      <div
+                        className="rounded-2xl p-4 text-xs leading-relaxed"
+                        style={{
+                          background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
+                          border: `1px solid ${DICE_THEME.gold}33`,
+                          fontFamily: 'var(--font-cormorant), serif',
+                          color: DICE_THEME.ocreLight,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {deepAnalysisA}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Option B */}
+                  <div className="space-y-3">
+                    <RecapCard
+                      label={t('des.choix.second')}
+                      faces={resultB!}
+                      question={questionBRef.current}
+                      shortInterpretation={''}
+                      deepAvailable={!!deepAnalysisB}
+                      onToggleDeep={() => setShowDeepB(!showDeepB)}
+                    />
+                    {showDeepB && deepAnalysisB && (
+                      <div
+                        className="rounded-2xl p-4 text-xs leading-relaxed"
+                        style={{
+                          background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
+                          border: `1px solid ${DICE_THEME.gold}33`,
+                          fontFamily: 'var(--font-cormorant), serif',
+                          color: DICE_THEME.ocreLight,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {deepAnalysisB}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {comparaisonLoading && (
-                  <p
-                    className="mt-4 text-center text-sm italic"
-                    style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
-                  >
-                    Les astres comparent vos chemins… ✨
-                  </p>
-                )}
-
-                {comparaison && !comparaisonLoading && (
-                  <div
-                    className="mt-5 rounded-2xl p-5"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.ocre}14 100%)`,
-                      border: `1px solid ${DICE_THEME.gold}55`,
-                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                    }}
-                  >
-                    <p
-                      className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                      style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                    >
-                      Mise en lumière
-                    </p>
-                    <p
-                      className="text-center text-sm leading-relaxed italic"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                    >
-                      {comparaison}
-                    </p>
-                  </div>
-                )}
-              </OcreCard>
-
-              <div className="mt-6 text-center">
-                <DiceButton onClick={restart}>
-                  Recommencer
-                </DiceButton>
+                {/* Bouton Recommencer */}
+                <div className="mt-8 text-center">
+                  <DiceButton onClick={restart}>
+                    {t('des.choix.restart')}
+                  </DiceButton>
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      </DiceBackground>
+    </DiceBackground>
   );
 }

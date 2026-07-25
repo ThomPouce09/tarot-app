@@ -191,7 +191,7 @@ const CUP_CIRCLE_R = 17; // rayon interne du gobelet (px) — à calibrer visuel
 
 /* Pad de secousse en bas de l'écran (hors arène) : il capte le gauche/droite
    (shake) et les montées (tip). */
-const PAD_HEIGHT = 90; // px
+const PAD_HEIGHT = 130; // px
 
 /* -------------------------------------------------------------------------- */
 /*  Composant                                                                    */
@@ -542,7 +542,7 @@ export default function AstroDiceCup({
           fontFamily: 'system-ui, sans-serif',
           textShadow: '0 1px 3px rgba(0,0,0,0.7)',
           background:
-            'linear-gradient(to top, rgba(10,14,30,0.85), rgba(10,14,30,0))',
+            'linear-gradient(to top, rgba(135,206,235,0.18), rgba(135,206,235,0))',
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

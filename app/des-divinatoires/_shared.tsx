@@ -68,14 +68,13 @@ export function DiceBackground({
           }}
         />
       )}
-      {/* voile doré subtil */}
-      <div
+      {/* <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
             'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.12) 0%, transparent 60%)',
         }}
-      />
+      /> */}
       <div className="relative z-10">{children}</div>
     </div>
   );
@@ -128,7 +127,7 @@ export function DiceButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'ocre' | 'blue' | 'blueLight';
+  variant?: 'primary' | 'ocre' | 'blue' | 'blueLight' | 'gold' | 'smallGold';
 }) {
   const bg =
     variant === 'blueLight'
@@ -136,12 +135,13 @@ export function DiceButton({
       : variant === 'blue'
       ? 'linear-gradient(135deg, #020d18 0%, #062040 50%, #0a3a60 100%)'
       : variant === 'ocre'
-      ? disabled
-        ? DICE_THEME.brickDark
-        : DICE_THEME.ocre
+      ? (disabled ? DICE_THEME.brickDark : DICE_THEME.ocre)
+      : variant === 'gold' || variant === 'smallGold'
+      ? 'linear-gradient(135deg, #8a6d3b 0%, #c9a75b 50%, #e8d48b 100%)'
       : disabled
         ? DICE_THEME.brickDark
         : DICE_THEME.brick;
+  const isGold = variant === 'gold' || variant === 'smallGold';
   return (
     <motion.button
       type="button"
@@ -149,17 +149,19 @@ export function DiceButton({
       disabled={disabled}
       whileHover={disabled ? undefined : { scale: 1.04, y: -2 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
-      className="rounded-xl px-6 py-3 text-sm sm:text-base font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+      className={`rounded-xl px-6 py-3 text-sm sm:text-base font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${variant === 'smallGold' ? '!px-3 !py-1.5 !text-xs' : ''}`}
       style={{
         fontFamily: 'var(--font-cinzel), serif',
         background: bg,
-        color: DICE_THEME.glyph,
-        border: variant === 'blue' || variant === 'blueLight' ? '1.5px solid #5db8e8' : `1.5px solid ${DICE_THEME.gold}`,
+        color: isGold ? '#1a0e0a' : DICE_THEME.glyph,
+        border: variant === 'blue' || variant === 'blueLight' ? '1.5px solid #5db8e8' : isGold ? '1.5px solid #e8d48b' : `1.5px solid ${DICE_THEME.gold}`,
         boxShadow: disabled
           ? 'none'
           : variant === 'blue' || variant === 'blueLight'
             ? '0 0 24px rgba(93,184,232,0.5), 0 4px 12px rgba(0,0,0,0.4)'
-            : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
+            : isGold
+              ? '0 0 24px rgba(201,167,91,0.5), 0 4px 12px rgba(0,0,0,0.4)'
+              : `0 0 18px ${DICE_THEME.gold}44, 0 4px 12px rgba(0,0,0,0.4)`,
         letterSpacing: '0.04em',
       }}
     >
