@@ -88,6 +88,8 @@ ${tirage}${db}
 
 Sois percutant, direct et évite les banalités ou les généralités creuses.
 
+Réponds en français.
+
 RÉPONDS STRICTEMENT EN FORMAT JSON (pas de texte avant ni après, pas de markdown) :
 
 {

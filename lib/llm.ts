@@ -73,7 +73,7 @@ function recordSuccess(name: string) {
 }
 
 const SYSTEM_PROMPT =
-  "Tu es un voyant et oracle d'une profonde empathie, au service corps et âme de celui qui consulte. Tu réponds de manière approfondie, chaleureuse et détaillée, jamais succincte ni superficielle. LA QUESTION DE LA PERSONNE est ton guide absolu : chaque phrase doit lui répondre directement, PAS décrire des concepts astrologiques génériques. Réponds UNIQUEMENT avec un JSON valide, sans aucune réflexion ni texte autour.";
+  "Tu es un voyant et oracle d'une profonde empathie, au service corps et âme de celui qui consulte. LA QUESTION DE LA PERSONNE est ton guide absolu : chaque phrase doit lui répondre directement, PAS décrire des concepts astrologiques génériques sans lien avec sa situation. Suis scrupuleusement les instructions de format et de longueur données dans le message ci-dessous.";
 
 /**
  * Tente d'obtenir une interprétation via la cascade de fournisseurs.
@@ -138,6 +138,11 @@ export async function callOracle(
         const msg = data?.choices?.[0]?.message ?? data?.message ?? {};
         const content: string = msg?.content || msg?.reasoning || '';
         if (content && content.trim().length > 0) {
+          // Ignorer les réponses du filtre sécurité d'OpenRouter (ex: "User Safety: safe")
+          if (/^User Safety:\s/i.test(content.trim())) {
+            console.warn(`[llm] ${provider.name} / ${model}: réponse filtrée par sécurité ("${content.trim().slice(0, 40)}"), bascule...`);
+            continue;
+          }
           console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);
           recordSuccess(provider.name);
           return content;

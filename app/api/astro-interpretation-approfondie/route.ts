@@ -1,9 +1,10 @@
 // app/api/astro-interpretation-approfondie/route.ts
-// Analyse approfondie (5+ phrases) pour un tirage "Choix".
-// Prompt astrologue expert, structuré, sans antagonisme avec le système.
+// Analyse approfondie LLM pour un tirage "Choix".
+// Le prompt est chargé depuis la base Neon (table PromptTemplate, clé 'choix-deep').
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
+import { getPrompt } from '@/lib/prompts';
 
 export async function POST(request: NextRequest) {
   let body: any;
@@ -21,7 +22,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const langue = lang === 'en' ? 'en' : 'fr';
   const spreadLabel = spread || 'Premier Choix';
   const optionNum = spreadLabel === 'Premier Choix' ? '1' : '2';
   const optionLabel = spreadLabel === 'Premier Choix' ? 'première' : 'seconde';
@@ -29,32 +29,21 @@ export async function POST(request: NextRequest) {
     ? question
     : 'Aucune saisie utilisateur — dresser un panorama générique.';
 
-  const prompt = `Tu es un astrologue expert et analyste stratège. Tu donnes des lectures détaillées et fines, en expliquant la mécanique des énergies en jeu.
-
-Contexte : Ce tirage correspond à la ${optionLabel} voie (Option ${optionNum}) d'une situation (Tirage "Choix" ou question simple).
-Saisie de l'utilisateur : ${saisie}
-Tirage : ${planet} en ${sign}, Maison ${house}.
-
-Analyse à produire :
-
-1. Cadrage du sujet :
-- Si la saisie expose deux options, concentre-toi EXCLUSIVEMENT sur la ${optionLabel} option (Option ${optionNum}). Ignore le second.
-- Si la saisie est une question simple, utilise-la comme axe central.
-- Si la saisie est VIDE, dresse un panorama générique des influences du tirage : thèmes centraux, dynamiques, défis et opportunités.
-
-2. Décryptage par dé :
-Explique l'influence de chaque dé appliqué au sujet :
-- La Planète (${planet}) : Le Moteur — énergie d'action brute, force archétypale.
-- Le Signe (${sign}) : La Méthode — filtre élément/mode, attitude, couleur psychologique.
-- La Maison (${house}) : Le Terrain — domaine d'expérience, sphère matérielle ou intérieure.
-
-3. Synthèse stratégique :
-Assemble les trois engrenages pour une conclusion cohérente. S'il y a une saisie, conclus sur la viabilité de cette ${optionLabel} voie. Si la saisie est vide, donne un conseil général.
-
-Contrainte : Ta réponse doit faire au moins 5 phrases. Utilise des paragraphes courts. Ton clair, pragmatique et structuré.
-Réponds en ${langue === 'fr' ? 'français' : 'anglais'}.
-
-Retourne UNIQUEMENT un objet JSON valide comme ceci : {"texte": "ta réponse ici"} — sans aucun texte avant ou après.`;
+  // Charger le prompt depuis la base
+  let prompt: string;
+  try {
+    prompt = await getPrompt('choix-deep', {
+      optionLabel,
+      optionNum,
+      planet,
+      sign,
+      house,
+      question: saisie,
+    });
+  } catch (err) {
+    console.error('[astro-interpretation-approfondie] Erreur chargement prompt:', err);
+    return NextResponse.json({ analysis: null }, { status: 200 });
+  }
 
   try {
     const response = await callOracle(prompt, { maxTokens: 1200, temperature: 0.5 });
@@ -63,16 +52,21 @@ Retourne UNIQUEMENT un objet JSON valide comme ceci : {"texte": "ta réponse ici
     }
 
     let text = response.trim();
+
+    // Nettoyer les éventuels backticks markdown AVANT le parse JSON
+    text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
+
     // Le modèle retourne du JSON — on parse ou on extrait
     try {
       const parsed = JSON.parse(text);
-      text = parsed.texte || parsed.analysis || text;
+      if (typeof parsed === 'object') {
+        text = parsed.texte || parsed.analysis || parsed.interpretation || text;
+      }
     } catch {
-      // Pas du JSON valide — extraire le champ analysis s'il est dans une structure
-      const m = text.match(/"texte"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      // Pas du JSON valide — extraire tous les champs possibles
+      const m = text.match(/"(?:texte|analysis|interpretation)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
       if (m) text = m[1].replace(/\\n/g, '\n');
     }
-    text = text.replace(/^```[\s\S]*?\n/, '').replace(/\n```$/, '').trim();
 
     return NextResponse.json({ analysis: text });
   } catch (err) {

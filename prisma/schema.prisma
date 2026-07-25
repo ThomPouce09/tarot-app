@@ -105,3 +105,16 @@ model AstroInterpretation {
   @@unique([planet, sign, house])
   @@index([planet])
 }
+
+// ─── Templates de prompts personnalisables ───────────────────
+// Stockés en base pour édition sans modifier le code.
+// Chaque route API charge son prompt via la clé unique.
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique  // ex: 'choix-short', 'choix-deep', 'dice-global', 'system'
+  label       String            // ex: 'Analyse courte (Choix 1 & 2)', 'Analyse approfondie (Choix 1 & 2)'
+  content     String            // Le texte du prompt avec placeholders {{variable}}
+  description String?           // Notes internes
+  version     Int      @default(1)
+  updatedAt   DateTime @updatedAt
+}

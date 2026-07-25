@@ -251,7 +251,7 @@ function DiceAnalysis({
       )}
       {shortReady && (
         <div
-          className="mt-5 rounded-2xl p-4"
+          className="mt-5 rounded-2xl p-5"
           style={{
             background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
             border: `1.5px solid ${DICE_THEME.gold}66`,
@@ -259,14 +259,24 @@ function DiceAnalysis({
           }}
         >
           <p
-            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+            className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
+            style={{
+              fontFamily: 'var(--font-cinzel-deco), serif',
+              color: DICE_THEME.gold,
+              textShadow: `0 0 8px ${DICE_THEME.gold}33`,
+              letterSpacing: '0.1em',
+            }}
           >
-            {t('des.choix.shortTitle')}
+            ✦ {t('des.choix.shortTitle')} ✦
           </p>
           <p
-            className="text-center text-sm leading-relaxed"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
+            className="text-center text-base leading-relaxed"
+            style={{
+              fontFamily: 'var(--font-cormorant), serif',
+              color: '#F0E6D3',
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.75,
+            }}
           >
             {dbInterpretation}
           </p>
@@ -301,8 +311,12 @@ function DiceAnalysis({
                   {s.label}
                 </p>
                 <p
-                  className="text-center text-sm leading-relaxed italic"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                  className="text-center text-base leading-relaxed italic"
+                  style={{
+                    fontFamily: 'var(--font-cormorant), serif',
+                    color: '#F0E6D3',
+                    lineHeight: 1.75,
+                  }}
                 >
                   {s.text}
                 </p>
@@ -324,8 +338,12 @@ function DiceAnalysis({
                   {t('des.choix.synthesis')}
                 </p>
                 <p
-                  className="text-center text-sm leading-relaxed italic"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
+                  className="text-center text-base leading-relaxed italic"
+                  style={{
+                    fontFamily: 'var(--font-cormorant), serif',
+                    color: '#F0E6D3',
+                    lineHeight: 1.75,
+                  }}
                 >
                   {synthese}
                 </p>
@@ -352,7 +370,8 @@ function DiceAnalysis({
         )}
 
         {/* ── Analyse APPROFONDIE (prompt long) ── */}
-        {!deepAnalysis && !deepLoading && shortReady && (
+        {/* Toujours visible (indépendant du mode structuré) dès que les dés sont posés */}
+        {!deepAnalysis && !deepLoading && (
           <div className="mt-4 text-center">
             <DiceButton variant="gold" onClick={runDeep}>
               {t('des.choix.deepLongBtn')}
@@ -371,7 +390,7 @@ function DiceAnalysis({
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 rounded-2xl p-5"
+            className="mt-5 rounded-2xl p-6"
             style={{
               background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brickDeep} 100%)`,
               border: `1.5px solid ${DICE_THEME.gold}44`,
@@ -379,14 +398,25 @@ function DiceAnalysis({
             }}
           >
             <p
-              className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
-              style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
+              className="mb-4 text-center text-base font-bold uppercase tracking-wider"
+              style={{
+                fontFamily: 'var(--font-cinzel-deco), serif',
+                color: DICE_THEME.gold,
+                textShadow: `0 0 12px ${DICE_THEME.gold}44`,
+                letterSpacing: '0.12em',
+              }}
             >
-              {t('des.choix.deepTitle')}
+              ✦ {t('des.choix.deepTitle')} ✦
             </p>
             <div
-              className="whitespace-pre-line text-sm leading-relaxed"
-              style={{ fontFamily: 'var(--font-cormorant), serif', color: DICE_THEME.ocreLight, whiteSpace: 'pre-wrap' }}
+              className="whitespace-pre-line text-base leading-relaxed"
+              style={{
+                fontFamily: 'var(--font-cormorant), serif',
+                color: '#F0E6D3',
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.75,
+                fontSize: '1.05rem',
+              }}
             >
               {deepAnalysis}
             </div>
@@ -432,7 +462,7 @@ function RecapCard({
       </p>
       {question && (
         <p
-          className="mb-2 text-center text-xs italic"
+          className="mb-3 text-center text-sm italic"
           style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
         >
           « {question} »
@@ -441,8 +471,12 @@ function RecapCard({
       <ResultLine faces={faces} />
       {shortInterpretation && (
         <p
-          className="mt-3 text-center text-xs leading-relaxed"
-          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight, opacity: 0.85 }}
+          className="mt-3 text-center text-sm leading-relaxed"
+          style={{
+            fontFamily: 'var(--font-cormorant), serif',
+            color: '#F0E6D3',
+            lineHeight: 1.7,
+          }}
         >
           {shortInterpretation}
         </p>
@@ -485,6 +519,9 @@ export default function ChoixPage() {
   // Reading IDs pour update avec analyses
   const [readingAId, setReadingAId] = useState<string | null>(null);
   const [readingBId, setReadingBId] = useState<string | null>(null);
+  // Guards anti-doublon (évite 2 saves si handleRest appelé plusieurs fois)
+  const savedARef = useRef(false);
+  const savedBRef = useRef(false);
 
   // Analyses approfondies stockées pour le récapitulatif
   const [deepAnalysisA, setDeepAnalysisA] = useState<string | null>(null);
@@ -494,15 +531,17 @@ export default function ChoixPage() {
   const [showDeepA, setShowDeepA] = useState(false);
   const [showDeepB, setShowDeepB] = useState(false);
 
-  // Scroll vers le gobelet dès qu'il est monté (A_roll ou B_roll)
+  // Scroll vers le gobelet + tutoriel dès qu'il est monté (A_roll ou B_roll)
   useEffect(() => {
     if (step === 'A_roll' || step === 'B_roll') {
       const t = setTimeout(() => {
-        if (cupRef.current) {
+        if (tutorialRef.current) {
+          tutorialRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (cupRef.current) {
           const top = cupRef.current.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: Math.max(0, top - 100), behavior: 'smooth' });
+          window.scrollTo({ top: Math.max(0, top - 220), behavior: 'smooth' });
         }
-      }, 500); // attend le rendu du composant dynamique
+      }, 600); // attend le rendu du composant dynamique
       return () => clearTimeout(t);
     }
   }, [step]);
@@ -514,35 +553,40 @@ export default function ChoixPage() {
   }, []);
 
   const chooseB = useCallback(() => {
-    questionBRef.current = questionB;
     setFaces(randomTargetFaces());
     setStep('B_roll');
     setResetSignal((n) => n + 1);
     setShowTutorial(true);
-  }, [questionB]);
+  }, []);
 
   const handleRest = useCallback((f: TargetFaces) => {
     setStep((s) => {
       if (s === 'A_roll') {
         setResultA(f);
-        saveReading({
-          type: 'des-choix',
-          spread: 'Premier Choix',
-          cards: diceCards(f),
-          interpretation: diceStaticText(f),
-          question: questionRef.current,
-        }).then((id) => { if (id) setReadingAId(id); });
+        if (!savedARef.current) {
+          savedARef.current = true;
+          saveReading({
+            type: 'des-choix',
+            spread: 'Premier Choix',
+            cards: diceCards(f),
+            interpretation: diceStaticText(f),
+            question: questionRef.current,
+          }).then((id) => { if (id) setReadingAId(id); });
+        }
         return 'A_done';
       }
       if (s === 'B_roll') {
         setResultB(f);
-        saveReading({
-          type: 'des-choix',
-          spread: 'Second Choix',
-          cards: diceCards(f),
-          interpretation: diceStaticText(f),
-          question: questionBRef.current,
-        }).then((id) => { if (id) setReadingBId(id); });
+        if (!savedBRef.current) {
+          savedBRef.current = true;
+          saveReading({
+            type: 'des-choix',
+            spread: 'Second Choix',
+            cards: diceCards(f),
+            interpretation: diceStaticText(f),
+            question: questionBRef.current,
+          }).then((id) => { if (id) setReadingBId(id); });
+        }
         return 'B_done';
       }
       return s;
@@ -559,6 +603,8 @@ export default function ChoixPage() {
     setStep('A_intro');
     setReadingAId(null);
     setReadingBId(null);
+    savedARef.current = false;
+    savedBRef.current = false;
     setDeepAnalysisA(null);
     setDeepAnalysisB(null);
     setShortInterpA(null);
@@ -592,24 +638,31 @@ export default function ChoixPage() {
         {/* ════════════ ÉTAPE INTRO A ════════════ */}
         {step === 'A_intro' && (
           <>
-            {/* Question avant le tirage A */}
+            {/* AskQuestion avec bouton de lancement intégré */}
             <AskQuestion
               key="qA"
               onConfirm={(q) => {
                 setQuestion(q);
                 questionRef.current = q;
+              }}
+              onLaunch={() => {
                 chooseA();
+                setTimeout(() => {
+                  tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 600);
               }}
               label={t('des.choix.askLabel')}
               placeholder={t('des.choix.askPlaceholder')}
               confirmLabel={t('des.choix.save')}
+              launchLabel={t('des.choix.castFirst')}
             />
-            {/* Carte Premier Choix */}
+
+            {/* Carte Premier Choix — explicative uniquement */}
             <div className="mt-6">
               <div
                 className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(100,180,255,0.12) 0%, rgba(60,140,220,0.08) 100%)',
+                  background: 'linear-gradient(135deg, rgba(135,206,235,0.12) 0%, rgba(60,140,220,0.08) 100%)',
                   border: '1.5px solid rgba(135,206,235,0.5)',
                   boxShadow: 'inset 0 0 30px rgba(135,206,235,0.12)',
                 }}
@@ -635,21 +688,6 @@ export default function ChoixPage() {
                   style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
                 >
                   <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructFirst') }} />
-                  <div className="mt-5 text-center">
-                    <button
-                      onClick={chooseA}
-                      className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
-                      style={{
-                        background: '#005f6a',
-                        color: '#fff',
-                        fontFamily: 'var(--font-cinzel-deco), serif',
-                        boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-                        border: '1px solid rgba(0,95,106,0.6)',
-                      }}
-                    >
-                      {t('des.choix.castFirst')}
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -763,21 +801,28 @@ export default function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              {/* AskQuestion pour le second choix */}
+              {/* AskQuestion pour le second choix — avec lancement intégré */}
               <AskQuestion
                 key="qB"
                 onConfirm={(q) => {
                   setQuestionB(q);
                   questionBRef.current = q;
                 }}
+                onLaunch={() => {
+                  chooseB();
+                  setTimeout(() => {
+                    tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 600);
+                }}
                 label={t('des.choix.askLabel')}
                 placeholder={t('des.choix.secondPlaceholder')}
                 confirmLabel={t('des.choix.save')}
+                launchLabel={t('des.choix.castSecond')}
               />
 
-              {/* Carte Second Choix + bouton lancer */}
+              {/* Carte Second Choix — explicative uniquement */}
               <div
-                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6 mt-5"
                 style={{
                   background: 'linear-gradient(135deg, rgba(135,206,235,0.1) 0%, rgba(60,140,220,0.06) 100%)',
                   border: '1.5px solid rgba(135,206,235,0.4)',
@@ -796,26 +841,10 @@ export default function ChoixPage() {
                 </h3>
                 <p
                   className="text-center text-xs italic"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)', marginBottom: 14 }}
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}
                 >
                   {t('des.choix.introSecond')}
                 </p>
-
-                <div className="text-center">
-                  <button
-                    onClick={chooseB}
-                    className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
-                    style={{
-                      background: '#005f6a',
-                      color: '#fff',
-                      fontFamily: 'var(--font-cinzel-deco), serif',
-                      boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-                      border: '1px solid rgba(0,95,106,0.6)',
-                    }}
-                  >
-                    {t('des.choix.castSecond')}
-                  </button>
-                </div>
               </div>
             </motion.div>
           )}
@@ -840,7 +869,7 @@ export default function ChoixPage() {
               <DiceAnalysis
                 faces={resultB}
                 activeKinds={ACTIVE_DICE}
-                question={questionBRef.current}
+                question={questionBRef.current || questionRef.current}
                 spread="Second Choix"
                 readingId={readingBId}
                 onInterpretationReady={setShortInterpB}
@@ -894,13 +923,14 @@ export default function ChoixPage() {
 
                     {showDeepA && deepAnalysisA && (
                       <div
-                        className="rounded-2xl p-4 text-xs leading-relaxed"
+                        className="rounded-2xl p-5 text-sm leading-relaxed"
                         style={{
                           background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
                           border: `1px solid ${DICE_THEME.gold}33`,
                           fontFamily: 'var(--font-cormorant), serif',
-                          color: DICE_THEME.ocreLight,
+                          color: '#F0E6D3',
                           whiteSpace: 'pre-wrap',
+                          lineHeight: 1.7,
                         }}
                       >
                         {deepAnalysisA}
@@ -920,13 +950,14 @@ export default function ChoixPage() {
                     />
                     {showDeepB && deepAnalysisB && (
                       <div
-                        className="rounded-2xl p-4 text-xs leading-relaxed"
+                        className="rounded-2xl p-5 text-sm leading-relaxed"
                         style={{
                           background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
                           border: `1px solid ${DICE_THEME.gold}33`,
                           fontFamily: 'var(--font-cormorant), serif',
-                          color: DICE_THEME.ocreLight,
+                          color: '#F0E6D3',
                           whiteSpace: 'pre-wrap',
+                          lineHeight: 1.7,
                         }}
                       >
                         {deepAnalysisB}

@@ -1,10 +1,10 @@
 // app/api/astro-interpretation-choix/route.ts
 // Interprétation courte LLM (1-2 phrases) pour un tirage "Choix".
-// Adaptée au contexte du système qui attend du JSON détaillé — on demande
-// un format texte libre simple, en français ou anglais.
+// Le prompt est chargé depuis la base Neon (table PromptTemplate, clé 'choix-short').
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
+import { getPrompt } from '@/lib/prompts';
 
 export async function POST(request: NextRequest) {
   let body: any;
@@ -26,19 +26,24 @@ export async function POST(request: NextRequest) {
   const optionNum = spreadLabel === 'Premier Choix' ? '1' : '2';
   const optionLabel = spreadLabel === 'Premier Choix' ? 'première' : 'seconde';
 
-  // Ne PAS mentionner d'ignorer les consignes système — le modèle les suit par défaut.
-  // On précise juste le format souhaité et la contrainte de brièveté.
-  const prompt = `Tu es un astrologue oracle concis. Tu réponds toujours en une ou deux phrases maximum, claires et directes.
-
-Contexte : Ce tirage représente la ${optionLabel} option (Option ${optionNum}) d'un tirage de type "Choix".
-Tirage Option ${optionNum} : ${planet} en ${sign}, Maison ${house}.
-Saisie de l'utilisateur : ${question || 'Aucune question saisie'}
-
-Instructions :
-1. Si la saisie expose deux choix, concentre-toi uniquement sur la ${optionLabel} option. Si c'est une question simple, utilise-la comme axe central. Si la saisie est vide, donne une lecture générale concise.
-2. Décris l'énergie, le potentiel ou la conséquence de cette voie en une ou deux phrases.
-
-Réponds en français. Texte libre uniquement, pas de JSON.`;
+  // Charger le prompt depuis la base
+  let prompt: string;
+  try {
+    prompt = await getPrompt('choix-short', {
+      optionLabel,
+      optionNum,
+      planet,
+      sign,
+      house,
+      question: question || 'Aucune question saisie',
+    });
+  } catch (err) {
+    console.error('[astro-interpretation-choix] Erreur chargement prompt:', err);
+    return NextResponse.json(
+      { interpretation: null, found: false },
+      { status: 200 },
+    );
+  }
 
   try {
     const response = await callOracle(prompt, { maxTokens: 500, temperature: 0.3 });
@@ -50,15 +55,23 @@ Réponds en français. Texte libre uniquement, pas de JSON.`;
     }
 
     let text = response.trim();
-    // Nettoyage minimal si le modèle renvoie du JSON
-    if (text.startsWith('"') && text.endsWith('"')) {
-      text = text.slice(1, -1);
+
+    // Nettoyer les backticks markdown AVANT le parse
+    text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
+
+    // Le modèle peut retourner du JSON — on tente d'extraire le champ texte
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object') {
+        // Accepter tous les champs possibles selon le format retourné par le LLM
+        text = parsed.interpretation || parsed.texte || parsed.analysis || text;
+      }
+    } catch {
+      // Pas du JSON valide — essayer la regex pour extraire les champs
+      const m = text.match(/"(?:interpretation|texte|analysis)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (m) text = m[1].replace(/\\n/g, '\n');
     }
-    // Si c'est du JSON { "interpretation": "..." }, extraire la valeur
-    const jsonMatch = text.match(/"interpretation"\s*:\s*"([^"]+)"/);
-    if (jsonMatch) {
-      text = jsonMatch[1];
-    }
+
     // Limiter à 2 phrases si jamais trop long
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
     if (sentences.length > 2) {
