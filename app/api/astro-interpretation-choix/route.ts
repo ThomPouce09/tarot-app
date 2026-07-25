@@ -69,7 +69,10 @@ export async function POST(request: NextRequest) {
     } catch {
       // Pas du JSON valide — essayer la regex pour extraire les champs
       const m = text.match(/"(?:interpretation|texte|analysis)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      if (m) text = m[1].replace(/\\n/g, '\n');
+      if (m) text = m[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\'/g, "'")
+        .replace(/\\"/g, '"');
     }
 
     // Limiter à 2 phrases si jamais trop long

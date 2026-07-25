@@ -86,40 +86,10 @@ function DiceAnalysis({
   const t = useT();
   const lang = useLang();
 
-  const [analysis, setAnalysis] = useState<string | null>(null);       // texte libre (fallback)
-  const [sections, setSections] = useState<{ key: string; label: string; text: string }[] | null>(null);
-  const [synthese, setSynthese] = useState<string>('');
   const [dbInterpretation, setDbInterpretation] = useState<string | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
-  const [loading, setLoading] = useState(false);       // analyse structurée (bouton)
   const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
-
-  // ── Analyse structurée (bouton "Analyser en profondeur") ──
-  const run = useCallback(async () => {
-    setLoading(true);
-    setAnalysis(null);
-    setSections(null);
-    setSynthese('');
-    try {
-      const res = await fetch('/api/astro-dice-interpretation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode: 'global', question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
-      });
-      const data = await res.json();
-      if (data.sections && Array.isArray(data.sections)) {
-        setSections(data.sections);
-        setSynthese(data.synthese || '');
-      } else {
-        setAnalysis(data.texte || 'Analyse indisponible.');
-      }
-    } catch {
-      setAnalysis('Les étoiles se sont voilées… Réessaie l\'analyse.');
-    } finally {
-      setLoading(false);
-    }
-  }, [faces, activeKinds, question, dbInterpretation]);
 
   // ── Analyse approfondie LLM (prompt long) ──
   const runDeep = useCallback(async () => {
@@ -242,12 +212,74 @@ function DiceAnalysis({
 
       {/* ── Interprétation courte (DB ou LLM 1-2 phrases) ── */}
       {dbLoading && (
-        <div
-          className="mt-4 text-center text-xs italic"
-          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mt-5 rounded-2xl p-5 text-center"
+          style={{
+            background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brick} 100%)`,
+            border: `1.5px solid ${DICE_THEME.gold}44`,
+            boxShadow: `inset 0 0 30px ${DICE_THEME.gold}10, 0 0 30px ${DICE_THEME.gold}0c`,
+          }}
         >
-          {t('des.choix.searching')}
-        </div>
+          <style>{`
+            @keyframes oracle-pulse {
+              0%, 100% { opacity: 0.5; transform: scale(0.96); }
+              50% { opacity: 1; transform: scale(1); }
+            }
+            @keyframes oracle-spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes oracle-dot {
+              0%, 20% { opacity: 0; }
+              40% { opacity: 1; }
+              100% { opacity: 1; }
+            }
+            .oracle-loader-dot { display: inline-block; animation: oracle-dot 1.4s infinite; }
+            .oracle-loader-dot:nth-child(2) { animation-delay: 0.2s; }
+            .oracle-loader-dot:nth-child(3) { animation-delay: 0.4s; }
+          `}</style>
+
+          <div
+            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+            style={{
+              background: `radial-gradient(circle, ${DICE_THEME.gold}44 0%, transparent 70%)`,
+              animation: 'oracle-pulse 2s ease-in-out infinite',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 22,
+                animation: 'oracle-spin 3s linear infinite',
+                filter: `drop-shadow(0 0 6px ${DICE_THEME.gold})`,
+                display: 'inline-block',
+              }}
+            >
+              ☉
+            </span>
+          </div>
+
+          <p
+            className="text-sm font-bold uppercase tracking-widest"
+            style={{
+              fontFamily: 'var(--font-cinzel-deco), serif',
+              color: DICE_THEME.gold,
+              textShadow: `0 0 12px ${DICE_THEME.gold}44`,
+            }}
+          >
+            Les astres consultent
+            <span className="oracle-loader-dot">.</span>
+            <span className="oracle-loader-dot">.</span>
+            <span className="oracle-loader-dot">.</span>
+          </p>
+          <p
+            className="mt-2 text-[10px] uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.5 }}
+          >
+            {t('des.choix.searching')}
+          </p>
+        </motion.div>
       )}
       {shortReady && (
         <div
@@ -283,93 +315,7 @@ function DiceAnalysis({
         </div>
       )}
 
-      {/* ── Analyse structurée (bouton anal. en profondeur) ── */}
-      <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
-        {loading && (
-          <div
-            className="text-center text-sm italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
-          >
-            {t('des.choix.thinkingStars')}
-          </div>
-        )}
-        {sections && !loading && (
-          <div className="space-y-3">
-            {sections.map((s) => (
-              <div
-                key={s.key}
-                className="rounded-2xl p-4"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.ocre}1f 0%, ${DICE_THEME.ocre}0a 100%)`,
-                  border: `1px solid ${DICE_THEME.ocre}44`,
-                }}
-              >
-                <p
-                  className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                >
-                  {s.label}
-                </p>
-                <p
-                  className="text-center text-base leading-relaxed italic"
-                  style={{
-                    fontFamily: 'var(--font-cormorant), serif',
-                    color: '#F0E6D3',
-                    lineHeight: 1.75,
-                  }}
-                >
-                  {s.text}
-                </p>
-              </div>
-            ))}
-            {synthese && (
-              <div
-                className="mt-4 rounded-2xl p-4"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.ocre}14 100%)`,
-                  border: `1px solid ${DICE_THEME.gold}55`,
-                  boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                }}
-              >
-                <p
-                  className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                >
-                  {t('des.choix.synthesis')}
-                </p>
-                <p
-                  className="text-center text-base leading-relaxed italic"
-                  style={{
-                    fontFamily: 'var(--font-cormorant), serif',
-                    color: '#F0E6D3',
-                    lineHeight: 1.75,
-                  }}
-                >
-                  {synthese}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-        {analysis && !loading && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center text-sm leading-relaxed italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-          >
-            {analysis}
-          </motion.p>
-        )}
-        {!analysis && !sections && !loading && !shortReady && (
-          <div className="mt-2 text-center">
-            <DiceButton variant="blue" onClick={run}>
-              {t('des.choix.deepBtn')}
-            </DiceButton>
-          </div>
-        )}
-
-        {/* ── Analyse APPROFONDIE (prompt long) ── */}
+      {/* ── Analyse APPROFONDIE (prompt long) ── */}
         {/* Toujours visible (indépendant du mode structuré) dès que les dés sont posés */}
         {!deepAnalysis && !deepLoading && (
           <div className="mt-4 text-center">
@@ -379,13 +325,56 @@ function DiceAnalysis({
           </div>
         )}
         {deepLoading && (
-          <div
-            className="mt-4 text-center text-sm italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.gold, opacity: 0.8 }}
-          >
-            {t('des.choix.deepLoading')}
-          </div>
-        )}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-5 rounded-2xl p-5 text-center"
+              style={{
+                background: `linear-gradient(135deg, ${DICE_THEME.gold}1c 0%, ${DICE_THEME.brickDeep} 100%)`,
+                border: `1.5px solid ${DICE_THEME.gold}55`,
+                boxShadow: `inset 0 0 30px ${DICE_THEME.gold}14, 0 0 30px ${DICE_THEME.gold}0c`,
+              }}
+            >
+              <div
+                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
+                style={{
+                  background: `radial-gradient(circle, ${DICE_THEME.gold}33 0%, transparent 70%)`,
+                  animation: 'oracle-pulse 2s ease-in-out infinite',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 26,
+                    animation: 'oracle-spin 3s linear infinite',
+                    filter: `drop-shadow(0 0 8px ${DICE_THEME.gold})`,
+                    display: 'inline-block',
+                  }}
+                >
+                  ♄
+                </span>
+              </div>
+
+              <p
+                className="text-sm font-bold uppercase tracking-widest"
+                style={{
+                  fontFamily: 'var(--font-cinzel-deco), serif',
+                  color: DICE_THEME.gold,
+                  textShadow: `0 0 12px ${DICE_THEME.gold}44`,
+                }}
+              >
+                La sagesse se dévoile
+                <span className="oracle-loader-dot">.</span>
+                <span className="oracle-loader-dot">.</span>
+                <span className="oracle-loader-dot">.</span>
+              </p>
+              <p
+                className="mt-2 text-[10px] uppercase tracking-wider"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.5 }}
+              >
+                {t('des.choix.deepLoading')}
+              </p>
+            </motion.div>
+          )}
         {deepAnalysis && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -422,7 +411,6 @@ function DiceAnalysis({
             </div>
           </motion.div>
         )}
-      </div>
     </div>
   );
 }
@@ -515,6 +503,7 @@ export default function ChoixPage() {
   const resultRef = useRef<HTMLDivElement | null>(null);
   const cupRef = useRef<HTMLDivElement | null>(null);
   const tutorialRef = useRef<HTMLDivElement | null>(null);
+  const cupAreaRef = useRef<HTMLDivElement | null>(null);
 
   // Reading IDs pour update avec analyses
   const [readingAId, setReadingAId] = useState<string | null>(null);
@@ -532,19 +521,27 @@ export default function ChoixPage() {
   const [showDeepB, setShowDeepB] = useState(false);
 
   // Scroll vers le gobelet + tutoriel dès qu'il est monté (A_roll ou B_roll)
+  const scrollToCup = useCallback(() => {
+    // Scroll vers le marqueur invisible juste sous le tutoriel
+    // → garantit que le tutoriel est entièrement visible
+    const marker = document.getElementById('scroll-marker-tuto');
+    if (marker) {
+      marker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (cupAreaRef.current) {
+      cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (cupRef.current) {
+      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (tutorialRef.current) {
+      tutorialRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
   useEffect(() => {
     if (step === 'A_roll' || step === 'B_roll') {
-      const t = setTimeout(() => {
-        if (tutorialRef.current) {
-          tutorialRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (cupRef.current) {
-          const top = cupRef.current.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: Math.max(0, top - 220), behavior: 'smooth' });
-        }
-      }, 600); // attend le rendu du composant dynamique
+      const t = setTimeout(scrollToCup, 600);
       return () => clearTimeout(t);
     }
-  }, [step]);
+  }, [step, scrollToCup]);
 
   const chooseA = useCallback(() => {
     setFaces(randomTargetFaces());
@@ -613,6 +610,29 @@ export default function ChoixPage() {
     setShowDeepB(false);
   }, []);
 
+  // Scroll vers les résultats après chaque phase
+  useEffect(() => {
+    if (step === 'A_done' || step === 'B_done') {
+      const t = setTimeout(() => {
+        if (resultRef.current) {
+          resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500); // attend le rendu du contenu
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  // Scroll vers le récapitulatif final quand les deux options sont analysées
+  const recapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (step === 'B_done' && shortInterpA && shortInterpB) {
+      const t = setTimeout(() => {
+        recapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [step, shortInterpA, shortInterpB]);
+
   const cupVisible = step !== 'A_intro' && step !== 'B_intro';
 
   return (
@@ -647,9 +667,8 @@ export default function ChoixPage() {
               }}
               onLaunch={() => {
                 chooseA();
-                setTimeout(() => {
-                  tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 600);
+                setShowTutorial(true);
+                setTimeout(scrollToCup, 700);
               }}
               label={t('des.choix.askLabel')}
               placeholder={t('des.choix.askPlaceholder')}
@@ -696,7 +715,7 @@ export default function ChoixPage() {
 
         {/* ════════════ GOBELET + TUTORIEL ════════════ */}
         {(step === 'A_roll' || step === 'B_roll') && (
-          <>
+          <div ref={cupAreaRef}>
             <div
               ref={cupRef}
               style={{
@@ -738,8 +757,8 @@ export default function ChoixPage() {
                   animation: swipe-shake-choix 0.6s ease-in-out infinite;
                   font-size: 28px;
                   line-height: 1;
-                  color: #87CEEB;
-                  opacity: 0.85;
+                  color: #B0E0FF;
+                  opacity: 0.95;
                   user-select: none;
                   -webkit-user-select: none;
                 }
@@ -749,19 +768,15 @@ export default function ChoixPage() {
                 <path fill="#87CEEB" d="m17.5 14.5-2.12-1.06c-.2-.1-.44-.14-.67-.11l-1.83.35.88-3.53a1.25 1.25 0 0 0-.88-1.5c-.65-.18-1.3.2-1.48.85l-1.4 5.6-2.1-1.05.3 1.5 3.5 1.75c.3.15.65.2 1 .15H16c.65 0 1.2-.45 1.4-1.05l.35-1.05c.08-.25.05-.52-.08-.75l-.17-.15Z" opacity="0.4"/>
               </svg>
               <p
-                className="text-center leading-tight"
-                style={{
-                  fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontSize: '0.5rem',
-                  maxWidth: 120,
-                  lineHeight: 1.2,
-                }}
+                className="text-xs text-center mt-1"
+                style={{ color: '#B0E0FF', opacity: 0.95, fontFamily: 'var(--font-cinzel), serif', maxWidth: 160, lineHeight: 1.3, fontSize: '0.65rem' }}
               >
                 {t('des.choix.tutorial')}
-              </p>
-            </div>
-          </>
+                </p>
+                {/* Marqueur invisible — le scroll cible ce point */}
+                <span id="scroll-marker-tuto" style={{ display: 'block', height: 1, width: 1 }} />
+                </div>
+          </div>
         )}
 
         {/* ════════════ RÉSULTAT A ════════════ */}
@@ -810,9 +825,8 @@ export default function ChoixPage() {
                 }}
                 onLaunch={() => {
                   chooseB();
-                  setTimeout(() => {
-                    tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 600);
+                  setShowTutorial(true);
+                  setTimeout(scrollToCup, 700);
                 }}
                 label={t('des.choix.askLabel')}
                 placeholder={t('des.choix.secondPlaceholder')}
@@ -883,7 +897,9 @@ export default function ChoixPage() {
         <AnimatePresence>
           {step === 'B_done' && (
             <motion.div
+              ref={recapRef}
               initial={{ opacity: 0, y: 14 }}
+
               animate={{ opacity: 1, y: 0 }}
               className="mt-8 mb-10"
             >

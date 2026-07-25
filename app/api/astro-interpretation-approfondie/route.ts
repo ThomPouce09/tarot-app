@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
     } catch {
       // Pas du JSON valide — extraire tous les champs possibles
       const m = text.match(/"(?:texte|analysis|interpretation)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      if (m) text = m[1].replace(/\\n/g, '\n');
+      if (m) text = m[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\'/g, "'")
+        .replace(/\\"/g, '"');
     }
 
     return NextResponse.json({ analysis: text });
