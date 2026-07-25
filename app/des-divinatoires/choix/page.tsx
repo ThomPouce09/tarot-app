@@ -72,12 +72,16 @@ function DiceAnalysis({
   question,
   spread,
   readingId,         // lectureId pour update si analyse profonde générée
+  onInterpretationReady,
+  onDeepAnalysisReady,
 }: {
   faces: TargetFaces;
   activeKinds: DieKind[];
   question?: string | null;
   spread?: string;
   readingId?: string | null;
+  onInterpretationReady?: (interp: string | null) => void;
+  onDeepAnalysisReady?: (analysis: string | null) => void;
 }) {
   const t = useT();
   const lang = useLang();
@@ -137,6 +141,7 @@ function DiceAnalysis({
       const data = await res.json();
       if (data.analysis) {
         setDeepAnalysis(data.analysis);
+        onDeepAnalysisReady?.(data.analysis);
         // Mettre à jour la lecture dans l'historique avec l'analyse longue
         if (readingId) {
           updateReading(readingId, { interpretation: data.analysis });
@@ -180,6 +185,7 @@ function DiceAnalysis({
         const data = await res.json();
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
+          onInterpretationReady?.(data.interpretation);
         }
       } catch {
         // silencieux
@@ -483,6 +489,8 @@ export default function ChoixPage() {
   // Analyses approfondies stockées pour le récapitulatif
   const [deepAnalysisA, setDeepAnalysisA] = useState<string | null>(null);
   const [deepAnalysisB, setDeepAnalysisB] = useState<string | null>(null);
+  const [shortInterpA, setShortInterpA] = useState<string | null>(null);
+  const [shortInterpB, setShortInterpB] = useState<string | null>(null);
   const [showDeepA, setShowDeepA] = useState(false);
   const [showDeepB, setShowDeepB] = useState(false);
 
@@ -500,11 +508,10 @@ export default function ChoixPage() {
   }, [step]);
 
   const chooseA = useCallback(() => {
-    questionRef.current = question;
     setFaces(randomTargetFaces());
     setStep('A_roll');
     setShowTutorial(true);
-  }, [question]);
+  }, []);
 
   const chooseB = useCallback(() => {
     questionBRef.current = questionB;
@@ -554,6 +561,8 @@ export default function ChoixPage() {
     setReadingBId(null);
     setDeepAnalysisA(null);
     setDeepAnalysisB(null);
+    setShortInterpA(null);
+    setShortInterpB(null);
     setShowDeepA(false);
     setShowDeepB(false);
   }, []);
@@ -739,6 +748,8 @@ export default function ChoixPage() {
                 question={questionRef.current}
                 spread="Premier Choix"
                 readingId={readingAId}
+                onInterpretationReady={setShortInterpA}
+                onDeepAnalysisReady={setDeepAnalysisA}
               />
             </motion.div>
           )}
@@ -752,6 +763,19 @@ export default function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
+              {/* AskQuestion pour le second choix */}
+              <AskQuestion
+                key="qB"
+                onConfirm={(q) => {
+                  setQuestionB(q);
+                  questionBRef.current = q;
+                }}
+                label={t('des.choix.askLabel')}
+                placeholder={t('des.choix.secondPlaceholder')}
+                confirmLabel={t('des.choix.save')}
+              />
+
+              {/* Carte Second Choix + bouton lancer */}
               <div
                 className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
                 style={{
@@ -776,25 +800,6 @@ export default function ChoixPage() {
                 >
                   {t('des.choix.introSecond')}
                 </p>
-
-                {/* Question optionnelle pour le 2e choix */}
-                <div className="mb-5">
-                  <textarea
-                    value={questionB || ''}
-                    onChange={(e) => setQuestionB(e.target.value || null)}
-                    placeholder={t('des.choix.secondPlaceholder')}
-                    className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
-                    style={{
-                      background: 'rgba(10,20,48,0.6)',
-                      borderColor: 'rgba(135,206,235,0.3)',
-                      color: '#DCE6F5',
-                      fontFamily: 'var(--font-cinzel), serif',
-                      minHeight: 64,
-                      resize: 'vertical',
-                    }}
-                    rows={2}
-                  />
-                </div>
 
                 <div className="text-center">
                   <button
@@ -838,6 +843,8 @@ export default function ChoixPage() {
                 question={questionBRef.current}
                 spread="Second Choix"
                 readingId={readingBId}
+                onInterpretationReady={setShortInterpB}
+                onDeepAnalysisReady={setDeepAnalysisB}
               />
             </motion.div>
           )}
@@ -880,7 +887,7 @@ export default function ChoixPage() {
                       label={t('des.choix.first')}
                       faces={resultA!}
                       question={questionRef.current}
-                      shortInterpretation={'' /* will be filled by children */}
+                      shortInterpretation={shortInterpA}
                       deepAvailable={!!deepAnalysisA}
                       onToggleDeep={() => setShowDeepA(!showDeepA)}
                     />
@@ -907,7 +914,7 @@ export default function ChoixPage() {
                       label={t('des.choix.second')}
                       faces={resultB!}
                       question={questionBRef.current}
-                      shortInterpretation={''}
+                      shortInterpretation={shortInterpB}
                       deepAvailable={!!deepAnalysisB}
                       onToggleDeep={() => setShowDeepB(!showDeepB)}
                     />
