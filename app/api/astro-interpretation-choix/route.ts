@@ -59,21 +59,34 @@ export async function POST(request: NextRequest) {
     // Nettoyer les backticks markdown AVANT le parse
     text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
 
-    // Le modèle peut retourner du JSON — on tente d'extraire le champ texte
+    // Essayer JSON.parse, puis concaténer les champs
     try {
       const parsed = JSON.parse(text);
-      if (typeof parsed === 'object') {
-        // Accepter tous les champs possibles selon le format retourné par le LLM
-        text = parsed.interpretation || parsed.texte || parsed.analysis || text;
+      if (typeof parsed === 'object' && parsed !== null) {
+        const parts: string[] = [];
+        const fields = ['interpretation', 'texte', 'analysis', 'avis', 'message'];
+        for (const f of fields) {
+          if (typeof parsed[f] === 'string' && parsed[f].trim()) parts.push(parsed[f].trim());
+        }
+        if (parts.length > 0) text = parts.join('\n\n');
       }
     } catch {
-      // Pas du JSON valide — essayer la regex pour extraire les champs
-      const m = text.match(/"(?:interpretation|texte|analysis)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      if (m) text = m[1]
-        .replace(/\\n/g, '\n')
-        .replace(/\\'/g, "'")
-        .replace(/\\"/g, '"');
+      // Pas du JSON valide — extraire tous les champs textuels
+      const allMatches: string[] = [];
+      const fieldPattern = /"(?:interpretation|texte|analysis|avis|message)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+      let m;
+      while ((m = fieldPattern.exec(text)) !== null) {
+        const cleaned = m[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\'/g, "'")
+          .replace(/\\"/g, '"');
+        allMatches.push(cleaned);
+      }
+      if (allMatches.length > 0) text = allMatches.join('\n\n');
     }
+
+    // Nettoyer guillemets résiduels
+    text = text.replace(/^["'\s]+|["'\s]+$/g, '').trim();
 
     // Limiter à 2 phrases si jamais trop long
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);

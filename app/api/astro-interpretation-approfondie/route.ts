@@ -53,23 +53,55 @@ export async function POST(request: NextRequest) {
 
     let text = response.trim();
 
-    // Nettoyer les éventuels backticks markdown AVANT le parse JSON
+    // Nettoyer les backticks markdown
     text = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
 
-    // Le modèle retourne du JSON — on parse ou on extrait
+    // Essayer JSON.parse, puis concaténer tous les champs textuels
     try {
       const parsed = JSON.parse(text);
-      if (typeof parsed === 'object') {
-        text = parsed.texte || parsed.analysis || parsed.interpretation || text;
+      if (typeof parsed === 'object' && parsed !== null) {
+        // Concaténer tous les champs de texte dans l'ordre préféré
+        const parts: string[] = [];
+        const fields = ['texte', 'analysis', 'interpretation', 'conclusion', 'resume', 'detail', 'avis', 'message'];
+        for (const f of fields) {
+          if (typeof parsed[f] === 'string' && parsed[f].trim()) parts.push(parsed[f].trim());
+        }
+        if (parts.length > 0) {
+          text = parts.join('\n\n');
+        }
+        // Si aucun champ textuel trouvé, garder le JSON original
       }
     } catch {
-      // Pas du JSON valide — extraire tous les champs possibles
-      const m = text.match(/"(?:texte|analysis|interpretation)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      if (m) text = m[1]
-        .replace(/\\n/g, '\n')
-        .replace(/\\'/g, "'")
-        .replace(/\\"/g, '"');
+      // Pas du JSON valide → extraire la première valeur textuelle via regex robuste
+      // On cherche tous les champs possibles
+      const allMatches: string[] = [];
+      const fieldPattern = /"(?:texte|analysis|interpretation|conclusion|resume|detail|avis|message)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+      let m;
+      while ((m = fieldPattern.exec(text)) !== null) {
+        // Nettoyer les échappements
+        const cleaned = m[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\'/g, "'")
+          .replace(/\\"/g, '"')
+          .replace(/\\t/g, '\t');
+        allMatches.push(cleaned);
+      }
+      if (allMatches.length > 0) {
+        text = allMatches.join('\n\n');
+      } else {
+        // Dernier recours : garder le texte brut mais enlever les artefacts JSON
+        text = text
+          .replace(/^\{/, '')
+          .replace(/\}$/, '')
+          .replace(/"[^"]+":\s*"/g, '')   // enlever les clés JSON
+          .replace(/"\s*,?\s*$/gm, '')     // enlever les guillemets fermants
+          .replace(/",/g, '')
+          .trim();
+      }
     }
+
+    // Post-nettoyage : enlever les guillemets résiduels aux extrémités
+    text = text.replace(/^["'\s]+|["'\s]+$/g, '').trim();
 
     return NextResponse.json({ analysis: text });
   } catch (err) {

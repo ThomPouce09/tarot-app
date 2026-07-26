@@ -26,6 +26,10 @@ interface AskQuestionProps {
   onLaunch?: () => void;
   /** Texte à afficher en glow au-dessus du champ (B) */
   glowLabel?: string;
+  /** Ref synchronisée avec la valeur courante du champ (pour accès externe) */
+  questionValueRef?: React.MutableRefObject<string | null>;
+  /** Désactiver l'auto-focus (ex: quand le résultat du tirage est affiché avant) */
+  autoFocus?: boolean;
 }
 
 export function AskQuestion({
@@ -37,6 +41,8 @@ export function AskQuestion({
   launchLabel,
   onLaunch,
   glowLabel,
+  questionValueRef,
+  autoFocus = true,
 }: AskQuestionProps) {
   const t = useT();
   const [question, setQuestion] = useState('');
@@ -44,9 +50,17 @@ export function AskQuestion({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 300);
-    return () => clearTimeout(timer);
-  }, []);
+    if (autoFocus) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [autoFocus]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuestion(val);
+    if (questionValueRef) questionValueRef.current = val;
+  };
 
   const handleConfirm = () => {
     const q = question.trim();
@@ -82,7 +96,7 @@ export function AskQuestion({
               ref={inputRef}
               type="text"
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={handleInputChange}
               placeholder={placeholder || t('askQuestion.placeholder')}
               className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
               style={{

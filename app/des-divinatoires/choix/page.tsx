@@ -31,6 +31,34 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { useT, useLang } from '@/lib/i18n';
 
+/** Mini-renderer markdown → React nodes */
+function md(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('## ')) {
+      elements.push(<h3 key={key++} className="text-sm font-bold uppercase tracking-wider mt-4 mb-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: `0 0 8px ${DICE_THEME.gold}33`, letterSpacing: '0.08em' }}>{inlineMd(trimmed.slice(3))}</h3>);
+    } else if (trimmed.startsWith('# ')) {
+      elements.push(<h4 key={key++} className="text-sm font-bold mt-3 mb-1" style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}>{inlineMd(trimmed.slice(2))}</h4>);
+    } else {
+      elements.push(<p key={key++} className="mb-1 leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.7 }}>{inlineMd(trimmed || '\u00A0')}</p>);
+    }
+  }
+  return elements;
+}
+function inlineMd(s: string): React.ReactNode {
+  // **bold**
+  const parts = s.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: '#87CEEB' }}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
   {
@@ -90,6 +118,14 @@ function DiceAnalysis({
   const [dbLoading, setDbLoading] = useState(false);
   const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
+  const deepRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll vers l'analyse approfondie dès qu'elle est prête
+  useEffect(() => {
+    if (deepAnalysis && deepRef.current) {
+      setTimeout(() => deepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [deepAnalysis]);
 
   // ── Analyse approfondie LLM (prompt long) ──
   const runDeep = useCallback(async () => {
@@ -126,7 +162,7 @@ function DiceAnalysis({
     }
   }, [faces, question, spread, readingId, t, lang]);
 
-  // ── Interprétation courte automatique (LLM si question → DB sinon) ──
+  // ── Interprétation courte automatique (LLM d'abord, DB en fallback) ──
   useEffect(() => {
     if (!faces.planet || !faces.sign || !faces.house) return;
     const planet = PLANET_NAMES[faces.planet as string];
@@ -137,25 +173,36 @@ function DiceAnalysis({
     setDbLoading(true);
     setDbInterpretation(null);
 
-    const endpoint = question
-      ? '/api/astro-interpretation-choix'
-      : '/api/astro-interpretation-db';
-
-    const body = question
-      ? { planet, sign, house, question, spread }
-      : { planet, sign, house };
-
     (async () => {
+      // 1) Toujours tenter le LLM en premier (gère question=null)
       try {
-        const res = await fetch(endpoint, {
+        const llmRes = await fetch('/api/astro-interpretation-choix', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ planet, sign, house, question: question || undefined, spread }),
         });
-        const data = await res.json();
-        if (data.found && data.interpretation) {
-          setDbInterpretation(data.interpretation);
-          onInterpretationReady?.(data.interpretation);
+        const llmData = await llmRes.json();
+        if (llmData.interpretation) {
+          setDbInterpretation(llmData.interpretation);
+          onInterpretationReady?.(llmData.interpretation);
+          setDbLoading(false);
+          return;
+        }
+      } catch {
+        // fallback silencieux → DB
+      }
+
+      // 2) Fallback DB seulement si le LLM n'a rien donné
+      try {
+        const dbRes = await fetch('/api/astro-interpretation-db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planet, sign, house }),
+        });
+        const dbData = await dbRes.json();
+        if (dbData.found && dbData.interpretation) {
+          setDbInterpretation(dbData.interpretation);
+          onInterpretationReady?.(dbData.interpretation);
         }
       } catch {
         // silencieux
@@ -185,7 +232,7 @@ function DiceAnalysis({
           textShadow: `0 0 12px ${DICE_THEME.gold}44`,
         }}
       >
-        {t('des.choix.analysis')}
+        {t(spread === 'Premier Choix' ? 'des.choix.analysisFirst' : 'des.choix.analysisSecond')}
       </h3>
 
       {/* Partie statique — les 3 dés */}
@@ -301,17 +348,16 @@ function DiceAnalysis({
           >
             ✦ {t('des.choix.shortTitle')} ✦
           </p>
-          <p
+          <div
             className="text-center text-base leading-relaxed"
             style={{
               fontFamily: 'var(--font-cormorant), serif',
               color: '#F0E6D3',
-              whiteSpace: 'pre-wrap',
               lineHeight: 1.75,
             }}
           >
-            {dbInterpretation}
-          </p>
+            {md(dbInterpretation)}
+          </div>
         </div>
       )}
 
@@ -377,6 +423,7 @@ function DiceAnalysis({
           )}
         {deepAnalysis && (
           <motion.div
+            ref={deepRef}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-5 rounded-2xl p-6"
@@ -407,8 +454,8 @@ function DiceAnalysis({
                 fontSize: '1.05rem',
               }}
             >
-              {deepAnalysis}
-            </div>
+              {md(deepAnalysis)}
+              </div>
           </motion.div>
         )}
     </div>
@@ -458,16 +505,16 @@ function RecapCard({
       )}
       <ResultLine faces={faces} />
       {shortInterpretation && (
-        <p
-          className="mt-3 text-center text-sm leading-relaxed"
+        <div
+          className="mt-3 text-sm leading-relaxed"
           style={{
             fontFamily: 'var(--font-cormorant), serif',
             color: '#F0E6D3',
             lineHeight: 1.7,
           }}
         >
-          {shortInterpretation}
-        </p>
+          {md(shortInterpretation)}
+        </div>
       )}
       {deepAvailable && (
         <div className="mt-3 text-center">
@@ -496,11 +543,14 @@ export default function ChoixPage() {
   const [resultB, setResultB] = useState<TargetFaces | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
   const [questionB, setQuestionB] = useState<string | null>(null); // 2e choix (optionnel)
+  const [questionBDraft, setQuestionBDraft] = useState('');        // valeur live du champ Second Choix
   const questionRef = useRef<string | null>(null);                 // snapshot pour le lancer A
   const questionBRef = useRef<string | null>(null);                 // snapshot pour le lancer B
+  const [questionDraft, setQuestionDraft] = useState('');          // valeur live du champ Premier Choix
 
   const [showTutorial, setShowTutorial] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
+  const resultAnalysisRef = useRef<HTMLDivElement | null>(null);
   const cupRef = useRef<HTMLDivElement | null>(null);
   const tutorialRef = useRef<HTMLDivElement | null>(null);
   const cupAreaRef = useRef<HTMLDivElement | null>(null);
@@ -522,17 +572,11 @@ export default function ChoixPage() {
 
   // Scroll vers le gobelet + tutoriel dès qu'il est monté (A_roll ou B_roll)
   const scrollToCup = useCallback(() => {
-    // Scroll vers le marqueur invisible juste sous le tutoriel
-    // → garantit que le tutoriel est entièrement visible
-    const marker = document.getElementById('scroll-marker-tuto');
-    if (marker) {
-      marker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Le gobelet en haut de l'écran → le tutoriel apparaît en dessous
+    if (cupRef.current) {
+      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (cupAreaRef.current) {
       cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (cupRef.current) {
-      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (tutorialRef.current) {
-      tutorialRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
 
@@ -614,7 +658,10 @@ export default function ChoixPage() {
   useEffect(() => {
     if (step === 'A_done' || step === 'B_done') {
       const t = setTimeout(() => {
-        if (resultRef.current) {
+        // Scroll au marqueur placé juste avant DiceAnalysis
+        if (resultAnalysisRef.current) {
+          resultAnalysisRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (resultRef.current) {
           resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 500); // attend le rendu du contenu
@@ -622,16 +669,7 @@ export default function ChoixPage() {
     }
   }, [step]);
 
-  // Scroll vers le récapitulatif final quand les deux options sont analysées
   const recapRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (step === 'B_done' && shortInterpA && shortInterpB) {
-      const t = setTimeout(() => {
-        recapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 800);
-      return () => clearTimeout(t);
-    }
-  }, [step, shortInterpA, shortInterpB]);
 
   const cupVisible = step !== 'A_intro' && step !== 'B_intro';
 
@@ -655,62 +693,119 @@ export default function ChoixPage() {
           </p>
         )}
 
-        {/* ════════════ ÉTAPE INTRO A ════════════ */}
+        {/* ════════════ ÉTAPE INTRO A — Premier Choix (fusionné) ════════════ */}
         {step === 'A_intro' && (
-          <>
-            {/* AskQuestion avec bouton de lancement intégré */}
-            <AskQuestion
-              key="qA"
-              onConfirm={(q) => {
-                setQuestion(q);
-                questionRef.current = q;
+          <div className="mt-6">
+            <div
+              className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+              style={{
+                background: 'linear-gradient(135deg, rgba(135,206,235,0.12) 0%, rgba(60,140,220,0.08) 100%)',
+                border: '1.5px solid rgba(135,206,235,0.5)',
+                boxShadow: 'inset 0 0 30px rgba(135,206,235,0.12)',
               }}
-              onLaunch={() => {
-                chooseA();
-                setShowTutorial(true);
-                setTimeout(scrollToCup, 700);
-              }}
-              label={t('des.choix.askLabel')}
-              placeholder={t('des.choix.askPlaceholder')}
-              confirmLabel={t('des.choix.save')}
-              launchLabel={t('des.choix.castFirst')}
-            />
-
-            {/* Carte Premier Choix — explicative uniquement */}
-            <div className="mt-6">
-              <div
-                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+            >
+              {/* Titre */}
+              <h3
+                className="mb-4 text-center text-lg font-bold"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(135,206,235,0.12) 0%, rgba(60,140,220,0.08) 100%)',
-                  border: '1.5px solid rgba(135,206,235,0.5)',
-                  boxShadow: 'inset 0 0 30px rgba(135,206,235,0.12)',
+                  fontFamily: 'var(--font-cinzel-deco), serif',
+                  color: '#87CEEB',
+                  textShadow: '0 0 12px rgba(135,206,235,0.4)',
                 }}
               >
-                <h3
-                  className="mb-3 text-center text-lg font-bold"
+                {t('des.choix.first')}
+              </h3>
+
+              {/* Champ texte */}
+              <div className="mb-4 flex items-center gap-2 justify-center flex-wrap">
+                <input
+                  type="text"
+                  value={questionDraft}
+                  onChange={(e) => setQuestionDraft(e.target.value)}
+                  placeholder={t('des.choix.askPlaceholder')}
+                  className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
                   style={{
+                    background: 'rgba(0,0,0,0.35)',
+                    border: '1px solid rgba(135,206,235,0.4)',
+                    color: '#f0e6d3',
+                    fontFamily: 'var(--font-cormorant), serif',
+                  }}
+                />
+              </div>
+
+              {/* Bouton Enregistrer et lancer les dés */}
+              <div className="text-center mb-5">
+                <button
+                  onClick={() => {
+                    const q = questionDraft.trim() || null;
+                    setQuestion(q);
+                    questionRef.current = q;
+                    chooseA();
+                    setShowTutorial(true);
+                    setTimeout(scrollToCup, 700);
+                  }}
+                  className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+                  style={{
+                    background: '#005f6a',
+                    color: '#fff',
                     fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: '#87CEEB',
-                    textShadow: '0 0 12px rgba(135,206,235,0.4)',
+                    boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                    border: '1px solid rgba(0,95,106,0.6)',
                   }}
                 >
-                  {t('des.choix.first')}
-                </h3>
-                <p
-                  className="text-center text-xs italic"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)', marginBottom: 14 }}
+                  Enregistrer et lancer les dés
+                </button>
+              </div>
+
+              {/* Séparateur OU */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
+                <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}>
+                  OU
+                </span>
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
+              </div>
+
+              {/* Sous-titre et description */}
+              <p
+                className="text-center text-xs italic mb-2"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}
+              >
+                {t('des.choix.introFirst')}
+              </p>
+              <div
+                className="text-sm sm:text-base leading-relaxed text-center"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
+              >
+                <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructFirst') }} />
+              </div>
+
+              {/* Bouton Lancer sans question */}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => {
+                    // Sauvegarder le champ au cas où l'utilisateur aurait tapé qch
+                    const q = questionDraft.trim() || null;
+                    setQuestion(q);
+                    questionRef.current = q;
+                    chooseA();
+                    setShowTutorial(true);
+                    setTimeout(scrollToCup, 700);
+                  }}
+                  className="rounded-full px-8 py-3 text-base font-bold transition-all hover:opacity-80"
+                  style={{
+                    background: 'transparent',
+                    color: '#87CEEB',
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    border: '1.5px solid rgba(135,206,235,0.5)',
+                    boxShadow: '0 0 16px rgba(135,206,235,0.2)',
+                  }}
                 >
-                  {t('des.choix.introFirst')}
-                </p>
-                <div
-                  className="text-sm sm:text-base leading-relaxed text-center"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
-                >
-                  <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructFirst') }} />
-                </div>
+                  Lancer les dés zodiacaux
+                </button>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* ════════════ GOBELET + TUTORIEL ════════════ */}
@@ -795,6 +890,7 @@ export default function ChoixPage() {
                 {t('des.choix.first')}
               </p>
               <ResultLine faces={resultA} />
+              <div ref={resultAnalysisRef} />
               <DiceAnalysis
                 faces={resultA}
                 activeKinds={ACTIVE_DICE}
@@ -808,7 +904,7 @@ export default function ChoixPage() {
           )}
         </AnimatePresence>
 
-        {/* ════════════ TRANSITION A → B (saisie 2e choix) ════════════ */}
+        {/* ════════════ TRANSITION A → B — Second Choix (fusionné) ════════════ */}
         <AnimatePresence>
           {step === 'A_done' && (
             <motion.div
@@ -816,35 +912,17 @@ export default function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              {/* AskQuestion pour le second choix — avec lancement intégré */}
-              <AskQuestion
-                key="qB"
-                onConfirm={(q) => {
-                  setQuestionB(q);
-                  questionBRef.current = q;
-                }}
-                onLaunch={() => {
-                  chooseB();
-                  setShowTutorial(true);
-                  setTimeout(scrollToCup, 700);
-                }}
-                label={t('des.choix.askLabel')}
-                placeholder={t('des.choix.secondPlaceholder')}
-                confirmLabel={t('des.choix.save')}
-                launchLabel={t('des.choix.castSecond')}
-              />
-
-              {/* Carte Second Choix — explicative uniquement */}
               <div
-                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6 mt-5"
+                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
                 style={{
                   background: 'linear-gradient(135deg, rgba(135,206,235,0.1) 0%, rgba(60,140,220,0.06) 100%)',
                   border: '1.5px solid rgba(135,206,235,0.4)',
                   boxShadow: 'inset 0 0 24px rgba(135,206,235,0.1)',
                 }}
               >
+                {/* Titre */}
                 <h3
-                  className="mb-3 text-center text-lg font-bold"
+                  className="mb-4 text-center text-lg font-bold"
                   style={{
                     fontFamily: 'var(--font-cinzel-deco), serif',
                     color: '#87CEEB',
@@ -853,12 +931,94 @@ export default function ChoixPage() {
                 >
                   {t('des.choix.second')}
                 </h3>
+
+                {/* Champ texte */}
+                <div className="mb-4 flex items-center gap-2 justify-center flex-wrap">
+                  <input
+                    type="text"
+                    value={questionBDraft}
+                    onChange={(e) => setQuestionBDraft(e.target.value)}
+                    placeholder={t('des.choix.secondPlaceholder')}
+                    className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
+                    style={{
+                      background: 'rgba(0,0,0,0.35)',
+                      border: '1px solid rgba(135,206,235,0.4)',
+                      color: '#f0e6d3',
+                      fontFamily: 'var(--font-cormorant), serif',
+                    }}
+                  />
+                </div>
+
+                {/* Bouton Enregistrer et lancer les dés */}
+                <div className="text-center mb-5">
+                  <button
+                    onClick={() => {
+                      const q = questionBDraft.trim() || null;
+                      setQuestionB(q);
+                      questionBRef.current = q;
+                      chooseB();
+                      setShowTutorial(true);
+                      setTimeout(scrollToCup, 700);
+                    }}
+                    className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+                    style={{
+                      background: '#005f6a',
+                      color: '#fff',
+                      fontFamily: 'var(--font-cinzel-deco), serif',
+                      boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                      border: '1px solid rgba(0,95,106,0.6)',
+                    }}
+                  >
+                    Enregistrer et lancer les dés
+                  </button>
+                </div>
+
+                {/* Séparateur OU */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
+                  <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}>
+                    OU
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
+                </div>
+
+                {/* Sous-titre et description */}
                 <p
-                  className="text-center text-xs italic"
+                  className="text-center text-xs italic mb-2"
                   style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}
                 >
                   {t('des.choix.introSecond')}
                 </p>
+                <div
+                  className="text-sm sm:text-base leading-relaxed text-center"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
+                >
+                  <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructSecond') }} />
+                </div>
+
+                {/* Bouton Lancer sans question */}
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={() => {
+                      const q = questionBDraft.trim() || null;
+                      setQuestionB(q);
+                      questionBRef.current = q;
+                      chooseB();
+                      setShowTutorial(true);
+                      setTimeout(scrollToCup, 700);
+                    }}
+                    className="rounded-full px-8 py-3 text-base font-bold transition-all hover:opacity-80"
+                    style={{
+                      background: 'transparent',
+                      color: '#87CEEB',
+                      fontFamily: 'var(--font-cinzel-deco), serif',
+                      border: '1.5px solid rgba(135,206,235,0.5)',
+                      boxShadow: '0 0 16px rgba(135,206,235,0.2)',
+                    }}
+                  >
+                    Lancer les dés zodiacaux
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -880,6 +1040,7 @@ export default function ChoixPage() {
                 {t('des.choix.second')}
               </p>
               <ResultLine faces={resultB} />
+              <div ref={resultAnalysisRef} />
               <DiceAnalysis
                 faces={resultB}
                 activeKinds={ACTIVE_DICE}
@@ -945,11 +1106,10 @@ export default function ChoixPage() {
                           border: `1px solid ${DICE_THEME.gold}33`,
                           fontFamily: 'var(--font-cormorant), serif',
                           color: '#F0E6D3',
-                          whiteSpace: 'pre-wrap',
                           lineHeight: 1.7,
                         }}
                       >
-                        {deepAnalysisA}
+                        {md(deepAnalysisA)}
                       </div>
                     )}
                   </div>
@@ -972,22 +1132,15 @@ export default function ChoixPage() {
                           border: `1px solid ${DICE_THEME.gold}33`,
                           fontFamily: 'var(--font-cormorant), serif',
                           color: '#F0E6D3',
-                          whiteSpace: 'pre-wrap',
                           lineHeight: 1.7,
                         }}
                       >
-                        {deepAnalysisB}
+                        {md(deepAnalysisB)}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Bouton Recommencer */}
-                <div className="mt-8 text-center">
-                  <DiceButton onClick={restart}>
-                    {t('des.choix.restart')}
-                  </DiceButton>
-                </div>
               </div>
             </motion.div>
           )}
