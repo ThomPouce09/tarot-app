@@ -119,6 +119,7 @@ function DiceAnalysis({
   const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
   const deepRef = useRef<HTMLDivElement | null>(null);
+  const shortInterpRef = useRef<string | null>(null);
 
   // Scroll vers l'analyse approfondie dès qu'elle est prête
   useEffect(() => {
@@ -148,9 +149,8 @@ function DiceAnalysis({
       if (data.analysis) {
         setDeepAnalysis(data.analysis);
         onDeepAnalysisReady?.(data.analysis);
-        // Mettre à jour la lecture dans l'historique avec l'analyse longue
         if (readingId) {
-          updateReading(readingId, { interpretation: data.analysis });
+          // La sauvegarde centralisée est gérée dans la page parente
         }
       } else {
         setDeepAnalysis(t('des.choix.deepNotAvail'));
@@ -184,6 +184,7 @@ function DiceAnalysis({
         const llmData = await llmRes.json();
         if (llmData.interpretation) {
           setDbInterpretation(llmData.interpretation);
+          shortInterpRef.current = llmData.interpretation;
           onInterpretationReady?.(llmData.interpretation);
           setDbLoading(false);
           return;
@@ -202,6 +203,7 @@ function DiceAnalysis({
         const dbData = await dbRes.json();
         if (dbData.found && dbData.interpretation) {
           setDbInterpretation(dbData.interpretation);
+          shortInterpRef.current = dbData.interpretation;
           onInterpretationReady?.(dbData.interpretation);
         }
       } catch {
@@ -561,6 +563,8 @@ export default function ChoixPage() {
   // Guards anti-doublon (évite 2 saves si handleRest appelé plusieurs fois)
   const savedARef = useRef(false);
   const savedBRef = useRef(false);
+  const readingAIdRef = useRef<string | null>(null);
+  const resultARef = useRef<TargetFaces | null>(null);
 
   // Analyses approfondies stockées pour le récapitulatif
   const [deepAnalysisA, setDeepAnalysisA] = useState<string | null>(null);
@@ -604,6 +608,7 @@ export default function ChoixPage() {
     setStep((s) => {
       if (s === 'A_roll') {
         setResultA(f);
+        resultARef.current = f;
         if (!savedARef.current) {
           savedARef.current = true;
           saveReading({
@@ -612,7 +617,7 @@ export default function ChoixPage() {
             cards: diceCards(f),
             interpretation: diceStaticText(f),
             question: questionRef.current,
-          }).then((id) => { if (id) setReadingAId(id); });
+          }).then((id) => { if (id) { setReadingAId(id); readingAIdRef.current = id; } });
         }
         return 'A_done';
       }
@@ -620,13 +625,23 @@ export default function ChoixPage() {
         setResultB(f);
         if (!savedBRef.current) {
           savedBRef.current = true;
-          saveReading({
-            type: 'des-choix',
-            spread: 'Second Choix',
-            cards: diceCards(f),
-            interpretation: diceStaticText(f),
-            question: questionBRef.current,
-          }).then((id) => { if (id) setReadingBId(id); });
+          // Fusionner dans le même enregistrement que le Premier Choix
+          const targetId = readingAIdRef.current;
+          const prevResultA = resultARef.current;
+          setReadingBId(targetId);
+          if (targetId && prevResultA) {
+            // Stocker les 2 jeux de dés (6 cards) + faces structurées en JSON
+            const combinedCards = [
+              ...diceCards(prevResultA),
+              ...diceCards(f),
+            ];
+            const payload = {
+              version: 'des-choix',
+              facesA: prevResultA,
+              facesB: f,
+            };
+            updateReading(targetId, { cards: combinedCards, interpretation: JSON.stringify(payload) });
+          }
         }
         return 'B_done';
       }
@@ -646,6 +661,8 @@ export default function ChoixPage() {
     setReadingBId(null);
     savedARef.current = false;
     savedBRef.current = false;
+    readingAIdRef.current = null;
+    resultARef.current = null;
     setDeepAnalysisA(null);
     setDeepAnalysisB(null);
     setShortInterpA(null);
@@ -670,6 +687,38 @@ export default function ChoixPage() {
   }, [step]);
 
   const recapRef = useRef<HTMLDivElement | null>(null);
+
+  // ── Sauvegarde centralisée dans l'historique ──
+  // Interprétation combinée quand les 2 analyses courtes sont prêtes
+  useEffect(() => {
+    if (step === 'B_done' && shortInterpA && shortInterpB && readingAId) {
+      const payload = {
+        version: 'des-choix',
+        facesA: resultA,
+        facesB: resultB,
+        shortA: shortInterpA,
+        shortB: shortInterpB,
+      };
+      updateReading(readingAId, { interpretation: JSON.stringify(payload) });
+    }
+  }, [step, shortInterpA, shortInterpB, readingAId, resultA, resultB]);
+
+  // Analyse approfondie (sauve quand les deux analyses longues sont prêtes)
+  useEffect(() => {
+    if (!readingAId) return;
+    if (deepAnalysisA && deepAnalysisB) {
+      const payload = {
+        version: 'des-choix',
+        facesA: resultA,
+        facesB: resultB,
+        shortA: shortInterpA,
+        shortB: shortInterpB,
+        deepA: deepAnalysisA,
+        deepB: deepAnalysisB,
+      };
+      updateReading(readingAId, { interpretation: JSON.stringify(payload) });
+    }
+  }, [deepAnalysisA, deepAnalysisB, shortInterpA, shortInterpB, readingAId, resultA, resultB]);
 
   const cupVisible = step !== 'A_intro' && step !== 'B_intro';
 

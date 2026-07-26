@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
+import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
+
+const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 
 interface Reading {
   id: string;
@@ -22,7 +25,7 @@ const TYPE_META: Record<string, { key: string; label: string; icon: string; colo
   tarot:  { key: 'tarot',  label: 'Tarot',            icon: '/images/tarot-icon.png',   color: '#FFD700', bg: 'rgba(218,165,32,0.12)',  border: 'rgba(218,165,32,0.35)',  glow: 'rgba(255,215,0,0.45)' },
   yijing: { key: 'yijing', label: 'Yi Jing',          icon: '/images/yi-jing-icon.png', color: '#E0CFF0', bg: 'rgba(180,140,220,0.12)', border: 'rgba(180,140,220,0.35)', glow: 'rgba(180,140,220,0.5)' },
   rune:   { key: 'rune',   label: 'Runes Scandinaves', icon: '/images/runes-icon.png',   color: '#D4B483', bg: 'rgba(138,109,59,0.12)',  border: 'rgba(138,109,59,0.35)',  glow: 'rgba(138,109,59,0.45)' },
-  des:    { key: 'des',    label: 'Dés du Zodiaque',   icon: '🎲',                         color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
+  des:    { key: 'des',    label: 'Dés du Zodiaque',   icon: '/images/des-zodiaque.png', color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
 };
 
 function classifyType(t: string): keyof typeof TYPE_META {
@@ -93,7 +96,7 @@ const FILTERS = [
   { key: 'tarot', labelKey: 'history.filter.tarot',  icon: '/images/tarot-icon.png', color: '#FFD700' },
   { key: 'yijing', labelKey: 'history.filter.yijing', icon: '/images/yi-jing-icon.png', color: '#E0CFF0' },
   { key: 'rune',  labelKey: 'history.filter.rune',   icon: '/images/runes-icon.png', color: '#D4B483' },
-  { key: 'des',   labelKey: 'history.filter.des',    icon: '🎲',                        color: '#7FB3D5' },
+  { key: 'des',   labelKey: 'history.filter.des',    icon: '/images/des-zodiaque.png', color: '#7FB3D5' },
 ] as const;
 
 const tarot3Positions = [
@@ -373,11 +376,15 @@ export default function ReadingsPage() {
                               <button onClick={() => toggleReading(r.id)} className="w-full p-3 text-left hover:bg-gray-800/50 transition-colors">
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm font-medium flex items-center gap-2" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>
-                                    <img src={m.icon} alt="" className="w-7 h-7 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
+                                    {m.icon.startsWith('/') ? (
+                                      <img src={m.icon} alt="" className="w-7 h-7 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
+                                    ) : (
+                                      <span className="text-xl" style={{ filter: `drop-shadow(0 0 6px ${m.glow})` }}>{m.icon}</span>
+                                    )}
                                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: m.bg, border: `1px solid ${m.border}` }}>{m.label}</span>
                                     {r.spread && <span className="text-xs text-gray-400 italic ml-2">— {r.spread}</span>}
                                   </span>
-                                  <span className="text-gray-400 text-xs">🕐 {formatTime(r.createdAt)}</span>
+                                  <span className="text-gray-400 text-xs">{formatTime(r.createdAt)}</span>
                                 </div>
                               </button>
                               <button onClick={() => askDeleteOne(r)}
@@ -682,8 +689,11 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
     try {
       const parsed = JSON.parse(r.interpretation);
       if (parsed && typeof parsed === 'object') {
-        // Nouveau format accumulé (affinage) ?
-        if (parsed.static || parsed.dbInterpretation || parsed.oracleFlash || parsed.analysisGlobal || parsed.refine) {
+        // Format des-choix : version structurée avec 2 jeux de faces + analyses
+        if (parsed.version === 'des-choix' && parsed.facesA && parsed.facesB) {
+          // sera géré via cette variable en sortie
+          interpData = parsed;
+        } else if (parsed.static || parsed.dbInterpretation || parsed.oracleFlash || parsed.analysisGlobal || parsed.refine) {
           interpData = parsed;
           // structured = sections de l'analyse globale (compatibilité AstroView)
           if (parsed.analysisGlobal?.sections) {
@@ -744,8 +754,8 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
         </div>
       )}
 
-      {/* Cartes (dés) */}
-      {cards.length === 0 ? (
+      {/* Cartes (dés) — masquées pour des-choix (affichées inline ci-dessous) */}
+      {interpData?.version === 'des-choix' ? null : cards.length === 0 ? (
         <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, minmax(0, 1fr))` }}>
@@ -758,6 +768,68 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           ))}
         </div>
       )}
+
+      {/* ── Format des-choix : 2 sections avec tuiles inline ── */}
+      {interpData?.version === 'des-choix' && (() => {
+        const facesA = interpData.facesA as Record<string, any>;
+        const facesB = interpData.facesB as Record<string, any>;
+        const cardA = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesA[k], label: k === 'planet' ? PLANET_NAMES[facesA[k] as string] : k === 'sign' ? SIGN_NAMES[facesA[k] as string] : `Maison ${facesA[k]}` }));
+        const cardB = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesB[k], label: k === 'planet' ? PLANET_NAMES[facesB[k] as string] : k === 'sign' ? SIGN_NAMES[facesB[k] as string] : `Maison ${facesB[k]}` }));
+        const renderDiceGrid = (items: any[]) => (
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(items.length, 3)}, minmax(0, 1fr))` }}>
+            {items.map((c, i) => (
+              <div key={i} className="flex flex-col items-center rounded-xl p-3 text-center" style={{ background: 'rgba(46,134,193,0.10)', border: '1px solid rgba(46,134,193,0.35)' }}>
+                <div className="text-3xl leading-none" style={{ color: '#7FB3D5' }}>{c.value}</div>
+                <div className="mt-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#cfe3f5', opacity: 0.7 }}>{kindLabel[c.kind] || c.kind}</div>
+                <p className="mt-1.5 text-sm font-semibold leading-snug" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#cfe3f5' }}>{c.label}</p>
+              </div>
+            ))}
+          </div>
+        );
+        return (
+          <>
+            {/* Bloc Premier Choix */}
+            <div className="rounded-2xl p-4" style={{ background: 'rgba(46,134,193,0.06)', border: '1px solid rgba(46,134,193,0.25)' }}>
+              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#7FB3D5' }}>
+                ═══ Premier Choix ═══
+              </h4>
+              {renderDiceGrid(cardA)}
+              {interpData.shortA && (
+                <div className="mt-3">
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>【Interprétation combinée】</h5>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.shortA} query={query} /></p>
+                </div>
+              )}
+              {interpData.deepA && (
+                <div className="mt-3">
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.deepA} query={query} /></p>
+                </div>
+              )}
+            </div>
+
+            {/* Bloc Second Choix */}
+            <div className="rounded-2xl p-4" style={{ background: 'rgba(46,134,193,0.06)', border: '1px solid rgba(46,134,193,0.25)' }}>
+              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#7FB3D5' }}>
+                ═══ Second Choix ═══
+              </h4>
+              {renderDiceGrid(cardB)}
+              {interpData.shortB && (
+                <div className="mt-3">
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>【Interprétation combinée】</h5>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.shortB} query={query} /></p>
+                </div>
+              )}
+              {interpData.deepB && (
+                <div className="mt-3">
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.deepB} query={query} /></p>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── Format accumulé (affinage) ── */}
       {interpData && (
