@@ -180,10 +180,13 @@ export const DICT = {
   'stats.tarot': { fr: 'Tarot', en: 'Tarot' },
   'stats.yijing': { fr: 'Yi Jing', en: 'I Ching' },
   'stats.runes': { fr: 'Runes', en: 'Runes' },
+  'stats.des': { fr: 'Dés Zod.', en: 'Z. Dice' },
   'stats.repartition': { fr: 'Répartition', en: 'Breakdown' },
   'stats.noDraws': { fr: 'Aucun tirage pour l\'instant.', en: 'No draw yet.' },
   'stats.barTarot': { fr: 'Tarot', en: 'Tarot' },
   'stats.barYijing': { fr: 'Yi Jing', en: 'I Ching' },
+  'stats.barRunes': { fr: 'Runes Scandinaves', en: 'Nordic Runes' },
+  'stats.barDes': { fr: 'Dés du Zodiaque', en: 'Zodiac Dice' },
   'stats.activityRecent': { fr: 'Activité récente', en: 'Recent activity' },
   'stats.noHistory': { fr: 'Pas encore d\'historique.', en: 'No history yet.' },
 
