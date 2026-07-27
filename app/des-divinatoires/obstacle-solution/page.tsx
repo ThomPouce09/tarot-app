@@ -1,9 +1,7 @@
 'use client';
 
-// app/des-divinatoires/obstacle-solution/page.tsx — Niveau 2.3 : Obstacle & Solution
-// Intègre le gobelet (AstroDiceCup) au geste, comme sur /choix et /affinage,
-// en gardant les specs : 2 lancers (Obstacle → Solution) chacun avec sa
-// légende de lecture (ReadingLegend) personnalisée.
+// app/des-divinatoires/obstacle-solution/page.tsx
+// Inspiré de /choix — tirage en 2 lancers fusionnés dans un seul enregistrement historique
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,17 +13,14 @@ import {
   DiceTitle,
   DiceButton,
   OcreCard,
-  ResultLine,
-  ReadingLegend,
-  DiceAnalysis,
   DICE_THEME,
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
-import { saveReading } from '@/lib/save-reading';
-import { useT } from '@/lib/i18n';
+import { saveReading, updateReading } from '@/lib/save-reading';
+import { useT, useLang } from '@/lib/i18n';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -34,7 +29,7 @@ const AstroDiceCup = dynamic(
     loading: () => (
       <div
         className="flex items-center justify-center rounded-2xl"
-        style={{ height: 440, background: '#1a0e0a', color: DICE_THEME.ocreLight }}
+        style={{ height: 440, background: '#0d1b2a', color: '#87CEEB' }}
       >
         <span style={{ fontFamily: 'var(--font-cinzel), serif' }}>
           Préparation des dés…
@@ -51,10 +46,8 @@ type Step =
   | 'solution_roll'
   | 'solution_done';
 
-// Les 3 dés sont toujours lancés (Planète / Signe / Maison).
 const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
 
-// Helpers de sérialisation pour l'historique (dés du zodiaque).
 function diceCards(f: TargetFaces) {
   return ACTIVE_DICE.map((k) => ({
     kind: k,
@@ -63,7 +56,47 @@ function diceCards(f: TargetFaces) {
   }));
 }
 function diceStaticText(f: TargetFaces) {
-  return ACTIVE_DICE.map((k) => `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
+  return ACTIVE_DICE.map((k) =>
+    `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`
+  ).join('\n');
+}
+
+// Rendu markdown simplifié (**bold**, ## titres)
+function inlineMd(s: string): React.ReactNode {
+  // **bold** first, then *italic*
+  const parts = s.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: '#87CEEB' }}>{part.slice(2, -2)}</strong>;
+    }
+    // Handle *italic* inside non-bold segments
+    return italicParts(part);
+  });
+}
+function italicParts(s: string): React.ReactNode {
+  const parts = s.split(/(\*[^*]+\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={i} style={{ fontStyle: 'italic', opacity: 0.85 }}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+function md(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('## ')) {
+      elements.push(<h3 key={key++} className="text-sm font-bold uppercase tracking-wider mt-4 mb-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#c9a75b', textShadow: '0 0 8px rgba(201,167,91,0.2)', letterSpacing: '0.08em' }}>{inlineMd(trimmed.slice(3))}</h3>);
+    } else if (trimmed.startsWith('# ')) {
+      elements.push(<h4 key={key++} className="text-sm font-bold mt-3 mb-1" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#D4A574' }}>{inlineMd(trimmed.slice(2))}</h4>);
+    } else {
+      elements.push(<p key={key++} className="mb-1 leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.7 }}>{inlineMd(trimmed || '\u00A0')}</p>);
+    }
+  }
+  return elements;
 }
 
 const OBSTACLE_LEGEND = [
@@ -78,317 +111,628 @@ const SOLUTION_LEGEND = [
   { die: 'Maison' as const, text: 'Le levier d’action concret sur lequel vous appuyer.' },
 ];
 
+// ── Composant DiceAnalysis interne ──
+function DiceAnalysis({
+  faces,
+  activeKinds,
+  question,
+  spread,
+  readingId,
+  onInterpretationReady,
+  onInterpretationLoading,
+  onDeepAnalysisReady,
+}: {
+  faces: TargetFaces;
+  activeKinds: DieKind[];
+  question?: string | null;
+  spread?: string;
+  readingId?: string | null;
+  onInterpretationReady?: (interp: string | null) => void;
+  onInterpretationLoading?: (loading: boolean) => void;
+  onDeepAnalysisReady?: (analysis: string | null) => void;
+}) {
+  const t = useT();
+  const lang = useLang();
+  const [dbInterpretation, setDbInterpretation] = useState<string | null>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
+  const [deepLoading, setDeepLoading] = useState(false);
+  const deepRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (deepAnalysis && deepRef.current) {
+      setTimeout(() => deepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [deepAnalysis]);
+
+  // Analyse approfondie
+  const runDeep = useCallback(async () => {
+    setDeepLoading(true);
+    setDeepAnalysis(null);
+    try {
+      const planet = PLANET_NAMES[faces.planet as string];
+      const sign = SIGN_NAMES[faces.sign as string];
+      const house = `Maison ${faces.house}`;
+      if (!planet || !sign) { setDeepAnalysis('Indisponible.'); return; }
+      const res = await fetch('/api/astro-interpretation-obstacle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
+      });
+      const data = await res.json();
+      if (data.analysis) {
+        setDeepAnalysis(data.analysis);
+        onDeepAnalysisReady?.(data.analysis);
+      } else {
+        setDeepAnalysis('Indisponible.');
+      }
+    } catch { setDeepAnalysis('Indisponible.'); }
+    finally { setDeepLoading(false); }
+  }, [faces, question, spread, lang]);
+
+  // Interprétation courte : LLM d'abord, DB en fallback
+  useEffect(() => {
+    if (!faces.planet || !faces.sign || !faces.house) return;
+    const planet = PLANET_NAMES[faces.planet as string];
+    const sign = SIGN_NAMES[faces.sign as string];
+    const house = `Maison ${faces.house}`;
+    if (!planet || !sign) return;
+
+    setDbLoading(true);
+    onInterpretationLoading?.(true);
+
+    (async () => {
+      // 1) LLM court
+      try {
+        const res = await fetch('/api/astro-interpretation-obstacle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'short', lang }),
+        });
+        const data = await res.json();
+        if (data.interpretation) {
+          setDbInterpretation(data.interpretation);
+          onInterpretationReady?.(data.interpretation);
+          setDbLoading(false);
+          onInterpretationLoading?.(false);
+          return;
+        }
+      } catch { /* fallback DB */ }
+
+      // 2) Fallback DB
+      try {
+        const res = await fetch('/api/astro-interpretation-db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planet, sign, house }),
+        });
+        const data = await res.json();
+        if (data.found && data.interpretation) {
+          setDbInterpretation(data.interpretation);
+          onInterpretationReady?.(data.interpretation);
+          onInterpretationLoading?.(false);
+          setDbLoading(false);
+          return;
+        }
+      } catch { /* silencieux */ }
+      setDbLoading(false);
+      onInterpretationLoading?.(false);
+    })();
+  }, [faces, question, spread, lang]);
+
+  return (
+    <div className="mt-4 space-y-3">
+      {/* Analyse approfondie */}
+      <div ref={deepRef}>
+        {!deepLoading && !deepAnalysis && (
+          <div className="text-center">
+            <DiceButton variant="gold" onClick={runDeep}>
+              🔮 Analyse approfondie Oracle
+            </DiceButton>
+          </div>
+        )}
+        {deepLoading && !deepAnalysis && (
+          <div className="text-center">
+            <DiceButton variant="gold" disabled>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Consultation de l'Oracle...
+              </span>
+            </DiceButton>
+          </div>
+        )}
+        {deepAnalysis && deepAnalysis !== 'Indisponible.' && (
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: 'linear-gradient(135deg, rgba(147,112,219,0.08), rgba(46,134,193,0.12))',
+              border: '1px solid rgba(147,112,219,0.3)',
+            }}
+          >
+            <p className="mb-2 text-center text-xs font-bold uppercase tracking-wider"
+               style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#c4a0e0' }}>
+              Analyse approfondie Oracle
+            </p>
+            <div className="text-sm leading-relaxed"
+                 style={{ color: '#e0d0f0' }}>
+              {md(deepAnalysis)}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Page principale ──
 export default function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
   const t = useT();
+
+  // Résultats des dés
   const [faces, setFaces] = useState<TargetFaces>(() =>
     typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
   );
   const [ready, setReady] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
+
+  // Etat Obstacle / Solution
   const [obstacle, setObstacle] = useState<TargetFaces | null>(null);
   const [solution, setSolution] = useState<TargetFaces | null>(null);
+  const obstacleRef = useRef<TargetFaces | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
 
-  // Interprétation DB (curated, combo planète×signe×maison).
-  const [obstacleDbInterpretation, setObstacleDbInterpretation] = useState<string | null>(null);
-  const [obstacleDbLoading, setObstacleDbLoading] = useState(false);
-  const [solutionDbInterpretation, setSolutionDbInterpretation] = useState<string | null>(null);
-  const [solutionDbLoading, setSolutionDbLoading] = useState(false);
+  // Interprétations LLM courtes
+  const [shortObstacle, setShortObstacle] = useState<string | null>(null);
+  const [shortSolution, setShortSolution] = useState<string | null>(null);
+  const [obstacleLoading, setObstacleLoading] = useState(false);
+  const [solutionLoading, setSolutionLoading] = useState(false);
+  const [openedCard, setOpenedCard] = useState<number | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [qText, setQText] = useState('');
 
-  // Cibles de scroll.
+  // Analyses approfondies
+  const [deepObstacle, setDeepObstacle] = useState<string | null>(null);
+  const [deepSolution, setDeepSolution] = useState<string | null>(null);
+
+  // Sauvegarde centralisée
+  const readingIdRef = useRef<string | null>(null);
+  const [readingId, setReadingId] = useState<string | null>(null);
+  const savedObstacleRef = useRef(false);
+  const savedSolutionRef = useRef(false);
+
+  // Refs de scroll
+  const cupAreaRef = useRef<HTMLDivElement | null>(null);
   const cupRef = useRef<HTMLDivElement | null>(null);
-  const resultRef = useRef<HTMLDivElement | null>(null); // bloc Obstacle
-  const solutionRef = useRef<HTMLDivElement | null>(null); // bloc Solution
-  // Épaisseur du menu fixe en haut → laisser de la marge au scroll.
+  const obstacleRefEl = useRef<HTMLDivElement | null>(null);
+  const solutionRefEl = useRef<HTMLDivElement | null>(null);
+  const tutorialRef = useRef<HTMLDivElement | null>(null);
+
   const MENU_OFFSET = 90;
 
   const scrollToCup = useCallback(() => {
     window.requestAnimationFrame(() => {
-      window.setTimeout(() => {
+      setTimeout(() => {
         if (cupRef.current) {
           const top = cupRef.current.getBoundingClientRect().top + window.scrollY;
           window.scrollTo({ top: Math.max(0, top - MENU_OFFSET), behavior: 'smooth' });
+        } else if (cupAreaRef.current) {
+          cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 60);
     });
   }, []);
 
-  const scrollToEl = useCallback((el: HTMLDivElement | null) => {
-    window.requestAnimationFrame(() => {
-      window.setTimeout(() => {
-        if (el) {
-          const top = el.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: Math.max(0, top - MENU_OFFSET), behavior: 'smooth' });
-        }
-      }, 60);
-    });
-  }, []);
+  useEffect(() => {
+    if (step === 'obstacle_roll' || step === 'solution_roll') {
+      const t = setTimeout(scrollToCup, 600);
+      return () => clearTimeout(t);
+    }
+  }, [step, scrollToCup]);
 
   const rollObstacle = useCallback(() => {
     setFaces(randomTargetFaces());
     setStep('obstacle_roll');
-    scrollToCup();
-  }, [scrollToCup]);
+    setShowTutorial(true);
+  }, []);
 
   const rollSolution = useCallback(() => {
+    setReady(false);
     setFaces(randomTargetFaces());
     setStep('solution_roll');
-    setResetSignal((n) => n + 1); // remount propre du gobelet pour le 2e lancer
-    scrollToCup();
-  }, [scrollToCup]);
+    setResetSignal((n) => n + 1);
+    setShowTutorial(true);
+  }, []);
 
-  const handleRest = useCallback(
-    (f: TargetFaces) => {
-      setStep((s) => {
-        if (s === 'obstacle_roll') {
-          setObstacle(f);
-          scrollToEl(resultRef.current);
-          // Sauvegarde historique — Obstacle
+  const handleRest = useCallback((f: TargetFaces) => {
+    setStep((s) => {
+      if (s === 'obstacle_roll') {
+        setObstacle(f);
+        obstacleRef.current = f;
+        if (!savedObstacleRef.current) {
+          savedObstacleRef.current = true;
           saveReading({
             type: 'des-obstacle-solution',
             spread: 'Obstacle',
             cards: diceCards(f),
             interpretation: diceStaticText(f),
             question,
-          });
-          return 'obstacle_done';
+          }).then((id) => { if (id) { setReadingId(id); readingIdRef.current = id; } });
         }
-        if (s === 'solution_roll') {
-          setSolution(f);
-          scrollToEl(solutionRef.current);
-          // Sauvegarde historique — Solution
-          saveReading({
-            type: 'des-obstacle-solution',
-            spread: 'Solution',
-            cards: diceCards(f),
-            interpretation: diceStaticText(f),
-            question,
-          });
-          return 'solution_done';
+        return 'obstacle_done';
+      }
+      if (s === 'solution_roll') {
+        setSolution(f);
+        if (!savedSolutionRef.current) {
+          savedSolutionRef.current = true;
+          const targetId = readingIdRef.current;
+          const prevResultA = obstacleRef.current;
+          if (targetId && prevResultA) {
+            const combinedCards = [...diceCards(prevResultA), ...diceCards(f)];
+            const payload = {
+              version: 'des-obstacle-solution',
+              facesA: prevResultA,
+              facesB: f,
+            };
+            updateReading(targetId, { cards: combinedCards, interpretation: JSON.stringify(payload) });
+          }
         }
-        return s;
-      });
-      setQuestion(null);
-    },
-    [scrollToEl, question],
-  );
+        return 'solution_done';
+      }
+      return s;
+    });
+  }, [question]);
 
-  const diceVisible = step !== 'intro';
-
-  // ── Fetch DB interpretation après chaque tirage Obstacle ──
+  // Scroll vers le résultat après obstacle_done
   useEffect(() => {
-    if (!obstacle) return;
-    const planetGlyph = obstacle.planet;
-    const signGlyph = obstacle.sign;
-    const houseNum = obstacle.house;
-    if (!planetGlyph || !signGlyph || !houseNum) return;
+    if (step === 'obstacle_done' && obstacleRefEl.current) {
+      setTimeout(() => obstacleRefEl.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }
+  }, [step]);
 
-    const planet = PLANET_NAMES[planetGlyph as string];
-    const sign = SIGN_NAMES[signGlyph as string];
-    const house = `Maison ${houseNum}`;
-    if (!planet || !sign) return;
-
-    setObstacleDbLoading(true);
-    setObstacleDbInterpretation(null);
-
-    fetch('/api/astro-interpretation-db', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planet, sign, house }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.found && data.interpretation) {
-          setObstacleDbInterpretation(data.interpretation);
-        }
-      })
-      .catch(() => {
-        // silencieux — la DB est un bonus, pas un blocage
-      })
-      .finally(() => setObstacleDbLoading(false));
-  }, [obstacle]);
-
-  // ── Fetch DB interpretation après chaque tirage Solution ──
+  // Scroll vers la zone solution après solution_done
   useEffect(() => {
-    if (!solution) return;
-    const planetGlyph = solution.planet;
-    const signGlyph = solution.sign;
-    const houseNum = solution.house;
-    if (!planetGlyph || !signGlyph || !houseNum) return;
+    if (step === 'solution_done' && solutionRefEl.current) {
+      setTimeout(() => solutionRefEl.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }
+  }, [step]);
 
-    const planet = PLANET_NAMES[planetGlyph as string];
-    const sign = SIGN_NAMES[signGlyph as string];
-    const house = `Maison ${houseNum}`;
-    if (!planet || !sign) return;
+  // ── Sauvegarde centralisée : interprétations courtes ──
+  useEffect(() => {
+    if (step === 'solution_done' && shortObstacle && shortSolution && readingId) {
+      updateReading(readingId, { interpretation: JSON.stringify({
+        version: 'des-obstacle-solution',
+        facesA: obstacle,
+        facesB: solution,
+        shortA: shortObstacle,
+        shortB: shortSolution,
+        deepA: deepObstacle,
+        deepB: deepSolution,
+      }) });
+    }
+  }, [step, shortObstacle, shortSolution, readingId, obstacle, solution, deepObstacle, deepSolution]);
 
-    setSolutionDbLoading(true);
-    setSolutionDbInterpretation(null);
+  // ── Sauvegarde centralisée : analyses approfondies ──
+  useEffect(() => {
+    if (!readingId) return;
+    if (deepObstacle && deepSolution) {
+      const payload = {
+        version: 'des-obstacle-solution',
+        facesA: obstacle,
+        facesB: solution,
+        shortA: shortObstacle,
+        shortB: shortSolution,
+        deepA: deepObstacle,
+        deepB: deepSolution,
+      };
+      updateReading(readingId, { interpretation: JSON.stringify(payload) });
+    }
+  }, [deepObstacle, deepSolution, shortObstacle, shortSolution, readingId, obstacle, solution]);
 
-    fetch('/api/astro-interpretation-db', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planet, sign, house }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.found && data.interpretation) {
-          setSolutionDbInterpretation(data.interpretation);
-        }
-      })
-      .catch(() => {
-        // silencieux — la DB est un bonus, pas un blocage
-      })
-      .finally(() => setSolutionDbLoading(false));
-  }, [solution]);
+  const restart = useCallback(() => {
+    setObstacle(null);
+    setSolution(null);
+    setQuestion(null);
+    setReady(false);
+    setResetSignal((n) => n + 1);
+    setStep('intro');
+    setShortObstacle(null);
+    setShortSolution(null);
+    setObstacleLoading(false);
+    setSolutionLoading(false);
+    setOpenedCard(null);
+    setShowTutorial(false);
+    setDeepObstacle(null);
+    setDeepSolution(null);
+    savedObstacleRef.current = false;
+    savedSolutionRef.current = false;
+    readingIdRef.current = null;
+    setReadingId(null);
+    obstacleRef.current = null;
+  }, []);
+
+  const cupVisible = step !== 'intro';
 
   return (
     <DiceBackground>
       <YiSlideNav />
       <DiceTitle
         title={t('des.obstacle.title')}
-        subtitle={t('des.obstacle.subtitle')}
       />
 
       <div className="mx-auto max-w-2xl px-4">
-        {/* Question avant le tirage */}
+        {/* ── Intro : Obstacle ── */}
         {step === 'intro' && (
-          <AskQuestion onConfirm={setQuestion} accentColor={DICE_THEME.gold} />
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-4 rounded-2xl border p-5 text-center"
+            style={{ borderColor: 'rgba(218,165,32,0.35)' }}
+          >
+            <h2 className="text-xl font-bold mb-2"
+                style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520' }}>
+              Obstacle
+            </h2>
+            <p className="text-sm mb-4 max-w-md mx-auto"
+               style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', opacity: 0.85, lineHeight: 1.6 }}>
+              {t('des.obstacle.subtitle')}
+            </p>
+            <input
+              type="text"
+              value={qText}
+              onChange={(e) => setQText(e.target.value)}
+              placeholder="Garder en mémoire votre question"
+              className="w-full max-w-sm rounded-lg px-4 py-2 text-sm mx-auto mb-4"
+              style={{
+                background: 'rgba(0,0,0,0.35)',
+                border: '1px solid rgba(218,165,32,0.4)',
+                color: '#f0e6d3',
+                fontFamily: 'var(--font-cormorant), serif',
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setQuestion(qText.trim() || null);
+                  rollObstacle();
+                }
+              }}
+            />
+            <button
+              onClick={() => { setQuestion(qText.trim() || null); rollObstacle(); }}
+              className="rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80"
+              style={{
+                background: '#005f6a',
+                color: '#fff',
+                fontFamily: 'var(--font-cinzel), serif',
+                boxShadow: '0 0 12px rgba(0,95,106,0.5)',
+              }}
+            >
+              Enregistrer et lancer les dés zodiacaux
+            </button>
+            <p className="text-sm mt-5 mb-2" style={{ color: '#F0E6D3', opacity: 0.6, fontFamily: 'var(--font-cinzel), serif', fontWeight: 700 }}>
+              — OU —
+            </p>
+            <p className="text-sm mb-4 max-w-xs mx-auto" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
+              Concentrez-vous sur l'obstacle qui vous préoccupe et lancez directement les dés
+            </p>
+            <button
+              onClick={() => { setQuestion(null); rollObstacle(); }}
+              className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
+              style={{
+                background: '#005f6a',
+                color: '#fff',
+                fontFamily: 'var(--font-cinzel-deco), serif',
+                boxShadow: '0 0 24px rgba(0,95,106,0.45)',
+                border: '1px solid rgba(0,95,106,0.6)',
+              }}
+            >
+              Lancer les dés zodiacaux
+            </button>
+          </motion.div>
         )}
-        {/* Étape 1 */}
-        <h2
-          className="mb-4 text-center text-xl font-bold"
-          style={{
-            fontFamily: 'var(--font-cinzel-deco), serif',
-            color: DICE_THEME.ocreLight,
-            textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-          }}
-        >
-          {t('des.obstacle.step1')}
-        </h2>
 
-        {step === 'intro' && (
-          <div className="pb-6 text-center">
-            <DiceButton onClick={rollObstacle}>{t('des.obstacle.cta')}</DiceButton>
-          </div>
-        )}
 
-        {/* Zone gobelet (partagée par les deux étapes) : monté dès le chargement
-            (préchargé INVISIBLE en intro, révélé à onReady) → le lancer se fait
-            AU GESTE (secousse / appui) — pas de bouton de lancer automatique. */}
+
+        {/* Gobelet */}
         <div
           ref={cupRef}
           style={{
-            height: diceVisible ? 460 : 0,
-            opacity: diceVisible && ready ? 1 : 0,
+            height: cupVisible ? 460 : 0,
+            opacity: cupVisible && ready ? 1 : 0,
             overflow: 'hidden',
             transition: 'opacity 450ms ease',
-            pointerEvents: diceVisible ? 'auto' : 'none',
+            pointerEvents: cupVisible ? 'auto' : 'none',
           }}
         >
           <AstroDiceCup
             key={resetSignal}
             targetFaces={faces}
-            skin="moon"
+            skin={{ body: '#000000', edges: '#DAA520', glyph: '#e8c87a', mat: '#0a0a14', accent: '#DAA520', shadow: '#000000' }}
             height={460}
             activeKinds={ACTIVE_DICE}
             onRest={handleRest}
             onReady={() => setReady(true)}
             resetSignal={resetSignal}
             launchSignal={0}
+            onShake={() => setShowTutorial(false)}
+            lockScroll={step === 'obstacle_roll' || step === 'solution_roll'}
           />
         </div>
 
-        {(step === 'obstacle_roll' || step === 'solution_roll') && (
+        {/* Tutoriel en dessous du gobelet */}
+        <div
+          ref={tutorialRef}
+          className="flex flex-col items-center transition-opacity duration-300"
+          style={{
+            marginTop: 24,
+            opacity: showTutorial ? 1 : 0,
+            pointerEvents: showTutorial ? 'auto' : 'none',
+          }}
+        >
+          <style>{`
+            @keyframes swipe-shake-obstacle {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-16px); }
+              75% { transform: translateX(16px); }
+            }
+            .swipe-icon-obstacle {
+              animation: swipe-shake-obstacle 0.6s ease-in-out infinite;
+              font-size: 28px;
+              line-height: 1;
+              color: #87CEEB;
+              opacity: 0.5;
+              user-select: none;
+              -webkit-user-select: none;
+            }
+          `}</style>
+          <svg className="swipe-icon-obstacle" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#87CEEB" d="M9.5 1C8.67 1 8 1.67 8 2.5v7.38l-1.7-.85c-.3-.15-.65-.2-1-.15a1.5 1.5 0 0 0-1.3 1.3c-.15.65.05 1.3.5 1.75l4.35 4.35c.3.3.7.45 1.15.45H18c1.1 0 2-.9 2-2V9.5c0-.65-.45-1.2-1.05-1.4l-5.1-1.85c-.15-.05-.3-.05-.45-.05-.15 0-.3.05-.45.1l-.95.4V2.5C12 1.67 11.33 1 10.5 1h-1Z" opacity="0.6"/>
+                <path fill="#87CEEB" d="m17.5 14.5-2.12-1.06c-.2-.1-.44-.14-.67-.11l-1.83.35.88-3.53a1.25 1.25 0 0 0-.88-1.5c-.65-.18-1.3.2-1.48.85l-1.4 5.6-2.1-1.05.3 1.5 3.5 1.75c.3.15.65.2 1 .15H16c.65 0 1.2-.45 1.4-1.05l.35-1.05c.08-.25.05-.52-.08-.75l-.17-.15Z" opacity="0.4"/>
+              </svg>
           <p
-            className="mt-3 text-center text-xs italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.7 }}
+            className="text-center leading-tight"
+            style={{
+              fontFamily: 'var(--font-cinzel), serif',
+              color: 'rgba(255, 255, 255, 0.5)',
+              fontSize: '0.5rem',
+              maxWidth: 120,
+              lineHeight: 1.2,
+            }}
           >
-            ✋ Secouez le gobelet puis poussez vers le haut (ou appuyez) pour lancer les dés.
+            Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter
           </p>
-        )}
+        </div>
 
-        {/* Résultat + légende de l'obstacle */}
+        {/* ── Résultat Obstacle ── */}
         <AnimatePresence>
-          {obstacle &&
-            (step === 'obstacle_done' ||
-              step === 'solution_roll' ||
-              step === 'solution_done') && (
-              <motion.div
-                ref={resultRef}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-5"
-              >
-                <ResultLine faces={obstacle} />
-                <div className="mt-4">
-                  <OcreCard title={t('des.obstacle.readObstacle')}>
-                    <ReadingLegend items={OBSTACLE_LEGEND} />
-                  </OcreCard>
-                </div>
-                <DiceAnalysis faces={obstacle} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="obstacle" question={question} dbInterpretation={obstacleDbInterpretation} />
-
-                {/* ── Carte DB — interprétation combinée Obstacle ── */}
-                {obstacleDbLoading && (
-                  <div
-                    className="mt-4 text-center text-xs italic"
-                    style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
-                  >
-                    Recherche de l'interprétation…
-                  </div>
-                )}
-                {obstacleDbInterpretation && !obstacleDbLoading && (
-                  <div
-                    className="mt-5 rounded-2xl p-4"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                      border: `1.5px solid ${DICE_THEME.gold}66`,
-                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                    }}
-                  >
-                    <p
-                      className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                      style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                    >
-                      Interprétation combinée
-                    </p>
-                    <p
-                      className="text-center text-sm leading-relaxed"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                    >
-                      {obstacleDbInterpretation}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
+          {obstacle && (step === 'obstacle_done' || step === 'solution_roll' || step === 'solution_done') && (
+            <motion.div
+              ref={obstacleRefEl}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-5 rounded-2xl p-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,0,0,0.08), rgba(46,134,193,0.08))',
+                border: '1px solid rgba(139,0,0,0.3)',
+              }}
+            >
+              <h3 className="text-center text-base font-bold mb-3"
+                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#D4A574' }}>
+                ⚔═══ Obstacle ═══
+              </h3>
+              <div className="grid gap-2 mt-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {(['planet','sign','house'] as const).map(k => {
+                  const labels: Record<string,string> = { planet: 'Planète', sign: 'Signe', house: 'Maison' };
+                  const val = obstacle[k];
+                  return (
+                    <div key={k} className="flex flex-col items-center rounded-xl p-3 text-center"
+                         style={{ background: '#1a1a1a', border: '1px solid #DAA520' }}>
+                      <div className="text-3xl leading-none" style={{ color: '#e8c87a' }}>{val}</div>
+                      <div className="mt-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#DAA520', opacity: 0.7 }}>{labels[k]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4">
+                <OcreCard title={t('des.obstacle.readObstacle')}>
+                  <ul className="mx-auto max-w-xl space-y-3">
+                    {(['planet','sign','house'] as const).map((k, idx) => {
+                      const drawn = obstacle;
+                      const val = k === 'house' ? String(drawn.house) : (k === 'planet' ? (PLANET_NAMES[drawn.planet as string] || drawn.planet) : (SIGN_NAMES[drawn.sign as string] || drawn.sign));
+                      const gly = k === 'house' ? String(drawn.house) : (drawn[k] as string);
+                      const showInfo = idx === openedCard;
+                      const label = k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison';
+                      const legendText = OBSTACLE_LEGEND[k === 'planet' ? 0 : k === 'sign' ? 1 : 2].text;
+                      return (
+                        <li key={k}>
+                          <div className="flex items-center gap-3 rounded-xl p-3 text-center"
+                               style={{ background: '#1a1a1a', border: '1px solid #DAA520' }}>
+                            <div className="flex flex-col items-center min-w-[48px]">
+                              <div className="text-2xl leading-none" style={{ color: '#e8c87a' }}>{gly}</div>
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="text-xs font-semibold" style={{ color: '#DAA520' }}>{label}</div>
+                              <div className="text-xs" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cormorant), serif', lineHeight: 1.4 }}>{val}</div>
+                              <div className="text-[11px] italic" style={{ color: '#c9a75b', fontFamily: 'var(--font-cormorant), serif', lineHeight: 1.3, marginTop: 2 }}>{meaningFor(k, drawn[k])}</div>
+                            </div>
+                            <button onClick={() => setOpenedCard(showInfo ? null : idx)}
+                                    className="shrink-0 rounded-full w-5 h-5 flex items-center justify-center text-[11px] font-bold transition-opacity hover:opacity-100"
+                                    style={{ background: '#DAA52033', color: '#DAA520', border: '1px solid #DAA52066', opacity: showInfo ? 1 : 0.6 }}>
+                              {showInfo ? '✕' : 'ℹ'}
+                            </button>
+                          </div>
+                          {showInfo && (
+                            <div className="mt-1.5 mx-3 text-xs leading-relaxed" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
+                              {legendText}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {obstacleLoading && (
+                    <div className="mt-3 pt-3 text-center" style={{ borderTop: '1px solid rgba(218,165,32,0.2)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#F0E6D3', fontSize: 13 }}>
+                        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                          <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        Interprétation en cours…
+                      </span>
+                    </div>
+                  )}
+                  {shortObstacle && (
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(218,165,32,0.2)' }}>
+                      <p className="text-center text-xs font-bold uppercase tracking-wider mb-2"
+                         style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F0E6D3' }}>
+                        【Interprétation combinée】
+                      </p>
+                      <div className="text-sm leading-relaxed text-center"
+                           style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.75 }}>
+                        {md(shortObstacle || '')}
+                      </div>
+                    </div>
+                  )}
+                </OcreCard>
+              </div>
+              <DiceAnalysis
+                faces={obstacle}
+                activeKinds={ACTIVE_DICE}
+                question={question}
+                spread="Obstacle"
+                readingId={readingId}
+                onInterpretationReady={setShortObstacle}
+                onInterpretationLoading={setObstacleLoading}
+                onDeepAnalysisReady={setDeepObstacle}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
 
-        {/* Étape 2 : apparaît après le 1er lancer */}
+        {/* ── Étape 2 : Solution ── */}
         <AnimatePresence>
-          {(step === 'obstacle_done' ||
-            step === 'solution_roll' ||
-            step === 'solution_done') && (
+          {(step === 'obstacle_done' || step === 'solution_roll' || step === 'solution_done') && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-10"
             >
-              <h2
-                className="mb-4 text-center text-xl font-bold"
-                style={{
-                  fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: DICE_THEME.ocreLight,
-                  textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-                }}
-              >
+              <h2 className="mb-4 text-center text-xl font-bold"
+                  style={{
+                    fontFamily: 'var(--font-cinzel-deco), serif',
+                    color: '#D4A574',
+                    textShadow: '0 0 12px rgba(212,165,116,0.25)',
+                  }}>
                 {t('des.obstacle.step2')}
               </h2>
 
               {step === 'obstacle_done' && (
                 <div className="pb-2 text-center">
-                  <DiceButton variant="ocre" onClick={rollSolution}>
-                    {t('des.obstacle.ctaSolution')}
+                  <DiceButton variant="blueLight" onClick={rollSolution}>
+                    Lancer les dés zodiacaux
                   </DiceButton>
                 </div>
               )}
@@ -396,73 +740,114 @@ export default function ObstacleSolutionPage() {
           )}
         </AnimatePresence>
 
-        {/* Résultat + légende de la solution */}
+        {/* ── Résultat Solution ── */}
         <AnimatePresence>
           {solution && step === 'solution_done' && (
             <motion.div
-              ref={solutionRef}
+              ref={solutionRefEl}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-5"
+              className="mt-5 rounded-2xl p-4"
+              style={{
+                background: 'linear-gradient(135deg, rgba(46,134,193,0.12), rgba(0,86,179,0.08))',
+                border: '1px solid rgba(46,134,193,0.35)',
+              }}
             >
-              <ResultLine faces={solution} />
+              <h3 className="text-center text-base font-bold mb-3"
+                  style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#87CEEB' }}>
+                🛡═══ Solution ═══
+              </h3>
+              <div className="grid gap-2 mt-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {(['planet','sign','house'] as const).map(k => {
+                  const labels: Record<string,string> = { planet: 'Planète', sign: 'Signe', house: 'Maison' };
+                  const val = solution[k];
+                  return (
+                    <div key={k} className="flex flex-col items-center rounded-xl p-3 text-center"
+                         style={{ background: '#1a1a1a', border: '1px solid #DAA520' }}>
+                      <div className="text-3xl leading-none" style={{ color: '#e8c87a' }}>{val}</div>
+                      <div className="mt-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#DAA520', opacity: 0.7 }}>{labels[k]}</div>
+                    </div>
+                  );
+                })}
+              </div>
               <div className="mt-4">
                 <OcreCard title={t('des.obstacle.readSolution')}>
-                  <ReadingLegend items={SOLUTION_LEGEND} />
+                  <ul className="mx-auto max-w-xl space-y-3">
+                    {(['planet','sign','house'] as const).map((k, idx) => {
+                      const drawn = solution!;
+                      const val = k === 'house' ? String(drawn.house) : (k === 'planet' ? (PLANET_NAMES[drawn.planet as string] || drawn.planet) : (SIGN_NAMES[drawn.sign as string] || drawn.sign));
+                      const gly = k === 'house' ? String(drawn.house) : (drawn[k] as string);
+                      const showInfo = idx === openedCard;
+                      const label = k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison';
+                      const legendText = SOLUTION_LEGEND[k === 'planet' ? 0 : k === 'sign' ? 1 : 2].text;
+                      return (
+                        <li key={k}>
+                          <div className="flex items-center gap-3 rounded-xl p-3 text-center"
+                               style={{ background: '#1a1a1a', border: '1px solid #87CEEB' }}>
+                            <div className="flex flex-col items-center min-w-[48px]">
+                              <div className="text-2xl leading-none" style={{ color: '#87CEEB' }}>{gly}</div>
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="text-xs font-semibold" style={{ color: '#87CEEB' }}>{label}</div>
+                              <div className="text-xs" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cormorant), serif', lineHeight: 1.4 }}>{val}</div>
+                              <div className="text-[11px] italic" style={{ color: '#87CEEB', fontFamily: 'var(--font-cormorant), serif', lineHeight: 1.3, marginTop: 2 }}>{meaningFor(k, drawn[k])}</div>
+                            </div>
+                            <button onClick={() => setOpenedCard(showInfo ? null : idx)}
+                                    className="shrink-0 rounded-full w-5 h-5 flex items-center justify-center text-[11px] font-bold transition-opacity hover:opacity-100"
+                                    style={{ background: '#87CEEB33', color: '#87CEEB', border: '1px solid #87CEEB66', opacity: showInfo ? 1 : 0.6 }}>
+                              {showInfo ? '✕' : 'ℹ'}
+                            </button>
+                          </div>
+                          {showInfo && (
+                            <div className="mt-1.5 mx-3 text-xs leading-relaxed" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
+                              {legendText}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {solutionLoading && (
+                    <div className="mt-3 pt-3 text-center" style={{ borderTop: '1px solid rgba(46,134,193,0.2)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#F0E6D3', fontSize: 13 }}>
+                        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                          <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        Interprétation en cours…
+                      </span>
+                    </div>
+                  )}
+                  {shortSolution && (
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(46,134,193,0.2)' }}>
+                      <p className="text-center text-xs font-bold uppercase tracking-wider mb-2"
+                         style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F0E6D3' }}>
+                        【Interprétation combinée】
+                      </p>
+                      <div className="text-sm leading-relaxed text-center"
+                           style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.75 }}>
+                        {md(shortSolution || '')}
+                      </div>
+                    </div>
+                  )}
                 </OcreCard>
               </div>
-              <DiceAnalysis faces={solution} activeKinds={ACTIVE_DICE} mode="obstacle-solution" kind="solution" question={question} dbInterpretation={solutionDbInterpretation} />
+              <DiceAnalysis
+                faces={solution}
+                activeKinds={ACTIVE_DICE}
+                question={question}
+                spread="Solution"
+                readingId={readingId}
+                onInterpretationReady={setShortSolution}
+                onInterpretationLoading={setSolutionLoading}
+                onDeepAnalysisReady={setDeepSolution}
+              />
 
-              {/* ── Carte DB — interprétation combinée Solution ── */}
-              {solutionDbLoading && (
-                <div
-                  className="mt-4 text-center text-xs italic"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.6 }}
-                >
-                  Recherche de l'interprétation…
-                </div>
-              )}
-              {solutionDbInterpretation && !solutionDbLoading && (
-                <div
-                  className="mt-5 rounded-2xl p-4"
-                  style={{
-                    background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                    border: `1.5px solid ${DICE_THEME.gold}66`,
-                    boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                  }}
-                >
-                  <p
-                    className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                    style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                  >
-                    Interprétation combinée
-                  </p>
-                  <p
-                    className="text-center text-sm leading-relaxed"
-                    style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                  >
-                    {solutionDbInterpretation}
-                  </p>
-                </div>
-              )}
 
-              <div className="mt-8 text-center">
-                <DiceButton
-                  onClick={() => {
-                    setObstacle(null);
-                    setSolution(null);
-                    setQuestion(null);
-                    setStep('intro');
-                  }}
-                >
-                  {t('des.obstacle.retry')}
-                </DiceButton>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      </DiceBackground>
+    </DiceBackground>
   );
 }

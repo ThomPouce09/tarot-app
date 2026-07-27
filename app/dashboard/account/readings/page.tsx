@@ -689,8 +689,8 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
     try {
       const parsed = JSON.parse(r.interpretation);
       if (parsed && typeof parsed === 'object') {
-        // Format des-choix : version structurée avec 2 jeux de faces + analyses
-        if (parsed.version === 'des-choix' && parsed.facesA && parsed.facesB) {
+        // Format des-choix / des-obstacle-solution : version structurée avec 2 jeux de faces
+        if ((parsed.version === 'des-choix' || parsed.version === 'des-obstacle-solution') && parsed.facesA && parsed.facesB) {
           // sera géré via cette variable en sortie
           interpData = parsed;
         } else if (parsed.static || parsed.dbInterpretation || parsed.oracleFlash || parsed.analysisGlobal || parsed.refine) {
@@ -755,7 +755,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       )}
 
       {/* Cartes (dés) — masquées pour des-choix (affichées inline ci-dessous) */}
-      {interpData?.version === 'des-choix' ? null : cards.length === 0 ? (
+      {interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution' ? null : cards.length === 0 ? (
         <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, minmax(0, 1fr))` }}>
@@ -769,8 +769,13 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
         </div>
       )}
 
-      {/* ── Format des-choix : 2 sections avec tuiles inline ── */}
-      {interpData?.version === 'des-choix' && (() => {
+      {/* ── Format des-choix / des-obstacle-solution : 2 sections avec tuiles inline ── */}
+      {(interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution') && (() => {
+        const isObstacle = interpData.version === 'des-obstacle-solution';
+        const labelA = isObstacle ? '═══ Obstacle ═══' : '═══ Premier Choix ═══';
+        const labelB = isObstacle ? '═══ Solution ═══' : '═══ Second Choix ═══';
+        const colorA = isObstacle ? '#D4A574' : '#7FB3D5';
+        const colorB = isObstacle ? '#87CEEB' : '#7FB3D5';
         const facesA = interpData.facesA as Record<string, any>;
         const facesB = interpData.facesB as Record<string, any>;
         const cardA = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesA[k], label: k === 'planet' ? PLANET_NAMES[facesA[k] as string] : k === 'sign' ? SIGN_NAMES[facesA[k] as string] : `Maison ${facesA[k]}` }));
@@ -788,10 +793,10 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
         );
         return (
           <>
-            {/* Bloc Premier Choix */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(46,134,193,0.06)', border: '1px solid rgba(46,134,193,0.25)' }}>
-              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#7FB3D5' }}>
-                ═══ Premier Choix ═══
+            {/* Bloc A */}
+            <div className="rounded-2xl p-4" style={{ background: isObstacle ? 'rgba(139,0,0,0.06)' : 'rgba(46,134,193,0.06)', border: isObstacle ? '1px solid rgba(139,0,0,0.3)' : '1px solid rgba(46,134,193,0.25)' }}>
+              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: colorA }}>
+                {labelA}
               </h4>
               {renderDiceGrid(cardA)}
               {interpData.shortA && (
@@ -808,10 +813,10 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
               )}
             </div>
 
-            {/* Bloc Second Choix */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(46,134,193,0.06)', border: '1px solid rgba(46,134,193,0.25)' }}>
-              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#7FB3D5' }}>
-                ═══ Second Choix ═══
+            {/* Bloc B */}
+            <div className="rounded-2xl p-4" style={{ background: isObstacle ? 'rgba(46,134,193,0.12)' : 'rgba(46,134,193,0.06)', border: isObstacle ? '1px solid rgba(46,134,193,0.35)' : '1px solid rgba(46,134,193,0.25)' }}>
+              <h4 className="text-center text-base font-bold mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: colorB }}>
+                {labelB}
               </h4>
               {renderDiceGrid(cardB)}
               {interpData.shortB && (
