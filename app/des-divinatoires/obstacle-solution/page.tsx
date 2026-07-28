@@ -368,17 +368,7 @@ export default function ObstacleSolutionPage() {
         setSolution(f);
         if (!savedSolutionRef.current) {
           savedSolutionRef.current = true;
-          const targetId = readingIdRef.current;
-          const prevResultA = obstacleRef.current;
-          if (targetId && prevResultA) {
-            const combinedCards = [...diceCards(prevResultA), ...diceCards(f)];
-            const payload = {
-              version: 'des-obstacle-solution',
-              facesA: prevResultA,
-              facesB: f,
-            };
-            updateReading(targetId, { cards: combinedCards, interpretation: JSON.stringify(payload) });
-          }
+          // deferred to useEffect below (waits for readingId)
         }
         return 'solution_done';
       }
@@ -399,6 +389,23 @@ export default function ObstacleSolutionPage() {
       setTimeout(() => solutionRefEl.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
     }
   }, [step]);
+
+  // ── Sauvegarde différée : faces combinées (attend readingId) ──
+  const combinedSavedRef = useRef(false);
+  useEffect(() => {
+    if (readingId && obstacle && solution && !combinedSavedRef.current) {
+      const combinedCards = [...diceCards(obstacle), ...diceCards(solution)];
+      updateReading(readingId, {
+        cards: combinedCards,
+        interpretation: JSON.stringify({
+          version: 'des-obstacle-solution',
+          facesA: obstacle,
+          facesB: solution,
+        }),
+      });
+      combinedSavedRef.current = true;
+    }
+  }, [readingId, obstacle, solution]);
 
   // ── Sauvegarde centralisée : interprétations courtes ──
   useEffect(() => {
@@ -449,6 +456,7 @@ export default function ObstacleSolutionPage() {
     setDeepSolution(null);
     savedObstacleRef.current = false;
     savedSolutionRef.current = false;
+    combinedSavedRef.current = false;
     readingIdRef.current = null;
     setReadingId(null);
     obstacleRef.current = null;
