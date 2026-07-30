@@ -210,6 +210,8 @@ export const DICT = {
   'history.deleting': { fr: 'Suppression…', en: 'Deleting…' },
   'history.cancel': { fr: 'Annuler', en: 'Cancel' },
   'history.confirm': { fr: 'Confirmer', en: 'Confirm' },
+  'history.share': { fr: 'Partager', en: 'Share' },
+  'history.shareCopied': { fr: 'Copié !', en: 'Copied !' },
   'history.reversed': { fr: '(renversée)', en: '(reversed)' },
   'history.hexagram': { fr: 'Hexagramme', en: 'Hexagram' },
   'history.hexagramNo': { fr: 'Hexagramme n°', en: 'Hexagram no. ' },

@@ -5,8 +5,6 @@ import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
 
-export const dynamic = 'force-dynamic';
-
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel', weight: ['400', '500', '600', '700'] })
 const cinzelDeco = Cinzel_Decorative({ subsets: ['latin'], variable: '--font-cinzel-deco', weight: ['400', '700'] })
 const medieval = MedievalSharp({ subsets: ['latin'], variable: '--font-medieval', weight: '400' })

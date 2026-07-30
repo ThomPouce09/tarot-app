@@ -1,16 +1,18 @@
 {
-  "name": "app",
+  "name": "tarot-apk",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "cap:init": "cap init",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "cap:build:android": "cap build android",
+    "cap:copy": "cap copy",
+    "cap:update": "cap update"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/safe-seed.ts"
@@ -49,8 +51,13 @@
     "@aws-sdk/s3-request-presigner": "^3.0.0",
     "@azure/storage-blob": "^12.0.0",
     "@capacitor/android": "^8.4.0",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@floating-ui/react": "0.26.0",
     "@headlessui/react": "1.7.18",
     "@hookform/resolvers": "^3.10.0",
@@ -146,9 +153,7 @@
     "zustand": "5.0.3"
   },
   "browserslist": [
-    "ie >= 11",
-    "> 0.5%",
-    "last 2 versions",
+    "Android >= 10",
     "not dead"
   ]
 }

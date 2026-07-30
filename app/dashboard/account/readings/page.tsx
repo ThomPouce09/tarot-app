@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
+import { shareViaCapacitor } from '@/lib/capacitor-utils';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
@@ -196,6 +197,134 @@ export default function ReadingsPage() {
     } catch { return ''; }
   };
   const dateToYMD = (iso: string) => new Date(iso).toISOString().slice(0, 10);
+
+  // ── Partage ──
+  const [shareCopied, setShareCopied] = useState<string | null>(null);
+
+  const generateShareText = useCallback((r: Reading): string => {
+    const m = metaOf(r);
+    const lines: string[] = [];
+    const app = '✨ Tarot Divinatoire';
+
+    // En-tête
+    lines.push(`📜 ${m.label}`);
+    lines.push('');
+
+    // Heure
+    const dateStr = new Date(r.createdAt).toLocaleString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+    lines.push(`🕐 ${dateStr}`);
+    lines.push('');
+
+    // Question
+    if (r.question) {
+      lines.push(`❓ ${r.question}`);
+      lines.push('');
+    }
+
+    // Cartes / dés selon le type
+    const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+
+    if (m.group === 'tarot' && cards.length > 0) {
+      const isTarot3 = cards.length === 3;
+      const pos = isTarot3
+        ? ['Passé', 'Présent', 'Futur']
+        : ['Situation', 'Défis', 'Soutien', 'Issue', 'Conseil'];
+      cards.forEach((c, i) => {
+        const name = c.name?.name || c.name || `Carte ${i + 1}`;
+        const rev = c.reversed ? ' (renversée)' : '';
+        const p = pos[i] || '';
+        lines.push(`${p} : ${name}${rev}`);
+        // interprétation si disponible
+        if (r.interpretation) {
+          try {
+            const parsed = JSON.parse(r.interpretation);
+            const key = isTarot3 ? ['carte1','carte2','carte3'][i] : ['situation','defis','soutien','issue','conseil'][i];
+            if (parsed?.[key]) lines.push(`   → ${parsed[key].slice(0, 200)}`);
+          } catch {}
+        }
+      });
+    } else if (m.group === 'yijing' && cards.length > 0) {
+      lines.push(`Hexagramme : ${cards[0]?.name || ''}`);
+    } else if (m.group === 'rune') {
+      cards.forEach((c, i) => {
+        const rev = c.reversed ? ' (renversée)' : '';
+        lines.push(`${c.symbol || 'ᚱ'} ${c.position || `Rune ${i + 1}`}${rev} — ${c.name || ''}`);
+      });
+      // Interprétation structurée
+      if (r.interpretation) {
+        try {
+          const parsed = JSON.parse(r.interpretation);
+          if (parsed?.synthese) lines.push(`
+📜 ${parsed.synthese.slice(0, 300)}`);
+        } catch {}
+      }
+    } else if (m.group === 'des') {
+      // Format structuré (choix, obstacle-solution)
+      if (r.interpretation) {
+        try {
+          const parsed = JSON.parse(r.interpretation);
+          if (parsed?.version === 'des-choix' || parsed?.version === 'des-obstacle-solution') {
+            const isObs = parsed.version === 'des-obstacle-solution';
+            const labelA = isObs ? '═══ Obstacle ═══' : '═══ Choix 1 ═══';
+            const labelB = isObs ? '═══ Solution ═══' : '═══ Choix 2 ═══';
+            if (parsed.facesA) {
+              lines.push(labelA);
+              const pn = PLANET_NAMES[parsed.facesA.planet as string] || parsed.facesA.planet;
+              const sn = SIGN_NAMES[parsed.facesA.sign as string] || parsed.facesA.sign;
+              lines.push(`${parsed.facesA.planet} ${pn} · ${parsed.facesA.sign} ${sn} · Maison ${parsed.facesA.house}`);
+              if (parsed.shortA) lines.push(`→ ${parsed.shortA.slice(0, 300)}`);
+              if (parsed.deepA) lines.push(`🔮 Analyse: ${parsed.deepA.replace(/^##.*$/gm,'').slice(0, 200)}...`);
+            }
+            if (parsed.facesB) {
+              lines.push('');
+              lines.push(labelB);
+              const pn = PLANET_NAMES[parsed.facesB.planet as string] || parsed.facesB.planet;
+              const sn = SIGN_NAMES[parsed.facesB.sign as string] || parsed.facesB.sign;
+              lines.push(`${parsed.facesB.planet} ${pn} · ${parsed.facesB.sign} ${sn} · Maison ${parsed.facesB.house}`);
+              if (parsed.shortB) lines.push(`→ ${parsed.shortB.slice(0, 300)}`);
+              if (parsed.deepB) lines.push(`🔮 Analyse: ${parsed.deepB.replace(/^##.*$/gm,'').slice(0, 200)}...`);
+            }
+          } else {
+            // Format simple
+            Object.entries(parsed).forEach(([k, v]) => {
+              if (typeof v === 'string' && k !== 'found' && k !== 'static') {
+                lines.push(`${k}: ${v.slice(0, 200)}`);
+              }
+            });
+          }
+        } catch {
+          // Fallback : texte brut
+          const t = r.interpretation || '';
+          lines.push(t.slice(0, 500));
+        }
+      }
+    }
+
+    // Fallback pour l'interprétation si rien n'a été extrait
+    if (lines.length <= 5 && r.interpretation) {
+      const t = r.interpretation.replace(/<[^>]*>/g, '').slice(0, 300);
+      if (t) lines.push(t);
+    }
+
+    // Footer
+    lines.push('');
+    lines.push(`🔮 ${app}`);
+
+    return lines.join('\n');
+  }, []);
+
+  const doShare = useCallback(async (r: Reading) => {
+    const text = generateShareText(r);
+    const shared = await shareViaCapacitor('Tarot Divinatoire', text);
+    if (!shared) {
+      // Clipboard fallback handled by shareViaCapacitor
+      setShareCopied(r.id);
+      setTimeout(() => setShareCopied(null), 2000);
+    }
+  }, [generateShareText]);
 
   // --- Parsers d'interprétation ---
   const parseTarot3 = (raw: string) => {
@@ -392,6 +521,19 @@ export default function ReadingsPage() {
                                 aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
                                 🗑
                               </button>
+                              <button onClick={() => doShare(r)}
+                                className="mr-2 p-1.5 rounded-md text-blue-400/60 hover:text-blue-300 hover:bg-blue-900/30 transition-all shrink-0 relative"
+                                aria-label={t('history.share')} title={t('history.share')}>
+                                {shareCopied === r.id ? (
+                                  <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
+                                ) : (
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                    <polyline points="16 6 12 2 8 6"/>
+                                    <line x1="12" y1="2" x2="12" y2="15"/>
+                                  </svg>
+                                )}
+                              </button>
                             </div>
 
                             {openReading === r.id && (
@@ -449,6 +591,42 @@ export default function ReadingsPage() {
       )}
     </div>
   );
+}
+
+// ── Rendu markdown simple (## headings, **bold**, *italic*) ──
+function renderMd(text: string, query = ''): React.ReactNode {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('## ')) {
+      elements.push(<h3 key={key++} className="text-[10px] font-bold uppercase tracking-wider mt-2 mb-0.5" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#b8944d' }}>{inlineMd(trimmed.slice(3))}</h3>);
+    } else if (trimmed.startsWith('# ')) {
+      elements.push(<h4 key={key++} className="text-[10px] font-bold mt-1.5 mb-0.5" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#c49460' }}>{inlineMd(trimmed.slice(2))}</h4>);
+    } else if (trimmed) {
+      elements.push(<p key={key++} className="mb-0.5 leading-relaxed text-xs" style={{ color: '#ccc' }}>{inlineMd(trimmed)}</p>);
+    }
+  }
+  return elements.length > 0 ? <div className="space-y-1">{elements}</div> : null;
+}
+
+// Rendu markdown inline (**bold**, *italic*) - version simple (pas de Highlight)
+function inlineMd(s: string): React.ReactNode {
+  const parts = s.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: '#87CEEB' }}>{part.slice(2, -2)}</strong>;
+    }
+    const italicParts = part.split(/(\*[^*]+\*)/);
+    return italicParts.map((sub, j) => {
+      if (sub.startsWith('*') && sub.endsWith('*')) {
+        return <em key={`${i}-${j}`} style={{ fontStyle: 'italic', opacity: 0.85 }}>{sub.slice(1, -1)}</em>;
+      }
+      return sub;
+    });
+  });
 }
 
 // --- Sous-composants ---
@@ -808,7 +986,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
               {interpData.deepA && (
                 <div className="mt-3">
                   <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
-                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.deepA} query={query} /></p>
+                  {renderMd(interpData.deepA)}
                 </div>
               )}
             </div>
@@ -828,7 +1006,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
               {interpData.deepB && (
                 <div className="mt-3">
                   <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
-                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.deepB} query={query} /></p>
+                  {renderMd(interpData.deepB)}
                 </div>
               )}
             </div>

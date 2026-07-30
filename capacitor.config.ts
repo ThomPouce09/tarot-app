@@ -1,30 +1,34 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.tarot.divination',
-  appName: 'Tarot Divination',
-  webDir: 'out',  // Dossier de build Next.js (export statique)
+  appId: 'com.tarot.app',
+  appName: 'Tarot Divinatoire',
+  webDir: 'out',
   server: {
-    // Pour dev en live-reload (décommenter pour tester sur mobile)
-    // url: 'http://10.167.87.38:3000',
-    // cleartext: true,
-  },
-  android: {
-    allowMixedContent: true,  // Pour appeler l'API en dev
-    captureInput: true,
-    webContentsDebuggingEnabled: true,  // Debug dans Chrome
+    androidScheme: 'https',
+    // Allow cleartext in dev only — remove for production
+    cleartext: false,
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      launchAutoHide: true,
-      backgroundColor: '#0a0604',
+      backgroundColor: '#0d1b2a',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
-      showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: false,
     },
+    Share: {},
+    Haptics: {
+      notificationDuration: 0.2,
+    },
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#0d1b2a',
+    },
+  },
+  android: {
+    allowMixedContent: false,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
   },
 };
 

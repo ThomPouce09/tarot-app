@@ -56,6 +56,14 @@ nul
 SESSION_DEV_SUMMARY.md
 *.bat
 
+# Capacitor (APK)
+android/
+.idea/android/
+capacitor-cordova-android-plugins/
+capacitor-cordova-ios-plugins/
+*.apk
+*.aab
+
 tsconfig.tsbuildinfo
 
 # Playwright

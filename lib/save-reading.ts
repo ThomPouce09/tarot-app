@@ -5,6 +5,8 @@
 // Utilisé par les pages Runes et Dés du Zodiaque pour alimenter
 // /dashboard/account/readings. Ne fait rien si l'utilisateur n'est pas connecté.
 
+import { api } from './api-client';
+
 export interface SaveReadingInput {
   /** type de tirage, ex: 'runes-nornes', 'des-choix' */
   type: string;
@@ -26,7 +28,7 @@ export async function saveReading(input: SaveReadingInput): Promise<string | nul
     const userId = u?.email;
     if (!userId) return null;
 
-    const res = await fetch('/api/readings', {
+    const res = await api('/api/readings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -59,7 +61,7 @@ export async function updateReading(readingId: string, payload: { cards?: unknow
     const userId = u?.email;
     if (!userId) return false;
 
-    const res = await fetch('/api/readings', {
+    const res = await api('/api/readings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, id: readingId, ...payload }),
