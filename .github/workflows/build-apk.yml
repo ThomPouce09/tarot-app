@@ -23,10 +23,12 @@ jobs:
       - name: Build Next.js static export
         run: npm run build
 
-      - name: Setup Java 17
+      - name: Setup Java 21
+        # Capacitor 8 / AGP 8.13 (compileSdk 36) compile en Java 21 —
+        # un JDK 17 lève « invalid source release: 21 » sur :capacitor-android.
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: 21
           distribution: temurin
 
       - name: Setup Android SDK
