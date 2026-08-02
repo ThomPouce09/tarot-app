@@ -160,9 +160,9 @@ async function main() {
   }
 
   for (const c of CREATURES) {
-    const rows = await prisma.$queryRaw<{ id: string }[]>(
+    const rows = (await prisma.$queryRaw(
       Prisma.sql`SELECT "id" FROM "Creature" WHERE "slug" = ${c.slug}`,
-    );
+    )) as { id: string }[];
     let id: string;
     if (rows.length) {
       id = rows[0].id;
@@ -173,9 +173,9 @@ async function main() {
       console.log(`↻ ${c.slug} mis à jour`);
     } else {
       const creatureId = crypto.randomUUID();
-      const ins = await prisma.$queryRaw<{ id: string }[]>(
+      const ins = (await prisma.$queryRaw(
         Prisma.sql`INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES (${creatureId},${c.slug},${c.name},${c.image},${c.page},${c.color}) RETURNING "id"`,
-      );
+      )) as { id: string }[];
       id = ins[0].id;
       console.log(`＋ ${c.slug} créé`);
     }
