@@ -136,11 +136,22 @@ export async function callOracle(
 
         const data = await res.json();
         const msg = data?.choices?.[0]?.message ?? data?.message ?? {};
-        const content: string = msg?.content || msg?.reasoning || '';
+        // NE JAMAIS utiliser `reasoning` comme réponse finale : certains modèles
+        // (DeepSeek, modèles de raisonnement OpenRouter) renvoient leur chaîne de
+        // pensée dans `reasoning_content`/`reasoning` avec un `content` vide → on
+        // afficherait le métatexte de raisonnement au lieu de l'interprétation.
+        const content: string = msg?.content?.trim?.() ?? '';
         if (content && content.trim().length > 0) {
           // Ignorer les réponses du filtre sécurité d'OpenRouter (ex: "User Safety: safe")
           if (/^User Safety:\s/i.test(content.trim())) {
             console.warn(`[llm] ${provider.name} / ${model}: réponse filtrée par sécurité ("${content.trim().slice(0, 40)}"), bascule...`);
+            continue;
+          }
+          // Ignorer le métatexte de raisonnement : certains modèles "pensent à voix
+          // haute" dans content ("We need to respond to the user...", "Je dois
+          // répondre...", etc.) au lieu de livrer l'interprétation demandée.
+          if (/^(we need to respond|i need to respond|the user says|the user asked|the user is asking|let me (think|provide|write|start)|i'll (provide|write|start)|je dois (répondre|fournir|commencer)|je vais (répondre|fournir|analyser|commencer)|d'accord, (je )?(vais|analysons)|ok, (je )?(vais|analysons)|en tant qu'|voici (ma|une|mon)|réponse[:\s]).*$/i.test(content.trim())) {
+            console.warn(`[llm] ${provider.name} / ${model}: métatexte de raisonnement détecté ("${content.trim().slice(0, 50)}"), bascule...`);
             continue;
           }
           console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);

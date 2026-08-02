@@ -35,6 +35,7 @@ import {
 import AstroDiceSet from './AstroDiceSet';
 import { randomTargetFaces, type TargetFaces } from './glyphs';
 import type { AstroDiceSetProps } from './AstroDiceSet';
+import { installSoundUnlock, playRandom, playSound } from '@/lib/sounds';
 
 /* -------------------------------------------------------------------------- */
 /*  Physique des mini-dés dans le gobelet                                      */
@@ -231,6 +232,11 @@ export default function AstroDiceCup({
   // jamais → on neutralise hideIdle pour ne plus masquer les dés.
   const [revealed, setRevealed] = useState(false);
 
+  // ── Sons : déverrouillage au premier geste (autoplay policy). ──
+  useEffect(() => {
+    installSoundUnlock();
+  }, []);
+
   // Déplacement du gobelet (secousse + bascule). En px, relatif à GOBLET_BASE.
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -288,6 +294,7 @@ export default function AstroDiceCup({
       y.set(-26);
       setRevealed(true);
       setRolling(true);
+      playRandom('dice-throw-1', 'dice-throw-2', 'dice-throw-3', 'dices-throw-4');
     }, 400);
   }, [revealed, rolling, rotate, y]);
 
@@ -319,6 +326,7 @@ export default function AstroDiceCup({
         if (phase === 'idle') {
           setPhase('shake');
           onShake?.();
+          playRandom('dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1', 'dices-cup-2', 'dices-cup-3');
         }
         // On mémorise la position de départ pour détecter un drag vertical.
         pushStartY.current = e.clientY;
@@ -353,6 +361,7 @@ export default function AstroDiceCup({
             y.set(-26);
             setRevealed(true); // les dés de l'arène restent visibles après
             setRolling(true); // ← pilote l'ANIM 1 en interne
+            playRandom('dice-throw-1', 'dice-throw-2', 'dice-throw-3', 'dices-throw-4');
           }, 400);
           return;
         }

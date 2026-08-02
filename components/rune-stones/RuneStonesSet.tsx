@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { drawRunes, type Rune, type RuneLayout } from './runes';
+import { installSoundUnlock, playRandom } from '@/lib/sounds';
 
 export interface RuneStonesSetProps {
   count?: number;
@@ -179,6 +180,11 @@ export default function RuneStonesSet({
   const [burstKey, setBurstKey] = useState(0);
   const restFired = useRef(false);
 
+  // ── Sons : déverrouillage au premier geste (autoplay policy). ──
+  useEffect(() => {
+    installSoundUnlock();
+  }, []);
+
   const order = useMemo(() => revealOrder(layout, count), [layout, count]);
   const slots = useMemo(() => slotsFor(layout, count), [layout, count]);
 
@@ -207,6 +213,8 @@ export default function RuneStonesSet({
   const onPouchTap = useCallback(() => {
     void enableTilt();
     if (phase !== 'drawing' || revealed >= count) return;
+    // Chaque tap sur le pochon = remuage des runes.
+    playRandom('runes-handle-1', 'runes-handle-2');
     const next = pushes + 1;
     setPushes(next);
     if (next >= (thresholds[revealed] ?? 3)) {
@@ -214,6 +222,8 @@ export default function RuneStonesSet({
       setRevealed((v) => v + 1);
       setPushes(0);
       setBurstKey((k) => k + 1); // déclenche les particules dorées
+      // La rune jaillit du pochon → chute.
+      playRandom('rune-falling-1', 'rune-falling-2', 'rune-hit-1');
       if (justRevealed + 1 >= count) setPhase('done');
     }
   }, [phase, pushes, revealed, count, thresholds, enableTilt]);

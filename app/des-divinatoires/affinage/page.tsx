@@ -40,6 +40,8 @@ import {
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
+import { nextRaceSeq } from '@/lib/race-guard';
+import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT } from '@/lib/i18n';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
@@ -278,7 +280,11 @@ export default function AffinagePage() {
   };
 
   // Déclenche l'analyse LLM approfondie.
+  // Guard anti-course : seul le dernier lancement peut écrire l'état.
+  const analysisLastSeqRef = useRef(0);
   const runAnalysis = useCallback(async () => {
+    const seq = nextRaceSeq();
+    analysisLastSeqRef.current = seq;
     setAnalysisLoading(true);
     setAnalysisErrored(false);
     setAnalysis(null);
@@ -298,6 +304,7 @@ export default function AffinagePage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      if (seq !== analysisLastSeqRef.current) return; // réponse obsolète → ignorer
       let interpretationText = '';
       if (data.sections && Array.isArray(data.sections)) {
         setAnalysisSections(data.sections);
@@ -318,10 +325,12 @@ export default function AffinagePage() {
         updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
       }
     } catch {
-      setAnalysisErrored(true);
-      setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
+      if (seq === analysisLastSeqRef.current) {
+        setAnalysisErrored(true);
+        setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
+      }
     } finally {
-      setAnalysisLoading(false);
+      if (seq === analysisLastSeqRef.current) setAnalysisLoading(false);
     }
   }, [result, presentKinds, phase, option, question]);
 
@@ -338,6 +347,9 @@ export default function AffinagePage() {
   }, [showResult]);
 
   // ── Fetch DB interpretation après chaque tirage réussi ──
+  // Guard anti-course : un nouveau tirage (showResult change) ne doit pas être
+  // écrasé par la réponse tardive du tirage précédent.
+  const dbLastSeqRef = useRef(0);
   useEffect(() => {
     if (!showResult) return;
     const planetGlyph = result.planet;
@@ -350,6 +362,8 @@ export default function AffinagePage() {
     const house = `Maison ${houseNum}`;
     if (!planet || !sign) return;
 
+    const seq = nextRaceSeq();
+    dbLastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
 
@@ -360,6 +374,7 @@ export default function AffinagePage() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (seq !== dbLastSeqRef.current) return; // réponse obsolète → ignorer
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
           // Ajouter DB à l'accumulateur et persister
@@ -372,16 +387,21 @@ export default function AffinagePage() {
       .catch(() => {
         // silencieux — la DB est un bonus, pas un blocage
       })
-      .finally(() => setDbLoading(false));
+      .finally(() => { if (seq === dbLastSeqRef.current) setDbLoading(false); });
   }, [showResult, result.planet, result.sign, result.house]);
 
   // ── Oracle flash : déclenché automatiquement dès que les dés sont posés ──
+  // Guard anti-course : si un nouveau tirage arrive pendant que la requête est
+  // en vol, la réponse tardive de l'ancien tirage ne doit pas écraser l'état.
+  const oracleFlashLastSeqRef = useRef(0);
   useEffect(() => {
     if (!showResult) return;
     if (!result.planet || !result.sign || !result.house) return;
     // Déjà chargé pour ce tirage ? On évite de re-lancer.
     if (oracleFlash !== null || oracleFlashLoading) return;
 
+    const seq = nextRaceSeq();
+    oracleFlashLastSeqRef.current = seq;
     setOracleFlashLoading(true);
     const planetGlyph = result.planet as string;
     const signGlyph = result.sign as string;
@@ -405,6 +425,7 @@ export default function AffinagePage() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (seq !== oracleFlashLastSeqRef.current) return; // réponse obsolète → ignorer
         if (data.oracle) {
           setOracleFlash(data.oracle);
           interpAccRef.current.oracleFlash = data.oracle;
@@ -416,7 +437,7 @@ export default function AffinagePage() {
       .catch(() => {
         // silencieux — l'oracle flash est un bonus
       })
-      .finally(() => setOracleFlashLoading(false));
+      .finally(() => { if (seq === oracleFlashLastSeqRef.current) setOracleFlashLoading(false); });
   }, [showResult, result, question, oracleFlash, oracleFlashLoading]);
 
   return (
@@ -434,7 +455,7 @@ export default function AffinagePage() {
             }
             .bleu-ciel-glyph { color: #87CEEB !important; }
     `}} />
-      <DiceBackground>
+      <DiceBackground starry starryVariant="gold">
       <YiSlideNav />
       <DiceTitle title={t('des.affinage.title')} />
 
@@ -801,7 +822,7 @@ export default function AffinagePage() {
                       className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                       style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                     >
-                      Interprétation combinée
+                      Résumé du tirage
                     </p>
                     <p
                       className="text-center text-sm leading-relaxed"
@@ -815,12 +836,10 @@ export default function AffinagePage() {
                 {/* Zone LLM — chargement puis texte généré */}
                 <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
                   {analysisLoading && (
-                    <div
-                      className="text-center text-sm italic"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
-                    >
-                      {t('des.affinage.thinking')}
-                    </div>
+                    <AnalysisWaitCard
+                      accent={DICE_THEME.gold}
+                      title={t('des.affinage.thinking')}
+                    />
                   )}
 
                   {/* Analyse structurée en belles cartes */}

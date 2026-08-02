@@ -20,6 +20,8 @@ import {
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
+import { nextRaceSeq } from '@/lib/race-guard';
+import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
 
 const AstroDiceCup = dynamic(
@@ -146,31 +148,40 @@ function DiceAnalysis({
   }, [deepAnalysis]);
 
   // Analyse approfondie
+  // Guard anti-course : seule la dernière exécution peut écrire l'état
+  // (double clic, StrictMode dev, relance) — une réponse tardive ne doit
+  // jamais écraser une réponse plus récente.
+  const deepLastSeqRef = useRef(0);
   const runDeep = useCallback(async () => {
+    const seq = nextRaceSeq();
+    deepLastSeqRef.current = seq;
     setDeepLoading(true);
     setDeepAnalysis(null);
     try {
       const planet = PLANET_NAMES[faces.planet as string];
       const sign = SIGN_NAMES[faces.sign as string];
       const house = `Maison ${faces.house}`;
-      if (!planet || !sign) { setDeepAnalysis('Indisponible.'); return; }
+      if (!planet || !sign) { if (seq === deepLastSeqRef.current) setDeepAnalysis('Indisponible.'); return; }
       const res = await fetch('/api/astro-interpretation-obstacle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
       });
       const data = await res.json();
+      if (seq !== deepLastSeqRef.current) return; // réponse obsolète → ignorer
       if (data.analysis) {
         setDeepAnalysis(data.analysis);
         onDeepAnalysisReady?.(data.analysis);
       } else {
         setDeepAnalysis('Indisponible.');
       }
-    } catch { setDeepAnalysis('Indisponible.'); }
-    finally { setDeepLoading(false); }
+    } catch { if (seq === deepLastSeqRef.current) setDeepAnalysis('Indisponible.'); }
+    finally { if (seq === deepLastSeqRef.current) setDeepLoading(false); }
   }, [faces, question, spread, lang]);
 
   // Interprétation courte : LLM d'abord, DB en fallback
+  // Guard anti-course : seul le dernier lancement peut écrire l'état.
+  const shortLastSeqRef = useRef(0);
   useEffect(() => {
     if (!faces.planet || !faces.sign || !faces.house) return;
     const planet = PLANET_NAMES[faces.planet as string];
@@ -178,6 +189,8 @@ function DiceAnalysis({
     const house = `Maison ${faces.house}`;
     if (!planet || !sign) return;
 
+    const seq = nextRaceSeq();
+    shortLastSeqRef.current = seq;
     setDbLoading(true);
     onInterpretationLoading?.(true);
 
@@ -190,6 +203,7 @@ function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'short', lang }),
         });
         const data = await res.json();
+        if (seq !== shortLastSeqRef.current) return; // réponse obsolète → ignorer
         if (data.interpretation) {
           setDbInterpretation(data.interpretation);
           onInterpretationReady?.(data.interpretation);
@@ -207,6 +221,7 @@ function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house }),
         });
         const data = await res.json();
+        if (seq !== shortLastSeqRef.current) return; // réponse obsolète → ignorer
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
           onInterpretationReady?.(data.interpretation);
@@ -215,13 +230,34 @@ function DiceAnalysis({
           return;
         }
       } catch { /* silencieux */ }
-      setDbLoading(false);
-      onInterpretationLoading?.(false);
+      if (seq === shortLastSeqRef.current) {
+        setDbLoading(false);
+        onInterpretationLoading?.(false);
+      }
     })();
   }, [faces, question, spread, lang]);
 
   return (
     <div className="mt-4 space-y-3">
+      {/* Keyframes partagées (attente courte + approfondie) — toujours rendues */}
+      <style>{`
+        @keyframes oracle-pulse {
+          0%, 100% { opacity: 0.5; transform: scale(0.96); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes oracle-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes oracle-dot {
+          0%, 20% { opacity: 0; }
+          40% { opacity: 1; }
+          100% { opacity: 1; }
+        }
+        .oracle-loader-dot { display: inline-block; animation: oracle-dot 1.4s infinite; }
+        .oracle-loader-dot:nth-child(2) { animation-delay: 0.2s; }
+        .oracle-loader-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
       {/* Analyse approfondie */}
       <div ref={deepRef}>
         {!deepLoading && !deepAnalysis && (
@@ -232,17 +268,17 @@ function DiceAnalysis({
           </div>
         )}
         {deepLoading && !deepAnalysis && (
-          <div className="text-center">
-            <DiceButton variant="gold" disabled>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                Consultation de l'Oracle...
-              </span>
-            </DiceButton>
-          </div>
+          <AnalysisWaitCard
+            accent="#c4a0e0"
+            title={
+              <>
+                Consultation de l'Oracle
+                <span className="oracle-loader-dot">.</span>
+                <span className="oracle-loader-dot">.</span>
+                <span className="oracle-loader-dot">.</span>
+              </>
+            }
+          />
         )}
         {deepAnalysis && deepAnalysis !== 'Indisponible.' && (
           <div
@@ -465,7 +501,7 @@ export default function ObstacleSolutionPage() {
   const cupVisible = step !== 'intro';
 
   return (
-    <DiceBackground>
+    <DiceBackground starry starryVariant="silver">
       <YiSlideNav />
       <DiceTitle
         title={t('des.obstacle.title')}
@@ -696,7 +732,7 @@ export default function ObstacleSolutionPage() {
                     <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(218,165,32,0.2)' }}>
                       <p className="text-center text-xs font-bold uppercase tracking-wider mb-2"
                          style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F0E6D3' }}>
-                        【Interprétation combinée】
+                        【Résumé du tirage】
                       </p>
                       <div className="text-sm leading-relaxed text-center"
                            style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.75 }}>
@@ -830,7 +866,7 @@ export default function ObstacleSolutionPage() {
                     <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(46,134,193,0.2)' }}>
                       <p className="text-center text-xs font-bold uppercase tracking-wider mb-2"
                          style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F0E6D3' }}>
-                        【Interprétation combinée】
+                        【Résumé du tirage】
                       </p>
                       <div className="text-sm leading-relaxed text-center"
                            style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.75 }}>

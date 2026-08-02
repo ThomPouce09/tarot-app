@@ -5,7 +5,7 @@
 // Aucun `prisma generate` requis : on utilise $queryRawUnsafe / $executeRawUnsafe.
 // Exécution: npx tsx scripts/setup-creatures.ts
 // ===========================================================================
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -160,9 +160,8 @@ async function main() {
   }
 
   for (const c of CREATURES) {
-    const rows = await prisma.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT "id" FROM "Creature" WHERE "slug" = $1`,
-      c.slug,
+    const rows = await prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT "id" FROM "Creature" WHERE "slug" = ${c.slug}`,
     );
     let id: string;
     if (rows.length) {
@@ -174,9 +173,8 @@ async function main() {
       console.log(`↻ ${c.slug} mis à jour`);
     } else {
       const creatureId = crypto.randomUUID();
-      const ins = await prisma.$queryRawUnsafe<{ id: string }[]>(
-        `INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id"`,
-        creatureId, c.slug, c.name, c.image, c.page, c.color,
+      const ins = await prisma.$queryRaw<{ id: string }[]>(
+        Prisma.sql`INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES (${creatureId},${c.slug},${c.name},${c.image},${c.page},${c.color}) RETURNING "id"`,
       );
       id = ins[0].id;
       console.log(`＋ ${c.slug} créé`);

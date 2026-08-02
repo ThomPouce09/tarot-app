@@ -8,9 +8,16 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+
+// Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
+const StarryNight = dynamic(() => import('@/components/starry-night'), {
+  ssr: false,
+  loading: () => null,
+});
 
 /* Palette centralisée — Bleu nuit & Or fin.
    Les clés historiques (brick/ocre/...) sont conservées pour ne pas casser les
@@ -41,10 +48,16 @@ export function DiceBackground({
   children,
   scrollable = false,
   bgImage,
+  starry = false,
+  starryVariant = 'blue',
 }: {
   children: ReactNode;
   scrollable?: boolean;
   bgImage?: string;
+  /** Active la nuit étoilée animée par-dessus le dégradé (canvas rAF). */
+  starry?: boolean;
+  /** Variante du ciel étoilé : blue (défaut), gold, silver. */
+  starryVariant?: 'blue' | 'gold' | 'silver';
 }) {
   return (
     <div
@@ -56,6 +69,12 @@ export function DiceBackground({
         background: `radial-gradient(ellipse at 50% 0%, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 55%, #02040c 100%)`,
       }}
     >
+      {/* nuit étoilée animée (remplace le fond statique quand activée) */}
+      {starry && (
+        <div className="pointer-events-none absolute inset-0" style={{ zIndex: 0 }}>
+          <StarryNight variant={starryVariant} />
+        </div>
+      )}
       {/* fond d'écran personnalisé (optionnel) */}
       {bgImage && (
         <div
