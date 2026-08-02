@@ -57,6 +57,8 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'spell', file: '/audio/spell.mp3', category: 'yi-jing', label: 'Sort (révélation)', duration: 2.10, usage: 'Révélation / effet magique' },
 
   // ── Ambiance / UI ──────────────────────────────────────────────────────
+  { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires' },
+  { key: 'runes', file: '/audio/runes.mp3', category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes' },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
   { key: 'creatures2', file: '/audio/creatures2.mp3', category: 'ambient', label: 'Créature 2', duration: 1.00, usage: 'Tap sur la luciole — variant 2' },
@@ -149,4 +151,18 @@ export function installSoundUnlock() {
 export function playRandom(...keys: string[]) {
   if (keys.length === 0) return;
   playSound(keys[Math.floor(Math.random() * keys.length)]);
+}
+
+/** Arrête immédiatement un son en cours (pause + rembobine). Sûr si le son
+ *  n'est pas en train de jouer — no-op. Utilisé pour couper un jingle quand
+ *  l'utilisateur quitte la page (navigation, fermeture, arrière-plan). */
+export function stopSound(key: string) {
+  const snd = unlocked.get(key);
+  if (!snd) return;
+  try {
+    snd.pause();
+    snd.currentTime = 0;
+  } catch {
+    // élément non jouable — on ignore
+  }
 }

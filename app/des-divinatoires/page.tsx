@@ -9,6 +9,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { useLang } from '@/lib/i18n';
+import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
 // rendue uniquement après hydratation (cohérent avec /runes) pour éviter
@@ -151,6 +152,26 @@ export default function DesDivinatoiresHub() {
   const [mounted, setMounted] = useState(false);
   const lang = useLang();
   useEffect(() => setMounted(true), []);
+
+  // Jingle d'ouverture : joue une fois au montage de la page. La navigation
+  // depuis un lien (menu ou hub) hérite de la user activation du clic →
+  // playSound() est autorisé. installSoundUnlock() couvre le cas d'un accès
+  // direct (URL tapée) : le son se pré-déverrouille au 1er geste.
+  // Le jingle est coupé dès que l'utilisateur quitte la page (navigation,
+  // fermeture d'onglet, passage en arrière-plan) via stopSound().
+  useEffect(() => {
+    installSoundUnlock();
+    const t = window.setTimeout(() => playSound('des-divinatoires', 0.75), 150);
+    const onVisibility = () => {
+      if (document.hidden) stopSound('des-divinatoires');
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopSound('des-divinatoires');
+    };
+  }, []);
   return (
     <DiceBackground>
       <YiSlideNav />
