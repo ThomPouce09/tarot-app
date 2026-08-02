@@ -18,6 +18,11 @@ android {
     }
     buildTypes {
         release {
+            // Signé avec le keystore debug (auto-généré par AGP sur le runner)
+            // pour permettre l'installation manuelle de l'APK. Sans signingConfig,
+            // l'APK sort NON signé et Android le rejette (« package invalide »).
+            // À remplacer par un keystore de production avant publication Play Store.
+            signingConfig signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
