@@ -5,7 +5,7 @@
 // Aucun `prisma generate` requis : on utilise $queryRawUnsafe / $executeRawUnsafe.
 // Exécution: npx tsx scripts/setup-creatures.ts
 // ===========================================================================
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -160,8 +160,12 @@ async function main() {
   }
 
   for (const c of CREATURES) {
-    const rows = (await prisma.$queryRaw(
-      Prisma.sql`SELECT "id" FROM "Creature" WHERE "slug" = ${c.slug}`,
+    // $queryRawUnsafe (pas de Prisma.sql) : le client Prisma n'est PAS généré
+    // en CI (pas de schema.prisma) → le namespace Prisma y est incomplet.
+    // Cast après appel au lieu d'un type argument (TS2347 sinon).
+    const rows = (await prisma.$queryRawUnsafe(
+      `SELECT "id" FROM "Creature" WHERE "slug" = $1`,
+      c.slug,
     )) as { id: string }[];
     let id: string;
     if (rows.length) {
@@ -173,8 +177,9 @@ async function main() {
       console.log(`↻ ${c.slug} mis à jour`);
     } else {
       const creatureId = crypto.randomUUID();
-      const ins = (await prisma.$queryRaw(
-        Prisma.sql`INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES (${creatureId},${c.slug},${c.name},${c.image},${c.page},${c.color}) RETURNING "id"`,
+      const ins = (await prisma.$queryRawUnsafe(
+        `INSERT INTO "Creature" ("id","slug","name","image","page","color") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id"`,
+        creatureId, c.slug, c.name, c.image, c.page, c.color,
       )) as { id: string }[];
       id = ins[0].id;
       console.log(`＋ ${c.slug} créé`);
