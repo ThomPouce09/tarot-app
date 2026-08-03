@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 
@@ -16,6 +16,7 @@ export const OPEN_LOGIN_EVENT = 'open-login';
 
 export function LoginModal() {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useT();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -26,6 +27,13 @@ export function LoginModal() {
     window.addEventListener(OPEN_LOGIN_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_LOGIN_EVENT, onOpen);
   }, []);
+
+  // Ferme la modale dès que la route change (liens « Pas encore inscrit »,
+  // « Mot de passe oublié », connexion réussie). Sans ça, la mire (z-100)
+  // reste ouverte par-dessus la page de destination dans la WebView APK.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
