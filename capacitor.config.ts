@@ -10,6 +10,13 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   plugins: {
+    // Critical for APK: routes every fetch/XHR through the native Android
+    // HTTP client, bypassing WebView CORS entirely. Without this, the
+    // WebView (origin https://localhost) blocks responses from the remote
+    // backend → « Erreur de connexion » on login.
+    CapacitorHttp: {
+      enabled: true,
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       backgroundColor: '#0d1b2a',
