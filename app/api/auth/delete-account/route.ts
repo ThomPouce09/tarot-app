@@ -17,9 +17,14 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (user) {
-      await prisma.user.delete({
-        where: { email: email.toLowerCase().trim() }
-      });
+      // Supprime explicitement les dépendances (readings, subscription) dans
+      // une transaction : la FK Reading→User est en Restrict en base, un
+      // prisma.user.delete seul échouerait si l'utilisateur a des tirages.
+      await prisma.$transaction([
+        prisma.reading.deleteMany({ where: { userId: user.id } }),
+        prisma.subscription.deleteMany({ where: { userId: user.id } }),
+        prisma.user.delete({ where: { id: user.id } }),
+      ]);
       return NextResponse.json({ success: true });
     }
 
