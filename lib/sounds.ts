@@ -59,6 +59,8 @@ export const SOUNDS: SoundEntry[] = [
   // ── Ambiance / UI ──────────────────────────────────────────────────────
   { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires' },
   { key: 'runes', file: '/audio/runes.mp3', category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes' },
+  { key: 'tarot2', file: '/audio/tarot2.mp3', category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot' },
+  { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing' },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
   { key: 'creatures2', file: '/audio/creatures2.mp3', category: 'ambient', label: 'Créature 2', duration: 1.00, usage: 'Tap sur la luciole — variant 2' },
