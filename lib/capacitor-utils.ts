@@ -5,13 +5,21 @@
 
 export function isNative(): boolean {
   if (typeof window === 'undefined') return false;
-  return !!(window as any).Capacitor?.isNative;
+  const cap = (window as any).Capacitor;
+  if (!cap) return false;
+  // Capacitor 8: `isNativePlatform()` is a FUNCTION; the old `isNative`
+  // boolean property was removed. Supporting both keeps compat.
+  if (typeof cap.isNativePlatform === 'function') return cap.isNativePlatform();
+  return !!cap.isNative;
 }
 
 export function getPlatform(): 'web' | 'android' | 'ios' {
   if (typeof window === 'undefined') return 'web';
   const cap = (window as any).Capacitor;
-  if (!cap?.isNative) return 'web';
+  if (!cap) return 'web';
+  const isNative =
+    typeof cap.isNativePlatform === 'function' ? cap.isNativePlatform() : !!cap.isNative;
+  if (!isNative) return 'web';
   const platform = cap.getPlatform?.() || 'web';
   return platform === 'android' ? 'android' : platform === 'ios' ? 'ios' : 'web';
 }

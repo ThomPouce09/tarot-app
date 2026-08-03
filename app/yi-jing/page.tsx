@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
+import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -17,6 +18,24 @@ export default function YiJingHubPage() {
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
+  }, []);
+
+  // Jingle d'ouverture : même pattern que /des-divinatoires et /runes
+  // (user activation héritée de la navigation par lien ; installSoundUnlock
+  // couvre l'accès direct). Coupé dès que l'utilisateur quitte la page
+  // (navigation, onglet fermé, arrière-plan) via stopSound().
+  useEffect(() => {
+    installSoundUnlock();
+    const t = window.setTimeout(() => playSound('yi-jing', 0.75), 150);
+    const onVisibility = () => {
+      if (document.hidden) stopSound('yi-jing');
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopSound('yi-jing');
+    };
   }, []);
 
   const handleLockedClick = (e: React.MouseEvent) => {

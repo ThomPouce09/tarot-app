@@ -13,6 +13,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
+import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 
 // Frise décorative de runes — rendue uniquement après hydratation pour
 // éviter le mismatch d'hydratation (glyphes runiques = Unicode hors-BMP).
@@ -69,6 +70,24 @@ const TILES = [
 export default function RunesHub() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Jingle d'ouverture : même pattern que /des-divinatoires (user activation
+  // héritée de la navigation par lien ; installSoundUnlock couvre l'accès direct).
+  // Le jingle est coupé dès que l'utilisateur quitte la page (navigation,
+  // fermeture d'onglet, passage en arrière-plan) via stopSound().
+  useEffect(() => {
+    installSoundUnlock();
+    const t = window.setTimeout(() => playSound('runes', 0.75), 150);
+    const onVisibility = () => {
+      if (document.hidden) stopSound('runes');
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopSound('runes');
+    };
+  }, []);
   return (
     <RuneBackground>
       <YiSlideNav />

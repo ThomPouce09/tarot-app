@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
-import { shareViaCapacitor } from '@/lib/capacitor-utils';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 import { api } from '@/lib/api-client';
 
@@ -319,11 +318,16 @@ export default function ReadingsPage() {
 
   const doShare = useCallback(async (r: Reading) => {
     const text = generateShareText(r);
-    const shared = await shareViaCapacitor('Tarot Divinatoire', text);
-    if (!shared) {
-      // Clipboard fallback handled by shareViaCapacitor
-      setShareCopied(r.id);
-      setTimeout(() => setShareCopied(null), 2000);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Tarot Divinatoire', text });
+      } catch { /* user cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        setShareCopied(r.id);
+        setTimeout(() => setShareCopied(null), 2000);
+      } catch { /* clipboard denied */ }
     }
   }, [generateShareText]);
 

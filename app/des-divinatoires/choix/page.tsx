@@ -22,7 +22,6 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
-import { api } from '@/lib/api-client';
 import {
   randomTargetFaces,
   type TargetFaces,
@@ -30,7 +29,10 @@ import {
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
+import { nextRaceSeq } from '@/lib/race-guard';
+import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 /** Mini-renderer markdown → React nodes */
 function md(text: string) {
@@ -130,7 +132,12 @@ function DiceAnalysis({
   }, [deepAnalysis]);
 
   // ── Analyse approfondie LLM (prompt long) ──
+  // Guard anti-course : si un nouveau runDeep démarre (double clic, relance),
+  // la réponse de l'ancien est ignorée (ne doit jamais écraser la nouvelle).
+  const deepLastSeqRef = useRef(0);
   const runDeep = useCallback(async () => {
+    const seq = nextRaceSeq();
+    deepLastSeqRef.current = seq;
     setDeepLoading(true);
     setDeepAnalysis(null);
     try {
@@ -138,7 +145,7 @@ function DiceAnalysis({
       const sign = SIGN_NAMES[faces.sign as string];
       const house = `Maison ${faces.house}`;
       if (!planet || !sign) {
-        setDeepAnalysis(t('des.choix.deepNotAvail'));
+        if (seq === deepLastSeqRef.current) setDeepAnalysis(t('des.choix.deepNotAvail'));
         return;
       }
       const res = await api('/api/astro-interpretation-approfondie', {
@@ -147,6 +154,7 @@ function DiceAnalysis({
         body: JSON.stringify({ planet, sign, house, question, spread, lang }),
       });
       const data = await res.json();
+      if (seq !== deepLastSeqRef.current) return; // réponse obsolète → ignorer
       if (data.analysis) {
         setDeepAnalysis(data.analysis);
         onDeepAnalysisReady?.(data.analysis);
@@ -157,13 +165,16 @@ function DiceAnalysis({
         setDeepAnalysis(t('des.choix.deepNotAvail'));
       }
     } catch {
-      setDeepAnalysis(t('des.choix.deepNotAvail'));
+      if (seq === deepLastSeqRef.current) setDeepAnalysis(t('des.choix.deepNotAvail'));
     } finally {
-      setDeepLoading(false);
+      if (seq === deepLastSeqRef.current) setDeepLoading(false);
     }
   }, [faces, question, spread, readingId, t, lang]);
 
   // ── Interprétation courte automatique (LLM d'abord, DB en fallback) ──
+  // Guard anti-course : les effets sont relancés en StrictMode dev et quand les
+  // faces/question changent → seule la dernière exécution peut écrire l'état.
+  const shortLastSeqRef = useRef(0);
   useEffect(() => {
     if (!faces.planet || !faces.sign || !faces.house) return;
     const planet = PLANET_NAMES[faces.planet as string];
@@ -171,6 +182,8 @@ function DiceAnalysis({
     const house = `Maison ${faces.house}`;
     if (!planet || !sign) return;
 
+    const seq = nextRaceSeq();
+    shortLastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
 
@@ -183,6 +196,7 @@ function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house, question: question || undefined, spread }),
         });
         const llmData = await llmRes.json();
+        if (seq !== shortLastSeqRef.current) return; // réponse obsolète → ignorer
         if (llmData.interpretation) {
           setDbInterpretation(llmData.interpretation);
           shortInterpRef.current = llmData.interpretation;
@@ -202,6 +216,7 @@ function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house }),
         });
         const dbData = await dbRes.json();
+        if (seq !== shortLastSeqRef.current) return; // réponse obsolète → ignorer
         if (dbData.found && dbData.interpretation) {
           setDbInterpretation(dbData.interpretation);
           shortInterpRef.current = dbData.interpretation;
@@ -210,7 +225,7 @@ function DiceAnalysis({
       } catch {
         // silencieux
       } finally {
-        setDbLoading(false);
+        if (seq === shortLastSeqRef.current) setDbLoading(false);
       }
     })();
   }, [faces.planet, faces.sign, faces.house, question, spread]);
@@ -226,6 +241,26 @@ function DiceAnalysis({
         boxShadow: `inset 0 0 30px ${DICE_THEME.ocre}14`,
       }}
     >
+      {/* Keyframes partagées (attente courte + approfondie) — toujours rendues */}
+      <style>{`
+        @keyframes oracle-pulse {
+          0%, 100% { opacity: 0.5; transform: scale(0.96); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes oracle-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes oracle-dot {
+          0%, 20% { opacity: 0; }
+          40% { opacity: 1; }
+          100% { opacity: 1; }
+        }
+        .oracle-loader-dot { display: inline-block; animation: oracle-dot 1.4s infinite; }
+        .oracle-loader-dot:nth-child(2) { animation-delay: 0.2s; }
+        .oracle-loader-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
+
       {/* Titre analyse */}
       <h3
         className="mb-4 text-center text-lg font-bold"
@@ -265,70 +300,43 @@ function DiceAnalysis({
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mt-5 rounded-2xl p-5 text-center"
+          className="relative mt-5 overflow-hidden rounded-2xl"
           style={{
-            background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brick} 100%)`,
             border: `1.5px solid ${DICE_THEME.gold}44`,
             boxShadow: `inset 0 0 30px ${DICE_THEME.gold}10, 0 0 30px ${DICE_THEME.gold}0c`,
           }}
         >
-          <style>{`
-            @keyframes oracle-pulse {
-              0%, 100% { opacity: 0.5; transform: scale(0.96); }
-              50% { opacity: 1; transform: scale(1); }
-            }
-            @keyframes oracle-spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            @keyframes oracle-dot {
-              0%, 20% { opacity: 0; }
-              40% { opacity: 1; }
-              100% { opacity: 1; }
-            }
-            .oracle-loader-dot { display: inline-block; animation: oracle-dot 1.4s infinite; }
-            .oracle-loader-dot:nth-child(2) { animation-delay: 0.2s; }
-            .oracle-loader-dot:nth-child(3) { animation-delay: 0.4s; }
-          `}</style>
-
+          {/* Vidéo d'attente en fond — disparaît quand l'analyse est prête */}
+          <video
+            src="/images/analyse-combinee.m4v"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+          />
+          {/* Voile bas pour la lisibilité du message */}
           <div
-            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+            className="pointer-events-none absolute inset-x-0 bottom-0"
             style={{
-              background: `radial-gradient(circle, ${DICE_THEME.gold}44 0%, transparent 70%)`,
-              animation: 'oracle-pulse 2s ease-in-out infinite',
+              background: 'linear-gradient(to top, rgba(4,6,15,0.85) 0%, rgba(4,6,15,0.35) 55%, transparent 100%)',
+              height: '55%',
             }}
-          >
-            <span
-              style={{
-                fontSize: 22,
-                animation: 'oracle-spin 3s linear infinite',
-                filter: `drop-shadow(0 0 6px ${DICE_THEME.gold})`,
-                display: 'inline-block',
-              }}
-            >
-              ☉
-            </span>
-          </div>
-
+          />
+          {/* Message d'attente */}
           <p
-            className="text-sm font-bold uppercase tracking-widest"
+            className="absolute inset-x-0 bottom-0 pb-2 text-center text-xs font-bold uppercase tracking-widest"
             style={{
               fontFamily: 'var(--font-cinzel-deco), serif',
               color: DICE_THEME.gold,
               textShadow: `0 0 12px ${DICE_THEME.gold}44`,
             }}
           >
-            Les astres consultent
-            <span className="oracle-loader-dot">.</span>
-            <span className="oracle-loader-dot">.</span>
-            <span className="oracle-loader-dot">.</span>
+            {t('des.choix.analysisPending')}
           </p>
-          <p
-            className="mt-2 text-[10px] uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.5 }}
-          >
-            {t('des.choix.searching')}
-          </p>
+          {/* Hauteur minimale pour la vidéo */}
+          <div className="h-52 sm:h-64" />
         </motion.div>
       )}
       {shortReady && (
@@ -374,55 +382,18 @@ function DiceAnalysis({
           </div>
         )}
         {deepLoading && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-5 rounded-2xl p-5 text-center"
-              style={{
-                background: `linear-gradient(135deg, ${DICE_THEME.gold}1c 0%, ${DICE_THEME.brickDeep} 100%)`,
-                border: `1.5px solid ${DICE_THEME.gold}55`,
-                boxShadow: `inset 0 0 30px ${DICE_THEME.gold}14, 0 0 30px ${DICE_THEME.gold}0c`,
-              }}
-            >
-              <div
-                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-                style={{
-                  background: `radial-gradient(circle, ${DICE_THEME.gold}33 0%, transparent 70%)`,
-                  animation: 'oracle-pulse 2s ease-in-out infinite',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 26,
-                    animation: 'oracle-spin 3s linear infinite',
-                    filter: `drop-shadow(0 0 8px ${DICE_THEME.gold})`,
-                    display: 'inline-block',
-                  }}
-                >
-                  ♄
-                </span>
-              </div>
-
-              <p
-                className="text-sm font-bold uppercase tracking-widest"
-                style={{
-                  fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: DICE_THEME.gold,
-                  textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-                }}
-              >
-                La sagesse se dévoile
-                <span className="oracle-loader-dot">.</span>
-                <span className="oracle-loader-dot">.</span>
-                <span className="oracle-loader-dot">.</span>
-              </p>
-              <p
-                className="mt-2 text-[10px] uppercase tracking-wider"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.5 }}
-              >
-                {t('des.choix.deepLoading')}
-              </p>
-            </motion.div>
+            <AnalysisWaitCard
+              accent={DICE_THEME.gold}
+              title={
+                <>
+                  La sagesse se dévoile
+                  <span className="oracle-loader-dot">.</span>
+                  <span className="oracle-loader-dot">.</span>
+                  <span className="oracle-loader-dot">.</span>
+                </>
+              }
+              subtitle={t('des.choix.deepLoading')}
+            />
           )}
         {deepAnalysis && (
           <motion.div
@@ -724,7 +695,7 @@ export default function ChoixPage() {
   const cupVisible = step !== 'A_intro' && step !== 'B_intro';
 
   return (
-    <DiceBackground>
+    <DiceBackground starry>
       <YiSlideNav />
       <DiceTitle title={t('des.choix.title')} />
 
@@ -749,9 +720,9 @@ export default function ChoixPage() {
             <div
               className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
               style={{
-                background: 'linear-gradient(135deg, rgba(135,206,235,0.12) 0%, rgba(60,140,220,0.08) 100%)',
-                border: '1.5px solid rgba(135,206,235,0.5)',
-                boxShadow: 'inset 0 0 30px rgba(135,206,235,0.12)',
+                background: 'linear-gradient(135deg, rgba(9,17,40,0.92) 0%, rgba(6,12,30,0.92) 100%)',
+                border: '1.5px solid rgba(135,206,235,0.55)',
+                boxShadow: 'inset 0 0 30px rgba(135,206,235,0.14)',
               }}
             >
               {/* Titre */}
@@ -965,9 +936,9 @@ export default function ChoixPage() {
               <div
                 className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(135,206,235,0.1) 0%, rgba(60,140,220,0.06) 100%)',
-                  border: '1.5px solid rgba(135,206,235,0.4)',
-                  boxShadow: 'inset 0 0 24px rgba(135,206,235,0.1)',
+                  background: 'linear-gradient(135deg, rgba(9,17,40,0.92) 0%, rgba(6,12,30,0.92) 100%)',
+                  border: '1.5px solid rgba(135,206,235,0.5)',
+                  boxShadow: 'inset 0 0 24px rgba(135,206,235,0.12)',
                 }}
               >
                 {/* Titre */}
