@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         age: user.age,
         phone: user.phone,
         confirmed: user.confirmed,
+        createdAt: user.createdAt,
       }
     }, { status: 200 });
   } catch {

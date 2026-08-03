@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         phone: user.phone,
         comment: user.comment,
         confirmed: user.confirmed,
+        createdAt: user.createdAt,
         token: user.confirmationToken || 'authenticated',
       },
     });
