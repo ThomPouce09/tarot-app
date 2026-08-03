@@ -7,6 +7,7 @@
 // Remplace les anciennes pages /login et /auth/login (mire (2) à jeter).
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
@@ -163,8 +164,8 @@ export function LoginModal() {
           </button>
         </form>
         <div className="text-center text-xs mt-4 space-y-2">
-          <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</a>
-          <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</a>
+          <Link href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</Link>
+          <Link href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</Link>
         </div>
       </div>
     </div>

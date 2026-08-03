@@ -6,6 +6,7 @@
 // meme typo (Cinzel / Cormorant), memes codes couleurs or/parchemin, meme ambience.
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
@@ -240,13 +241,13 @@ export default function LoginPage() {
           >
             {t('login.forgot')}
           </button>
-          <a
+          <Link
             href="/auth/signup"
             className="text-amber-300 hover:underline block mx-auto"
             style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1rem' }}
           >
             {t('login.signup')}
-          </a>
+          </Link>
         </div>
       </div>
 

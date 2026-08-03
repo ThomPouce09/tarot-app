@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import AccountNav from '@/components/account-nav';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +31,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <span className="text-5xl">🔒</span>
         <p className="mystic-title text-xl">Accès réservé aux initiés</p>
-        <a href="/auth/login" className="mystic-btn">Se connecter</a>
+        <Link href="/auth/login" className="mystic-btn">Se connecter</Link>
       </div>
     );
   }
