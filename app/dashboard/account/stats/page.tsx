@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 type Group = 'tarot' | 'yijing' | 'rune' | 'des';
 
@@ -35,7 +36,7 @@ export default function StatsPage() {
 
   useEffect(() => {
     if (!user?.email) return;
-    fetch(`/api/readings?userId=${encodeURIComponent(user.email)}`)
+    api(`/api/readings?userId=${encodeURIComponent(user.email)}`)
       .then((r) => r.json())
       .then((data) => setReadings(data.readings || []))
       .catch(() => {});

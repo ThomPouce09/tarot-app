@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api-client';
 
 export default function ForgotPasswordModal() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function ForgotPasswordModal() {
     e.preventDefault();
     
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await api('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

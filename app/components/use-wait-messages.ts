@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@/lib/api-client';
 
 const FALLBACK: Record<string, string[]> = {
   'serene-divination': ['Etude du tirage en cours...', 'L\'oracle s\'apaise avec vous...', 'La réponse mûrit en silence...'],
@@ -14,7 +15,7 @@ export function useWaitMessages(type: string) {
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}`)
+    api(`/api/interpretation-wait?type=${encodeURIComponent(type)}`)
       .then((r) => r.json())
       .then((d) => { if (alive && Array.isArray(d.messages) && d.messages.length) setMessages(d.messages); })
       .catch(() => {});

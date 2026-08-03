@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
 
@@ -28,7 +29,7 @@ export function LoginModal() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await api('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

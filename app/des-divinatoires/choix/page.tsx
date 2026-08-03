@@ -22,6 +22,7 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import {
   randomTargetFaces,
   type TargetFaces,
@@ -140,7 +141,7 @@ function DiceAnalysis({
         setDeepAnalysis(t('des.choix.deepNotAvail'));
         return;
       }
-      const res = await fetch('/api/astro-interpretation-approfondie', {
+      const res = await api('/api/astro-interpretation-approfondie', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planet, sign, house, question, spread, lang }),
@@ -176,7 +177,7 @@ function DiceAnalysis({
     (async () => {
       // 1) Toujours tenter le LLM en premier (gère question=null)
       try {
-        const llmRes = await fetch('/api/astro-interpretation-choix', {
+        const llmRes = await api('/api/astro-interpretation-choix', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house, question: question || undefined, spread }),
@@ -195,7 +196,7 @@ function DiceAnalysis({
 
       // 2) Fallback DB seulement si le LLM n'a rien donné
       try {
-        const dbRes = await fetch('/api/astro-interpretation-db', {
+        const dbRes = await api('/api/astro-interpretation-db', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house }),

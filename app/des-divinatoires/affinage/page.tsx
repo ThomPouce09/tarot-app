@@ -31,6 +31,7 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import {
   randomTargetFaces,
   ALL_KINDS,
@@ -292,7 +293,7 @@ export default function AffinagePage() {
         dbInterpretation: dbInterpretation || undefined,
         question: question || undefined,
       };
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -353,7 +354,7 @@ export default function AffinagePage() {
     setDbLoading(true);
     setDbInterpretation(null);
 
-    fetch('/api/astro-interpretation-db', {
+    api('/api/astro-interpretation-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ planet, sign, house }),
@@ -398,7 +399,7 @@ export default function AffinagePage() {
       payload.originalFaces = originalFacesRef.current;
     }
 
-    fetch('/api/astro-dice-oracle-flash', {
+    api('/api/astro-dice-oracle-flash', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 interface WaitConfig {
   messages: string[];
@@ -124,7 +125,7 @@ export default function WaitOverlay({ type, onVideoEnded }: { type: string; onVi
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}&lang=${encodeURIComponent(lang)}`)
+    api(`/api/interpretation-wait?type=${encodeURIComponent(type)}&lang=${encodeURIComponent(lang)}`)
       .then((r) => r.json())
       .then((d) => { if (alive) setCfg(d); })
       .catch(() => { if (alive) setCfg(FALLBACK); });

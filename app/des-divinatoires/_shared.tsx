@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { api } from '@/lib/api-client';
 
 /* Palette centralisée — Bleu nuit & Or fin.
    Les clés historiques (brick/ocre/...) sont conservées pour ne pas casser les
@@ -315,7 +316,7 @@ export function DiceAnalysis({
     setSynthese('');
     setActions([]);
     try {
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export default function YiQingInterpretationPage() {
   const lang = useLang();
@@ -42,7 +43,7 @@ export default function YiQingInterpretationPage() {
       }
     } catch (e) {}
 
-    fetch('/api/yi-qing-interpretation', {
+    api('/api/yi-qing-interpretation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ baguette: Number(baguetteNum), userId, lang })

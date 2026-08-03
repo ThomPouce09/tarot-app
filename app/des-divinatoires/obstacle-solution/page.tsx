@@ -17,6 +17,7 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
@@ -154,7 +155,7 @@ function DiceAnalysis({
       const sign = SIGN_NAMES[faces.sign as string];
       const house = `Maison ${faces.house}`;
       if (!planet || !sign) { setDeepAnalysis('Indisponible.'); return; }
-      const res = await fetch('/api/astro-interpretation-obstacle', {
+      const res = await api('/api/astro-interpretation-obstacle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
@@ -184,7 +185,7 @@ function DiceAnalysis({
     (async () => {
       // 1) LLM court
       try {
-        const res = await fetch('/api/astro-interpretation-obstacle', {
+        const res = await api('/api/astro-interpretation-obstacle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'short', lang }),
@@ -201,7 +202,7 @@ function DiceAnalysis({
 
       // 2) Fallback DB
       try {
-        const res = await fetch('/api/astro-interpretation-db', {
+        const res = await api('/api/astro-interpretation-db', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house }),

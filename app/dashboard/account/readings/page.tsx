@@ -7,6 +7,7 @@ import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
 import { shareViaCapacitor } from '@/lib/capacitor-utils';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
+import { api } from '@/lib/api-client';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 
@@ -136,7 +137,7 @@ export default function ReadingsPage() {
     const u = JSON.parse(stored);
     setUser(u);
     try {
-      const res = await fetch(`/api/readings?userId=${encodeURIComponent(u.email)}`);
+      const res = await api(`/api/readings?userId=${encodeURIComponent(u.email)}`);
       const data = await res.json();
       const r: Reading[] = Array.isArray(data?.readings) ? data.readings : [];
       r.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -367,7 +368,7 @@ export default function ReadingsPage() {
       if (confirm.mode === 'one') body.id = confirm.id;
       else body.date = dateToYMD(readings.find((r) => new Date(r.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) === confirm.dateKey)!.createdAt);
 
-      const res = await fetch('/api/readings', {
+      const res = await api('/api/readings', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

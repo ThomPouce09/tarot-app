@@ -9,6 +9,7 @@ import { useLang, useT } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
+import { api } from '@/lib/api-client';
 
 interface Interpretation {
   situation?: string;
@@ -80,7 +81,7 @@ function InterpretationInner() {
     if (baguette && (type.startsWith('yi-jing') || type === 'yi-qing')) {
       const num = parseInt(baguette, 10);
       if (!isNaN(num)) {
-        fetch(`/api/hexagram/${num}`)
+        api(`/api/hexagram/${num}`)
           .then((r) => r.json())
           .then((d) => { if (d.found) setHexagram(d.hexagram); })
           .catch(() => {});
@@ -136,7 +137,7 @@ function InterpretationInner() {
       return;
     }
 
-    fetch('/api/interpret', {
+    api('/api/interpret', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

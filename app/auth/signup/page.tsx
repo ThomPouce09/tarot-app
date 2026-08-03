@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { api } from '@/lib/api-client';
 // Turnstile désactivé en dev
 // import { Turnstile } from 'react-turnstile';
 
@@ -100,7 +101,7 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await api('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...dataToValidate, turnstileToken }),

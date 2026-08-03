@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await api('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -72,7 +73,7 @@ export default function LoginPage() {
     setMsg('');
 
     try {
-      await fetch('/api/auth/forgot-password', {
+      await api('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

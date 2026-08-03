@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@/lib/api-client';
 
 function ConfirmContent() {
   const router = useRouter();
@@ -15,7 +16,7 @@ function ConfirmContent() {
 
   useEffect(() => {
     if (token) {
-      fetch(`/api/auth/confirm?token=${token}`)
+      api(`/api/auth/confirm?token=${token}`)
         .then(r => r.json())
         .then(data => {
           if (data.valid) setVerified(true);
@@ -28,7 +29,7 @@ function ConfirmContent() {
     e.preventDefault();
     if (password !== confirmPassword) return setMessage('Mots de passe différents');
 
-    const res = await fetch('/api/auth/reset-password', {
+    const res = await api('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, password }),

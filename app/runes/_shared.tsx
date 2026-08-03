@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
+import { api } from '@/lib/api-client';
 
 /* Palette centralisée */
 export const RUNE_THEME = {
@@ -401,7 +402,7 @@ export function RuneAnalysis({
         sense: r.reversed ? r.rune.reversed : r.rune.upright,
         reversed: r.reversed,
       }));
-      const res = await fetch('/api/rune-interpretation', {
+      const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runes: payload, mode, focus }),

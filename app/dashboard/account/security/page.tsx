@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export default function SecurityPage() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function SecurityPage() {
     if (newPwd !== confirmPwd) { setMsg({ type: 'err', text: t('security.pwdMismatch') }); return; }
     setBusy(true);
     try {
-      const res = await fetch('/api/auth/change-password', {
+      const res = await api('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, currentPassword: currentPwd, newPassword: newPwd }),
@@ -50,7 +51,7 @@ export default function SecurityPage() {
   const forgotPassword = async () => {
     setBusy(true);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await api('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email }),
@@ -65,7 +66,7 @@ export default function SecurityPage() {
   const deleteAccount = async () => {
     setBusy(true);
     try {
-      await fetch('/api/auth/delete-account', {
+      await api('/api/auth/delete-account', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email }),

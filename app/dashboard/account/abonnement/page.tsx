@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n';
 import { PLAN_PRICE_EUR, PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, type PlanId } from '@/lib/plans';
+import { api } from '@/lib/api-client';
 
 type PlanInfo = { priceEur?: number; isPaid: boolean };
 
@@ -51,7 +52,7 @@ export default function AbonnementPage() {
     // Fonction de chargement du statut abonnement
     const loadSubscription = async () => {
       try {
-        const res = await fetch(`/api/subscription?email=${encodeURIComponent(userEmail)}`);
+        const res = await api(`/api/subscription?email=${encodeURIComponent(userEmail)}`);
         const d = await res.json();
         if (d.plan) setCurrent(d.plan);
         setStatus(d.status ?? null);
@@ -66,7 +67,7 @@ export default function AbonnementPage() {
     const confirmAndLoad = async () => {
       if (sessionId) {
         try {
-          const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
+          const confirmRes = await api(`/api/checkout/confirm?session_id=${sessionId}`);
           const confirmData = await confirmRes.json();
           if (confirmData.plan && confirmData.plan !== 'gratuit') {
             setCurrent(confirmData.plan);
@@ -107,7 +108,7 @@ export default function AbonnementPage() {
     }
     setLoading(p);
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await api('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: p, email }),
@@ -132,7 +133,7 @@ export default function AbonnementPage() {
     }
     setManageLoading(true);
     try {
-      const res = await fetch('/api/billing-portal', {
+      const res = await api('/api/billing-portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

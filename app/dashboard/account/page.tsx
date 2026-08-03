@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function AccountPage() {
     setSaving(true);
     setMessage('');
     try {
-      const res = await fetch('/api/auth/update-account', {
+      const res = await api('/api/auth/update-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, ...form, age: form.age ? parseInt(form.age, 10) : null }),

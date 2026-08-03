@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
+import { api } from '@/lib/api-client';
 
 // ─── Types ───────────────────────────────────────────────
 interface HexagramData {
@@ -109,7 +110,7 @@ export default function YiJingDuJourPage() {
   const [showSynthese, setShowSynthese] = useState(false);
 
   useEffect(() => {
-    fetch('/api/yi-jing-du-jour')
+    api('/api/yi-jing-du-jour')
       .then((r) => r.json())
       .then((json: ApiResponse) => {
         setData(json);

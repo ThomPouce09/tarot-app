@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { FIREFLY_CONFIG } from '@/config/firefly';
 import CreaturePopup from './creature-popup';
+import { api } from '@/lib/api-client';
 
 type Creature = { id: string; slug: string; name: string; image: string; color: string | null };
 type PopupData = { creature: Creature; text: string; category: string };
@@ -54,7 +55,7 @@ export default function Firefly({ page }: { page: string }) {
       if (!aliveRef.current) return;
 
       try {
-        const res = await fetch(`/api/creature?page=${encodeURIComponent(page)}&lang=${lang}`);
+        const res = await api(`/api/creature?page=${encodeURIComponent(page)}&lang=${lang}`);
         const data = await res.json();
         if (!aliveRef.current || !data.creature) return cycle();
 
