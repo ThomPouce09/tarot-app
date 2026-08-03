@@ -66,14 +66,25 @@ export default function SecurityPage() {
   const deleteAccount = async () => {
     setBusy(true);
     try {
-      await api('/api/auth/delete-account', {
+      const res = await api('/api/auth/delete-account', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMsg({ type: 'err', text: data.error || 'Erreur lors de la suppression' });
+        setShowDeleteModal(false);
+        setBusy(false);
+        return;
+      }
       localStorage.removeItem('tarot_user');
       router.push('/');
-    } catch { setBusy(false); }
+    } catch {
+      setMsg({ type: 'err', text: 'Erreur de connexion' });
+      setShowDeleteModal(false);
+      setBusy(false);
+    }
   };
 
   if (!user) return null;
