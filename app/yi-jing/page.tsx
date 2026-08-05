@@ -9,16 +9,84 @@ import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+
+// ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
+const YI_TUTORIALS: TutorialSlide[] = [
+  {
+    iconImg: '/images/yi-jing-simple.png',
+    title: 'Yi Jing Simple',
+    titleEn: 'Simple I Ching',
+    desc: 'Un tirage rapide pour obtenir une réponse claire en un seul hexagramme.',
+    descEn: 'A quick reading for a clear answer from a single hexagram.',
+    steps: [
+      'Formulez votre question',
+      'Tirez un hexagramme',
+      'Lisez son message',
+    ],
+    stepsEn: [
+      'Ask your question',
+      'Draw one hexagram',
+      'Read its message',
+    ],
+  },
+  {
+    iconImg: '/images/yi-jing-du-jour.png',
+    title: 'Hexagramme du Jour',
+    titleEn: 'Hexagram of the Day',
+    desc: "Le conseil du jour sous forme d'un hexagramme tiré pour vous.",
+    descEn: "The day's advice in a hexagram drawn for you.",
+    steps: [
+      'Faites le point sur votre journée',
+      'Tirez l’hexagramme du jour',
+      'Appliquez son conseil',
+    ],
+    stepsEn: [
+      'Take stock of your day',
+      'Draw today’s hexagram',
+      'Apply its counsel',
+    ],
+  },
+  {
+    iconImg: '/images/yi-jing-question.png',
+    title: 'Yi Jing avec Question',
+    titleEn: 'I Ching with Question',
+    desc: 'Un tirage complet avec vos baguettes et un hexagramme éclairant.',
+    descEn: 'A full reading with your sticks and an illuminating hexagram.',
+    steps: [
+      'Écrivez votre question',
+      'Tirez les baguettes ou l’hexagramme',
+      'Lisez l’interprétation détaillée',
+    ],
+    stepsEn: [
+      'Write your question',
+      'Draw the sticks or hexagram',
+      'Read the detailed interpretation',
+    ],
+  },
+];
 
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
+  const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
+  const lang = useLang();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
+    if (typeof window !== 'undefined') {
+      setFirstVisit(!localStorage.getItem('yijing_tuto_seen'));
+    }
   }, []);
+
+  const openTutorial = (i: number) => {
+    setActiveSlide(YI_TUTORIALS[i]);
+    if (typeof window !== 'undefined') localStorage.setItem('yijing_tuto_seen', '1');
+    setFirstVisit(false);
+  };
 
   // Jingle d'ouverture : même pattern que /des-divinatoires et /runes
   // (user activation héritée de la navigation par lien ; installSoundUnlock
@@ -115,6 +183,25 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.yijing.simple')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(180,140,204,0.10)', border: '1px solid rgba(180,140,204,0.33)',
+                    color: '#E0CFF0', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(180,140,204,0.4), 0 0 0 4px rgba(180,140,204,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0CFF0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
               <img
                 src="/images/yi-jing-simple.png"
                 alt="Yi Jing Simple"
@@ -171,6 +258,25 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.yijing.day')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(180,140,204,0.10)', border: '1px solid rgba(180,140,204,0.33)',
+                    color: '#E0CFF0', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(180,140,204,0.4), 0 0 0 4px rgba(180,140,204,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0CFF0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
               <img
                 src="/images/yi-jing-du-jour.png"
                 alt="Hexagramme du Jour"
@@ -228,6 +334,25 @@ export default function YiJingHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-purple-300/40 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.yijing.question')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(180,140,204,0.10)', border: '1px solid rgba(180,140,204,0.33)',
+                    color: '#E0CFF0', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(180,140,204,0.4), 0 0 0 4px rgba(180,140,204,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0CFF0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
                 <img
                   src="/images/yi-jing-question.png"
                   alt="Yi Jing avec Question"
@@ -332,6 +457,7 @@ export default function YiJingHubPage() {
           {t('hubs.yijing.footer')}
         </p>
       </div>
+    <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
     <Firefly page="yi-jing" />
     </div>
   );

@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
+import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 import { useLang } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 
@@ -148,10 +149,81 @@ const TILES: Tile[] = [
   },
 ];
 
+// ── Tutoriel par tirage ─────────────────────────────────────────────────────
+// Chaque slide correspond à une tuile (même ordre que TILES). Le srcoll du
+// tuto est indexé par tuile : cliquer sur le ⓘ d'une tuile ouvre SON slide.
+const TUTORIALS: TutorialSlide[] = [
+  {
+    icon: '🔍',
+    title: 'Tirage par Affinage',
+    titleEn: 'Refinement Reading',
+    desc: 'Préciser une nuance ou ajuster votre posture sans refaire tout le tirage.',
+    descEn: 'Refine a nuance or adjust your stance without redoing the whole reading.',
+    steps: [
+      'Posez votre question de départ',
+      'Lancez les trois dés (Planète, Signe, Maison)',
+      'Affinez : relancez un dé pour préciser la réponse',
+    ],
+    stepsEn: [
+      'Ask your initial question',
+      'Roll the three dice (Planet, Sign, House)',
+      'Refine: reroll one die to sharpen the answer',
+    ],
+  },
+  {
+    icon: '⚖️',
+    title: 'Le tirage du choix',
+    titleEn: 'The Choice Reading',
+    desc: "Une aide à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
+    descEn: "A decision aid: compare the energy of two options when you're torn between two paths.",
+    steps: [
+      'Formulez vos deux options clairement',
+      'Lancez une première fois pour l’option A',
+      'Relancez pour l’option B, puis comparez les énergies',
+    ],
+    stepsEn: [
+      'State your two options clearly',
+      'Roll once for option A',
+      'Roll again for option B, then compare the energies',
+    ],
+  },
+  {
+    icon: '🗝️',
+    title: 'Obstacle & Solution',
+    titleEn: 'Obstacle & Solution',
+    desc: "Une méthode en deux lancers pour comprendre l'origine d'un blocage et obtenir un conseil précis pour le débloquer.",
+    descEn: 'A two-throw method to understand the source of a block and get precise advice to overcome it.',
+    steps: [
+      'Lancez pour identifier l’obstacle',
+      'Lancez à nouveau pour la solution',
+      'Lisez la synthèse combinée des deux tirages',
+    ],
+    stepsEn: [
+      'Roll to identify the obstacle',
+      'Roll again for the solution',
+      'Read the combined synthesis of both readings',
+    ],
+  },
+] satisfies readonly TutorialSlide[];
+
 export default function DesDivinatoiresHub() {
   const [mounted, setMounted] = useState(false);
+  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
+  const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    // Lueur d'appel au 1er passage (une seule fois).
+    if (typeof window !== 'undefined') {
+      setFirstVisit(!localStorage.getItem('dd_tuto_seen'));
+    }
+  }, []);
+
+  const openTutorial = (i: number) => {
+    setActiveSlide(TUTORIALS[i]);
+    if (typeof window !== 'undefined') localStorage.setItem('dd_tuto_seen', '1');
+    setFirstVisit(false);
+  };
 
   // Jingle d'ouverture : joue une fois au montage de la page. La navigation
   // depuis un lien (menu ou hub) hérite de la user activation du clic →
@@ -209,7 +281,44 @@ export default function DesDivinatoiresHub() {
                 style={{ borderColor: `${DICE_THEME.ocre}33` }}
               />
 
-              {/* frise de signes astrologiques discrète (après hydratation) */}
+              {/* ⓘ tutoriel de la tuile — coin supérieur droit, discret.
+                  Le clic n'active PAS la navigation du lien (stopPropagation).
+                  Lueur dorée au 1er passage (localStorage dd_tuto_seen). */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openTutorial(i);
+                }}
+                aria-label={
+                  lang === 'en'
+                    ? `How this reading works: ${tile.title}`
+                    : `Comment fonctionne ce tirage : ${tile.title}`
+                }
+                className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
+                  firstVisit ? 'animate-[ddGlow_2s_ease-in-out_3]' : ''
+                }`}
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  left: 'auto',
+                  background: `${DICE_THEME.ocre}1a`,
+                  border: `1px solid ${DICE_THEME.ocre}55`,
+                  color: DICE_THEME.ocreLight,
+                  opacity: firstVisit ? 1 : 0.5,
+                  boxShadow: firstVisit
+                    ? `0 0 16px ${DICE_THEME.gold}66, 0 0 0 4px ${DICE_THEME.ocre}22`
+                    : 'none',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke={DICE_THEME.ocreLight} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M12 11v5" />
+                  <path d="M12 8h.01" />
+                </svg>
+              </button>
               {mounted && <ZodiacFrieze position="top" />}
               {mounted && <ZodiacFrieze position="bottom" />}
 
@@ -240,6 +349,8 @@ export default function DesDivinatoiresHub() {
           </Link>
         ))}
       </div>
+
+      <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
       <Firefly page="des-divinatoires" />
     </DiceBackground>
   );

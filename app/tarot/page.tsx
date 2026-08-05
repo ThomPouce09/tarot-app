@@ -9,16 +9,85 @@ import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+
+// ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
+// Chaque slide correspond à une tuile (même ordre).
+const TAROT_TUTORIALS: TutorialSlide[] = [
+  {
+    iconImg: '/images/tirage-3-cartes.png',
+    title: 'Tirage de 3 cartes',
+    titleEn: '3-Card Reading',
+    desc: 'Un tirage rapide et clair pour obtenir une réponse directe à votre question.',
+    descEn: 'A quick, clear reading for a direct answer to your question.',
+    steps: [
+      'Formulez votre question',
+      'Mélangez et coupez le jeu',
+      'Tirez 3 cartes et lisez leur message',
+    ],
+    stepsEn: [
+      'Ask your question',
+      'Shuffle and cut the deck',
+      'Draw 3 cards and read their message',
+    ],
+  },
+  {
+    iconImg: '/images/croix-5-cartes.png',
+    title: 'La Croix de 5 cartes',
+    titleEn: 'The 5-Card Cross',
+    desc: 'Une lecture structurée en croix pour explorer situation, épreuve, passé et avenir.',
+    descEn: 'A structured cross reading exploring situation, challenge, past and future.',
+    steps: [
+      'Formulez votre question',
+      'Disposez les 5 cartes en croix',
+      'Lisez chaque position pour la synthèse',
+    ],
+    stepsEn: [
+      'Ask your question',
+      'Lay out the 5 cards in a cross',
+      'Read each position for the synthesis',
+    ],
+  },
+  {
+    iconImg: '/images/5 cartes manuelles.png',
+    title: '5 cartes manuelles',
+    titleEn: 'Manual 5-Card Reading',
+    desc: "Choisissez vous-même vos 5 cartes dans le jeu pour une lecture personnalisée.",
+    descEn: 'Pick your own 5 cards from the deck for a personal reading.',
+    steps: [
+      'Parcourez le jeu',
+      'Sélectionnez vos 5 cartes',
+      'Lisez l’interprétation combinée',
+    ],
+    stepsEn: [
+      'Browse the deck',
+      'Select your 5 cards',
+      'Read the combined interpretation',
+    ],
+  },
+];
 
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
+  const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
-  
+  const lang = useLang();
+
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
+    if (typeof window !== 'undefined') {
+      setFirstVisit(!localStorage.getItem('tarot_tuto_seen'));
+    }
   }, []);
+
+  const openTutorial = (i: number) => {
+    setActiveSlide(TAROT_TUTORIALS[i]);
+    if (typeof window !== 'undefined') localStorage.setItem('tarot_tuto_seen', '1');
+    setFirstVisit(false);
+  };
 
   // Jingle d'ouverture : même pattern que /des-divinatoires et /runes
   // (user activation héritée de la navigation par lien ; installSoundUnlock
@@ -119,7 +188,26 @@ export default function TarotHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
-              <img src="/images/tirage-3-cartes.png" alt="Tirage 3 cartes" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.tarot.tile3')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
+                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+                <img src="/images/tirage-3-cartes.png" alt="Tirage 3 cartes" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -170,6 +258,25 @@ export default function TarotHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.tarot.tile5')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
+                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
               <img src="/images/croix-5-cartes.png" alt="5 cartes en croix" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
@@ -222,6 +329,25 @@ export default function TarotHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-amber-500/30 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.tarot.tileMan')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
+                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
                 <img src="/images/5 cartes manuelles.png" alt="5 cartes manuelles" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1"
@@ -316,6 +442,7 @@ export default function TarotHubPage() {
           {t('hubs.tarot.footer')}
         </p>
       </div>
+    <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
     <Firefly page="tarot" />
     </div>
   );

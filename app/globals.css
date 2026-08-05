@@ -403,6 +403,30 @@ html, body {
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
 
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /des-divinatoires) */
+@keyframes ddGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(212,175,55,0.35), 0 0 0 3px rgba(212,175,55,0.18); }
+  50% { box-shadow: 0 0 22px rgba(212,175,55,0.85), 0 0 0 6px rgba(212,175,55,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /runes — thème vert/doré) */
+@keyframes runesGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(233,217,172,0.35), 0 0 0 3px rgba(233,217,172,0.18); }
+  50% { box-shadow: 0 0 22px rgba(233,217,172,0.85), 0 0 0 6px rgba(233,217,172,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /tarot — thème or) */
+@keyframes tarotGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(218,165,32,0.35), 0 0 0 3px rgba(218,165,32,0.18); }
+  50% { box-shadow: 0 0 22px rgba(218,165,32,0.85), 0 0 0 6px rgba(218,165,32,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /yi-jing — thème violet) */
+@keyframes yijGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(180,140,204,0.35), 0 0 0 3px rgba(180,140,204,0.18); }
+  50% { box-shadow: 0 0 22px rgba(180,140,204,0.85), 0 0 0 6px rgba(180,140,204,0.35); }
+}
+
 /* Luciole : rester SOUS les contrôles UI (CTA landing z-index 70).
    Framer-motion impose position:absolute en animant left/top ; on force
    fixed + z-index bas via !important pour ne jamais capter les taps UI. */
