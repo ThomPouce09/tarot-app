@@ -270,8 +270,12 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
   // Parse JSON de la réponse
   let parsed: Interpretation = {};
   parsed = extractJsonObject(content);
-  // Offline fallback si rien ne fonctionne
-  if (!parsed.situation || !parsed.defis || !parsed.soutien || !parsed.issue || !parsed.conseil) {
+  // Offline fallback si rien ne fonctionne — on valide les BONS champs selon
+  // le type : tarot = passe/present/avenir/resume, yi-jing = les 5 sections.
+  const isComplete = isTarot
+    ? !!(parsed.passe && parsed.present && parsed.avenir && parsed.resume)
+    : !!(parsed.situation && parsed.defis && parsed.soutien && parsed.issue && parsed.conseil);
+  if (!isComplete) {
     console.log('[interpret] Falling back to offline generator.');
     parsed = isTarot
       ? generateTarotInterpretation(cartes.map((id: number) => ({ id, name: TAROT_CARDS.find(c => c.id === id)?.name || '' })), question)

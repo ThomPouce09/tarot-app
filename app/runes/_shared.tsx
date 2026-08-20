@@ -98,12 +98,14 @@ export function RuneBackground({ children }: { children: ReactNode }) {
 export function RuneTitle({
   title,
   subtitle,
+  compact,
 }: {
   title: string;
   subtitle?: string;
+  compact?: boolean;
 }) {
   return (
-    <div className="px-4 pt-16 pb-6 text-center">
+    <div className={`px-4 text-center ${compact ? 'pt-14 pb-1' : 'pt-16 pb-6'}`}>
       <h1
         className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-wide"
         style={{
@@ -384,8 +386,33 @@ export function RuneAnalysis({
   const [conseil, setConseil] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Vidéo d'attente aléatoire (analyse-runesX.mp4) pendant l'interprétation.
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
+  // Charge une vidéo d'attente au hasard (détectée dynamiquement côté serveur).
+  const pickVideo = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/interpretation-wait?type=runes&lang=fr`, { cache: 'no-store' });
+      const data = await res.json();
+      const urls: string[] = data?.backgroundUrls ?? [];
+      if (urls.length > 0) setVideoUrl(urls[0]);
+    } catch {
+      // Pas de vidéo : l'état loading texte suffit.
+    }
+  }, []);
+
+  // La vidéo est montée APRÈS le fetch (hors geste utilisateur) : l'attribut
+  // autoPlay peut être bloqué par le navigateur. On force play() explicitement
+  // dès que l'URL est disponible (vidéo muted → toujours autorisé).
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (!videoUrl || !videoRef.current) return;
+    const v = videoRef.current;
+    const p = v.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  }, [videoUrl]);
 
   const run = useCallback(async () => {
     setError('');
@@ -393,6 +420,7 @@ export function RuneAnalysis({
     setSections(null);
     setSynthese('');
     setConseil('');
+    void pickVideo();
     try {
       const payload = runes.map((r) => ({
         name: r.rune.name,
@@ -439,12 +467,29 @@ export function RuneAnalysis({
       )}
 
       {loading && (
-        <div
-          className="text-center text-sm italic"
-          style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale, opacity: 0.8 }}
-        >
-          L&apos;Oracle déchiffre les runes… ✦
-        </div>
+        videoUrl ? (
+          /* Vidéo d'attente aléatoire (16:9), centrée, en boucle */
+          <div className="flex justify-center">
+            <video
+              key={videoUrl}
+              ref={videoRef}
+              className="aspect-video w-full max-w-xl rounded-2xl object-cover shadow-[0_0_40px_rgba(218,165,32,0.25)]"
+              style={{ border: `1px solid ${RUNE_THEME.goldPale}44` }}
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          </div>
+        ) : (
+          <div
+            className="text-center text-sm italic"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale, opacity: 0.8 }}
+          >
+            L&apos;Oracle déchiffre les runes… ✦
+          </div>
+        )
       )}
 
       {error && !loading && (

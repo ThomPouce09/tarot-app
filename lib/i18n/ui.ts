@@ -245,6 +245,10 @@ export const DICT = {
   'runes.nornes.title': { fr: 'Le Fil des Nornes', en: 'The Thread of the Norns' },
   'runes.nornes.subtitle': { fr: 'Urd, Verdandi, Skuld tissent le destin : ce qui fut, ce qui est, ce qui sera.', en: 'Urd, Verdandi, Skuld weave destiny: what was, what is, what shall be.' },
   'runes.nornes.cta': { fr: 'Interroger les Nornes', en: 'Consult the Norns' },
+  'runes.nornes.tutoTitle': { fr: 'Concentrez-vous, puis secouez le sac', en: 'Focus, then shake the pouch' },
+  'runes.nornes.tutoStep1': { fr: 'Formulez votre question dans votre esprit', en: 'Frame your question in your mind' },
+  'runes.nornes.tutoStep2': { fr: 'Secouez le sac à plusieurs reprises', en: 'Shake the pouch again and again' },
+  'runes.nornes.tutoStep3': { fr: 'Les runes sortent une par une', en: 'The runes come out one by one' },
   'runes.nornes.advice': { fr: 'Tisser une nouvelle voie', en: 'Weave a new path' },
   'runes.mjolnir.title': { fr: 'Le Marteau de Mjölnir', en: 'The Hammer of Mjölnir' },
   'runes.mjolnir.subtitle': { fr: 'Affronter un obstacle majeur : cinq runes en forme de T pour briser le blocage.', en: 'Face a major obstacle: five runes in a T to shatter the block.' },
@@ -325,7 +329,7 @@ export const DICT = {
   // ─── Ask Question (composant partagé) ───
   'askQuestion.label': { fr: '🔮 Quelle est votre question (facultatif) ?', en: '🔮 What is your question (optional) ?' },
   'askQuestion.placeholder': { fr: 'Posez votre question…', en: 'Ask your question…' },
-  'askQuestion.confirm': { fr: 'Confirmer', en: 'Confirm' },
+  'askQuestion.confirm': { fr: 'Enregister', en: 'Save' },
   'askQuestion.skip': { fr: 'Passer — lancer directement', en: 'Skip — draw directly' },
 
   // ─── History: labels vues dés / runes ───

@@ -154,7 +154,9 @@ function InterpretationInner() {
   }, [type, searchParams]);
 
   if (loading || !videoEnded) {
-    return <WaitOverlay type={type} onVideoEnded={() => setVideoEnded(true)} />;
+    // ready = l'interprétation est arrivée → l'overlay peut enchaîner vers la
+    // sortie (les vidéos bouclent en attendant).
+    return <WaitOverlay type={type} ready={!loading} onVideoEnded={() => setVideoEnded(true)} />;
   }
 
   if (error) {

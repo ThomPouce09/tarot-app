@@ -21,6 +21,9 @@ export interface RuneStonesSetProps {
   isRolling?: boolean;
   onRest?: (runes: DrawnRune[]) => void;
   height?: number;
+  /** Runes pré-tirées (tirage à l'aveugle) : utilisées telles quelles au lieu
+   * d'un tirage aléatoire. Doit avoir exactement `count` éléments. */
+  preset?: DrawnRune[];
 }
 
 export interface DrawnRune {
@@ -33,6 +36,16 @@ const STONE_H = 78;
 const STONE_DEPTH = 17;
 const POUCH = { x: 50, y: 74 };
 const FLIGHT_DURATION = 1.15;
+
+/* Position verticale adaptative du pochon (% du conteneur) :
+   à 440px (pages mjolnir/yggdrasil) on garde 74% ; quand la hauteur baisse,
+   le pochon remonte juste assez pour que le compteur « Appuie encore »
+   (bottom:-22px) reste visible sous le sac (le conteneur est en overflow:hidden)
+   — sans le remonter plus que nécessaire. */
+function pouchYFor(height: number): number {
+  if (height >= 440) return 74;
+  return Math.max(58, Math.min(74, ((height - 110) / height) * 100));
+}
 
 function slotsFor(layout: RuneLayout, count: number): Array<[number, number]> {
   // Tirage d'une rune seule (ex: Conseil d'Odin) → centrée, en face du pochon.
@@ -73,11 +86,12 @@ function revealOrder(layout: RuneLayout, count: number): number[] {
 /* Parallaxe 3D : DeviceOrientation (mobile) + souris (desktop).       */
 /* Mutation DOM directe dans une boucle rAF → aucun re-render.         */
 /* Met aussi à jour --shx/--shy (reflet spéculaire) sur la couche.     */
+/* Exporté pour réutilisation (ex: table sacrée de /runes/nornes2).    */
 /* ------------------------------------------------------------------ */
 const TILT_GAIN = 3.2;
 const TILT_MAX = 28;
 
-function useDeviceTilt(tableRef: RefObject<HTMLDivElement>) {
+export function useDeviceTilt(tableRef: RefObject<HTMLDivElement>) {
   const target = useRef({ rx: 0, ry: 0 });
   const current = useRef({ rx: 0, ry: 0 });
   const raf = useRef<number | null>(null);
@@ -168,6 +182,7 @@ export default function RuneStonesSet({
   isRolling = false,
   onRest,
   height = 440,
+  preset,
 }: RuneStonesSetProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { enable: enableTilt } = useDeviceTilt(tableRef);
@@ -187,6 +202,7 @@ export default function RuneStonesSet({
 
   const order = useMemo(() => revealOrder(layout, count), [layout, count]);
   const slots = useMemo(() => slotsFor(layout, count), [layout, count]);
+  const pouchY = pouchYFor(height);
 
   useEffect(() => {
     if (!isRolling) {
@@ -194,10 +210,13 @@ export default function RuneStonesSet({
       setPhase('idle');
       return;
     }
-    const picks = drawRunes(count).map((rune) => ({
-      rune,
-      reversed: Math.random() < 0.3,
-    }));
+    const picks =
+      preset && preset.length === count
+        ? preset
+        : drawRunes(count).map((rune) => ({
+            rune,
+            reversed: Math.random() < 0.3,
+          }));
     const thr = Array.from(
       { length: count },
       () => 2 + Math.floor(Math.random() * 3),
@@ -208,7 +227,7 @@ export default function RuneStonesSet({
     setPushes(0);
     setPhase('drawing');
     restFired.current = false;
-  }, [isRolling, count]);
+  }, [isRolling, count, preset]);
 
   const onPouchTap = useCallback(() => {
     void enableTilt();
@@ -281,7 +300,7 @@ export default function RuneStonesSet({
             const shown = order.indexOf(i) < revealed;
             if (!shown) return null;
             const [sx, sy] = slots[i];
-            const dropY = ((POUCH.y - sy) / 100) * height;
+            const dropY = ((pouchY - sy) / 100) * height;
             const dropX = ((POUCH.x - sx) / 100) * 100; // approx. en px (léger)
             return (
               <FlyingStone
@@ -302,7 +321,7 @@ export default function RuneStonesSet({
         <GoldBurst
           key={burstKey}
           x={POUCH.x}
-          y={POUCH.y - 8}
+          y={pouchY - 8}
         />
       )}
 
@@ -311,7 +330,7 @@ export default function RuneStonesSet({
         className="absolute"
         style={{
           left: `${POUCH.x}%`,
-          top: `${POUCH.y}%`,
+          top: `${pouchY}%`,
           transform: 'translate(-50%, -50%)',
           width: 150,
           height: 150,
