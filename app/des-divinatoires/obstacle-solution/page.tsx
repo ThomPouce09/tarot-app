@@ -278,6 +278,7 @@ function DiceAnalysis({
                 <span className="oracle-loader-dot">.</span>
               </>
             }
+            videoPrefix="analyse-des-zodiaque"
           />
         )}
         {deepAnalysis && deepAnalysis !== 'Indisponible.' && (

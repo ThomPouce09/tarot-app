@@ -839,6 +839,7 @@ export default function AffinagePage() {
                     <AnalysisWaitCard
                       accent={DICE_THEME.gold}
                       title={t('des.affinage.thinking')}
+                      videoPrefix="analyse-des-zodiaque"
                     />
                   )}
 

@@ -26,11 +26,14 @@ export default function AnalysisWaitCard({
   subtitle,
   accent = '#D4AF37',
   minHeight = 240,
+  videoPrefix = 'analyse-longue',
 }: {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   accent?: string;
   minHeight?: number;
+  /** Préfixe vidéo d'attente (ex. "analyse-des-zodiaque" pour les dés). */
+  videoPrefix?: string;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -62,8 +65,8 @@ export default function AnalysisWaitCard({
         boxShadow: `inset 0 0 30px ${accent}14, 0 0 30px ${accent}0c`,
       }}
     >
-      {/* Vidéo d'attente (rotation aléatoire analyse-longue1..9) */}
-      <AnalysisWaitVideo />
+      {/* Vidéo d'attente (rotation aléatoire <prefix>1..9) */}
+      <AnalysisWaitVideo prefix={videoPrefix} />
 
       {/* Voile bas pour la lisibilité du message */}
       <div
