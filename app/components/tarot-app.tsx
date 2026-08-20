@@ -49,6 +49,16 @@ const SPREAD_SETTLE_MS = 500;
 // Durée du fondu de la main (CSS pur — taille constante, pas de framer-motion)
 const HAND_FADE_MS = 450;
 
+/* ---------- Tuto geste "Pincer la pioche" ---------- */
+// Apparaît une fois l'indice "Choisis tes cartes" disparu (handDone + 2.6s),
+// reste ~5s, et meurt au premier pinch / premier tap carte / timeout.
+// S'il disparaît sans interaction, il REAPPEARAÎT après 5s (cycle continu
+// tant que l'utilisateur n'a ni pincé ni choisi de carte).
+const PINCH_HINT_DELAY_MS = 2800;   // après handDone (l'indice existant part à 2.6s)
+const PINCH_HINT_SHOW_MS = 5000;    // durée d'affichage maximale
+const PINCH_HINT_FADE_MS = 400;     // fondu de sortie
+const PINCH_HINT_REAPPEAR_MS = 5000; // délai avant réapparition sans interaction
+
 type CinematicPhase = 0 | 1 | 2 | 3 | 4;
 
 /* ---------- Poussière magique dorée (traînée de la main) ---------- */
@@ -277,6 +287,25 @@ export default function TarotApp() {
   const [hintLen, setHintLen] = useState(0);
   const HINT_TEXT = "Choisis tes cartes dans la pioche";
 
+  // Tuto geste "Pincer la pioche pour l'ouvrir" : apparaît après l'indice,
+  // disparaît au premier pinch / premier tap carte / après 5s. S'il disparaît
+  // sans interaction, il réapparaît après 5s (tant que pinchHintDone est false).
+  const [showPinchHint, setShowPinchHint] = useState(false);
+  const [pinchHintLeaving, setPinchHintLeaving] = useState(false);
+  // true dès que l'utilisateur a pincé ou choisi une carte → la boucle de
+  // réapparition s'arrête définitivement.
+  const pinchHintDone = useRef(false);
+  const pinchHintTimer = useRef<number | null>(null);
+  const hidePinchHint = useCallback(() => {
+    pinchHintDone.current = true; // interaction utilisateur → plus de réapparition
+    if (pinchHintLeaving) return;
+    setPinchHintLeaving(true);
+    pinchHintTimer.current = window.setTimeout(() => {
+      setShowPinchHint(false);
+      setPinchHintLeaving(false);
+    }, PINCH_HINT_FADE_MS);
+  }, [pinchHintLeaving]);
+
   /* ---- Poussière dorée derrière la main ---- */
   const [dust, setDust] = useState<DustParticle[]>([]);
   const dustIdRef = useRef(0);
@@ -305,6 +334,8 @@ export default function TarotApp() {
   const pickCard = useCallback((deckIndex: number) => {
     if (pickedIdx.current.has(deckIndex) || picked.length >= TOTAL_PICKS || flyingIdx.current !== null) return;
     const slot = picked.length;
+    // Première carte choisie : le tuto de pincement n'a plus lieu d'être.
+    hidePinchHint();
     const cardEl = stageRef.current && stageRef.current.querySelector(`[data-deck-index="${deckIndex}"]`);
     const slotEl = slotRefs.current[slot];
     const card = deck[deckIndex];
@@ -343,7 +374,7 @@ export default function TarotApp() {
         }, 150);
       }, 900);
     }, 420);
-  }, [deck, picked.length]);
+  }, [deck, picked.length, hidePinchHint]);
 
   /* ---- Révélation (tirage complet) ---- */
   useEffect(() => {
@@ -400,6 +431,39 @@ export default function TarotApp() {
     if (!handDone) return;
     const t = window.setTimeout(() => setShowHint(false), 2600);
     return () => window.clearTimeout(t);
+  }, [handDone]);
+
+  /* ---- Tuto geste "Pincer la pioche pour l'ouvrir" : cycle continu ---- */
+  // Apparaît PINCH_HINT_DELAY_MS après la fin de la main (l'indice existant
+  // vient de disparaître), se retire après PINCH_HINT_SHOW_MS, puis REAPPEAR
+  // après PINCH_HINT_REAPPEAR_MS — et ainsi de suite tant que l'utilisateur
+  // n'a pas pincé / choisi une carte (pinchHintDone.current).
+  useEffect(() => {
+    if (!handDone) return;
+    let cancelled = false;
+    let t: number;
+    const show = () => {
+      if (cancelled || pinchHintDone.current) return;
+      setShowPinchHint(true);
+      setPinchHintLeaving(false);
+      t = window.setTimeout(hide, PINCH_HINT_SHOW_MS);
+    };
+    const hide = () => {
+      if (cancelled) return;
+      setPinchHintLeaving(true);
+      t = window.setTimeout(() => {
+        setShowPinchHint(false);
+        setPinchHintLeaving(false);
+        // Pas d'interaction → le tuto revient après PINCH_HINT_REAPPEAR_MS.
+        t = window.setTimeout(show, PINCH_HINT_REAPPEAR_MS);
+      }, PINCH_HINT_FADE_MS);
+    };
+    t = window.setTimeout(show, PINCH_HINT_DELAY_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handDone]);
 
   /* ---- Géométrie ---- */
@@ -472,6 +536,8 @@ export default function TarotApp() {
     pinchStartAmount.current = zoomRef.current.amount;
     zoomRef.current.center = idxAt((x1 + x2) / 2);
     haptic(10);
+    // Le geste est compris : on retire le tuto de pincement immédiatement.
+    hidePinchHint();
   };
   const movePinch = (x1: number, y1: number, x2: number, y2: number) => {
     if (pinchStartDist.current <= 0) return;
@@ -564,14 +630,8 @@ export default function TarotApp() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }} onPointerUp={onBgTap}>
-      {/* Keyframes dédiés à la poussière dorée (nom unique pour éviter tout conflit) */}
-      <style>{`
-        @keyframes goldDustTrail {
-          0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
-          18%  { opacity: 1; }
-          100% { opacity: 0; transform: translate(var(--gdx), var(--gdy)) scale(1.15); }
-        }
-      `}</style>
+      {/* Keyframes goldDustTrail + pinchFingerL/R → app/globals.css (évite
+          l'erreur d'hydratation du <style> inline JSX, pattern documenté). */}
 
       {/* ========== MENU (navbar) — apparaît à l'étape 2 avec le reste de l'UI ========== */}
       <motion.div
@@ -869,6 +929,75 @@ export default function TarotApp() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ========== TUTO GESTE — "Pincez la pioche pour l'ouvrir" ==========
+          Overlay style tutoriel Android : 2 doigts blancs semi-transparents
+          posés SUR la pioche, qui s'écartent (boucle), avec flèches ← →.
+          Disparaît au premier pinch / premier tap carte / après 5s. */}
+      {showPinchHint && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: "50%",
+            bottom: "10%",
+            transform: "translateX(-50%)",
+            zIndex: 345,
+            opacity: pinchHintLeaving ? 0 : 1,
+            transition: `opacity ${PINCH_HINT_FADE_MS}ms ease-out`,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 10,
+          }}
+          aria-hidden
+        >
+          {/* Geste : 2 mains (icône cursor Flaticon), index pointés vers le
+              centre, qui s'écartent (boucle), flèches ← → au-dessus.
+              invert(1) → icône noire devenue blanche ; opacity variable. */}
+          <svg width="170" height="96" viewBox="0 0 170 96" fill="none" aria-hidden>
+            {/* Flèches ← → au-dessus des mains */}
+            <path d="M34 14h30M34 14l9-8M34 14l9 8" stroke="rgba(255,255,255,0.85)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M136 14h-30M136 14l-9-8M136 14l-9 8" stroke="rgba(255,255,255,0.85)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+            {/* Main gauche : miroir (scaleX -1) → index vers le haut,
+                pouce à gauche. Opacité 0.66. */}
+            <g style={{ animation: "pinchFingerL 1.6s ease-in-out infinite" }}>
+              <g transform="translate(46 54) scale(-1 1)">
+                <image
+                  href="/images/hand-cursor.png"
+                  x="-23" y="-23" width="46" height="46"
+                  style={{ opacity: 0.66, filter: "invert(1)" }}
+                />
+              </g>
+            </g>
+            {/* Main droite : icône à l'endroit → index vers le haut,
+                pouce à droite. Opacité 0.48. */}
+            <g style={{ animation: "pinchFingerR 1.6s ease-in-out infinite" }}>
+              <g transform="translate(124 54)">
+                <image
+                  href="/images/hand-cursor.png"
+                  x="-23" y="-23" width="46" height="46"
+                  style={{ opacity: 0.48, filter: "invert(1)" }}
+                />
+              </g>
+            </g>
+          </svg>
+          {/* Légende discrète sous le geste */}
+          <span
+            className="whitespace-nowrap uppercase"
+            style={{
+              fontFamily: "var(--font-cinzel), serif",
+              fontSize: 10.5,
+              fontWeight: 600,
+              letterSpacing: "0.16em",
+              color: "rgba(255,255,255,0.72)",
+              textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+            }}
+          >
+            Pincez la pioche pour l&apos;ouvrir
+          </span>
         </div>
       )}
 

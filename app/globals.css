@@ -402,6 +402,24 @@ html, body {
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+/* Traînée de poussière dorée (main qui balaye la pioche) */
+@keyframes goldDustTrail {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  18%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--gdx), var(--gdy)) scale(1.15); }
+}
+/* Geste de pincement (tuto "Pincez la pioche") : 2 doigts blancs qui s'écartent.
+   Boucle continue (style tutoriel Android). */
+@keyframes pinchFingerL {
+  0%   { transform: translateX(0); }
+  50%  { transform: translateX(-11px); }
+  100% { transform: translateX(0); }
+}
+@keyframes pinchFingerR {
+  0%   { transform: translateX(0); }
+  50%  { transform: translateX(11px); }
+  100% { transform: translateX(0); }
+}
 
 /* Lueur d'appel du ⓘ tutoriel au 1er passage (page /des-divinatoires) */
 @keyframes ddGlow {
