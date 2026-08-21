@@ -402,6 +402,13 @@ html, body {
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+/* Pulse léger du bouton "Enregistrer et tirer vos cartes" dès que la question
+   est écrite (modale /tarot-5-c-manuelle) */
+@keyframes questionPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(218,165,32,0); }
+  50% { box-shadow: 0 0 26px rgba(218,165,32,0.5); }
+}
+.animate-question-pulse { animation: questionPulse 1.6s ease-in-out infinite; }
 /* Traînée de poussière dorée (main qui balaye la pioche) */
 @keyframes goldDustTrail {
   0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }

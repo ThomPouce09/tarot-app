@@ -21,7 +21,6 @@ const ENABLE_HAPTICS = true;
 const ENABLE_BREATH = true;
 const ENABLE_HAND_DUST = true;
 
-const TOTAL_PICKS = 3;
 const N = 78;
 const SPREAD_MS = 3000;
 const EDGE = 10;
@@ -86,8 +85,8 @@ function CardBack({ glow }: { glow?: boolean }) {
 }
 
 /* ---------- Emplacements cartes tirées ---------- */
-const POSITION_LABELS = ['Passé', 'Présent', 'Avenir'];
-const POSITION_ICONS = ['☽', '☉', '★'];
+const DEFAULT_POSITION_LABELS = ['Passé', 'Présent', 'Avenir'];
+const DEFAULT_POSITION_ICONS = ['☽', '☉', '★'];
 
 export interface DrawnCardData {
   card: TarotCard;
@@ -95,12 +94,17 @@ export interface DrawnCardData {
   position: number;
 }
 
-function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position }: {
+function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position, positionLabels, positionIcons, cardW, cardH, labelSide = 'top' }: {
   drawnCard: DrawnCardData | null;
   isMobile: boolean;
   isReady: boolean;
   slotRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
   position: number;
+  positionLabels: string[];
+  positionIcons: string[];
+  cardW: number;
+  cardH: number;
+  labelSide?: 'top' | 'right';
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showFace, setShowFace] = useState(false);
@@ -115,18 +119,60 @@ function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position }: {
     }
   }, [drawnCard]);
 
+  // labelSide 'right' : label disposé à droite de la carte (gain de place
+  // verticale dans la croix), sinon au-dessus. En mobile, le label est compact
+  // (maxWidth + troncature) pour que la grille tienne dans le viewport.
+  // Si le label est vide → masqué (croix d'origine, sans titres de zone).
+  const label = positionLabels[position] ? (
+    <motion.div
+      className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-4 py-1 sm:py-2 rounded-full"
+      style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(218,165,32,0.5)', backdropFilter: 'blur(4px)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', maxWidth: labelSide === 'right' && isMobile ? 64 : '100%' }}
+      initial={{ opacity: 0, y: -10 }} animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }} transition={{ duration: 0.6 }}
+    >
+      <span style={{ color: '#FFD700', fontSize: isMobile ? (labelSide === 'right' ? 9 : 11) : 15 }}>{positionIcons[position]}</span>
+      <span
+        className="text-[8px] sm:text-sm md:text-base tracking-widest uppercase font-bold whitespace-nowrap overflow-hidden"
+        style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFD700', textOverflow: 'ellipsis' }}
+      >
+        {positionLabels[position]}
+      </span>
+    </motion.div>
+  ) : null;
+
+  if (labelSide === 'right') {
+    return (
+      <div className="flex items-center gap-1.5 sm:gap-3" style={{ marginTop: '-38px', marginBottom: '20px' }}>
+        <div className="relative" style={{ perspective: '1000px', width: cardW, height: cardH }}>
+          {!drawnCard ? (
+            <motion.div className="w-full h-full rounded-lg slot-empty" initial={{ opacity: 0 }} animate={{ opacity: isReady ? 1 : 0 }} transition={{ duration: 0.6 }} />
+          ) : (
+            <motion.div
+              ref={(el) => { slotRefs.current[drawnCard.position] = el; }}
+              className="w-full h-full rounded-lg"
+              initial={false}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 180, damping: 18, duration: 0.7 }}
+            >
+              <div className="absolute inset-0 rounded-lg mystic-glow" style={{ zIndex: 0 }} />
+              <div className={`card-inner ${isFlipped ? 'flipped' : ''}`}>
+                <div className="card-face card-back" style={{ backgroundImage: `url(${CARD_BACK_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '2px solid rgba(218,165,32,0.5)' }} />
+                <div className="card-face card-front">
+                  <CardFace card={drawnCard.card} reversed={drawnCard.reversed} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+        {label}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ marginTop: '-38px', marginBottom: '20px' }}>
-      <motion.div
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full"
-        style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(218,165,32,0.5)', backdropFilter: 'blur(4px)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }} transition={{ duration: 0.6 }}
-      >
-        <span style={{ color: '#FFD700', fontSize: isMobile ? '12px' : '15px' }}>{POSITION_ICONS[position]}</span>
-        <span className="text-xs sm:text-sm md:text-base tracking-widest uppercase font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFD700' }}>{POSITION_LABELS[position]}</span>
-      </motion.div>
+      {label}
 
-      <div className="relative" style={{ perspective: '1000px', width: isMobile ? '110px' : '240px', height: isMobile ? '185px' : '405px' }}>
+      <div className="relative" style={{ perspective: '1000px', width: cardW, height: cardH }}>
         {!drawnCard ? (
           <motion.div className="w-full h-full rounded-lg slot-empty" initial={{ opacity: 0 }} animate={{ opacity: isReady ? 1 : 0 }} transition={{ duration: 0.6 }} />
         ) : (
@@ -147,33 +193,131 @@ function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position }: {
           </motion.div>
         )}
       </div>
-      {drawnCard && (
-        <p
-          className="text-[11px] sm:text-xs md:text-sm text-center font-semibold leading-tight"
-          style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            color: '#FFD700',
-            textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-            marginTop: '4px',
-            minHeight: isMobile ? '28px' : '34px',
-            maxWidth: isMobile ? '120px' : '240px',
-          }}
-        >
-          {drawnCard.card.name}
-        </p>
-      )}
+      {/* Espace réservé pour le nom : toujours présent (hauteur fixe) pour que
+          la grille ne bouge pas quand une carte est sélectionnée. */}
+      <p
+        className="text-[11px] sm:text-xs md:text-sm text-center font-semibold leading-tight"
+        style={{
+          fontFamily: 'var(--font-cinzel), serif',
+          color: '#FFD700',
+          textShadow: drawnCard ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
+          marginTop: '-2px',
+          minHeight: isMobile ? '28px' : '34px',
+          maxWidth: isMobile ? '120px' : '240px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          paddingTop: '0px',
+        }}
+      >
+        {drawnCard ? drawnCard.card.name : ''}
+      </p>
     </div>
   );
 }
 
-function DrawnCards({ drawnCards, isReady, slotRefs }: { drawnCards: DrawnCardData[]; isReady: boolean; slotRefs: React.MutableRefObject<(HTMLDivElement | null)[]> }) {
+function DrawnCards({ drawnCards, isReady, slotRefs, totalPicks, positionLabels, positionIcons, crossLayout, reveal }: {
+  drawnCards: DrawnCardData[];
+  isReady: boolean;
+  slotRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+  totalPicks: number;
+  positionLabels: string[];
+  positionIcons: string[];
+  crossLayout?: { area: string; label: string; icon: string }[];
+  reveal?: boolean;
+}) {
   const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => { setIsMobile(window.innerWidth < 640); }, []);
+  const [vw, setVw] = useState(375);
+  useEffect(() => {
+    const onR = () => setVw(window.innerWidth);
+    setVw(window.innerWidth);
+    setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  // Largeur mobile adaptée au nombre d'emplacements : 5 cartes → slots plus
+  // étroits pour tenir dans l'écran (5 × ~64px + marges ≈ 360px).
+  const cardW = isMobile ? Math.min(110, Math.floor((vw - 16 - (totalPicks - 1) * 6) / totalPicks)) : 240;
+  const cardH = isMobile ? Math.round(cardW * 1.68) : 405;
+
+  // Mode croix : 3 colonnes seulement (pas totalPicks), titres masqués →
+  // carte à la taille d'origine de la croix (~65px mobile), gaps 8px/12px.
+  // Grille = 3 × 65 + 2 × 12 + padding 16 ≈ 235px, centrée dans le viewport.
+  const crossW = isMobile ? 65 : 240;
+  const crossH = isMobile ? Math.round(crossW * 1.68) : 405;
+
+  // Mode croix : grille 3×3 (1 en haut, 3 au milieu, 1 en bas) comme la
+  // croix celtique d'origine — emplacements seuls, sans titres latéraux.
+  // Les positions se remplissent dans l'ordre d'affichage (crossLayout[i] →
+  // drawnCards[i]). La largeur est calculée pour que la grille tienne dans
+  // le viewport mobile (3 colonnes de ~70px + gaps ≈ 360px).
+  if (crossLayout && crossLayout.length === totalPicks) {
+    const areas = [
+      '".        a0        .       "',
+      '"a1       a2        a3      "',
+      '".        a4        .       "',
+    ];
+    return (
+      <motion.div
+        className="absolute left-0 right-0 z-25 flex justify-center items-start px-2 sm:px-4"
+        style={{ zIndex: 25 }}
+        initial={{ top: isMobile ? '15vh' : '20vh' }}
+        animate={{ top: reveal ? (isMobile ? '26vh' : '28vh') : (isMobile ? '15vh' : '20vh') }}
+        transition={{ duration: reveal ? 1.1 : 0.6, ease: 'easeInOut' }}
+      >
+        {/* Halo magique discret derrière la croix au moment du recentrage */}
+        <motion.div
+          className="pointer-events-none absolute"
+          style={{
+            left: '50%', top: '50%',
+            width: 220, height: 220,
+            transform: 'translate(-50%, -50%)',
+            background: 'radial-gradient(circle, rgba(255,215,120,0.16) 0%, rgba(255,190,80,0.05) 50%, transparent 72%)',
+            filter: 'blur(2px)',
+          }}
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: reveal ? 1 : 0, scale: reveal ? [0.7, 1.08, 0.96, 1] : 0.7 }}
+          transition={{ duration: reveal ? 2.2 : 0.4, ease: 'easeOut' }}
+        />
+        <motion.div
+          className="grid relative"
+          style={{
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gridTemplateRows: 'auto auto auto',
+            gridTemplateAreas: areas.join(' '),
+            gap: isMobile ? '8px 12px' : '14px 28px',
+          }}
+          initial={false}
+          animate={{ scale: reveal ? 1.06 : 1 }}
+          transition={{ duration: 1.1, ease: 'easeInOut' }}
+        >
+          {crossLayout.map((slot, i) => (
+            <div key={slot.area} style={{ gridArea: `a${i}` }} className="flex justify-center">
+              <DrawnCardSlot
+                drawnCard={drawnCards[i] ?? null}
+                isMobile={isMobile}
+                isReady={isReady}
+                slotRefs={slotRefs}
+                position={i}
+                // Titres masqués (croix d'origine) : le nom de la carte tirée
+                // s'affiche sous l'emplacement.
+                positionLabels={[]}
+                positionIcons={[]}
+                cardW={crossW}
+                cardH={crossH}
+              />
+            </div>
+          ))}
+        </motion.div>
+      </motion.div>
+    );
+  }
+
   return (
     <div className="absolute left-0 right-0 z-25 flex justify-center items-start px-2 sm:px-4" style={{ zIndex: 25, top: '29vh', maxWidth: isMobile ? '100vw' : '1200px', margin: '0 auto' }}>
-      {[0, 1, 2].map((position) => (
-        <div key={position} style={{ flex: '0 0 auto', marginRight: isMobile && position < 2 ? '8px' : '0' }}>
-          <DrawnCardSlot drawnCard={drawnCards[position] ?? null} isMobile={isMobile} isReady={isReady} slotRefs={slotRefs} position={position} />
+      {Array.from({ length: totalPicks }, (_, position) => (
+        <div key={position} style={{ flex: '0 0 auto', marginRight: isMobile && position < totalPicks - 1 ? '6px' : '0' }}>
+          <DrawnCardSlot drawnCard={drawnCards[position] ?? null} isMobile={isMobile} isReady={isReady} slotRefs={slotRefs} position={position} positionLabels={positionLabels} positionIcons={positionIcons} cardW={cardW} cardH={cardH} />
         </div>
       ))}
     </div>
@@ -234,7 +378,38 @@ function FlyingCard({ flying }: { flying: { from: DOMRect; to: DOMRect; cardId: 
 }
 
 /* ========== COMPOSANT PRINCIPAL ========== */
-export default function TarotApp() {
+export default function TarotApp({
+  totalPicks = 3,
+  positionLabels = DEFAULT_POSITION_LABELS,
+  positionIcons = DEFAULT_POSITION_ICONS,
+  title = 'Tirage 3 cartes',
+  spreadType = 'tarot-3-cartes',
+  // Rappelé avec les ids des cartes choisies au moment du bouton "Consulter
+  // l'Oracle" (pour les tirages custom type tarot-5-c-manuelle). S'il est
+  // fourni, la navigation interne par défaut est remplacée.
+  onInterpret,
+  // Question posée (tirage avec question) : pastille cliquable pour la relire.
+  question,
+  // Fond de table personnalisé (remplace TABLE_BG_WITH_VERSION).
+  backgroundImage,
+  // Vidéo de fond en boucle (remplace backgroundImage si fournie).
+  backgroundVideo,
+  // Disposition des emplacements en croix (tirage 5 cartes) : tableau de
+  // 5 positions dans l'ordre d'affichage, chacune avec une zone de grille.
+  // Ex. [{ area: 'sommet', label: 'Le Sommet', icon: '✦' }, ...]
+  crossLayout,
+}: {
+  totalPicks?: number;
+  positionLabels?: string[];
+  positionIcons?: string[];
+  title?: string;
+  spreadType?: string;
+  onInterpret?: (cardIds: number[]) => void;
+  question?: string;
+  backgroundImage?: string;
+  backgroundVideo?: string;
+  crossLayout?: { area: string; label: string; icon: string }[];
+}) {
   const router = useRouter();
 
   /* ---- Cinématique (tarot-3-cartes) ---- */
@@ -243,6 +418,9 @@ export default function TarotApp() {
   // Phase 4: pioche + navbar visibles (fin du zoom), puis main + déploiement
   //          pilotés indépendamment par handStarted/spreadFront via leurs propres timers.
   const [cinematicPhase, setCinematicPhase] = useState<CinematicPhase>(0);
+
+  // Pastille question (tirage avec question) : toggle afficher/masquer.
+  const [showQuestion, setShowQuestion] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setCinematicPhase(1), ZOOM_START_MS);          // 1) fond apparaît
     const t2 = setTimeout(() => setCinematicPhase(2), ZOOM_START_MS);          // 1) zoom démarre aussitôt (transition gérée par l'échelle)
@@ -316,8 +494,7 @@ export default function TarotApp() {
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const remaining = TOTAL_PICKS - picked.length;
-
+  const haptic = (ms: number | number[]) => { if (ENABLE_HAPTICS && navigator.vibrate) navigator.vibrate(ms as number); };
   /* ---- Viewport resize ---- */
   useEffect(() => {
     const onR = () => setVw(window.innerWidth);
@@ -328,11 +505,10 @@ export default function TarotApp() {
 
   const isReady = cinematicPhase >= 3;        // titre + menu + sélecteurs (étape 2)
   const zoomDone = cinematicPhase >= 4;       // fin du zoom => pioche + navbar (étape 3)
-  const haptic = (ms: number | number[]) => { if (ENABLE_HAPTICS && navigator.vibrate) navigator.vibrate(ms as number); };
 
   /* ---- Sélection d'une carte ---- */
   const pickCard = useCallback((deckIndex: number) => {
-    if (pickedIdx.current.has(deckIndex) || picked.length >= TOTAL_PICKS || flyingIdx.current !== null) return;
+    if (pickedIdx.current.has(deckIndex) || picked.length >= totalPicks || flyingIdx.current !== null) return;
     const slot = picked.length;
     // Première carte choisie : le tuto de pincement n'a plus lieu d'être.
     hidePinchHint();
@@ -378,7 +554,7 @@ export default function TarotApp() {
 
   /* ---- Révélation (tirage complet) ---- */
   useEffect(() => {
-    if (picked.length === TOTAL_PICKS) {
+    if (picked.length === totalPicks) {
       const t = window.setTimeout(() => setReveal(true), 700);
       return () => window.clearTimeout(t);
     }
@@ -619,8 +795,6 @@ export default function TarotApp() {
 
   const z = zoomRef.current;
   const zoomActive = z.amount > 0.15;
-  const leftCount = Math.max(0, Math.round(z.center - ZONE));
-  const rightCount = Math.max(0, N - 1 - Math.round(z.center + ZONE));
 
   const drawnCards: DrawnCardData[] = picked.map((p) => ({
     card: TAROT_CARDS.find((c) => c.id === p.cardId) || ({} as TarotCard),
@@ -652,19 +826,37 @@ export default function TarotApp() {
       >
         <motion.div
           className="relative w-full h-full"
-          initial={{ scale: 0.92 }}
-          animate={{ scale: cinematicPhase >= 2 ? 1.08 : 0.92 }}
-          transition={{ duration: cinematicPhase >= 2 ? 1.2 : 0.3, ease: 'easeOut' }}
+          initial={{ scale: backgroundVideo ? 1 : 0.92 }}
+          animate={{ scale: backgroundVideo ? 1 : (cinematicPhase >= 2 ? 1.08 : 0.92) }}
+          transition={{ duration: backgroundVideo ? 0 : (cinematicPhase >= 2 ? 1.2 : 0.3), ease: 'easeOut' }}
         >
-          <Image
-            src={TABLE_BG_WITH_VERSION}
-            alt="Table en bois rustique"
-            fill
-            className="object-cover"
-            style={{ objectPosition: 'center 50%', transform: 'scale(1.1) translateY(-13%)', filter: 'brightness(1.08) contrast(1.06) saturate(1.08)' }}
-            priority
-            quality={90}
-          />
+          {backgroundVideo ? (
+            <video
+              src={backgroundVideo}
+              autoPlay
+              muted
+              playsInline
+              loop
+              preload="auto"
+              className="h-full w-full"
+              style={{ objectFit: 'cover', transform: 'scale(0.99)', objectPosition: 'center' }}
+            />
+          ) : backgroundImage ? (
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${backgroundImage})` }}
+            />
+          ) : (
+            <Image
+              src={TABLE_BG_WITH_VERSION}
+              alt="Table en bois rustique"
+              fill
+              className="object-cover"
+              style={{ objectPosition: 'center 50%', transform: 'scale(1.1) translateY(-13%)', filter: 'brightness(1.08) contrast(1.06) saturate(1.08)' }}
+              priority
+              quality={90}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/0 to-black/15" />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 44%, transparent 45%, rgba(0,0,0,0.18) 100%)' }} />
         </motion.div>
@@ -673,7 +865,7 @@ export default function TarotApp() {
       {/* ========== TITRE ========== */}
       <motion.div
         className="absolute top-0 left-0 right-0 z-30 text-center"
-        style={{ top: '5%', transform: 'translateY(-50%)' }}
+        style={{ top: '4.2%', transform: 'translateY(-50%)' }}
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -40 }}
         transition={{ duration: 1, delay: 0.2 }}
@@ -682,23 +874,88 @@ export default function TarotApp() {
           className="title-glow px-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-wider uppercase"
           style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700', letterSpacing: '0.1em', textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
         >
-          Tirage 3 cartes
+          {title}
         </h1>
-        <motion.p
-          className="text-sm sm:text-base md:text-lg mt-2 font-semibold"
-          style={{
-            color: '#FFD700', fontFamily: 'var(--font-cinzel), serif', textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', padding: '6px 16px',
-            borderRadius: '14px', display: 'inline-block', border: '1px solid rgba(218,165,32,0.3)',
-            transform: 'translateY(28px)',
-          }}
-        >
-          {reveal ? 'Votre tirage est complet ✨' : `${remaining} carte${remaining > 1 ? 's' : ''} à tirer`}
-        </motion.p>
       </motion.div>
 
-      {/* ========== CARTES TIRÉES (Passé/Présent/Avenir) ========== */}
-      <DrawnCards drawnCards={drawnCards} isReady={isReady} slotRefs={slotRefs} />
+      {/* ========== QUESTION (tirage avec question) — pastille cliquable ========== */}
+      {question && (
+        <motion.div
+          className="absolute left-0 right-0 z-40 flex justify-end px-4"
+          style={{ top: '13%' }}
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -14 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          {/* Pastille cliquable — discrète, 2 lignes, à droite (hors de la croix) */}
+          <button
+            onClick={() => setShowQuestion((v) => !v)}
+            className="flex items-center gap-1.5 rounded-full border border-[rgba(218,165,32,0.35)] bg-[rgba(20,10,5,0.6)] px-3 py-1.5 shadow-none backdrop-blur transition-all duration-200 active:scale-95"
+            style={{ fontFamily: 'var(--font-cinzel), serif' }}
+          >
+            <span style={{ color: '#FFD700', fontSize: '11px', lineHeight: 1 }}>✧</span>
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">Votre</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">question</span>
+            </span>
+            <svg
+              width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden
+              style={{ transform: showQuestion ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s' }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="rgba(218,165,32,0.7)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </motion.div>
+      )}
+
+      {/* ========== MODALE QUESTION — centrée, au clic sur la pastille ========== */}
+      {question && showQuestion && (
+        <motion.div
+          className="fixed inset-0 z-[80] flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={() => setShowQuestion(false)}
+        >
+          <motion.div
+            className="w-full max-w-sm rounded-2xl border border-[rgba(218,165,32,0.5)] bg-[rgba(26,15,8,0.96)] p-6 shadow-[0_0_40px_rgba(218,165,32,0.25)]"
+            initial={{ scale: 0.9, opacity: 0, y: 14 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.92, opacity: 0, y: 10 }}
+            transition={{ duration: 0.25 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3
+                className="text-sm font-bold uppercase tracking-[0.16em] text-[#FFD700]"
+                style={{ fontFamily: 'var(--font-cinzel), serif' }}
+              >
+                Votre question
+              </h3>
+              <button
+                onClick={() => setShowQuestion(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(218,165,32,0.4)] text-[#E8C87A] transition-colors hover:bg-white/10"
+                aria-label="Fermer"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p
+              className="text-base font-semibold leading-relaxed text-[#F0E6D3]"
+              style={{ fontFamily: 'var(--font-cormorant), serif' }}
+            >
+              {question}
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* ========== CARTES TIRÉES (emplacements) ========== */}
+      <DrawnCards drawnCards={drawnCards} isReady={isReady} slotRefs={slotRefs} totalPicks={totalPicks} positionLabels={positionLabels} positionIcons={positionIcons} crossLayout={crossLayout} reveal={reveal} />
 
       {/* ========== POUSSIÈRE DORÉE — traînée derrière la main ========== */}
       {ENABLE_HAND_DUST && dust.length > 0 && (
@@ -822,14 +1079,12 @@ export default function TarotApp() {
       {/* ========== MINI-CARTE / JAUGE — entre pioche et emplacements ========== */}
       {!reveal && zoomDone && (
         <div className="absolute z-30 pointer-events-none" style={{
-          left: "50%", top: "59%", transform: "translate(-50%, 0)",
-          width: "min(86vw, 560px)",
+          left: "50%", top: "61%", transform: "translate(-50%, 0)",
+          width: "min(64vw, 420px)",
         }}>
-          <div className="flex items-center" style={{ gap: 10 }}>
-            <span style={{ color: zoomActive ? "#ffe6a6" : "rgba(255,224,170,0.7)", fontFamily: "serif", fontSize: 13, minWidth: 34, textAlign: "right", textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s" }}>
-              {zoomActive ? "◂ " + leftCount : ""}
-            </span>
-            <div className="relative flex-1 rounded-full overflow-hidden" style={{ height: 8, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,200,110,0.25)" }}>
+          <div className="flex items-center justify-center" style={{ gap: 10 }}>
+            {/* Barre curseur réduite */}
+            <div className="relative rounded-full overflow-hidden" style={{ height: 8, flex: "0 0 auto", width: "min(46vw, 300px)", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,200,110,0.25)" }}>
               {[0.25, 0.5, 0.75].map((f) => (
                 <div key={f} style={{ position: "absolute", left: f * 100 + "%", top: 0, bottom: 0, width: 1, background: "rgba(255,220,160,0.2)" }} />
               ))}
@@ -845,20 +1100,14 @@ export default function TarotApp() {
                 boxShadow: zoomActive ? "0 0 10px rgba(255,200,90,0.8)" : "none",
               }} />
             </div>
-            <span style={{ color: zoomActive ? "#ffe6a6" : "rgba(255,224,170,0.7)", fontFamily: "serif", fontSize: 13, minWidth: 34, textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s" }}>
-              {zoomActive ? rightCount + " ▸" : ""}
+            {/* Info "Carte n/n" à droite de la barre */}
+            <span style={{
+              color: zoomActive ? "#ffe6a6" : "rgba(255,224,170,0.7)",
+              fontFamily: "serif", fontSize: 13, whiteSpace: "nowrap",
+              textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s",
+            }}>
+              carte {Math.round(z.center) + 1} / {N}
             </span>
-          </div>
-          <div className="text-center" style={{
-            color: "rgba(255,230,180,0.6)", fontSize: 9, fontFamily: "serif", marginTop: 4,
-            opacity: zoomActive ? 1 : 0.4, transition: "opacity .3s",
-            display: "block", margin: "0 auto", width: "fit-content",
-            background: "#241810",
-            border: "1px solid rgba(255,200,110,0.15)",
-            borderRadius: 8,
-            padding: "2px 9px",
-          }}>
-            carte {Math.round(z.center) + 1} / {N}
           </div>
         </div>
       )}
@@ -1019,15 +1268,18 @@ export default function TarotApp() {
       {reveal && (
         <motion.div
           className="absolute left-0 right-0 text-center z-30 px-4 sm:px-6"
-          style={{ bottom: '22%' }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          style={{ bottom: '10%' }}
+          initial={{ opacity: 0, y: 24, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <motion.button
             onClick={() => {
               const ids = picked.map((p) => p.cardId);
-              const spreadType = 'tarot-3-cartes';
+              if (onInterpret) {
+                onInterpret(ids);
+                return;
+              }
               try { localStorage.setItem(`${spreadType}-cards`, JSON.stringify(ids)); } catch {}
               let userId = '';
               try { const u = localStorage.getItem('tarot_user'); if (u) userId = (JSON.parse(u).email) || ''; } catch {}
