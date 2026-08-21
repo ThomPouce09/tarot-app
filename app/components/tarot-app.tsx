@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import YiSlideNav from '@/components/yi-slide-nav';
 import CardFace from './card-face';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
+import { playSound } from '@/lib/sounds';
 
 /* ============================================================
  *  FUSION  /tarot-3-cartes (décor)  +  /tarot-test (pioche)
@@ -517,14 +518,9 @@ export default function TarotApp({
     const card = deck[deckIndex];
     haptic(30);
     // Son de carte sélectionnée : l'un des 2 sons au hasard à chaque fois
-    // (tap utilisateur => lecture autorisée)
-    try {
-      const src = Math.random() < 0.5 ? '/audio/card-flipped.mp3' : '/audio/card-flipped2.mp3';
-      const a = new Audio(src);
-      a.volume = 0.7;
-      const p = a.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
-    } catch { /* audio indisponible : on ignore */ }
+    // (tap utilisateur => lecture autorisée). playSound respecte la
+    // préférence « Effets sonores » de /preferences.
+    playSound(Math.random() < 0.5 ? 'card-flipped' : 'card-flipped2', 0.7);
     if (cardEl) {
       const r = (cardEl as HTMLElement).getBoundingClientRect();
       setRipple({ x: r.left + r.width / 2, y: r.top + r.height / 2, key: Date.now() });

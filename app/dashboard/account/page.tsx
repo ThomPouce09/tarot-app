@@ -57,20 +57,6 @@ export default function AccountPage() {
     }
   };
 
-  const Field = ({ id, label, value, onChange, type = 'text' }: any) => (
-    <div>
-      <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange}
-        autoComplete="off"
-        className="mystic-input"
-      />
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* En-tête profil */}
@@ -103,7 +89,22 @@ export default function AccountPage() {
         <div className="flex items-center justify-between mb-5">
           <h2 className="mystic-subtitle text-sm">Informations personnelles</h2>
           {!editMode && (
-            <button onClick={() => setEditMode(true)} className="mystic-btn-ghost text-sm px-3 py-1.5">{t('account.edit')}</button>
+            <button
+              onClick={() => {
+                setForm({
+                  firstName: user.firstName || '',
+                  lastName: user.lastName || '',
+                  phone: user.phone || '',
+                  age: user.age != null ? String(user.age) : '',
+                  gender: user.gender || 'other',
+                  comment: user.comment || '',
+                });
+                setEditMode(true);
+              }}
+              className="mystic-btn-ghost text-sm px-3 py-1.5"
+            >
+              {t('account.edit')}
+            </button>
           )}
         </div>
 
@@ -148,6 +149,22 @@ export default function AccountPage() {
 
       {/* Déconnexion (mobile) */}
       <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3">{t('account.logout')}</button>
+    </div>
+  );
+}
+
+function Field({ id, label, value, onChange, type = 'text' }: { id: string; label: string; value: any; onChange: (e: any) => void; type?: string }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        autoComplete="off"
+        className="mystic-input"
+      />
     </div>
   );
 }

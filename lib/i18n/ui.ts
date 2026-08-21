@@ -82,6 +82,9 @@ export const DICT = {
   // ─── Preferences ───
   'prefs.title': { fr: 'Préférences', en: 'Preferences' },
   'prefs.subtitle': { fr: 'Personnalisez votre expérience mystique.', en: 'Personalize your mystical experience.' },
+  'prefs.sound': { fr: 'Son', en: 'Sound' },
+  'prefs.soundEffects': { fr: 'Effets sonores', en: 'Sound effects' },
+  'prefs.voices': { fr: 'Voix', en: 'Voices' },
   'prefs.theme': { fr: 'Ambiance visuelle', en: 'Visual mood' },
   'prefs.theme.sombre': { fr: 'Sombre', en: 'Dark' },
   'prefs.theme.ambre': { fr: 'Ambre', en: 'Amber' },

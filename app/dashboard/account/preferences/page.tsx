@@ -2,20 +2,33 @@
 
 import { useState } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
+import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
 
 type Prefs = {
-  theme: 'sombre' | 'ambre' | 'nuit';
   dailyReminder: boolean;
   emailNews: boolean;
   language: 'fr' | 'en';
+  soundEffects: boolean;
+  voices: boolean;
+};
+
+const DEFAULT_PREFS: Prefs = {
+  dailyReminder: true,
+  emailNews: false,
+  language: 'fr',
+  soundEffects: true,
+  voices: true,
 };
 
 export default function PreferencesPage() {
-  const [prefs, setPrefs] = useState<Prefs>({
-    theme: 'ambre',
-    dailyReminder: true,
-    emailNews: false,
-    language: 'fr',
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS;
+    try {
+      const raw = localStorage.getItem('tarot_prefs');
+      return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
+    } catch {
+      return DEFAULT_PREFS;
+    }
   });
   const [saved, setSaved] = useState(false);
   const lang = useLang();
@@ -29,6 +42,12 @@ export default function PreferencesPage() {
       return next;
     });
     setSaved(true);
+    if (patch.soundEffects !== undefined || patch.voices !== undefined) {
+      const soundEffects = patch.soundEffects ?? prefs.soundEffects;
+      const voices = patch.voices ?? prefs.voices;
+      setSoundPrefs(soundEffects, voices);
+      if (soundEffects) unlockAllSounds(); // (re)préparer les sons après réactivation
+    }
   };
 
   return (
@@ -41,21 +60,11 @@ export default function PreferencesPage() {
         <p className="text-gray-500 text-sm mt-1">{t('prefs.subtitle')}</p>
       </header>
 
-      {/* Thème */}
-      <div className="mystic-panel p-5">
-        <h2 className="mystic-subtitle text-sm mb-3">{t('prefs.theme')}</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {([
-            { key: 'sombre', icon: '🌑', label: t('prefs.theme.sombre') },
-            { key: 'ambre', icon: '🔥', label: t('prefs.theme.ambre') },
-            { key: 'nuit', icon: '🌌', label: t('prefs.theme.nuit') },
-          ] as const).map((th) => (
-            <button key={th.key} onClick={() => update({ theme: th.key })} className={`mystic-panel p-3 flex flex-col items-center gap-1 ${prefs.theme === th.key ? 'ring-2 ring-amber-500/60' : ''}`}>
-              <span className="text-2xl">{th.icon}</span>
-              <span className="text-xs text-gray-300">{th.label}</span>
-            </button>
-          ))}
-        </div>
+      {/* Son */}
+      <div className="mystic-panel p-5 space-y-3">
+        <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.sound')}</h2>
+        <Toggle label={t('prefs.soundEffects')} checked={prefs.soundEffects} onChange={(v) => update({ soundEffects: v })} />
+        <Toggle label={t('prefs.voices')} checked={prefs.voices} onChange={(v) => update({ voices: v })} />
       </div>
 
       {/* Notifications */}

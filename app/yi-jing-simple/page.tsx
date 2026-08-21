@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useLang } from '@/lib/i18n';
+import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
@@ -176,6 +177,7 @@ function YiQingRig() {
   // Audio de tirage : instance réutilisable + déverrouillage autoplay au 1er geste/capteur.
   const drawSoundRef = useRef<HTMLAudioElement | null>(null);
   const unlockAudio = useCallback(() => {
+    if (!isEffectsEnabled()) return;
     try {
       const a = new Audio('/audio/stick-draw.mp3');
       a.volume = 0.8;
@@ -208,13 +210,15 @@ function YiQingRig() {
     
     // Son de tirage : déclenché à l'instant où le tirage est détecté,
     // juste avant la montée de la baguette élue.
-    try {
-      const snd = drawSoundRef.current || new Audio('/audio/stick-draw.mp3');
-      drawSoundRef.current = snd;
-      snd.volume = 0.8;
-      snd.currentTime = 0;
-      snd.play().catch(() => {});
-    } catch {}
+    if (isEffectsEnabled()) {
+      try {
+        const snd = drawSoundRef.current || new Audio('/audio/stick-draw.mp3');
+        drawSoundRef.current = snd;
+        snd.volume = 0.8;
+        snd.currentTime = 0;
+        snd.play().catch(() => {});
+      } catch {}
+    }
     
     const stickRises = sticks.map(s => ({
       id: s.id,
@@ -305,12 +309,14 @@ function YiQingRig() {
           if (permissionState === 'granted') {
             window.addEventListener('devicemotion', handleMotion);
             // Déverrouille l'autoplay audio dès l'interaction capteur (clic iOS).
-            try {
-              const a = new Audio('/audio/stick-draw.mp3');
-              a.volume = 0.8;
-              a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
-              drawSoundRef.current = a;
-            } catch {}
+            if (isEffectsEnabled()) {
+              try {
+                const a = new Audio('/audio/stick-draw.mp3');
+                a.volume = 0.8;
+                a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
+                drawSoundRef.current = a;
+              } catch {}
+            }
           }
         })
         .catch(() => {});

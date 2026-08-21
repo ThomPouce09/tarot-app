@@ -1,27 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
+import { playSound as sfx } from '@/lib/sounds';
 
 export default function YiSlideNav() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const openSound = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => {
-    openSound.current = new Audio('/audio/scroll1.mp3');
-    openSound.current.volume = 0.5;
-  }, []);
-
-  const playSound = () => {
-    const a = openSound.current;
-    if (!a) return;
-    a.currentTime = 0;
-    a.play().catch(() => {});
-  };
 
   const go = (href: string) => {
-    playSound();
+    sfx('scroll1', 0.5);
     setOpen(false);
     // "Mon espace" : si non identifié, on ouvre la mire de connexion (2) restylée.
     if (href === '/dashboard/account') {
@@ -39,7 +28,7 @@ export default function YiSlideNav() {
       {/* Bouton menu : image menu-close.png (haut-droite, avec marge) */}
       <motion.button
         type="button"
-        onClick={() => { playSound(); setOpen(true); }}
+        onClick={() => { sfx('scroll1', 0.5); setOpen(true); }}
         aria-label="Ouvrir la navigation"
         aria-expanded={open}
         className="fixed right-1 -top-2 z-50 flex items-center"
@@ -65,7 +54,7 @@ export default function YiSlideNav() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            onPointerDown={() => { playSound(); setOpen(false); }}
+            onPointerDown={() => { sfx('scroll1', 0.5); setOpen(false); }}
           />
         )}
       </AnimatePresence>
@@ -102,7 +91,7 @@ export default function YiSlideNav() {
             >
               <button
                 type="button"
-                onClick={() => { playSound(); setOpen(false); }}
+                onClick={() => { sfx('scroll1', 0.5); setOpen(false); }}
                 aria-label="Fermer la navigation"
                 className="absolute right-2.5 top-1 text-[#5a3e1c] text-base leading-none transition-colors hover:text-[#8a6d3e]"
               >
