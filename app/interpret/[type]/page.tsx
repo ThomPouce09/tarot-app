@@ -212,12 +212,23 @@ function InterpretationInner() {
       ];
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto">
-      <YiSlideNav />
-      {/* En-tête : titre seul (le menu tiroir remplace la croix) */}
-      <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
-        <h1 className="text-3xl text-yellow-400" style={{ fontFamily: titleFont }}>
-          {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
+    <div
+      className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto"
+      style={{
+        backgroundImage: 'url(/backgrounds/interpret-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Voile sombre pour la lisibilité du texte */}
+      <div className="pointer-events-none fixed inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} />
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center">
+        <YiSlideNav />
+        {/* En-tête : titre seul (le menu tiroir remplace la croix) */}
+        <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
+          <h1 className="text-3xl text-yellow-400" style={{ fontFamily: titleFont }}>
+            {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
         </h1>
       </div>
 
@@ -350,6 +361,7 @@ function InterpretationInner() {
             )}
           </>
         </div>
+      </div>
       </div>
   );
 }
