@@ -88,10 +88,10 @@ export function soundByKey(key: string): SoundEntry | undefined {
 
 /** Préférences son en cache (lues au premier usage, mises à jour par la
  *  page /preferences via setSoundPrefs). */
-let soundPrefsCache: { soundEffects: boolean; voices: boolean } | null = null;
+let soundPrefsCache: { soundEffects: boolean; voices: boolean; haptics: boolean } | null = null;
 
-function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean } {
-  const def = { soundEffects: true, voices: true };
+function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean; haptics: boolean } {
+  const def = { soundEffects: true, voices: true, haptics: true };
   if (typeof window === 'undefined') return def;
   try {
     const raw = localStorage.getItem('tarot_prefs');
@@ -100,6 +100,7 @@ function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean } {
     return {
       soundEffects: typeof p.soundEffects === 'boolean' ? p.soundEffects : true,
       voices: typeof p.voices === 'boolean' ? p.voices : true,
+      haptics: typeof p.haptics === 'boolean' ? p.haptics : true,
     };
   } catch {
     return def;
@@ -113,14 +114,15 @@ export function getSoundPrefs() {
 }
 
 /** Met à jour les préférences son — appelé par la page /preferences. */
-export function setSoundPrefs(soundEffects: boolean, voices: boolean) {
-  soundPrefsCache = { soundEffects, voices };
+export function setSoundPrefs(soundEffects: boolean, voices: boolean, haptics = getSoundPrefs().haptics) {
+  soundPrefsCache = { soundEffects, voices, haptics };
   if (typeof window === 'undefined') return;
   try {
     const raw = localStorage.getItem('tarot_prefs');
     const p = raw ? JSON.parse(raw) : {};
     p.soundEffects = soundEffects;
     p.voices = voices;
+    p.haptics = haptics;
     localStorage.setItem('tarot_prefs', JSON.stringify(p));
   } catch {
     // stockage indisponible — le cache suffit pour la session
@@ -135,6 +137,21 @@ export function isEffectsEnabled() {
 /** Voix activées ? (préférence stockée pour les futurs contenus parlés) */
 export function isVoicesEnabled() {
   return getSoundPrefs().voices;
+}
+
+/** Haptique (vibration) activée ? */
+export function isHapticsEnabled() {
+  return getSoundPrefs().haptics;
+}
+
+/** Vibrate courte (ms) si l'appareil le supporte et que la préférence est active. */
+export function vibrate(pattern: number | number[] = 30) {
+  if (typeof navigator === 'undefined' || !isHapticsEnabled()) return;
+  try {
+    if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
+  } catch {
+    // non supporté — ignore
+  }
 }
 
 /* ----------------------------------------------------------------------- */
@@ -183,6 +200,8 @@ export function playSound(key: string, volume = 0.8) {
   // Voix (jingles de page) suivent la préférence « Voix » ; le reste, « Effets ».
   if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
   try {
+    // Retour haptique discret sur les effets sonores (pas sur les jingles de page).
+    if (!entry.voice) vibrate(entry.duration && entry.duration < 2 ? 20 : 40);
     const existing = unlocked.get(key);
     const snd = existing || new Audio(entry.file);
     if (!existing) unlocked.set(key, snd);

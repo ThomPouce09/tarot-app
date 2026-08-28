@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import YiSlideNav from '@/components/yi-slide-nav';
 import CardFace from './card-face';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
-import { playSound } from '@/lib/sounds';
+import { playSound, vibrate as haptic } from '@/lib/sounds';
 
 /* ============================================================
  *  FUSION  /tarot-3-cartes (décor)  +  /tarot-test (pioche)
@@ -18,7 +18,6 @@ import { playSound } from '@/lib/sounds';
  * ============================================================ */
 
 const ENABLE_SPARKLES = true;
-const ENABLE_HAPTICS = true;
 const ENABLE_BREATH = true;
 const ENABLE_HAND_DUST = true;
 
@@ -495,7 +494,7 @@ export default function TarotApp({
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const haptic = (ms: number | number[]) => { if (ENABLE_HAPTICS && navigator.vibrate) navigator.vibrate(ms as number); };
+  // haptic() importé de lib/sounds (respecte la préférence « Vibrations »).
   /* ---- Viewport resize ---- */
   useEffect(() => {
     const onR = () => setVw(window.innerWidth);

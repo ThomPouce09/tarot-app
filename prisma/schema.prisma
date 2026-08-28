@@ -24,6 +24,13 @@ model User {
   gender            String?
   readings          Reading[]
   subscription      Subscription?
+
+  // ── Préférences (persistées pour le serveur : lettre hebdo + rappel push) ──
+  emailNews         Boolean   @default(false)
+  dailyReminder     Boolean   @default(false)
+  dailyReminderHour Int       @default(18)   // 0-23, heure locale
+  lastLetterSentAt  DateTime?
+  fcmToken          String?   // token Android/FCM pour la notification quotidienne
 }
 
 model Subscription {

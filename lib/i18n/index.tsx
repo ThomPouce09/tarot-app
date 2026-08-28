@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { initPush } from '@/lib/push';
 
 export type Lang = 'fr' | 'en';
 
@@ -20,6 +21,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // le serveur rend toujours 'fr', le client aussi au 1er render, puis on applique
   // la langue (sauvegardée OU appareil). Flash FR→EN imperceptible, mais aucune erreur React.
   useEffect(() => {
+    initPush();
     try {
       const raw = localStorage.getItem('tarot_prefs');
       if (raw) {
