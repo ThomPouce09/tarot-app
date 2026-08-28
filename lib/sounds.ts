@@ -26,6 +26,9 @@ export interface SoundEntry {
   duration: number;
   /** Usage conseillé — texte court pour la page /sons. */
   usage: string;
+  /** true = « voix » (jingles nommés d'après une page) : contrôlé par la
+   *  préférence Voix ; false/absent = effet sonore : préférence Effets. */
+  voice?: boolean;
 }
 
 export const SOUNDS: SoundEntry[] = [
@@ -57,10 +60,10 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'spell', file: '/audio/spell.mp3', category: 'yi-jing', label: 'Sort (révélation)', duration: 2.10, usage: 'Révélation / effet magique' },
 
   // ── Ambiance / UI ──────────────────────────────────────────────────────
-  { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires' },
-  { key: 'runes', file: '/audio/runes.mp3', category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes' },
-  { key: 'tarot2', file: '/audio/tarot2.mp3', category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot' },
-  { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing' },
+  { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires', voice: true },
+  { key: 'runes', file: '/audio/runes.mp3', category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes', voice: true },
+  { key: 'tarot2', file: '/audio/tarot2.mp3', category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot', voice: true },
+  { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
   { key: 'creatures2', file: '/audio/creatures2.mp3', category: 'ambient', label: 'Créature 2', duration: 1.00, usage: 'Tap sur la luciole — variant 2' },
@@ -80,23 +83,68 @@ export function soundByKey(key: string): SoundEntry | undefined {
 }
 
 /* ----------------------------------------------------------------------- */
-/*  Haptique (vibration)                                                     */
+/*  Préférences son (tarot_prefs → localStorage)                           */
 /* ----------------------------------------------------------------------- */
 
-/** Haptique activée ? (pref localStorage 'tarot_prefs.haptics', défaut ON). */
-export function isHapticsEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
+/** Préférences son en cache (lues au premier usage, mises à jour par la
+ *  page /preferences via setSoundPrefs). */
+let soundPrefsCache: { soundEffects: boolean; voices: boolean; haptics: boolean } | null = null;
+
+function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean; haptics: boolean } {
+  const def = { soundEffects: true, voices: true, haptics: true };
+  if (typeof window === 'undefined') return def;
   try {
     const raw = localStorage.getItem('tarot_prefs');
-    if (!raw) return true;
+    if (!raw) return def;
     const p = JSON.parse(raw);
-    return typeof p.haptics === 'boolean' ? p.haptics : true;
+    return {
+      soundEffects: typeof p.soundEffects === 'boolean' ? p.soundEffects : true,
+      voices: typeof p.voices === 'boolean' ? p.voices : true,
+      haptics: typeof p.haptics === 'boolean' ? p.haptics : true,
+    };
   } catch {
-    return true;
+    return def;
   }
 }
 
-/** Vibrate (ms) si le navigateur le supporte et que la pref haptique est ON. */
+/** Préférences son actuelles (cache). */
+export function getSoundPrefs() {
+  if (!soundPrefsCache) soundPrefsCache = readPrefsFromStorage();
+  return soundPrefsCache;
+}
+
+/** Met à jour les préférences son — appelé par la page /preferences. */
+export function setSoundPrefs(soundEffects: boolean, voices: boolean, haptics = getSoundPrefs().haptics) {
+  soundPrefsCache = { soundEffects, voices, haptics };
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem('tarot_prefs');
+    const p = raw ? JSON.parse(raw) : {};
+    p.soundEffects = soundEffects;
+    p.voices = voices;
+    p.haptics = haptics;
+    localStorage.setItem('tarot_prefs', JSON.stringify(p));
+  } catch {
+    // stockage indisponible — le cache suffit pour la session
+  }
+}
+
+/** Effets sonores activés ? (faux = playSound est muet) */
+export function isEffectsEnabled() {
+  return getSoundPrefs().soundEffects;
+}
+
+/** Voix activées ? (préférence stockée pour les futurs contenus parlés) */
+export function isVoicesEnabled() {
+  return getSoundPrefs().voices;
+}
+
+/** Haptique (vibration) activée ? */
+export function isHapticsEnabled() {
+  return getSoundPrefs().haptics;
+}
+
+/** Vibrate courte (ms) si l'appareil le supporte et que la préférence est active. */
 export function vibrate(pattern: number | number[] = 30) {
   if (typeof navigator === 'undefined' || !isHapticsEnabled()) return;
   try {
@@ -117,6 +165,8 @@ const unlocked = new Map<string, HTMLAudioElement>();
  *  Appeler au montage : window.addEventListener('pointerdown', unlockAll, { once:true }). */
 export function unlockAllSounds() {
   for (const s of SOUNDS) {
+    // Chaque son suit sa préférence : voix (jingles de page) vs effets.
+    if (s.voice ? !isVoicesEnabled() : !isEffectsEnabled()) continue;
     try {
       if (unlocked.has(s.key)) continue;
       const a = new Audio(s.file);
@@ -147,9 +197,11 @@ export function playSound(key: string, volume = 0.8) {
     if (typeof console !== 'undefined') console.warn(`[sounds] clé inconnue: ${key}`);
     return;
   }
+  // Voix (jingles de page) suivent la préférence « Voix » ; le reste, « Effets ».
+  if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
   try {
-    // Retour haptique discret (ms selon la durée du son).
-    vibrate(entry.duration && entry.duration < 2 ? 20 : 40);
+    // Retour haptique discret sur les effets sonores (pas sur les jingles de page).
+    if (!entry.voice) vibrate(entry.duration && entry.duration < 2 ? 20 : 40);
     const existing = unlocked.get(key);
     const snd = existing || new Audio(entry.file);
     if (!existing) unlocked.set(key, snd);

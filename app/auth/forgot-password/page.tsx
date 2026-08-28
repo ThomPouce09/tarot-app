@@ -1,5 +1,5 @@
-// Final fixed forgot-password/page.tsx
 'use client';
+// Final fixed forgot-password/page.tsx
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';

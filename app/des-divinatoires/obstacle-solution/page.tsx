@@ -17,13 +17,13 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import { randomTargetFaces, type TargetFaces, type DieKind } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -279,6 +279,7 @@ function DiceAnalysis({
                 <span className="oracle-loader-dot">.</span>
               </>
             }
+            videoPrefix="analyse-des-zodiaque"
           />
         )}
         {deepAnalysis && deepAnalysis !== 'Indisponible.' && (

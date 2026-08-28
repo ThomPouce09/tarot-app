@@ -1,11 +1,10 @@
 'use client';
+import { api } from '@/lib/api-client';
 
 // lib/save-reading.ts
 // Helper partagé : persiste un tirage dans l'historique (POST /api/readings).
 // Utilisé par les pages Runes et Dés du Zodiaque pour alimenter
 // /dashboard/account/readings. Ne fait rien si l'utilisateur n'est pas connecté.
-
-import { api } from './api-client';
 
 export interface SaveReadingInput {
   /** type de tirage, ex: 'runes-nornes', 'des-choix' */

@@ -22,6 +22,7 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import {
   randomTargetFaces,
   type TargetFaces,
@@ -32,7 +33,6 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 
 /** Mini-renderer markdown → React nodes */
 function md(text: string) {
@@ -121,8 +121,16 @@ function DiceAnalysis({
   const [dbLoading, setDbLoading] = useState(false);
   const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
+  // Vidéo d'attente aléatoire analyse-des-zodiaqueX.mp4 (remplace analyse-combinee.m4v).
+  const [waitVideoSrc, setWaitVideoSrc] = useState<string>('');
   const deepRef = useRef<HTMLDivElement | null>(null);
   const shortInterpRef = useRef<string | null>(null);
+
+  // Choisit une vidéo d'attente au hasard (1..9 ; onError du <video> fera
+  // avancer vers la suivante si le fichier est absent).
+  const pickWaitVideo = useCallback(() => {
+    setWaitVideoSrc(`/images/analyse-des-zodiaque${1 + Math.floor(Math.random() * 9)}.mp4`);
+  }, []);
 
   // Scroll vers l'analyse approfondie dès qu'elle est prête
   useEffect(() => {
@@ -186,6 +194,7 @@ function DiceAnalysis({
     shortLastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
+    pickWaitVideo();
 
     (async () => {
       // 1) Toujours tenter le LLM en premier (gère question=null)
@@ -306,9 +315,9 @@ function DiceAnalysis({
             boxShadow: `inset 0 0 30px ${DICE_THEME.gold}10, 0 0 30px ${DICE_THEME.gold}0c`,
           }}
         >
-          {/* Vidéo d'attente en fond — disparaît quand l'analyse est prête */}
+          {/* Vidéo d'attente aléatoire en fond — disparaît quand l'analyse est prête */}
           <video
-            src="/images/analyse-combinee.m4v"
+            src={waitVideoSrc}
             className="pointer-events-none absolute inset-0 h-full w-full object-cover"
             autoPlay
             muted
@@ -393,6 +402,7 @@ function DiceAnalysis({
                 </>
               }
               subtitle={t('des.choix.deepLoading')}
+              videoPrefix="analyse-des-zodiaque"
             />
           )}
         {deepAnalysis && (

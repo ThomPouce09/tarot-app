@@ -2,9 +2,8 @@
  * Cascade d'appels IA partagée pour toutes les interprétations (Tarot, Yi Jing).
  *
  * Ordre de fallback :
- *   1. OpenRouter   : openrouter/free (auto-routing)
- *   2. NVIDIA       : google/gemma-4-31b-it  →  mistralai/mistral-small-4-119b-2603
- *   3. DeepSeek     : deepseek-v4-flash
+ *   1. DeepSeek     : deepseek-v4-flash (rapide, ~1-5s)
+ *   2. OpenRouter   : google/gemma-4-26b-a4b-it:free (secours)
  *
  * Chaque fournisseur est testé indépendamment ; dès qu'une réponse OK est obtenue,
  * on la renvoie. Si toutes les clés sont absentes ou tous les appels échouent,
@@ -21,29 +20,24 @@ export interface OracleProvider {
 // --- Configuration des fournisseurs (clés via variables d'env, jamais en dur) ---
 const PROVIDERS: OracleProvider[] = [
   {
-    name: 'OpenRouter',
-    baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    apiKey: process.env.OPENROUTER_API_KEY,
-    models: ['openrouter/free'],
-  },
-  {
-    name: 'NVIDIA',
-    baseUrl: 'https://integrate.api.nvidia.com/v1/chat/completions',
-    apiKey: process.env.NVIDIA_API_KEY,
-    models: ['google/gemma-4-31b-it', 'mistralai/mistral-small-4-119b-2603'],
-  },
-  {
     name: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1/chat/completions',
     apiKey: process.env.DEEPSEEK_API_KEY,
     models: ['deepseek-v4-flash'],
+  },
+  {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    apiKey: process.env.OPENROUTER_API_KEY,
+    // gemma-4-26b : rapide et concis pour les interprétations tarot/yi-jing
+    models: ['google/gemma-4-26b-a4b-it:free'],
   },
 ];
 
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 30_000;
 // Timeout réduit à 20s : les modèles flash répondent en ~1-5s, inutile d'attendre 75s
-// alors qu'OpenRouter et NVIDIA sont souvent en échec.
+// alors qu'OpenRouter est souvent en échec.
 const REQUEST_TIMEOUT_MS = 20_000;
 const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
 
@@ -85,6 +79,10 @@ export async function callOracle(
   prompt: string,
   opts: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string | null> {
+  // 4000 tokens max : les modèles reasoning (DeepSeek, etc.) consomment une
+  // partie du budget en raisonnement avant de livrer l'interprétation. Avec
+  // 2000 tokens, le raisonnement bouffait tout → réponse vide. 4000 garantit
+  // la place pour le raisonnement + le JSON complet (~2500-3500 caractères).
   const maxTokens = opts.maxTokens ?? 4000;
   const temperature = opts.temperature ?? 0.72;
 
@@ -123,8 +121,11 @@ export async function callOracle(
             }),
             signal: controller.signal,
           });
-        } finally {
+        } catch (err) {
+          // Timeout / réseau : le clearTimeout est déjà passé (ou le signal
+          // a été aborté) → on remonte l'erreur pour basculer au fournisseur suivant.
           clearTimeout(timer);
+          throw err;
         }
 
         if (!res.ok) {
@@ -136,11 +137,22 @@ export async function callOracle(
 
         const data = await res.json();
         const msg = data?.choices?.[0]?.message ?? data?.message ?? {};
-        const content: string = msg?.content || msg?.reasoning || '';
+        // NE JAMAIS utiliser `reasoning` comme réponse finale : certains modèles
+        // (DeepSeek, modèles de raisonnement OpenRouter) renvoient leur chaîne de
+        // pensée dans `reasoning_content`/`reasoning` avec un `content` vide → on
+        // afficherait le métatexte de raisonnement au lieu de l'interprétation.
+        const content: string = msg?.content?.trim?.() ?? '';
         if (content && content.trim().length > 0) {
           // Ignorer les réponses du filtre sécurité d'OpenRouter (ex: "User Safety: safe")
           if (/^User Safety:\s/i.test(content.trim())) {
             console.warn(`[llm] ${provider.name} / ${model}: réponse filtrée par sécurité ("${content.trim().slice(0, 40)}"), bascule...`);
+            continue;
+          }
+          // Ignorer le métatexte de raisonnement : certains modèles "pensent à voix
+          // haute" dans content ("We need to respond to the user...", "Je dois
+          // répondre...", etc.) au lieu de livrer l'interprétation demandée.
+          if (/^(we need to respond|i need to respond|the user says|the user asked|the user is asking|let me (think|provide|write|start)|i'll (provide|write|start)|je dois (répondre|fournir|commencer)|je vais (répondre|fournir|analyser|commencer)|d'accord, (je )?(vais|analysons)|ok, (je )?(vais|analysons)|en tant qu'|voici (ma|une|mon)|réponse[:\s]).*$/i.test(content.trim())) {
+            console.warn(`[llm] ${provider.name} / ${model}: métatexte de raisonnement détecté ("${content.trim().slice(0, 50)}"), bascule...`);
             continue;
           }
           console.log(`[llm] Succès via ${provider.name} / ${model} (${content.length} chars)`);

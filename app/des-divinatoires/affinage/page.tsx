@@ -31,6 +31,7 @@ import {
   PLANET_NAMES,
   SIGN_NAMES,
 } from '../_shared';
+import { api } from '@/lib/api-client';
 import {
   randomTargetFaces,
   ALL_KINDS,
@@ -43,7 +44,6 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
 const AstroDiceCup = dynamic(
@@ -840,6 +840,7 @@ export default function AffinagePage() {
                     <AnalysisWaitCard
                       accent={DICE_THEME.gold}
                       title={t('des.affinage.thinking')}
+                      videoPrefix="analyse-des-zodiaque"
                     />
                   )}
 

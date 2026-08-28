@@ -1,24 +1,25 @@
 'use client';
 
-import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { TAROT_CARDS } from '@/lib/tarot-data';
-import { TarotPicker } from '@/app/components/tarot-picker';
+import TarotApp from '@/app/components/tarot-app';
 import YiSlideNav from '@/components/yi-slide-nav';
-import {
-  SLOT_POSITIONS,
-  type SlotPos,
-} from '@/app/components/tarot-picker';
 
 const TOTAL_PICKS = 5;
 
-type PickedCard = {
-  cardId: number;
-  name: string;
-  position: SlotPos;
-};
+/* Positions des 5 cartes (croix) — mêmes labels/icons que la croix existante. */
+const POSITION_LABELS = ["L'Orient", "L'Occident", 'Le Sommet', 'La Base', 'La Synthèse'];
+const POSITION_ICONS = ['☀', '☽', '✦', '❋', '✧'];
+
+/* Disposition en croix (1 en haut, 3 au milieu, 1 en bas) — ordre d'affichage
+   = sommet, orient, synthèse, occident, base. */
+const CROSS_LAYOUT = [
+  { area: 'a0', label: 'Le Sommet', icon: '✦' },
+  { area: 'a1', label: "L'Orient", icon: '☀' },
+  { area: 'a2', label: 'La Synthèse', icon: '✧' },
+  { area: 'a3', label: "L'Occident", icon: '☽' },
+  { area: 'a4', label: 'La Base', icon: '❋' },
+];
 
 export default function TarotUpgradePage() {
   const router = useRouter();
@@ -42,14 +43,7 @@ export default function TarotUpgradePage() {
     }
   }, [router]);
 
-  const fullDeck = useMemo(
-    () => TAROT_CARDS.map((c) => ({ id: c.id, name: c.name })),
-    []
-  );
-
-  const [phase, setPhase] = useState<'question' | 'picking' | 'confirming' | 'done'>(
-    'question'
-  );
+  const [phase, setPhase] = useState<'question' | 'drawing'>('question');
 
   const [questionText, setQuestionText] = useState('');
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -76,14 +70,8 @@ export default function TarotUpgradePage() {
     }
   }, [phase]);
 
-  useEffect(() => {
-    if (phase === 'question' && questionInputRef.current) {
-      const timer = setTimeout(() => {
-        questionInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [phase]);
+  // Pas d'autofocus sur le champ question : l'utilisateur doit cliquer une
+  // première fois pour commencer à écrire.
 
   const handleVideoStart = () => {
     if (!videoStarted && videoRef.current) {
@@ -100,74 +88,19 @@ export default function TarotUpgradePage() {
     setQuestionText(e.target.value);
   };
 
-  const [availableDeck, setAvailableDeck] = useState(fullDeck);
-  const [picks, setPicks] = useState<PickedCard[]>([]);
-  const [pickerSelectedId, setPickerSelectedId] = useState<string | null>(null);
-
   const handleQuestionSubmit = () => {
     if (!questionText.trim()) return;
-    setPhase('picking');
+    // Sauvegarde la question pour l'étape d'interprétation.
+    try { localStorage.setItem('tarot-5-question', questionText.trim()); } catch {}
+    setPhase('drawing');
   };
 
-  const handleCardSelected = useCallback((cardId: string) => {
-    if (cardId === '') {
-      setPickerSelectedId(null);
-      return;
-    }
-    setPickerSelectedId(cardId);
-  }, []);
-
-  const handleConfirmingChanged = useCallback(
-    (isConfirming: boolean) => {
-      if (!isConfirming) return;
-      if (!pickerSelectedId) return;
-      const idx = availableDeck.findIndex(
-        (c) => String(c.id) === pickerSelectedId
-      );
-      if (idx < 0) return;
-      const card = availableDeck[idx];
-      const position = SLOT_POSITIONS[picks.length];
-      const newPick: PickedCard = {
-        cardId: card.id,
-        name: card.name,
-        position,
-      };
-      const updatedPicks = [...picks, newPick];
-      const updatedDeck = availableDeck.filter(
-        (c) => String(c.id) !== pickerSelectedId
-      );
-
-      setPicks(updatedPicks);
-      setAvailableDeck(updatedDeck);
-      setPickerSelectedId(null);
-
-      if (updatedPicks.length >= TOTAL_PICKS) {
-        setPhase('done');
-      }
-    },
-    [pickerSelectedId, availableDeck, picks]
-  );
-
-  const handleInterpret = () => {
-    const cardsForStorage = picks.map((p) => ({
-      id: p.cardId,
-      name: p.name,
-      reversed: false,
-    }));
-    localStorage.setItem('tarot-5-cards', JSON.stringify(cardsForStorage));
-    localStorage.setItem('tarot-5-question', questionText.trim());
+  const handleInterpret = (cardIds: number[]) => {
+    try {
+      localStorage.setItem('tarot-5-cards', JSON.stringify(cardIds));
+    } catch {}
     router.push('/tarot-5-c-manuelle/interpretation');
   };
-
-  const renderedSlots = useMemo(() => {
-    return [
-      { pos: SLOT_POSITIONS[0], pick: picks[0] },
-      { pos: SLOT_POSITIONS[1], pick: picks[1] },
-      { pos: SLOT_POSITIONS[2], pick: picks[2] },
-      { pos: SLOT_POSITIONS[3], pick: picks[3] },
-      { pos: SLOT_POSITIONS[4], pick: picks[4] },
-    ];
-  }, [picks]);
 
   return (
     <div className="relative h-[100dvh] w-full text-white select-none">
@@ -176,13 +109,12 @@ export default function TarotUpgradePage() {
         <div className="absolute inset-0" style={{ zIndex: 0 }}>
           <video
             ref={videoRef}
-            src="/bg-question.mp4"
+            src="/images/bg-tarot-5c.mp4"
             autoPlay
             muted
             playsInline
-            loop={false}
+            loop
             preload="auto"
-            poster="/backgrounds/5-cards-bg.jpg"
             className="h-full w-full object-cover"
             onLoadedData={() => {
               if (videoRef.current) {
@@ -193,42 +125,42 @@ export default function TarotUpgradePage() {
         </div>
       )}
 
-      {/* Background image - pendant picking et done */}
-      {(phase === 'picking' || phase === 'done') && (
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: 'url(/backgrounds/5-cards-bg.jpg)' }}
-        />
-      )}
-
       {/* Voile sombre - intensité selon phase */}
       {phase === 'question' && (
         <div className="pointer-events-none absolute inset-0" style={{ background: 'rgba(0,0,0,0.25)' }} />
       )}
-      {(phase === 'picking' || phase === 'done') && (
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'rgba(0,0,0,0.15)' }} />
-      )}
 
-      {/* Menu parchemin (remplace la croix) */}
-      <YiSlideNav />
+      {/* Menu parchemin — seulement en phase question (TarotApp a le sien) */}
+      {phase === 'question' && <YiSlideNav />}
 
       {/* ETAPE QUESTION */}
       {phase === 'question' && (
         <div className="absolute inset-0 z-20 flex items-start justify-center px-6 pt-16">
           <div
-            className="relative z-20 w-full max-w-lg rounded-3xl border-2 border-amber-400/40 bg-gradient-to-b from-slate-900/95 to-indigo-950/90 p-8 shadow-[0_0_80px_rgba(251,191,36,0.25)] backdrop-blur-sm"
+            className="relative z-20 w-full max-w-lg rounded-2xl border border-[rgba(218,165,32,0.35)] bg-[rgba(26,15,8,0.92)] p-8 shadow-[0_0_60px_rgba(218,165,32,0.18),0_8px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
           >
+            {/* Filet décoratif doré sous le titre */}
+            <div
+              className="pointer-events-none absolute left-8 right-8 top-[76px] h-px"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(218,165,32,0.45), transparent)',
+              }}
+              aria-hidden
+            />
             <h2
-              className="mb-4 text-center text-3xl font-bold text-amber-100 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]"
+              className="mb-5 text-center text-2xl font-bold uppercase tracking-[0.12em] text-[#FFD700]"
+              style={{
+                fontFamily: 'var(--font-cinzel), serif',
+                textShadow: '0 0 18px rgba(218,165,32,0.35), 0 1px 3px rgba(0,0,0,0.6)',
+              }}
             >
-              <span
-                className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent"
-              >
-                Question au Tarot
-              </span>
+              Votre question au Tarot
             </h2>
-            <label className="mb-3 block text-lg font-medium text-indigo-200">
-              ✨ Posez votre question à la cartomancie
+            <label
+              className="mb-4 block text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C87A]"
+              style={{ fontFamily: 'var(--font-cinzel), serif' }}
+            >
+              Ouvrez votre cœur à la cartomancienne
             </label>
             <textarea
               ref={questionInputRef}
@@ -236,179 +168,38 @@ export default function TarotUpgradePage() {
               onChange={handleQuestionChange}
               onFocus={handleVideoStart}
               rows={3}
-              placeholder="🌙 Quel chemin choisir dans ma vie amoureuse ?"
-              className="mb-4 w-full resize-none rounded-2xl border-2 border-amber-400/30 bg-slate-900/80 p-5 text-lg text-amber-50 outline-none transition-all duration-300 placeholder:text-indigo-300/60 focus:border-amber-300 focus:shadow-[inset_0_0_30px_rgba(251,191,36,0.2),0_0_30px_rgba(251,191,36,0.3)] focus:bg-slate-900"
+              placeholder="Quel chemin choisir dans ma vie amoureuse ?"
+              className="mb-4 w-full resize-none rounded-xl border border-[rgba(218,165,32,0.28)] bg-[rgba(36,24,16,0.6)] p-5 text-lg text-[#F0E6D3] outline-none transition-all duration-300 placeholder:text-[#C9B58A]/60 focus:border-[#DAA520] focus:shadow-[0_0_22px_rgba(218,165,32,0.18)] focus:bg-[rgba(40,27,17,0.7)]"
+              style={{ fontFamily: 'var(--font-cormorant), serif' }}
             />
             <button
               onClick={handleQuestionSubmit}
               disabled={!questionText.trim()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 py-4 text-lg font-bold text-slate-900 transition-all duration-300 hover:from-amber-300 hover:via-yellow-200 hover:to-amber-400 hover:shadow-[0_0_40px_rgba(251,191,36,0.5)] disabled:cursor-not-allowed disabled:opacity-40"
+              className={`flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#DAA520] via-[#E8C87A] to-[#FFD700] py-4 text-base font-bold uppercase tracking-[0.1em] text-[#3A2407] transition-all duration-300 hover:shadow-[0_0_30px_rgba(218,165,32,0.45)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
+              style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              🔮 Commencer le tirage
+              Enregistrer et tirer vos cartes
             </button>
           </div>
         </div>
       )}
 
-      {/* ETAPE PIOCHE */}
-      {phase === 'picking' && (
-        <>
-          <div
-            className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center px-4 pt-4"
-          >
-            <div
-              className="max-w-md truncate rounded-full border border-amber-400/30 bg-slate-900/90 px-4 py-2 text-base font-medium text-amber-100 backdrop-blur shadow-lg"
-            >
-              💭 {questionText.length > 50 ? questionText.slice(0, 50) + '…' : questionText}
-            </div>
-          </div>
-
-          <div
-            className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4"
-          >
-            <DividedCross picks={renderedSlots} compact={true} />
-          </div>
-
-          <div className="absolute inset-x-0 bottom-4 z-30 h-[92%]">
-            <TarotPicker
-              cardsToUse={availableDeck}
-              selectedId={pickerSelectedId}
-              onCardSelected={handleCardSelected}
-              onConfirmingChanged={handleConfirmingChanged}
-            />
-          </div>
-
-          <div
-            className="pointer-events-none absolute left-1/2 bottom-4 z-30 -translate-x-1/2"
-          >
-            <p className="rounded-full border border-amber-300/40 px-3 py-1 text-xs text-amber-200">
-              Carte {picks.length + 1} / {TOTAL_PICKS}
-            </p>
-          </div>
-        </>
-      )}
-
-      {/* ETAPE DONE - croix + bouton */}
-      {phase === 'done' && (
-        <>
-          <div
-            className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center px-4"
-          >
-            <DividedCross picks={renderedSlots} compact={false} />
-          </div>
-
-          <div
-            className="absolute inset-x-0 bottom-20 left-1/2 z-30 -translate-x-1/2 flex justify-center px-4"
-          >
-            <button
-              onClick={handleInterpret}
-              className="rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-6 py-3 text-base font-bold text-slate-900 shadow-[0_0_40px_rgba(251,191,36,0.6)] hover:from-amber-300 hover:via-yellow-200 hover:to-amber-400 hover:shadow-[0_0_50px_rgba(251,191,36,0.8)] transition-all duration-300 whitespace-nowrap"
-            >
-              🔮 Interprétation
-            </button>
-          </div>
-        </>
-      )}
-
-      {phase === 'picking' && pickerSelectedId && (
-        <div className="pointer-events-none absolute left-1/2 bottom-[20%] z-30 -translate-x-1/2">
-          <p
-            className="rounded-full border border-amber-300/60 bg-amber-300/15 px-3 py-1 text-[11px] uppercase tracking-wider text-amber-200 shadow-lg backdrop-blur"
-          >
-            Relachez pour piocher
-          </p>
+      {/* ETAPE TIRAGE — nouveau système (pioche dépliante de /tarot-3-cartes) */}
+      {phase === 'drawing' && (
+        <div className="absolute inset-0">
+          <TarotApp
+            totalPicks={TOTAL_PICKS}
+            positionLabels={POSITION_LABELS}
+            positionIcons={POSITION_ICONS}
+            title="Tirage 5 cartes"
+            spreadType="tarot-5-c-manuelle"
+            onInterpret={handleInterpret}
+            question={questionText.trim()}
+            backgroundVideo="/images/bg-tarot-5c.mp4"
+            crossLayout={CROSS_LAYOUT}
+          />
         </div>
       )}
-    </div>
-  );
-}
-
-function DividedCross({
-  picks,
-  compact,
-}: {
-  picks: { pos: SlotPos; pick?: PickedCard }[];
-  compact: boolean;
-}) {
-  const cardW = compact ? 65 : 78;
-  const cardH = compact ? 98 : 118;
-
-  const sommet = picks.find((p) => p.pos === 'sommet');
-  const orient = picks.find((p) => p.pos === 'orient');
-  const synthese = picks.find((p) => p.pos === 'synthese');
-  const occident = picks.find((p) => p.pos === 'occident');
-  const base = picks.find((p) => p.pos === 'base');
-
-  return (
-    <div className="grid max-w-xs" style={{
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gridTemplateRows: 'auto auto auto',
-      gridTemplateAreas: `
-        ".        sommet     .       "
-        "orient   synthese   occident"
-        ".        base       .       "
-      `,
-      gap: '8px 12px',
-    }}>
-      <div style={{ gridArea: 'sommet' }} className="flex justify-center">
-        {sommet?.pick ? <FilledSlot pick={sommet.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
-      </div>
-      <div style={{ gridArea: 'orient' }} className="flex justify-center">
-        {orient?.pick ? <FilledSlot pick={orient.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
-      </div>
-      <div style={{ gridArea: 'synthese' }} className="flex justify-center">
-        {synthese?.pick ? <FilledSlot pick={synthese.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
-      </div>
-      <div style={{ gridArea: 'occident' }} className="flex justify-center">
-        {occident?.pick ? <FilledSlot pick={occident.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
-      </div>
-      <div style={{ gridArea: 'base' }} className="flex justify-center">
-        {base?.pick ? <FilledSlot pick={base.pick} cardW={cardW} cardH={cardH} /> : <EmptySlot cardW={cardW} cardH={cardH} />}
-      </div>
-    </div>
-  );
-}
-
-function EmptySlot({ cardW, cardH }: { cardW: number; cardH: number }) {
-  return (
-    <div
-      className="rounded-lg border-2 border-dashed border-indigo-500/40 bg-slate-900/40 flex items-center justify-center"
-      style={{ width: cardW, height: cardH }}
-    >
-      <span className="text-xs text-indigo-300/40">·</span>
-    </div>
-  );
-}
-
-function FilledSlot({
-  pick,
-  cardW,
-  cardH,
-}: {
-  pick: PickedCard;
-  cardW: number;
-  cardH: number;
-}) {
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className="relative overflow-hidden rounded-lg border border-amber-400/50 shadow-[0_0_15px_rgba(218,165,32,0.3)]"
-        style={{
-          width: cardW,
-          height: cardH,
-          background: '#000',
-        }}
-      >
-        <Image
-          src={`/cards/arcana/${pick.cardId}.jpg`}
-          alt={pick.name}
-          fill
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-      <p className="mt-1 max-w-[90px] truncate text-[11px] text-amber-200 font-medium">
-        {pick.name}
-      </p>
     </div>
   );
 }

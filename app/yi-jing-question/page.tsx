@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useLang } from '@/lib/i18n';
+import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
@@ -162,6 +163,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
   const drawSoundRef = useRef<HTMLAudioElement | null>(null);
   const spellSoundRef = useRef<HTMLAudioElement | null>(null);
   const unlockAudio = useCallback(() => {
+    if (!isEffectsEnabled()) return;
     try {
       const a = new Audio('/audio/stick-draw.mp3');
       a.volume = 0.8;
@@ -174,6 +176,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
     } catch {}
   }, []);
   const playSpellSound = useCallback(() => {
+    if (!isEffectsEnabled()) return;
     try {
       const snd = spellSoundRef.current || new Audio('/audio/spell.mp3');
       spellSoundRef.current = snd;
@@ -183,6 +186,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
     } catch {}
   }, []);
   const playDrawSound = useCallback(() => {
+    if (!isEffectsEnabled()) return;
     try {
       const snd = drawSoundRef.current || new Audio('/audio/stick-draw.mp3');
       drawSoundRef.current = snd;

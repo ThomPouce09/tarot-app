@@ -1,14 +1,15 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
 
-function ConfirmContent() {
+function ConfirmPasswordInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-
+  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -28,13 +29,13 @@ function ConfirmContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) return setMessage('Mots de passe différents');
-
+    
     const res = await api('/api/auth/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, password })
     });
-
+    
     const data = await res.json();
     if (res.ok) {
       setMessage('✅ Mot de passe réinitialisé avec succès!');
@@ -85,8 +86,8 @@ function ConfirmContent() {
 
 export default function ConfirmPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-950 flex items-center justify-center"><p className="text-white">Chargement...</p></div>}>
-      <ConfirmContent />
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <ConfirmPasswordInner />
     </Suspense>
   );
 }

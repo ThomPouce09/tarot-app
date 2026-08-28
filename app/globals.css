@@ -402,6 +402,55 @@ html, body {
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+/* Pulse léger du bouton "Enregistrer et tirer vos cartes" dès que la question
+   est écrite (modale /tarot-5-c-manuelle) */
+@keyframes questionPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(218,165,32,0); }
+  50% { box-shadow: 0 0 26px rgba(218,165,32,0.5); }
+}
+.animate-question-pulse { animation: questionPulse 1.6s ease-in-out infinite; }
+/* Traînée de poussière dorée (main qui balaye la pioche) */
+@keyframes goldDustTrail {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  18%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--gdx), var(--gdy)) scale(1.15); }
+}
+/* Geste de pincement (tuto "Pincez la pioche") : 2 doigts blancs qui s'écartent.
+   Boucle continue (style tutoriel Android). */
+@keyframes pinchFingerL {
+  0%   { transform: translateX(0); }
+  50%  { transform: translateX(-11px); }
+  100% { transform: translateX(0); }
+}
+@keyframes pinchFingerR {
+  0%   { transform: translateX(0); }
+  50%  { transform: translateX(11px); }
+  100% { transform: translateX(0); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /des-divinatoires) */
+@keyframes ddGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(212,175,55,0.35), 0 0 0 3px rgba(212,175,55,0.18); }
+  50% { box-shadow: 0 0 22px rgba(212,175,55,0.85), 0 0 0 6px rgba(212,175,55,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /runes — thème vert/doré) */
+@keyframes runesGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(233,217,172,0.35), 0 0 0 3px rgba(233,217,172,0.18); }
+  50% { box-shadow: 0 0 22px rgba(233,217,172,0.85), 0 0 0 6px rgba(233,217,172,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /tarot — thème or) */
+@keyframes tarotGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(218,165,32,0.35), 0 0 0 3px rgba(218,165,32,0.18); }
+  50% { box-shadow: 0 0 22px rgba(218,165,32,0.85), 0 0 0 6px rgba(218,165,32,0.35); }
+}
+
+/* Lueur d'appel du ⓘ tutoriel au 1er passage (page /yi-jing — thème violet) */
+@keyframes yijGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(180,140,204,0.35), 0 0 0 3px rgba(180,140,204,0.18); }
+  50% { box-shadow: 0 0 22px rgba(180,140,204,0.85), 0 0 0 6px rgba(180,140,204,0.35); }
+}
 
 /* Luciole : rester SOUS les contrôles UI (CTA landing z-index 70).
    Framer-motion impose position:absolute en animant left/top ; on force

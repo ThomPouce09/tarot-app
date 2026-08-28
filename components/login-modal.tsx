@@ -7,8 +7,7 @@
 // Remplace les anciennes pages /login et /auth/login (mire (2) à jeter).
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 
@@ -16,7 +15,6 @@ export const OPEN_LOGIN_EVENT = 'open-login';
 
 export function LoginModal() {
   const router = useRouter();
-  const pathname = usePathname();
   const t = useT();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -27,13 +25,6 @@ export function LoginModal() {
     window.addEventListener(OPEN_LOGIN_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_LOGIN_EVENT, onOpen);
   }, []);
-
-  // Ferme la modale dès que la route change (liens « Pas encore inscrit »,
-  // « Mot de passe oublié », connexion réussie). Sans ça, la mire (z-100)
-  // reste ouverte par-dessus la page de destination dans la WebView APK.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,8 +163,8 @@ export function LoginModal() {
           </button>
         </form>
         <div className="text-center text-xs mt-4 space-y-2">
-          <Link href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</Link>
-          <Link href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</Link>
+          <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</a>
+          <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</a>
         </div>
       </div>
     </div>

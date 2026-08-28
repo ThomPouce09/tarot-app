@@ -25,8 +25,8 @@ interface Reading {
 const TYPE_META: Record<string, { key: string; label: string; icon: string; color: string; bg: string; border: string; glow: string }> = {
   tarot:  { key: 'tarot',  label: 'Tarot',            icon: '/images/tarot-icon.png',   color: '#FFD700', bg: 'rgba(218,165,32,0.12)',  border: 'rgba(218,165,32,0.35)',  glow: 'rgba(255,215,0,0.45)' },
   yijing: { key: 'yijing', label: 'Yi Jing',          icon: '/images/yi-jing-icon.png', color: '#E0CFF0', bg: 'rgba(180,140,220,0.12)', border: 'rgba(180,140,220,0.35)', glow: 'rgba(180,140,220,0.5)' },
-  rune:   { key: 'rune',   label: 'Runes Scandinaves', icon: '/images/runes-icon.png',   color: '#D4B483', bg: 'rgba(138,109,59,0.12)',  border: 'rgba(138,109,59,0.35)',  glow: 'rgba(138,109,59,0.45)' },
-  des:    { key: 'des',    label: 'Dés du Zodiaque',   icon: '/images/des-zodiaque.png', color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
+  rune:   { key: 'rune',   label: 'Runes',            icon: '/images/runes-icon.png',   color: '#D4B483', bg: 'rgba(138,109,59,0.12)',  border: 'rgba(138,109,59,0.35)',  glow: 'rgba(138,109,59,0.45)' },
+  des:    { key: 'des',    label: 'Dés',               icon: '/images/des-zodiaque.png', color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
 };
 
 function classifyType(t: string): keyof typeof TYPE_META {
@@ -52,7 +52,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes' },
   'runes-mjolnir':       { group: 'rune',   label: 'Le Marteau de Mjölnir' },
   'runes-yggdrasil':     { group: 'rune',   label: "Les Racines d'Yggdrasil" },
-  'runes':               { group: 'rune',   label: 'Runes Scandinaves' },
+  'runes':               { group: 'rune',   label: 'Runes' },
   'des-choix':           { group: 'des',    label: 'Le Tirage du Choix' },
   'des-obstacle-solution': { group: 'des',  label: 'Obstacle & Solution' },
   'des-affinage':        { group: 'des',    label: 'Tirage par Affinage' },
@@ -476,7 +476,7 @@ export default function ReadingsPage() {
           <div className="space-y-5 pb-2">
             {groupedByDate.map((group) => {
               const isOpen = openDates.has(group.dateKey);
-              const counts: Record<string, number> = { tarot: 0, yijing: 0, rune: 0 };
+              const counts: Record<string, number> = { tarot: 0, yijing: 0, rune: 0, des: 0 };
               group.readings.forEach((r) => { counts[metaOf(r).group]++; });
 
               return (
@@ -485,11 +485,12 @@ export default function ReadingsPage() {
                   <div className="flex items-center justify-between bg-gray-900/60 border border-amber-800/30 rounded-lg px-3 py-2.5 mb-2 hover:bg-gray-800/50 transition-colors">
                     <button onClick={() => toggleDate(group.dateKey)} className="flex items-center gap-2 text-left flex-1">
                       <span className={`text-amber-400 text-xs transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-                      <span className="text-amber-200 font-semibold text-sm" style={{ fontFamily: 'var(--font-cinzel), serif' }}>📅 {group.dateLabel}</span>
+                      <span className="text-amber-200 font-semibold text-xs" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{group.dateLabel}</span>
                       <span className="flex items-center gap-1.5 text-xs ml-1">
                         {counts.tarot > 0 && <TypeBadge k="tarot" n={counts.tarot} />}
                         {counts.yijing > 0 && <TypeBadge k="yijing" n={counts.yijing} />}
                         {counts.rune > 0 && <TypeBadge k="rune" n={counts.rune} />}
+                        {counts.des > 0 && <TypeBadge k="des" n={counts.des} />}
                       </span>
                     </button>
                     <button onClick={() => askDeleteDate(group)}
@@ -637,7 +638,12 @@ function inlineMd(s: string): React.ReactNode {
 // --- Sous-composants ---
 function TypeBadge({ k, n }: { k: keyof typeof TYPE_META; n: number }) {
   const m = TYPE_META[k];
-  return <span className="px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: m.bg, color: m.color, border: `1px solid ${m.border}` }}>{m.label} {n}</span>;
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: m.bg, color: m.color, border: `1px solid ${m.border}` }}>
+      <img src={m.icon} alt="" className="w-3.5 h-3.5 object-contain" style={{ filter: `drop-shadow(0 0 3px ${m.glow})` }} />
+      {n}
+    </span>
+  );
 }
 
 function EmptyState() {

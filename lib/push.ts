@@ -1,10 +1,11 @@
 'use client';
 
-// ── Notifications push (Capacitor / FCM) — version APK ────────────────
-// Gère la demande de permission + l'enregistrement du token FCM.
-// ⚠️ En APK (WebView), on utilise le wrapper `api()` (lib/api-client), PAS
-// un `fetch('/api/...')` relatif qui casserait contre l'origine https://localhost.
-// S'exécute uniquement en natif (Capacitor) ; sur web, no-op silencieux.
+// ── Notifications push (Capacitor / FCM) ────────────────────────────────
+// Gère la demande de permission + l'enregistrement du token FCM dans /api/prefs.
+// S'exécute UNIQUEMENT en natif (APK Capacitor) ; sur web, no-op silencieux.
+// Expose sur window :
+//   __requestPushPermission() -> demande permission + enregistre le token
+//   __clearPushPermission()   -> retire le token (déconnexion / reset)
 
 import { Capacitor } from '@capacitor/core';
 import { api } from '@/lib/api-client';
@@ -15,7 +16,7 @@ function getEmail(): string {
   try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch { return ''; }
 }
 
-// Sauvegarde le token FCM côté backend (champ User.fcmToken, via /api/prefs).
+// Sauvegarde le token FCM côté serveur (colonne User.fcmToken).
 async function saveToken(token: string | null) {
   const email = getEmail();
   if (!email) return;
@@ -76,6 +77,7 @@ export function initPush() {
   (window as any).__clearPushPermission = clearPermission;
   // Ré-enregistre automatiquement si on a déjà un compte et une app native.
   if (Capacitor.isNativePlatform() && getEmail()) {
+    // Re-réussit simplement à récupérer le token existant si permission déjà donnée.
     import('@capacitor/push-notifications').then(({ PushNotifications }) => {
       PushNotifications.addListener('registration', (t) => saveToken(t.value));
       PushNotifications.checkPermissions().then((st) => {
