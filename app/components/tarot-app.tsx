@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import YiSlideNav from '@/components/yi-slide-nav';
 import CardFace from './card-face';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
+import { vibrate as haptic } from '@/lib/sounds';
 
 /* ============================================================
  *  FUSION  /tarot-3-cartes (décor)  +  /tarot-test (pioche)
@@ -17,7 +18,6 @@ import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
  * ============================================================ */
 
 const ENABLE_SPARKLES = true;
-const ENABLE_HAPTICS = true;
 const ENABLE_BREATH = true;
 const ENABLE_HAND_DUST = true;
 
@@ -299,7 +299,7 @@ export default function TarotApp() {
 
   const isReady = cinematicPhase >= 3;        // titre + menu + sélecteurs (étape 2)
   const zoomDone = cinematicPhase >= 4;       // fin du zoom => pioche + navbar (étape 3)
-  const haptic = (ms: number | number[]) => { if (ENABLE_HAPTICS && navigator.vibrate) navigator.vibrate(ms as number); };
+  // haptic() importé de lib/sounds (respecte la préférence « Vibrations »).
 
   /* ---- Sélection d'une carte ---- */
   const pickCard = useCallback((deckIndex: number) => {

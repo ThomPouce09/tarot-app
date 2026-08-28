@@ -80,6 +80,33 @@ export function soundByKey(key: string): SoundEntry | undefined {
 }
 
 /* ----------------------------------------------------------------------- */
+/*  Haptique (vibration)                                                     */
+/* ----------------------------------------------------------------------- */
+
+/** Haptique activée ? (pref localStorage 'tarot_prefs.haptics', défaut ON). */
+export function isHapticsEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const raw = localStorage.getItem('tarot_prefs');
+    if (!raw) return true;
+    const p = JSON.parse(raw);
+    return typeof p.haptics === 'boolean' ? p.haptics : true;
+  } catch {
+    return true;
+  }
+}
+
+/** Vibrate (ms) si le navigateur le supporte et que la pref haptique est ON. */
+export function vibrate(pattern: number | number[] = 30) {
+  if (typeof navigator === 'undefined' || !isHapticsEnabled()) return;
+  try {
+    if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
+  } catch {
+    // non supporté — ignore
+  }
+}
+
+/* ----------------------------------------------------------------------- */
 /*  Lecture                                                                    */
 /* ----------------------------------------------------------------------- */
 
@@ -121,6 +148,8 @@ export function playSound(key: string, volume = 0.8) {
     return;
   }
   try {
+    // Retour haptique discret (ms selon la durée du son).
+    vibrate(entry.duration && entry.duration < 2 ? 20 : 40);
     const existing = unlocked.get(key);
     const snd = existing || new Audio(entry.file);
     if (!existing) unlocked.set(key, snd);

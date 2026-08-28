@@ -27,6 +27,9 @@ const config: CapacitorConfig = {
     Haptics: {
       notificationDuration: 0.2,
     },
+    PushNotifications: {
+      presentationOptions: ['banner', 'list', 'sound'],
+    },
     StatusBar: {
       style: 'DARK',
       backgroundColor: '#0d1b2a',

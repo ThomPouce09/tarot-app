@@ -2,33 +2,85 @@
 
 import { useState } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 type Prefs = {
-  theme: 'sombre' | 'ambre' | 'nuit';
   dailyReminder: boolean;
+  dailyReminderHour: number;
   emailNews: boolean;
+  haptics: boolean;
   language: 'fr' | 'en';
 };
 
+const DEFAULT_PREFS: Prefs = {
+  dailyReminder: false,
+  dailyReminderHour: 18,
+  emailNews: false,
+  haptics: true,
+  language: 'fr',
+};
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 export default function PreferencesPage() {
-  const [prefs, setPrefs] = useState<Prefs>({
-    theme: 'ambre',
-    dailyReminder: true,
-    emailNews: false,
-    language: 'fr',
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS;
+    try {
+      const raw = localStorage.getItem('tarot_prefs');
+      return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
+    } catch {
+      return DEFAULT_PREFS;
+    }
   });
   const [saved, setSaved] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const lang = useLang();
   const setLang = useSetLang();
   const t = useT();
+
+  const email = (() => {
+    if (typeof window === 'undefined') return '';
+    try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch { return ''; }
+  })();
+
+  const syncServer = (next: Prefs) => {
+    if (!email) return;
+    api('/api/prefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        emailNews: next.emailNews,
+        dailyReminder: next.dailyReminder,
+        dailyReminderHour: next.dailyReminderHour,
+      }),
+    }).catch(() => {});
+  };
 
   const update = (patch: Partial<Prefs>) => {
     setPrefs((p) => {
       const next = { ...p, ...patch };
       localStorage.setItem('tarot_prefs', JSON.stringify(next));
+      syncServer(next);
       return next;
     });
     setSaved(true);
+    // Haptique : demande de permission push quand on active le rappel (natif).
+    if (patch.dailyReminder !== undefined && patch.dailyReminder && typeof window !== 'undefined') {
+      if ((window as any).__requestPushPermission) (window as any).__requestPushPermission().catch(() => {});
+    }
+  };
+
+  const reset = () => {
+    setPrefs((p) => {
+      const next: Prefs = { ...DEFAULT_PREFS, language: p.language };
+      localStorage.setItem('tarot_prefs', JSON.stringify(next));
+      syncServer(next);
+      return next;
+    });
+    setSaved(true);
+    setConfirmReset(false);
+    if (typeof window !== 'undefined' && (window as any).__clearPushPermission) (window as any).__clearPushPermission();
   };
 
   return (
@@ -41,28 +93,26 @@ export default function PreferencesPage() {
         <p className="text-gray-500 text-sm mt-1">{t('prefs.subtitle')}</p>
       </header>
 
-      {/* Thème */}
-      <div className="mystic-panel p-5">
-        <h2 className="mystic-subtitle text-sm mb-3">{t('prefs.theme')}</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {([
-            { key: 'sombre', icon: '🌑', label: t('prefs.theme.sombre') },
-            { key: 'ambre', icon: '🔥', label: t('prefs.theme.ambre') },
-            { key: 'nuit', icon: '🌌', label: t('prefs.theme.nuit') },
-          ] as const).map((th) => (
-            <button key={th.key} onClick={() => update({ theme: th.key })} className={`mystic-panel p-3 flex flex-col items-center gap-1 ${prefs.theme === th.key ? 'ring-2 ring-amber-500/60' : ''}`}>
-              <span className="text-2xl">{th.icon}</span>
-              <span className="text-xs text-gray-300">{th.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Notifications */}
+      {/* Notifications & rappel */}
       <div className="mystic-panel p-5 space-y-3">
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.notifications')}</h2>
-        <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} />
-        <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} />
+        <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
+        {prefs.dailyReminder && (
+          <div className="flex items-center justify-between pl-1">
+            <span className="text-gray-400 text-xs">{t('prefs.reminderHour')}</span>
+            <select
+              value={prefs.dailyReminderHour}
+              onChange={(e) => update({ dailyReminderHour: Number(e.target.value) })}
+              className="bg-gray-800/70 border border-amber-700/40 rounded px-2 py-1 text-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            >
+              {HOURS.map((h) => (
+                <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
+        <Toggle label={t('prefs.haptics')} checked={prefs.haptics} onChange={(v) => update({ haptics: v })} hint={t('prefs.hapticsHint')} />
       </div>
 
       {/* Langue */}
@@ -80,21 +130,41 @@ export default function PreferencesPage() {
         </div>
       </div>
 
+      {/* Reset */}
+      <div className="mystic-panel p-5">
+        {confirmReset ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-gray-300 text-sm">{t('prefs.resetConfirm')}</p>
+            <div className="flex gap-3">
+              <button onClick={reset} className="mystic-btn flex-1">✓</button>
+              <button onClick={() => setConfirmReset(false)} className="mystic-btn-ghost flex-1">{t('prefs.resetConfirm').split('?')[0]}</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmReset(true)} className="text-red-400/80 hover:text-red-300 text-sm flex items-center gap-2 transition-colors">
+            <span>⟲</span> {t('prefs.reset')}
+          </button>
+        )}
+      </div>
+
       {saved && <p role="status" aria-live="polite" className="text-amber-200 text-xs text-center">{t('prefs.savedAuto')}</p>}
     </div>
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-gray-300 text-sm">{label}</span>
+      <div className="min-w-0">
+        <div className="text-gray-300 text-sm">{label}</div>
+        {hint && <div className="text-gray-500 text-[11px]">{hint}</div>}
+      </div>
       <button
         role="switch"
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-amber-600' : 'bg-gray-700'}`}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-amber-600' : 'bg-gray-700'}`}
       >
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : ''}`} />
       </button>
