@@ -2,32 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
-// ── Vidéos d'attente Tarot : détection dynamique ──────────────────────────
-// Toutes les vidéos "analyse-tarotX.mp4" (X = 1..9) présentes dans
-// public/images sont intégrées automatiquement à la rotation. Ajouter une
-// nouvelle vidéo = la déposer dans public/images, rien d'autre à changer.
+// ── Vidéos d'attente : détection dynamique par préfixe ────────────────────
+// Toutes les vidéos "<prefix>X.mp4" (X = 1..9) présentes dans public/images
+// sont intégrées automatiquement à la rotation. Ajouter une nouvelle vidéo =
+// la déposer dans public/images, rien d'autre à changer.
 // L'ordre est MÉLANGÉ à chaque appel : chaque visite démarre par une vidéo
-// différente (la 1ère jouée n'est pas toujours analyse-tarot1.mp4).
-function listTarotVideos(): string[] {
+// différente (la 1ère jouée n'est pas toujours <prefix>1.mp4).
+function listVideos(prefix: string): string[] {
   const dir = join(process.cwd(), 'public', 'images');
   const out: string[] = [];
   try {
     const files = readdirSync(dir);
     for (let n = 1; n <= 9; n++) {
-      if (files.includes(`analyse-tarot${n}.mp4`)) {
-        out.push(`/images/analyse-tarot${n}.mp4`);
+      if (files.includes(`${prefix}${n}.mp4`)) {
+        out.push(`/images/${prefix}${n}.mp4`);
       }
     }
   } catch {
     // En cas d'accès FS impossible (prod serverless), on retombe sur la liste
     // statique connue.
     for (let n = 1; n <= 9; n++) {
-      if (existsSync(join(dir, `analyse-tarot${n}.mp4`))) {
-        out.push(`/images/analyse-tarot${n}.mp4`);
+      if (existsSync(join(dir, `${prefix}${n}.mp4`))) {
+        out.push(`/images/${prefix}${n}.mp4`);
       }
     }
   }
-  if (out.length === 0) return ['/images/analyse-tarot1.mp4'];
+  if (out.length === 0) return [`/images/${prefix}1.mp4`];
   // Fisher-Yates : mélange aléatoire de l'ordre des vidéos à chaque appel.
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -36,40 +36,16 @@ function listTarotVideos(): string[] {
   return out;
 }
 
-// ── Vidéos d'attente Runes : détection dynamique ─────────────────────────
-// Toutes les vidéos "analyse-runesX.mp4" (X = 1..9) présentes dans
-// public/images. Mélangées à chaque appel → vidéo aléatoire à chaque tirage.
-function listRuneVideos(): string[] {
-  const dir = join(process.cwd(), 'public', 'images');
-  const out: string[] = [];
-  try {
-    const files = readdirSync(dir);
-    for (let n = 1; n <= 9; n++) {
-      if (files.includes(`analyse-runes${n}.mp4`)) {
-        out.push(`/images/analyse-runes${n}.mp4`);
-      }
-    }
-  } catch {
-    for (let n = 1; n <= 9; n++) {
-      if (existsSync(join(dir, `analyse-runes${n}.mp4`))) {
-        out.push(`/images/analyse-runes${n}.mp4`);
-      }
-    }
-  }
-  if (out.length === 0) return [];
-  // Fisher-Yates : mélange aléatoire à chaque appel.
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
+// Raccourcis typés par univers de tirage.
+function listTarotVideos(): string[] { return listVideos('analyse-tarot'); }
+function listRuneVideos(): string[] { return listVideos('analyse-runes'); }
+function listYiJingVideos(): string[] { return listVideos('analyse-yi-jing'); }
 
 // Config d'attente par type de tirage.
-// La vidéo chargement-yi-jing.mp4 est prioritaire : elle joue en entier (pas de loop),
-// puis un fondu au noir laisse place a l'overlay classique (spinner + messages).
-// Pour yi-jing-question : video1 puis video2 (5s apres la fin de la 1ere).
-// Pour les tirages tarot : rotation automatique des vidéos analyse-tarotX.mp4.
+// Pour les tirages tarot / runes / yi-jing : rotation automatique des vidéos
+// analyse-tarotX.mp4 / analyse-runesX.mp4 / analyse-yi-jingX.mp4 (détectées
+// dynamiquement dans public/images). backgroundUrls est laissé vide ici et
+// généré à CHAQUE requête dans GET() (mélange aléatoire à chaque visite).
 const CONFIG: Record<string, {
   messages: { fr: string[]; en: string[] };
   backgroundType: 'image' | 'video' | 'none';
@@ -84,7 +60,7 @@ const CONFIG: Record<string, {
       en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your draw…'],
     },
     backgroundType: 'video',
-    backgroundUrls: ['/backgrounds/chargement-yi-jing.mp4'],
+    backgroundUrls: [],
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
@@ -95,7 +71,7 @@ const CONFIG: Record<string, {
       en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your question…'],
     },
     backgroundType: 'video',
-    backgroundUrls: ['/backgrounds/chargement-yi-jing.mp4', '/backgrounds/chargement-yi-jing2.mp4'],
+    backgroundUrls: [],
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
@@ -106,7 +82,7 @@ const CONFIG: Record<string, {
       en: ['The oracle consults the hexagrams…', 'The I Ching reveals its wisdom…'],
     },
     backgroundType: 'video',
-    backgroundUrls: ['/backgrounds/chargement-yi-jing.mp4'],
+    backgroundUrls: [],
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
@@ -179,10 +155,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Vidéos d'attente : mélange aléatoire à CHAQUE requête (ordre différent à
-  // chaque visite). Tarot = analyse-tarotX.mp4, runes = analyse-runesX.mp4.
+  // chaque visite). Tarot = analyse-tarotX.mp4, runes = analyse-runesX.mp4,
+  // yi-jing = analyse-yi-jingX.mp4 (y compris yi-qing).
   const backgroundUrls =
     type.startsWith('tarot') ? listTarotVideos()
     : type.startsWith('runes') ? listRuneVideos()
+    : (type.startsWith('yi-jing') || type === 'yi-qing') ? listYiJingVideos()
     : cfg.backgroundUrls;
 
   return NextResponse.json({

@@ -20,10 +20,10 @@ const FALLBACK: WaitConfig = {
   minDurationMs: 2500,
 };
 
-// Config OPTIMISTE : les types tarot ont toujours une vidéo d'attente. On
-// initialise avec analyse-tarot1.mp4 pour que la vidéo démarre IMMÉDIATEMENT
-// (pas de fond noir pendant le fetch), puis le fetch rafraîchit la liste
-// complète (analyse-tarot1..9.mp4) pour la boucle.
+// Config OPTIMISTE : les types tarot / yi-jing ont toujours une vidéo
+// d'attente. On initialise avec analyse-tarot1.mp4 (resp. analyse-yi-jing1.mp4)
+// pour que la vidéo démarre IMMÉDIATEMENT (pas de fond noir pendant le fetch),
+// puis le fetch rafraîchit la liste complète (1..9.mp4) pour la boucle.
 const TAROT_OPTIMISTIC: WaitConfig = {
   messages: ['Les cartes se dévoilent…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],
   backgroundType: 'video',
@@ -32,8 +32,17 @@ const TAROT_OPTIMISTIC: WaitConfig = {
   minDurationMs: 3500,
 };
 
+const YIJING_OPTIMISTIC: WaitConfig = {
+  messages: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre tirage…'],
+  backgroundType: 'video',
+  backgroundUrls: ['/images/analyse-yi-jing1.mp4'],
+  animation: 'fade',
+  minDurationMs: 3500,
+};
+
 function optimisticConfig(type: string): WaitConfig | null {
   if (type.startsWith('tarot')) return TAROT_OPTIMISTIC;
+  if (type.startsWith('yi-jing') || type === 'yi-qing') return YIJING_OPTIMISTIC;
   return null;
 }
 
