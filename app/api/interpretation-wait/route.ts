@@ -53,6 +53,8 @@ const CONFIG: Record<string, {
   animation: string;
   minDurationMs: number;
   videoNoLoop?: boolean;
+  /** Noms de fichiers (basename) qui doivent se jouer UNE seule fois, sans boucle. */
+  noLoopNames?: string[];
 }> = {
   'yi-jing-simple': {
     messages: {
@@ -64,6 +66,7 @@ const CONFIG: Record<string, {
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
+    noLoopNames: ['analyse-yi-jing1.mp4', 'analyse-yi-jing2.mp4'],
   },
   'yi-jing-question': {
     messages: {
@@ -75,6 +78,7 @@ const CONFIG: Record<string, {
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
+    noLoopNames: ['analyse-yi-jing1.mp4', 'analyse-yi-jing2.mp4'],
   },
   'yi-qing': {
     messages: {
@@ -86,6 +90,7 @@ const CONFIG: Record<string, {
     animation: 'fade',
     minDurationMs: 3500,
     videoNoLoop: true,
+    noLoopNames: ['analyse-yi-jing1.mp4', 'analyse-yi-jing2.mp4'],
   },
   // ── Tirages de Tarot : rotation automatique des vidéos analyse-tarotX.mp4 ──
   // NOTE : backgroundUrls est laissé vide ici — il est généré à CHAQUE requête
@@ -163,10 +168,19 @@ export async function GET(request: NextRequest) {
     : (type.startsWith('yi-jing') || type === 'yi-qing') ? listYiJingVideos()
     : cfg.backgroundUrls;
 
+  // Vidéos à jouer UNE seule fois (pas de boucle) : celles dont le nom de
+  // fichier est dans cfg.noLoopNames (ex. analyse-yi-jing1/2.mp4). Les autres
+  // bouclent normalement (rotation 2-4 relectures).
+  const noLoopUrls = (cfg.noLoopNames ?? [])
+    .filter((n) => backgroundUrls.some((u) => u.endsWith(`/${n}`) || u.endsWith(n)))
+    .map((n) => backgroundUrls.find((u) => u.endsWith(`/${n}`) || u.endsWith(n))!)
+    .filter((u, i, self) => self.indexOf(u) === i);
+
   return NextResponse.json({
     messages: cfg.messages[lang],
     backgroundType: cfg.backgroundType,
     backgroundUrls,
+    noLoopUrls,
     animation: cfg.animation,
     minDurationMs: cfg.minDurationMs,
     videoNoLoop: cfg.videoNoLoop ?? false,

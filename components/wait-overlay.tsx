@@ -8,6 +8,8 @@ interface WaitConfig {
   messages: string[];
   backgroundType: 'image' | 'video' | 'none';
   backgroundUrls: string[];
+  /** URLs de vidéos à jouer UNE seule fois (sans boucle) dans la rotation. */
+  noLoopUrls?: string[];
   animation: string;
   minDurationMs: number;
 }
@@ -36,6 +38,7 @@ const YIJING_OPTIMISTIC: WaitConfig = {
   messages: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre tirage…'],
   backgroundType: 'video',
   backgroundUrls: ['/images/analyse-yi-jing1.mp4'],
+  noLoopUrls: ['/images/analyse-yi-jing1.mp4'],
   animation: 'fade',
   minDurationMs: 3500,
 };
@@ -89,9 +92,12 @@ const FALLBACK_DURATION = 8;
 
 function VideoBackground({
   urls,
+  noLoopUrls = [],
   exiting,
 }: {
   urls: string[];
+  /** URLs à jouer UNE seule fois (sans boucle). Les autres bouclent 2-4 fois. */
+  noLoopUrls?: string[];
   exiting: boolean;
 }) {
   const [idx, setIdx] = useState(0);
@@ -101,13 +107,18 @@ function VideoBackground({
   const switchingRef = useRef(false);
 
   const url = urls[idx % urls.length];
+  const isNoLoop = noLoopUrls.includes(url);
 
   // `loop` natif rejoue la même vidéo sans interruption ; ce timer calcule
   // quand passer à la suivante (durée × relectures), avec fondu 400ms.
+  // Une vidéo "noLoop" (ex. analyse-yi-jing1/2.mp4) joue UNE seule fois
+  // (plays=1) et n'est jamais rejouée en boucle : le timer passe à la vidéo
+  // suivante dès sa fin.
   useEffect(() => {
     if (exiting) return;
     const d = duration > 0 ? duration : FALLBACK_DURATION;
-    const totalMs = d * playsRef.current * 1000;
+    const plays = isNoLoop ? 1 : playsRef.current;
+    const totalMs = d * plays * 1000;
     const timer = setTimeout(() => {
       if (switchingRef.current) return;
       switchingRef.current = true;
@@ -121,7 +132,7 @@ function VideoBackground({
       }, FADE_MS);
     }, totalMs);
     return () => clearTimeout(timer);
-  }, [idx, duration, exiting, urls.length]);
+  }, [idx, duration, exiting, urls.length, isNoLoop]);
 
   return (
     <>
@@ -137,7 +148,7 @@ function VideoBackground({
         src={url}
         autoPlay
         muted
-        loop
+        loop={!isNoLoop}
         playsInline
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
       />
@@ -260,6 +271,7 @@ export default function WaitOverlay({
       {c.backgroundType === 'video' && c.backgroundUrls.length > 0 ? (
         <VideoBackground
           urls={c.backgroundUrls}
+          noLoopUrls={c.noLoopUrls}
           exiting={exiting}
         />
       ) : c.backgroundType === 'image' && c.backgroundUrls.length > 0 ? (
