@@ -232,6 +232,7 @@ export const DICT = {
   'history.deleteOne': { fr: 'Supprimer ce tirage ?', en: 'Delete this reading?' },
   'history.deleteDate': { fr: 'Supprimer tous les tirages de cette date ?', en: 'Delete all readings of this date?' },
   'history.yourQuestion': { fr: 'Votre question', en: 'Your question' },
+  'history.synthesis': { fr: 'Synthèse du tirage', en: 'Reading synthesis' },
   'history.deleting': { fr: 'Suppression…', en: 'Deleting…' },
   'history.cancel': { fr: 'Annuler', en: 'Cancel' },
   'history.confirm': { fr: 'Confirmer', en: 'Confirm' },
