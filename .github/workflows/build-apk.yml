@@ -34,6 +34,20 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Inject google-services.json (Firebase)
+        # Le repo est PUBLIC et google-services.json est gitignoré → le runner
+        # ne l'a pas. On le reconstruit depuis le secret GOOGLE_SERVICES_JSON
+        # (contenu JSON encodé en base64, ajouté dans Settings → Secrets).
+        # Sans lui, le plugin com.google.gms.google-services ne s'applique pas
+        # et les notifications FCM ne fonctionneraient pas dans l'APK.
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+            echo "google-services.json injecté ✓"
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON non défini — APK sans Firebase (FCM inopérant)"
+          fi
+
       - name: Capacitor sync
         # Le projet Android est DÉJÀ initialisé et versionné (capacitor.config.ts
         # + android/). `cap init`/`cap add android` écraseraient la config ou

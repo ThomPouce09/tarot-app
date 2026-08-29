@@ -73,3 +73,7 @@ tsconfig.tsbuildinfo
 /playwright/.cache/
 /playwright/.auth/
 _tunnel.out
+google-services.json
+*-firebase-adminsdk-*.json
+.env.firebase.local
+.env.credentials
