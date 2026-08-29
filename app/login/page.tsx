@@ -130,6 +130,7 @@ export default function LoginPage() {
             </label>
             <input
               type="email"
+              name="email"
               value={email}
               inputMode="email"
               autoComplete="email"
@@ -289,6 +290,7 @@ export default function LoginPage() {
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <input
                   type="email"
+                  name="email"
                   value={email}
                   inputMode="email"
                   autoComplete="email"

@@ -95,6 +95,7 @@ export const DICT = {
   'prefs.dailyReminder': { fr: 'Rappel quotidien de tirage', en: 'Daily draw reminder' },
   'prefs.dailyReminderHint': { fr: 'Notification push chaque jour', en: 'Push notification every day' },
   'prefs.reminderHour': { fr: 'Heure du rappel', en: 'Reminder time' },
+  'prefs.reminderFixedHour': { fr: 'Votre rappel est envoyé à', en: 'Your reminder is sent at' },
   'prefs.emailNews': { fr: 'Lettre mystique hebdomadaire', en: 'Weekly mystic letter' },
   'prefs.emailNewsHint': { fr: 'Un récap de votre semaine, chaque dimanche', en: 'A recap of your week, every Sunday' },
   'prefs.reset': { fr: 'Réinitialiser les préférences', en: 'Reset preferences' },

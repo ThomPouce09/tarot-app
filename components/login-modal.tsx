@@ -96,6 +96,7 @@ export function LoginModal() {
             </label>
             <input
               type="email"
+              name="email"
               value={email}
               inputMode="email"
               autoComplete="email"
@@ -129,6 +130,7 @@ export function LoginModal() {
             </label>
             <input
               type="password"
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
