@@ -73,6 +73,7 @@ export default function ForgotPasswordModal() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               placeholder="Votre email"
               className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
               required

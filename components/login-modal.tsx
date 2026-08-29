@@ -98,7 +98,7 @@ export function LoginModal() {
               type="email"
               value={email}
               inputMode="email"
-              autoComplete="off"
+              autoComplete="email"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -131,6 +131,7 @@ export function LoginModal() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
               minLength={6}
               className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"

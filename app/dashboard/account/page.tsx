@@ -155,6 +155,14 @@ export default function AccountPage() {
 }
 
 function Field({ id, label, value, onChange, type = 'text' }: { id: string; label: string; value: any; onChange: (e: any) => void; type?: string }) {
+  // autoComplete sémantique : active la complétion clavier (WebView Android).
+  const ac =
+    type === 'tel' ? 'tel'
+    : type === 'number' ? 'off'
+    : id === 'firstName' ? 'given-name'
+    : id === 'lastName' ? 'family-name'
+    : id === 'email' ? 'email'
+    : 'off';
   return (
     <div>
       <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
@@ -163,7 +171,7 @@ function Field({ id, label, value, onChange, type = 'text' }: { id: string; labe
         type={type}
         value={value}
         onChange={onChange}
-        autoComplete="off"
+        autoComplete={ac}
         className="mystic-input"
       />
     </div>
