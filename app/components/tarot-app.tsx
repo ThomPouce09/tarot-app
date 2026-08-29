@@ -490,7 +490,18 @@ export default function TarotApp({
 
   const zoomRef = useRef({ center: N / 2, amount: 0 });
   const [, force] = useState(0);
-  const rerender = useCallback(() => force((v) => (v + 1) & 0xffff), []);
+  // re-render throttlé à requestAnimationFrame : le pinch/drag émet des
+  // touchmove très fréquents (>60/s) ; sans throttle chaque event provoque
+  // un re-render React complet du deck (78 cartes) → jank en WebView.
+  // En coalesçant sur rAF on ne re-render qu'une fois par frame (~60fps).
+  const rafId = useRef<number | null>(null);
+  const rerender = useCallback(() => {
+    if (rafId.current !== null) return; // déjà planifié pour cette frame
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      force((v) => (v + 1) & 0xffff);
+    });
+  }, []);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
