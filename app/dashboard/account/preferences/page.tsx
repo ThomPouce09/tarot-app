@@ -156,7 +156,7 @@ export default function PreferencesPage() {
             {t('prefs.reminderFixedHour')} <strong>21h</strong>
           </p>
         )}
-        {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l'app.</p>}
+        {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l&apos;app.</p>}
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
       </div>
 
