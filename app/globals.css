@@ -89,6 +89,16 @@ html, body {
   user-select: none;
 }
 
+/* Le user-select:none ci-dessus se propage aux champs dans la WebView Android
+   et casse la sélection/la prédiction de saisie (suggestions clavier). On le
+   force à 'text' sur les zones de saisie pour restaurer l'édition native. */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Custom scrollbar for fan area */
 .fan-scroll::-webkit-scrollbar {
   height: 8px;

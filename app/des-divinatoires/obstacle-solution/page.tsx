@@ -531,6 +531,9 @@ export default function ObstacleSolutionPage() {
               type="text"
               value={qText}
               onChange={(e) => setQText(e.target.value)}
+              autoCorrect="on"
+              spellCheck={true}
+              autoCapitalize="sentences"
               placeholder="Garder en mémoire votre question"
               className="w-full max-w-sm rounded-lg px-4 py-2 text-sm mx-auto mb-4"
               style={{

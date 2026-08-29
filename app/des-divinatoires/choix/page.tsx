@@ -753,6 +753,9 @@ export default function ChoixPage() {
                   type="text"
                   value={questionDraft}
                   onChange={(e) => setQuestionDraft(e.target.value)}
+                  autoCorrect="on"
+                  spellCheck={true}
+                  autoCapitalize="sentences"
                   placeholder={t('des.choix.askPlaceholder')}
                   className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
                   style={{
@@ -969,6 +972,9 @@ export default function ChoixPage() {
                     type="text"
                     value={questionBDraft}
                     onChange={(e) => setQuestionBDraft(e.target.value)}
+                    autoCorrect="on"
+                    spellCheck={true}
+                    autoCapitalize="sentences"
                     placeholder={t('des.choix.secondPlaceholder')}
                     className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
                     style={{
