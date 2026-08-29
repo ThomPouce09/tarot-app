@@ -37,7 +37,11 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
-    captureInput: true,
+    // captureInput:true remplaçait l'InputConnection du WebView par un
+    // BaseInputConnection nu → le clavier Android n'affichait plus la
+    // prédiction de mots ni l'autofill (seulement dans l'APK, pas sur
+    // navigateur). Désactivé pour restaurer la saisie native complète.
+    captureInput: false,
     webContentsDebuggingEnabled: false,
   },
 };
