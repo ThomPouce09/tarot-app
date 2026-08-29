@@ -42,20 +42,14 @@ export async function GET(request: NextRequest) {
       dailyReminder: true,
       fcmToken: { not: null },
     },
-    select: { email: true, firstName: true, fcmToken: true, dailyReminderHour: true },
+    select: { email: true, firstName: true, fcmToken: true },
   });
 
   const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  let sent = 0, failed = 0, skipped = 0;
-  const results: Record<string, 'sent' | 'fail' | 'skip'> = {};
+  let sent = 0, failed = 0;
+  const results: Record<string, 'sent' | 'fail'> = {};
 
   for (const u of users) {
-    // Respecte l'heure de rappel choisie par l'utilisateur (± 15 min de tolérance).
-    const diffMin = (hour - u.dailyReminderHour) * 60 + minute;
-    if (Math.abs(diffMin) > 15) { results[u.email] = 'skip'; skipped++; continue; }
-
     const message = {
       token: u.fcmToken!,
       notification: {
@@ -80,5 +74,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ hour, sent, failed, skipped, results });
+  return NextResponse.json({ hour: now.getHours(), sent, failed, results });
 }
