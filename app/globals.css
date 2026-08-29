@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── WebView / mobile reset ─────────────────────────────────────────────
+   Supprime le « rectangle » gris/bleu que le navigateur (et la WebView
+   Android Capacitor) affiche autour des éléments lors d'un tap/clic
+   (-webkit-tap-highlight-color) et l'outline de focus au clic. Sans ça,
+   cliquer une image/icône cliquable dessine un surlignage rectangulaire
+   — perçu comme une transparence mal gérée. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
 :root {
   --card-width: 120px;
   --card-height: 180px;
