@@ -273,7 +273,7 @@ function DiceAnalysis({
             accent="#c4a0e0"
             title={
               <>
-                Consultation de l'Oracle
+                Consultation de l&apos;Oracle
                 <span className="oracle-loader-dot">.</span>
                 <span className="oracle-loader-dot">.</span>
                 <span className="oracle-loader-dot">.</span>
@@ -565,7 +565,7 @@ export default function ObstacleSolutionPage() {
               — OU —
             </p>
             <p className="text-sm mb-4 max-w-xs mx-auto" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
-              Concentrez-vous sur l'obstacle qui vous préoccupe et lancez directement les dés
+              Concentrez-vous sur l&apos;obstacle qui vous préoccupe et lancez directement les dés
             </p>
             <button
               onClick={() => { setQuestion(null); rollObstacle(); }}
