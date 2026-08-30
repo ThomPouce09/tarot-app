@@ -188,9 +188,9 @@ export default function PreferencesPage() {
             );
           })}
         </div>
-        {/* Sélection multiple volontaire : coché = inclus dans la rotation ; aucun coché = tous */}
-        {prefs.backgrounds.length > 0 && prefs.backgrounds.length < LANDING_BACKGROUNDS.length && (
-          <button onClick={() => update({ backgrounds: [] })} className="mystic-btn-ghost text-xs">{t('prefs.backgroundSelectAll')}</button>
+        {/* Sélection multiple volontaire : coché = inclus dans la rotation ; aucun coché = tous (aléatoire) */}
+        {prefs.backgrounds.length < LANDING_BACKGROUNDS.length && (
+          <button onClick={() => update({ backgrounds: [...LANDING_BACKGROUNDS] })} className="mystic-btn-ghost text-xs">{t('prefs.backgroundSelectAll')}</button>
         )}
       </div>
 
@@ -212,7 +212,7 @@ export default function PreferencesPage() {
             </select>
           </div>
         )}
-        {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l'app.</p>}
+        {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l&apos;app.</p>}
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
       </div>
 

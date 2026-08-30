@@ -59,7 +59,12 @@ export default function HomePage() {
   }, []);
 
   const handleLogin = () => {
-    // Le modal de connexion est global (components/login-modal, monté dans le layout).
+    // Si déjà connecté : aller directement sur Mon espace (pas de re-login).
+    if (isLoggedIn) {
+      router.push('/dashboard/account');
+      return;
+    }
+    // Sinon : ouvrir le modal de connexion global (components/login-modal, monté dans le layout).
     window.dispatchEvent(new Event('open-login'));
   };
 
