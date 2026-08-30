@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api-client';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
-import { api } from '@/lib/api-client';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 
@@ -241,8 +241,11 @@ export default function ReadingsPage() {
         if (r.interpretation) {
           try {
             const parsed = JSON.parse(r.interpretation);
-            const key = isTarot3 ? ['carte1','carte2','carte3'][i] : ['situation','defis','soutien','issue','conseil'][i];
-            if (parsed?.[key]) lines.push(`   → ${parsed[key].slice(0, 200)}`);
+            // Nouveau format IA : passe/present/avenir ; ancien : carte1/2/3
+            const keys = isTarot3 ? ['passe', 'present', 'avenir'] : ['situation', 'defis', 'soutien', 'issue', 'conseil'];
+            const fallbackKeys = isTarot3 ? ['carte1', 'carte2', 'carte3'] : keys;
+            const k = keys[i] && parsed?.[keys[i]] ? keys[i] : fallbackKeys[i];
+            if (parsed?.[k]) lines.push(`   → ${parsed[k].slice(0, 200)}`);
           } catch {}
         }
       });
@@ -750,6 +753,13 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
           </div>
         );
       })}
+      {/* Synthèse globale du tirage (nouveau format IA : resume / ancien : resume) */}
+      {(interpData as any).resume && (
+        <div className="bg-purple-950/15 border border-purple-800/30 rounded-lg p-3">
+          <p className="text-purple-300/80 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.synthesis')}</p>
+          <p className="text-gray-100 text-sm leading-relaxed italic"><Highlight text={(interpData as any).resume as string} query={query} /></p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1151,6 +1161,20 @@ function parseTarot3Inline(raw: string) {
     const p = JSON.parse(raw);
     if (p && typeof p === 'object' && (p.situation || p.defis || p.issue || p.carte1 || p.carte2 || p.carte3)) {
       return { kind: 'tarot3' as const, data: p };
+    }
+    // Nouveau format IA (passe/present/avenir/resume) → normalisé vers les
+    // clés de position canoniques (situation/defis/issue) utilisées par TarotView.
+    if (p && typeof p === 'object' && (p.passe !== undefined || p.present !== undefined || p.avenir !== undefined)) {
+      return {
+        kind: 'tarot3' as const,
+        data: {
+          situation: p.passe,
+          defis: p.present,
+          issue: p.avenir,
+          resume: p.resume,
+          ...p,
+        },
+      };
     }
   } catch {}
   return null;

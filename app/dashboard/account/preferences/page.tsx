@@ -3,12 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
 import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
+import { LANDING_BACKGROUNDS, isVideoBackground } from '@/lib/backgrounds';
 import { api } from '@/lib/api-client';
 
 type Prefs = {
   dailyReminder: boolean;
   dailyReminderHour: number;
   emailNews: boolean;
+  backgrounds: string[];
   language: 'fr' | 'en';
   soundEffects: boolean;
   voices: boolean;
@@ -19,6 +21,7 @@ const DEFAULT_PREFS: Prefs = {
   dailyReminder: false,
   dailyReminderHour: 18,
   emailNews: false,
+  backgrounds: [], // vide = tous les fonds en mode aléatoire
   language: 'fr',
   soundEffects: true,
   voices: true,
@@ -60,6 +63,7 @@ export default function PreferencesPage() {
             dailyReminder: d.dailyReminder ?? p.dailyReminder,
             dailyReminderHour: d.dailyReminderHour ?? p.dailyReminderHour,
             emailNews: d.emailNews ?? p.emailNews,
+            backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
           setSoundPrefs(next.soundEffects, next.voices, next.haptics);
@@ -81,7 +85,7 @@ export default function PreferencesPage() {
     api('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds }),
     }).catch(() => {});
   };
 
@@ -145,6 +149,48 @@ export default function PreferencesPage() {
         <Toggle label={t('prefs.soundEffects')} checked={prefs.soundEffects} onChange={(v) => update({ soundEffects: v })} />
         <Toggle label={t('prefs.voices')} checked={prefs.voices} onChange={(v) => update({ voices: v })} />
         <Toggle label={t('prefs.haptics')} checked={prefs.haptics} onChange={(v) => update({ haptics: v })} hint={t('prefs.hapticsHint')} />
+      </div>
+
+      {/* Fond d'écran de l'accueil */}
+      <div className="mystic-panel p-5 space-y-3">
+        <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.background')}</h2>
+        <p className="text-gray-400 text-xs leading-relaxed">
+          {prefs.backgrounds.length === 0 ? t('prefs.backgroundAllRandom') : t('prefs.backgroundSelected')}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {LANDING_BACKGROUNDS.map((bg) => {
+            const selected = prefs.backgrounds.includes(bg);
+            return (
+              <button
+                key={bg}
+                type="button"
+                onClick={() => {
+                  const next = selected
+                    ? prefs.backgrounds.filter((b) => b !== bg)
+                    : [...prefs.backgrounds, bg];
+                  update({ backgrounds: next });
+                }}
+                className={`relative overflow-hidden rounded-lg border transition-all aspect-video ${selected ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-gray-700/60 opacity-70 hover:opacity-100'}`}
+                style={{ background: '#0a0604' }}
+              >
+                {isVideoBackground(bg) ? (
+                  <video src={bg} muted loop playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={bg} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                <span className="absolute bottom-1 right-1 text-xs font-semibold px-1.5 py-0.5 rounded"
+                  style={{ background: selected ? 'rgba(218,165,32,0.9)' : 'rgba(0,0,0,0.55)', color: selected ? '#1a0e0a' : '#fff' }}>
+                  {selected ? '✓' : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Sélection multiple volontaire : coché = inclus dans la rotation ; aucun coché = tous (aléatoire) */}
+        {prefs.backgrounds.length < LANDING_BACKGROUNDS.length && (
+          <button onClick={() => update({ backgrounds: [...LANDING_BACKGROUNDS] })} className="mystic-btn-ghost text-xs">{t('prefs.backgroundSelectAll')}</button>
+        )}
       </div>
 
       {/* Notifications & rappel */}
