@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useT } from '@/lib/i18n';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
@@ -8,11 +8,19 @@ import { UNIVERSES, type Universe } from '@/lib/classification';
 // Niveaux affichés, ordre d'exposition.
 const CARDS: PlanId[] = ['bienvenue', 'apprenti', 'recharge', 'initie', 'arkane'];
 
+// Rang hiérarchique pour verrouiller les forfaits inférieurs au forfait actif.
+const RANK: Record<PlanId, number> = {
+  bienvenue: 1,
+  apprenti: 2,
+  recharge: 2, // one-shot : pas un niveau, mais non proposable à un abonné
+  initie: 3,
+  arkane: 4,
+};
+
 function formatPrice(eur: number): string {
   return `${eur.toFixed(2).replace('.', ',')} €`;
 }
 
-// Un plan est "récurrent" (Stripe subscription) vs one-shot.
 function isSubscription(p: PlanId): boolean {
   return p === 'initie' || p === 'arkane';
 }
@@ -28,17 +36,57 @@ const UNIVERSE_LABEL_KEY: Record<Universe, string> = {
   runes: 'sub.universeRunes',
 };
 
+interface SubState {
+  plan: string;
+  level: 'apprenti' | 'initie' | 'arkane';
+  status: string | null;
+  billing: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  usage: any;
+}
+
 export default function AbonnementPage() {
   const t = useT();
   const [current, setCurrent] = useState<PlanId>('apprenti');
   const [status, setStatus] = useState<string | null>(null);
+  const [billing, setBilling] = useState<'month' | 'year'>('month');
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<PlanId | null>(null);
   const [manageLoading, setManageLoading] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [email, setEmail] = useState<string>('');
   const [usage, setUsage] = useState<any>(null);
-  // Facturation indépendante par abonnement (mois par défaut) : radios propres à chaque carte.
-  const [billing, setBilling] = useState<Record<'initie' | 'arkane', 'month' | 'year'>>({ initie: 'month', arkane: 'month' });
+  // Modale de confirmation de résiliation (plan ciblé : 'initie' | 'arkane' | null).
+  const [confirmCancel, setConfirmCancel] = useState<PlanId | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const hydrate = useCallback((d: any) => {
+    if (d.plan) {
+      const lvl = d.level === 'arkane' ? 'arkane' : d.level === 'initie' ? 'initie' : 'apprenti';
+      setCurrent(lvl);
+      // Resynchronise la période affichée en radio selon le forfait réel.
+      if (lvl !== 'apprenti' && (d.billing === 'month' || d.billing === 'year')) setBilling(d.billing);
+    }
+    setStatus(d.status ?? null);
+    setCancelAtPeriodEnd(!!d.cancelAtPeriodEnd);
+    setCurrentPeriodEnd(d.currentPeriodEnd ?? null);
+    setUsage(d.usage ?? null);
+  }, []);
+
+  const loadState = useCallback(async () => {
+    if (!email) return null;
+    try {
+      const res = await fetch(`/api/subscription?email=${encodeURIComponent(email)}`);
+      const d = await res.json();
+      hydrate(d);
+      return d;
+    } catch {
+      return null;
+    }
+  }, [email, hydrate]);
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
@@ -58,48 +106,38 @@ export default function AbonnementPage() {
 
     if (!userEmail) return;
 
-    const loadState = async () => {
-      try {
-        const res = await fetch(`/api/subscription?email=${encodeURIComponent(userEmail)}`);
-        const d = await res.json();
-        if (d.plan) {
-          // mappe le niveau réel (initie/arkane) sinon apprenti
-          setCurrent(d.level === 'arkane' ? 'arkane' : d.level === 'initie' ? 'initie' : 'apprenti');
-        }
-        setStatus(d.status ?? null);
-        setUsage(d.usage ?? null);
-        return d.level;
-      } catch {
-        return null;
-      }
-    };
-
     const confirmAndLoad = async () => {
       if (sessionId) {
         try {
+          setActivating(true);
           const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
           const confirmData = await confirmRes.json();
           if (confirmData.plan && confirmData.plan !== 'apprenti') {
             setCurrent(confirmData.plan === 'arkane' || confirmData.plan === 'initie' ? confirmData.plan : 'apprenti');
             setMsg(t('sub.successMsg'));
             await loadState();
+            setActivating(false);
             return;
           }
         } catch { /* fallback poll */ }
+        setActivating(false);
       }
+      // Charge l'état ; si retour "success" sans niveau actif → poll (le webhook
+      // Stripe peut être en retard de quelques secondes).
       const level = await loadState();
-      if (params.get('status') === 'success' && level !== 'arkane' && level !== 'initie') {
-        for (let i = 0; i < 15; i++) {
-          await new Promise((r) => setTimeout(r, 2000));
+      if (level?.level && level.level !== 'apprenti') return;
+      if (params.get('status') === 'success') {
+        for (let i = 0; i < 20; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
           const nl = await loadState();
-          if (nl === 'arkane' || nl === 'initie') break;
+          if (nl?.level === 'arkane' || nl?.level === 'initie') break;
         }
       }
     };
     confirmAndLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
-  // Bouton d'action pour souscrire / acheter.
   const choose = async (p: PlanId) => {
     if (p === 'bienvenue') {
       setMsg(t('sub.welcomeState') + ' — ' + t('sub.bienvenueFeatures').split('|')[0]);
@@ -112,8 +150,7 @@ export default function AbonnementPage() {
     setLoading(p);
     try {
       const body: any = { plan: p, email };
-      // Abonnement récurrent : période sélectionnée pour CE plan (radios indépendants).
-      if (isSubscription(p)) body.billing = billing[p as 'initie' | 'arkane'];
+      if (isSubscription(p)) body.billing = billing;
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,7 +169,6 @@ export default function AbonnementPage() {
     }
   };
 
-  // Achat one-shot de la recharge cosmique (2€ = 105 crédits mixables).
   const buyRecharge = async () => {
     if (!email) {
       setMsg(t('sub.loginRequired') || 'Connecte-toi pour acheter.');
@@ -177,11 +213,44 @@ export default function AbonnementPage() {
     }
   };
 
+  // ── Résilier / Reprendre (cancel_at_period_end) ──────────────────────
+  const toggleCancel = async (plan: PlanId, cancel: boolean) => {
+    if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi.'); return; }
+    setCancelLoading(true);
+    try {
+      const res = await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, cancel }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setMsg(data.error || 'Erreur'); return; }
+      setCancelAtPeriodEnd(!!data.cancelAtPeriodEnd);
+      setStatus(data.status ?? status);
+      setCurrentPeriodEnd(data.currentPeriodEnd ?? currentPeriodEnd);
+      setMsg(cancel ? t('sub.canceledMsg') : t('sub.resumedMsg'));
+      await loadState();
+    } catch {
+      setMsg(t('sub.cancelError'));
+    } finally {
+      setCancelLoading(false);
+      setConfirmCancel(null);
+    }
+  };
+
+  // Garde pour ne pas laisser cliquer un forfait inférieur au forfait actif.
+  // Ne verrouille que si on a un ABONNEMENT payant actif (initie/arkane).
+  const hasSubscription = current === 'initie' || current === 'arkane';
+  const currentRank = hasSubscription ? (RANK[current] ?? 2) : 0;
+  const isLocked = (p: PlanId): boolean => {
+    // On ne peut pas choisir un plan inférieur au plan actif (sans résilier).
+    return hasSubscription && RANK[p] < currentRank;
+  };
+
   const isArkane = current === 'arkane';
   const grandMonthly = usage?.grandMonthly;
   const grandUsed = usage?.grandUsedMonth ?? 0;
 
-  // ── Tableau de bord "consommation restante" (tous niveaux) ──
   const credits = usage?.rechargeCredits ?? 0;
   const welcomeBaseUsed = (usage?.welcomeBaseUsed ?? []) as Universe[];
   const welcomeGrandUsed = usage?.welcomeGrandUsed ?? false;
@@ -189,19 +258,15 @@ export default function AbonnementPage() {
   const baseUsedToday = usage?.baseUsedToday ?? 0;
   const baseUnlimited = usage?.baseUnlimited ?? false;
 
-  // Tirages de base restants : ∞ (initie/arkane) sinon bienvenue + 1/jour + crédits.
   const baseRemaining: number | 'inf' = baseUnlimited ? 'inf' : (UNIVERSES.length - welcomeBaseUsed.length) + (baseUsedToday < 1 ? 1 : 0) + Math.floor(credits / CREDITS_BASE);
 
-  // Tirages avancés restants : ∞ (arkane) sinon bonus + crédits + quota mensuel + bienvenue grand.
   const grandQuotaLeft = (grandMonthly ?? 0) > 0 ? Math.max(0, (grandMonthly ?? 0) - grandUsed) : 0;
   const grandRemaining: number | 'inf' = isArkane ? 'inf' : bonusGrand + (welcomeGrandUsed ? 0 : 1) + Math.floor(credits / CREDITS_GRAND) + grandQuotaLeft;
 
-  // Recharge : pertinente seulement si des crédits restent (affiché en tirages, pas en crédits).
   const rechargeRelevant = credits > 0;
   const rechargeBaseLeft = Math.floor(credits / CREDITS_BASE);
   const rechargeGrandLeft = Math.floor(credits / CREDITS_GRAND);
 
-  // Par univers : quelles bases restent dispo ? (bienvenue offert, ou crédits base)
   const universeStatus = (u: Universe): 'welcome' | 'credits' | 'none' => {
     if (baseUnlimited) return 'welcome';
     if (!welcomeBaseUsed.includes(u)) return 'welcome';
@@ -220,10 +285,46 @@ export default function AbonnementPage() {
         </h1>
       </header>
 
+      {/* Activation en cours (retour de paiement) */}
+      {activating && (
+        <p role="status" aria-live="polite" className="text-sm px-3 py-2 rounded-lg bg-violet-900/20 border border-violet-700/30">
+          {t('sub.activating')}
+        </p>
+      )}
+
       {msg && (
         <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
           {msg}
         </p>
+      )}
+
+      {/* Bandeau statut d'un abonnement actif */}
+      {(isArkane || current === 'initie') && (
+        <div className={`mystic-panel p-4 flex flex-wrap items-center justify-between gap-3 ${cancelAtPeriodEnd ? 'border-amber-600/40' : ''}`}>
+          <div>
+            <div className="mystic-title text-lg">
+              {t('sub.activePlan')} — {cancelAtPeriodEnd ? t('sub.canceledStatus') : t('sub.activeStatus')}
+              <span className="text-gray-400 text-sm ml-2">
+                {t('sub.untilDate')} {currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+              </span>
+            </div>
+            <p className="text-gray-400 text-xs mt-1">{cancelAtPeriodEnd ? t('sub.canceledHint') : t('sub.activeHint')}</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={manage} disabled={manageLoading} className="mystic-btn-ghost">
+              {manageLoading ? '…' : t('sub.manage')}
+            </button>
+            {cancelAtPeriodEnd ? (
+              <button onClick={() => toggleCancel(current, false)} disabled={cancelLoading} className="mystic-btn">
+                {cancelLoading ? '…' : t('sub.resume')}
+              </button>
+            ) : (
+              <button onClick={() => setConfirmCancel(current)} disabled={cancelLoading} className="mystic-btn-ghost border-red-800/50 text-red-300 hover:bg-red-900/20">
+                {t('sub.cancel')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Tableau de bord : consommation RESTANTE (tous niveaux) */}
@@ -292,24 +393,16 @@ export default function AbonnementPage() {
         </div>
       )}
 
-      {/* Actions — abonnés payants */}
-      {(isArkane || current === 'initie') && (
-        <div className="flex flex-wrap gap-3">
-          <button onClick={manage} disabled={manageLoading} className="mystic-btn-ghost">
-            {manageLoading ? '…' : t('sub.manage')}
-          </button>
-        </div>
-      )}
-
       {/* Cartes de forfaits */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {CARDS.map((p) => {
           const isCurrent = p === current;
+          const locked = isLocked(p);
           const features = t(PLAN_FEATURES_KEY[p]).split('|');
           const isSub = isSubscription(p);
           const isOne = isOneShot(p);
           return (
-            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-violet-500/60' : ''}`}>
+            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
               <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
               <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
               <p className="mystic-subtitle text-sm mb-3">
@@ -319,22 +412,24 @@ export default function AbonnementPage() {
                   <span className="text-amber-300 font-semibold">2,00 €</span>
                 ) : isSub ? (
                   <div className="flex items-center gap-3">
-                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing[p as 'initie' | 'arkane'] === 'month' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
+                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing === 'month' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
                       <input
                         type="radio"
                         name={`billing-${p}`}
-                        checked={billing[p as 'initie' | 'arkane'] === 'month'}
-                        onChange={() => setBilling((b) => ({ ...b, [p]: 'month' }))}
+                        checked={billing === 'month'}
+                        onChange={() => setBilling('month')}
+                        disabled={locked}
                         className="accent-violet-400"
                       />
                       {formatPrice(PLAN_PRICE_EUR[p as 'initie' | 'arkane'])} {t('sub.perMonth')}
                     </label>
-                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing[p as 'initie' | 'arkane'] === 'year' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
+                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing === 'year' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
                       <input
                         type="radio"
                         name={`billing-${p}`}
-                        checked={billing[p as 'initie' | 'arkane'] === 'year'}
-                        onChange={() => setBilling((b) => ({ ...b, [p]: 'year' }))}
+                        checked={billing === 'year'}
+                        onChange={() => setBilling('year')}
+                        disabled={locked}
                         className="accent-violet-400"
                       />
                       {formatPrice(PLAN_PRICE_YEAR_EUR[p as 'initie' | 'arkane'])} {t('sub.perYear')}
@@ -348,40 +443,60 @@ export default function AbonnementPage() {
                 ))}
               </ul>
               {p === 'recharge' ? (
-                // Recharge cosmique : pool de 105 crédits mixables → un seul bouton "Payer".
                 <div className="mt-4">
-                  <button
-                    onClick={buyRecharge}
-                    disabled={loading !== null}
-                    className="w-full mystic-btn"
-                  >
-                    {loading === 'recharge' ? '…' : t('sub.pay')}
-                  </button>
+                  {locked ? (
+                    <button disabled className="w-full mystic-btn-ghost opacity-50 cursor-not-allowed">{t('sub.includedMsg')}</button>
+                  ) : (
+                    <button onClick={buyRecharge} disabled={loading !== null} className="w-full mystic-btn">
+                      {loading === 'recharge' ? '…' : t('sub.pay')}
+                    </button>
+                  )}
                 </div>
               ) : isOne || p === 'apprenti' ? (
-                // Bienvenue (one-shot) & plan gratuit (apprenti) : pas de bouton d'achat.
                 isCurrent ? (
                   <button disabled className="mt-4 w-full mystic-btn-ghost opacity-60 cursor-default">{t('sub.currentPlan')}</button>
+                ) : locked ? (
+                  <button disabled className="mt-4 w-full mystic-btn-ghost opacity-50 cursor-not-allowed">{t('sub.includedMsg')}</button>
                 ) : null
               ) : (
                 <button
                   onClick={() => choose(p)}
-                  disabled={isCurrent || loading !== null}
-                  className={`mt-4 w-full ${isCurrent ? 'mystic-btn-ghost opacity-60 cursor-default' : 'mystic-btn'}`}
+                  disabled={isCurrent || locked || loading !== null}
+                  className={`mt-4 w-full ${isCurrent || locked ? 'mystic-btn-ghost opacity-60 cursor-default' : 'mystic-btn'}`}
                 >
                   {isCurrent
                     ? t('sub.currentPlan')
-                    : loading === p
-                      ? '…'
-                      : isSub
-                        ? t('sub.subscribe')
-                        : t('sub.choose')}
+                    : locked
+                      ? t('sub.includedMsg')
+                      : loading === p
+                        ? '…'
+                        : isSub
+                          ? t('sub.subscribe')
+                          : t('sub.choose')}
                 </button>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Modale de confirmation de résiliation */}
+      {confirmCancel && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmCancel(null)} />
+          <div className="relative z-10 mystic-panel p-6 max-w-sm w-[92%] text-center">
+            <div className="text-3xl mb-2">🔮</div>
+            <h3 className="mystic-title text-lg mb-2" style={{ color: '#DAA520' }}>{t('sub.cancelConfirmTitle')}</h3>
+            <p className="text-gray-300 text-sm leading-relaxed mb-4">{t('sub.cancelConfirmText')}</p>
+            <div className="flex gap-3">
+              <button onClick={() => toggleCancel(confirmCancel, true)} disabled={cancelLoading} className="mystic-btn flex-1">
+                {cancelLoading ? '…' : t('sub.confirmCancel')}
+              </button>
+              <button onClick={() => setConfirmCancel(null)} className="mystic-btn-ghost flex-1">{t('sub.close')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
