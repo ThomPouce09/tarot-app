@@ -51,7 +51,15 @@ export async function GET(request: NextRequest) {
 
     // ── Abonnement récurrent ──
     const billing = session.metadata?.billing || 'month';
-    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const customerId = session.customer as string;
+    let subId = subscriptionId;
+    // Le session_id peut renvoyer sans `session.subscription` propagé → on le
+    // retrouve chez le customer (même contournement que le webhook).
+    if (!subId && (plan === 'initie' || plan === 'arkane')) {
+      const subs = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
+      subId = subs.data[0]?.id ?? null;
+    }
+    const sub = subId ? await stripe.subscriptions.retrieve(subId) : null;
     if (!sub) {
       return NextResponse.json({ error: 'Abonnement introuvable', plan: 'apprenti' }, { status: 404 });
     }
@@ -62,8 +70,8 @@ export async function GET(request: NextRequest) {
       where: { userId },
       create: {
         userId,
-        stripeCustomerId: session.customer as string,
-        stripeSubscriptionId: subscriptionId,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: sub.id,
         stripePriceId: priceId,
         plan,
         billing,
@@ -71,8 +79,8 @@ export async function GET(request: NextRequest) {
         currentPeriodEnd: periodEnd,
       },
       update: {
-        stripeCustomerId: session.customer as string,
-        stripeSubscriptionId: subscriptionId,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: sub.id,
         stripePriceId: priceId,
         plan,
         billing,

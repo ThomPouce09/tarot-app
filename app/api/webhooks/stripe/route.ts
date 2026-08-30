@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         const plan = session.metadata?.plan;
         const billing = session.metadata?.billing || 'month';
         const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
+        let subscriptionId = session.subscription as string | null;
 
         // One-shot (bienvenue / recharge) : pas de subscription → crédite le solde.
         if (!subscriptionId) {
@@ -73,6 +73,14 @@ export async function POST(request: NextRequest) {
           break;
         }
         if (!userId || !plan) break;
+
+        // Robustesse : si l'événement arrive sans `session.subscription` pour un
+        // forfait, on le retrouve chez le customer Stripe (premier abonnement).
+        if ((plan === 'initie' || plan === 'arkane') && !subscriptionId) {
+          const subs = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
+          subscriptionId = subs.data[0]?.id ?? null;
+          if (!subscriptionId) break;
+        }
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = (sub.items.data[0]?.price?.id) as string;
@@ -99,6 +107,45 @@ export async function POST(request: NextRequest) {
             billing,
             status,
             currentPeriodEnd: periodEnd,
+          },
+        });
+        break;
+      }
+
+      // Création d'un abonnement (source fiable du subscriptionId), au cas où
+      // checkout.session.completed n'aurait pas encore propagé `session.subscription`.
+      case 'customer.subscription.created': {
+        const sub = event.data.object;
+        const subscriptionId = sub.id as string;
+        const customerId = sub.customer as string;
+        const existing = await prisma.subscription.findFirst({ where: { stripeSubscriptionId: subscriptionId } });
+        if (existing) break;
+        // Retrouve le user via une subscription existante portant ce customer,
+        // sinon via la session de checkout (metadata.userId) si dispo.
+        let userId: string | undefined;
+        const byCustomer = await prisma.subscription.findFirst({ where: { stripeCustomerId: customerId } });
+        if (byCustomer) userId = byCustomer.userId;
+        if (!userId) {
+          const session = await stripe.checkout.sessions.list({ customer: customerId, limit: 1 }).catch(() => null);
+          userId = (session?.data[0]?.metadata?.userId) as string | undefined;
+        }
+        if (!userId) break;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) break;
+        const periodEnd = new Date((sub as any).current_period_end * 1000);
+        const plan = sub.metadata?.plan || 'initie';
+        const billing = sub.metadata?.billing || 'month';
+        await prisma.subscription.create({
+          data: {
+            userId: user.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            stripePriceId: (sub.items.data[0]?.price?.id) as string,
+            plan,
+            billing,
+            status: sub.status,
+            currentPeriodEnd: periodEnd,
+            cancelAtPeriodEnd: !!(sub as any).cancel_at_period_end,
           },
         });
         break;
