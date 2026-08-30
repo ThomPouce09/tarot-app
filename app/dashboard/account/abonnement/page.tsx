@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import { openCheckout } from '@/lib/checkout-open';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
 
@@ -143,6 +144,29 @@ export default function AbonnementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
+  // Au retour dans l'app (Custom Tab Stripe fermé, app relancée) → recharge
+  // l'état : c'est ce qui synchronise la consommation et le statut APRÈS le
+  // paiement, même si le `success_url` n'a pas ramené de session_id côté app.
+  useEffect(() => {
+    let handler: any; // PluginListenerHandle (Promise résolue via await)
+    const attach = async () => {
+      const cap = (window as any).Capacitor;
+      if (!cap?.isNativePlatform || !cap.isNativePlatform()) return;
+      const { App } = await import('@capacitor/app');
+      handler = await App.addListener('appStateChange', (state: any) => {
+        if (state?.isActive && email) {
+          setMsg(null);
+          loadState(email);
+        }
+      });
+    };
+    attach();
+    return () => {
+      if (handler) handler();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email]);
+
   const choose = async (p: PlanId) => {
     if (p === 'bienvenue') {
       setMsg(t('sub.welcomeState') + ' — ' + t('sub.bienvenueFeatures').split('|')[0]);
@@ -163,7 +187,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        await openCheckout(data.url);
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -188,7 +212,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        await openCheckout(data.url);
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -209,7 +233,7 @@ export default function AbonnementPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.url) { window.location.href = data.url; return; }
+      if (data.url) { await openCheckout(data.url); return; }
       setMsg(data.error || "Échec de l'ouverture du portail.");
     } catch {
       setMsg("Erreur de connexion au serveur.");
