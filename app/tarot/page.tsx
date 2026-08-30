@@ -2,13 +2,14 @@
 
 import { useLang } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
-import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import GatedTile from '@/components/gated-tile';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
@@ -74,6 +75,7 @@ export default function TarotHubPage() {
   const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
   const lang = useLang();
+  const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -82,6 +84,9 @@ export default function TarotHubPage() {
       setFirstVisit(!localStorage.getItem('tarot_tuto_seen'));
     }
   }, []);
+
+  // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
+  useEffect(() => { loadTiles(); }, [loadTiles]);
 
   const openTutorial = (i: number) => {
     setActiveSlide(TAROT_TUTORIALS[i]);
@@ -169,7 +174,7 @@ export default function TarotHubPage() {
         className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
       >
         {/* TUILE — 3 CARTES */}
-        <Link href="/tarot-3-cartes">
+        <GatedTile href="/tarot-3-cartes" allowed={tiles?.['tarot-3-cartes']?.allowed} reason={tiles?.['tarot-3-cartes']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -236,10 +241,10 @@ export default function TarotHubPage() {
               }}
             />
           </motion.div>
-        </Link>
+        </GatedTile>
 
         {/* TUILE — 5 CARTES (CROIX) */}
-        <Link href="/tarot-5-cartes">
+        <GatedTile href="/tarot-5-cartes" allowed={tiles?.['tarot-5-cartes']?.allowed} reason={tiles?.['tarot-5-cartes']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -306,11 +311,11 @@ export default function TarotHubPage() {
               }}
             />
           </motion.div>
-        </Link>
+        </GatedTile>
 
         {/* TUILE — 5 CARTES MANUEL - centré sur 2 colonnes (Bloqué si non connecté) */}
         {isLoggedIn ? (
-          <Link href="/tarot-5-c-manuelle">
+          <GatedTile href="/tarot-5-c-manuelle" allowed={tiles?.['tarot-5-c-manuelle']?.allowed} reason={tiles?.['tarot-5-c-manuelle']?.reason} onBlocked={openGate}>
             <motion.div
               className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
               style={{
@@ -377,7 +382,7 @@ export default function TarotHubPage() {
                 }}
               />
             </motion.div>
-          </Link>
+          </GatedTile>
         ) : (
           <div className="block opacity-50 cursor-not-allowed" onClick={handleLockedClick}>
             <motion.div
@@ -443,6 +448,7 @@ export default function TarotHubPage() {
         </p>
       </div>
     <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
+    <EntitlementGateModal reason={gateReason} onClose={closeGate} />
     <Firefly page="tarot" />
     </div>
   );

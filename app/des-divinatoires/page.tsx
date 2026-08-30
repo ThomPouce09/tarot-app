@@ -2,7 +2,6 @@
 
 // app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés du Zodiaque
 
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -11,6 +10,8 @@ import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 import { useLang } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import GatedTile from '@/components/gated-tile';
 
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
 // rendue uniquement après hydratation (cohérent avec /runes) pour éviter
@@ -211,6 +212,8 @@ export default function DesDivinatoiresHub() {
   const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
   const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
+  const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
+
   useEffect(() => {
     setMounted(true);
     // Lueur d'appel au 1er passage (une seule fois).
@@ -218,6 +221,9 @@ export default function DesDivinatoiresHub() {
       setFirstVisit(!localStorage.getItem('dd_tuto_seen'));
     }
   }, []);
+
+  // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
+  useEffect(() => { loadTiles(); }, [loadTiles]);
 
   const openTutorial = (i: number) => {
     setActiveSlide(TUTORIALS[i]);
@@ -253,8 +259,11 @@ export default function DesDivinatoiresHub() {
       />
 
       <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
-        {TILES.map((tile, i) => (
-          <Link key={tile.href} href={tile.href} className="block">
+        {TILES.map((tile, i) => {
+          // Déduit le type de tirage depuis la route : /des-divinatoires/choix → des-choix.
+          const desType = 'des-' + tile.href.split('/').pop();
+          return (
+          <GatedTile key={tile.href} href={tile.href} className="block" allowed={tiles?.[desType]?.allowed} reason={tiles?.[desType]?.reason} onBlocked={openGate}>
             <motion.div
               className="group relative flex min-h-[180px] h-full w-full flex-col items-center rounded-2xl p-4 text-center"
               style={{
@@ -346,11 +355,13 @@ export default function DesDivinatoiresHub() {
                 {lang === 'en' ? tile.descEn : tile.desc}
               </p>
             </motion.div>
-          </Link>
-        ))}
+          </GatedTile>
+          );
+        })}
       </div>
 
       <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
+      <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <Firefly page="des-divinatoires" />
     </DiceBackground>
   );

@@ -361,4 +361,14 @@ export const DICT = {
   // ─── History: labels vues dés / runes ───
   'readings.synthese': { fr: 'Synthèse', en: 'Synthesis' },
   'readings.advice': { fr: 'Conseil', en: 'Advice' },
+
+  // ─── Gating des tirages (paywall / limites) ───
+  'gate.baseDailyTitle': { fr: 'Limite du jour atteinte', en: 'Daily limit reached' },
+  'gate.baseDailyText': { fr: 'Vous avez déjà fait votre tirage de base du jour. Revenez demain pour en profiter à nouveau, ou passez à l\'abonnement pour des tirages illimités.', en: 'You have already used today\'s base draw. Come back tomorrow, or subscribe for unlimited draws.' },
+  'gate.grandLimitTitle': { fr: 'Grand tirage épuisé', en: 'Advanced draw exhausted' },
+  'gate.grandLimitText': { fr: 'Vous n\'avez plus de grand tirage disponible. Abonnez-vous à Initié (10/mois) ou Arkane (illimité) pour continuer.', en: 'No advanced draw left. Subscribe to Initiate (10/month) or Arkane (unlimited) to continue.' },
+  'gate.paywallTitle': { fr: 'Débloquez le tirage', en: 'Unlock the draw' },
+  'gate.paywallText': { fr: 'Ce tirage fait partie des avantages offerts. Consultez la page Abonnement pour en savoir plus.', en: 'This draw is part of the offered perks. See the subscription page for details.' },
+  'gate.upgrade': { fr: 'Voir l\'abonnement', en: 'See plans' },
+  'gate.close': { fr: 'Fermer', en: 'Close' },
 } as const;
