@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe, priceIdForPlan, PLAN_AMOUNTS, ONE_SHOT_AMOUNTS, ONE_SHOT_NAMES, type PlanId, type OneShotPlan } from '@/lib/stripe';
+import { PLAN_PRICE_YEAR_EUR } from '@/lib/plans';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +26,9 @@ async function ensurePrice(stripe: Stripe, plan: PlanId, billing: 'month' | 'yea
   const def = PLAN_AMOUNTS[plan];
   const annual = billing === 'year';
   const interval = annual ? 'year' : 'month';
-  // Montant annuel = 10 mois (2 mois offerts).
-  const unit = annual ? PLAN_AMOUNTS[plan].amount * 10 : PLAN_AMOUNTS[plan].amount;
+  // Montant annuel = prix ANNONCÉ (PLAN_PRICE_YEAR_EUR), pas "10 × mensuel" :
+  // Initié 50€ / Arkane 75€ (2 mois offerts). En centimes.
+  const unit = annual ? Math.round(PLAN_PRICE_YEAR_EUR[plan] * 100) : PLAN_AMOUNTS[plan].amount;
   const product = await stripe.products.create({ name: `Tarot — ${def.name} (${annual ? 'an' : 'mois'})`, metadata: { plan, billing } });
   const price = await stripe.prices.create({
     product: product.id,

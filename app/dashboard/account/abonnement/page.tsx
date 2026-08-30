@@ -50,7 +50,8 @@ export default function AbonnementPage() {
   const t = useT();
   const [current, setCurrent] = useState<PlanId>('apprenti');
   const [status, setStatus] = useState<string | null>(null);
-  const [billing, setBilling] = useState<'month' | 'year'>('month');
+  // Facturation indépendante par abonnement (mois par défaut) : radios propres à chaque carte.
+  const [billing, setBilling] = useState<Record<'initie' | 'arkane', 'month' | 'year'>>({ initie: 'month', arkane: 'month' });
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -67,8 +68,10 @@ export default function AbonnementPage() {
     if (d.plan) {
       const lvl = d.level === 'arkane' ? 'arkane' : d.level === 'initie' ? 'initie' : 'apprenti';
       setCurrent(lvl);
-      // Resynchronise la période affichée en radio selon le forfait réel.
-      if (lvl !== 'apprenti' && (d.billing === 'month' || d.billing === 'year')) setBilling(d.billing);
+      // Restaure la période réelle de l'abonnement actif dans ses radios.
+      if (lvl !== 'apprenti' && (d.billing === 'month' || d.billing === 'year')) {
+        setBilling((b) => ({ ...b, [lvl]: d.billing }));
+      }
     }
     setStatus(d.status ?? null);
     setCancelAtPeriodEnd(!!d.cancelAtPeriodEnd);
@@ -76,10 +79,11 @@ export default function AbonnementPage() {
     setUsage(d.usage ?? null);
   }, []);
 
-  const loadState = useCallback(async () => {
-    if (!email) return null;
+  const loadState = useCallback(async (emailArg?: string) => {
+    const e = emailArg ?? email;
+    if (!e) return null;
     try {
-      const res = await fetch(`/api/subscription?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/subscription?email=${encodeURIComponent(e)}`);
       const d = await res.json();
       hydrate(d);
       return d;
@@ -115,7 +119,7 @@ export default function AbonnementPage() {
           if (confirmData.plan && confirmData.plan !== 'apprenti') {
             setCurrent(confirmData.plan === 'arkane' || confirmData.plan === 'initie' ? confirmData.plan : 'apprenti');
             setMsg(t('sub.successMsg'));
-            await loadState();
+            await loadState(userEmail);
             setActivating(false);
             return;
           }
@@ -124,12 +128,12 @@ export default function AbonnementPage() {
       }
       // Charge l'état ; si retour "success" sans niveau actif → poll (le webhook
       // Stripe peut être en retard de quelques secondes).
-      const level = await loadState();
+      const level = await loadState(userEmail);
       if (level?.level && level.level !== 'apprenti') return;
       if (params.get('status') === 'success') {
         for (let i = 0; i < 20; i++) {
           await new Promise((r) => setTimeout(r, 1500));
-          const nl = await loadState();
+          const nl = await loadState(userEmail);
           if (nl?.level === 'arkane' || nl?.level === 'initie') break;
         }
       }
@@ -150,7 +154,7 @@ export default function AbonnementPage() {
     setLoading(p);
     try {
       const body: any = { plan: p, email };
-      if (isSubscription(p)) body.billing = billing;
+      if (isSubscription(p)) body.billing = billing[p as 'initie' | 'arkane'];
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -412,23 +416,23 @@ export default function AbonnementPage() {
                   <span className="text-amber-300 font-semibold">2,00 €</span>
                 ) : isSub ? (
                   <div className="flex items-center gap-3">
-                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing === 'month' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
+                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing[p as 'initie' | 'arkane'] === 'month' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
                       <input
                         type="radio"
                         name={`billing-${p}`}
-                        checked={billing === 'month'}
-                        onChange={() => setBilling('month')}
+                        checked={billing[p as 'initie' | 'arkane'] === 'month'}
+                        onChange={() => setBilling((b) => ({ ...b, [p]: 'month' }))}
                         disabled={locked}
                         className="accent-violet-400"
                       />
                       {formatPrice(PLAN_PRICE_EUR[p as 'initie' | 'arkane'])} {t('sub.perMonth')}
                     </label>
-                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing === 'year' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
+                    <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing[p as 'initie' | 'arkane'] === 'year' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
                       <input
                         type="radio"
                         name={`billing-${p}`}
-                        checked={billing === 'year'}
-                        onChange={() => setBilling('year')}
+                        checked={billing[p as 'initie' | 'arkane'] === 'year'}
+                        onChange={() => setBilling((b) => ({ ...b, [p]: 'year' }))}
                         disabled={locked}
                         className="accent-violet-400"
                       />
