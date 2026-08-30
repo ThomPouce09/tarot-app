@@ -309,7 +309,7 @@ export default function AbonnementPage() {
           const isSub = isSubscription(p);
           const isOne = isOneShot(p);
           return (
-            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-amber-500/60' : ''}`}>
+            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-violet-500/60' : ''}`}>
               <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
               <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
               <p className="mystic-subtitle text-sm mb-3">
@@ -325,7 +325,7 @@ export default function AbonnementPage() {
                         name={`billing-${p}`}
                         checked={billing[p as 'initie' | 'arkane'] === 'month'}
                         onChange={() => setBilling((b) => ({ ...b, [p]: 'month' }))}
-                        className="accent-amber-400"
+                        className="accent-violet-400"
                       />
                       {formatPrice(PLAN_PRICE_EUR[p as 'initie' | 'arkane'])} {t('sub.perMonth')}
                     </label>
@@ -335,7 +335,7 @@ export default function AbonnementPage() {
                         name={`billing-${p}`}
                         checked={billing[p as 'initie' | 'arkane'] === 'year'}
                         onChange={() => setBilling((b) => ({ ...b, [p]: 'year' }))}
-                        className="accent-amber-400"
+                        className="accent-violet-400"
                       />
                       {formatPrice(PLAN_PRICE_YEAR_EUR[p as 'initie' | 'arkane'])} {t('sub.perYear')}
                     </label>
