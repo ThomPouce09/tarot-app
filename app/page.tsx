@@ -6,17 +6,18 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLang, useT } from '@/lib/i18n';
+import { LANDING_BACKGROUNDS, isVideoBackground, pickRandomBackground } from '@/lib/backgrounds';
 import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
 import { ShimmerChars } from '@/components/shimmer-chars';
 
-const LANDING_BG = '/backgrounds/landing-bg.jpg';
-
 export default function HomePage() {
   const router = useRouter();
   const t = useT();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Fond de départ : premier de la liste (fallback), remplacé dès le montage.
+  const [background, setBackground] = useState<string>(LANDING_BACKGROUNDS[0]);
 
   // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
@@ -45,6 +46,18 @@ export default function HomePage() {
     if (user) setIsLoggedIn(true);
   }, []);
 
+  // Rotation du fond d'écran à chaque chargement/refresh : lit les préférences
+  // utilisateur (tarot_prefs.backgrounds) ; si vide ⇒ tous les fonds en aléatoire.
+  useEffect(() => {
+    let selected: string[] | null = null;
+    try {
+      const raw = localStorage.getItem('tarot_prefs');
+      const prefs = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(prefs?.backgrounds) && prefs.backgrounds.length > 0) selected = prefs.backgrounds;
+    } catch { /* ignore */ }
+    setBackground(pickRandomBackground(selected));
+  }, []);
+
   const handleLogin = () => {
     // Le modal de connexion est global (components/login-modal, monté dans le layout).
     window.dispatchEvent(new Event('open-login'));
@@ -52,17 +65,27 @@ export default function HomePage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
-      {/* BACKGROUND IMAGE */}
+      {/* BACKGROUND : image ou vidéo, selon le fond retenu (rotation aléatoire) */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src={LANDING_BG}
-          alt="Table mystique Tarot & Yi Jing"
-          fill
-          className="object-cover"
-          priority
-          quality={90}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/40" />
+        {isVideoBackground(background) ? (
+          <video
+            src={background}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <Image
+            src={background}
+            alt="Table mystique Tarot & Yi Jing"
+            fill
+            className="object-cover"
+            priority
+            quality={90}
+          />
+        )}
       </div>
 
       {/* MAIN TITLE */}

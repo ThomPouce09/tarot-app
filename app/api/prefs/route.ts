@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     emailNews: user.emailNews,
     dailyReminder: user.dailyReminder,
     dailyReminderHour: user.dailyReminderHour,
+    backgrounds: user.backgrounds,
     lastLetterSentAt: user.lastLetterSentAt ? user.lastLetterSentAt.toISOString() : null,
   });
 }
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
     if (typeof body.dailyReminder === 'boolean') data.dailyReminder = body.dailyReminder;
     if (typeof body.dailyReminderHour === 'number' && body.dailyReminderHour >= 0 && body.dailyReminderHour <= 23) {
       data.dailyReminderHour = Math.floor(body.dailyReminderHour);
+    }
+    // Fonds d'écran sélectionnés : tableau de chemins publics valides (ou [] = tous en aléatoire).
+    if (Array.isArray(body.backgrounds)) {
+      data.backgrounds = body.backgrounds.filter((b: unknown): b is string => typeof b === 'string').slice(0, 20);
     }
     if (typeof body.fcmToken === 'string' && body.fcmToken.trim()) data.fcmToken = body.fcmToken.trim();
     if (body.fcmToken === null) data.fcmToken = null; // retirer le token (déconnexion)

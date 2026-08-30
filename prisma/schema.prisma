@@ -30,6 +30,9 @@ model User {
   dailyReminder     Boolean   @default(false)
   dailyReminderHour Int       @default(18)   // 0-23, heure locale
   lastLetterSentAt  DateTime?
+  // Fonds d'écran de la landing sélectionnés par l'utilisateur (chemins publics).
+  // Vide = tous les fonds en mode aléatoire (défaut).
+  backgrounds       String[]
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
 }
 

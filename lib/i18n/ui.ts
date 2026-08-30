@@ -82,6 +82,10 @@ export const DICT = {
   // ─── Preferences ───
   'prefs.title': { fr: 'Préférences', en: 'Preferences' },
   'prefs.subtitle': { fr: 'Personnalisez votre expérience mystique.', en: 'Personalize your mystical experience.' },
+  'prefs.background': { fr: 'Fond d\'écran', en: 'Background' },
+  'prefs.backgroundAllRandom': { fr: 'Tous les fonds défilent en mode aléatoire.', en: 'All backgrounds rotate randomly.' },
+  'prefs.backgroundSelected': { fr: 'Fonds sélectionnés : ils défilent en mode aléatoire.', en: 'Selected backgrounds rotate randomly.' },
+  'prefs.backgroundSelectAll': { fr: 'Sélectionner tous', en: 'Select all' },
   'prefs.sound': { fr: 'Son', en: 'Sound' },
   'prefs.soundEffects': { fr: 'Effets sonores', en: 'Sound effects' },
   'prefs.voices': { fr: 'Voix', en: 'Voices' },
