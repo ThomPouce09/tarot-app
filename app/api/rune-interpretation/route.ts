@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
+import { enforceGate } from '@/lib/gate-server';
 
 type Mode = 'nornes' | 'mjolnir' | 'yggdrasil';
 
@@ -130,6 +131,10 @@ export async function POST(request: NextRequest) {
   if (!VALID_MODES.includes(m)) {
     return NextResponse.json({ error: `mode invalide : ${body.mode}` }, { status: 400 });
   }
+
+  // ── Gating serveur : consomme le quota du type de tirage (base/avancé). ──
+  const gate = await enforceGate(body.userId ? String(body.userId) : null, body.type || `runes-${m}`, body.question ?? null);
+  if (gate) return gate;
 
   const focus = body.focus === 'odin' ? 'odin' : 'global';
   const runes: RuneInput[] = Array.isArray(body.runes) ? body.runes : [];

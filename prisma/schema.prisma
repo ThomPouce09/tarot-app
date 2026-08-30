@@ -24,6 +24,8 @@ model User {
   gender            String?
   readings          Reading[]
   subscription      Subscription?
+  usage             Usage?
+  purchases         Purchase[]
 
   // ── Préférences (persistées pour le serveur : lettre hebdo + rappel push) ──
   emailNews         Boolean   @default(false)
@@ -37,18 +39,58 @@ model User {
 }
 
 model Subscription {
-  id                  String    @id @default(cuid())
-  userId              String    @unique
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId    String    @unique
-  stripeSubscriptionId String   @unique
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId    String
+  stripeSubscriptionId String
   stripePriceId       String
-  plan                String // 'initie' | 'oracle'
+  plan                String // 'initie' | 'arkane'
+  billing             String   @default("month") // 'month' | 'year'
   status              String // active | canceled | past_due | trialing
   currentPeriodEnd    DateTime
-  cancelAtPeriodEnd   Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  cancelAtPeriodEnd   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ─── Quotas & droits par compte ────────────────────────────────
+// Compteurs journaliers/mensuels + packs one-shot (bienvenue, recharge)
+// et bonus de connexion (streak 7 jours). 1:1 avec User.
+model Usage {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Compteurs quotidiens (reset selon dateKey, format YYYY-MM-DD)
+  dateKey         String   @default("")
+  baseUsedToday   Int      @default(0)
+  grandUsedToday  Int      @default(0)
+  // Compteur mensuel (reset selon monthKey, format YYYY-MM)
+  monthKey        String   @default("")
+  grandUsedMonth  Int      @default(0)
+  // Pack de bienvenue (one-shot, univers déjà servis)
+  welcomeBaseUsed String[] @default([])
+  welcomeGrandUsed Boolean @default(false)
+  // Bonus de connexion (7 jours consécutifs) — compteur de grands offerts
+  streakDays      Int      @default(0)
+  lastStreakDate  String?
+  bonusGrand      Int      @default(0) // grands cumulables gagnés via streak
+  // Solde de la recharge cosmique (one-shot) : pool de crédits mixable.
+  // 2€ = 105 crédits ; base = 7 crédits ; avancé = 15 crédits (15x7 = 105 = 7x15).
+  rechargeCredits Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Achats one-shot (bienvenue, recharge cosmique) ────────────
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind            String   // 'bienvenue' | 'recharge'
+  amountEur       Float    @default(0)
+  stripeSessionId String?
+  createdAt       DateTime @default(now())
 }
 
 model Reading {

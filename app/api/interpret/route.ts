@@ -191,6 +191,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── Gating des droits (quota base/avancé par compte) ──
+  // Si l'utilisateur est connecté (userId = email), on vérifie ET consomme le
+  // quota avant de générer l'interprétation. Invité (sans compte) → libre.
+  if (userId && typeof userId === 'string' && userId.trim()) {
+    const { canDo, consume } = await import('@/lib/entitlements');
+    const decision = await canDo(userId, validType, question ?? null);
+    if (!decision.allowed) {
+      return NextResponse.json(
+        { error: decision.message, reason: decision.reason, gated: true, status: 402 },
+        { status: 402 }
+      );
+    }
+    await consume(userId, validType, question ?? null);
+  }
+
   const expectedCardCount = {
     'tarot-3-cartes': 3,
     'tarot-5-cartes': 5,

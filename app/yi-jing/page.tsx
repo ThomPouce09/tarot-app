@@ -2,13 +2,14 @@
 
 import { useLang } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
-import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import GatedTile from '@/components/gated-tile';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
@@ -73,6 +74,7 @@ export default function YiJingHubPage() {
   const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
   const lang = useLang();
+  const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -81,6 +83,9 @@ export default function YiJingHubPage() {
       setFirstVisit(!localStorage.getItem('yijing_tuto_seen'));
     }
   }, []);
+
+  // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
+  useEffect(() => { loadTiles(); }, [loadTiles]);
 
   const openTutorial = (i: number) => {
     setActiveSlide(YI_TUTORIALS[i]);
@@ -164,7 +169,7 @@ export default function YiJingHubPage() {
       {/* GRILLE : 2 colonnes sur smartphone */}
       <div className="relative z-30 grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
         {/* TUILE — YI JING SIMPLE */}
-        <Link href="/yi-jing-simple" className="block">
+        <GatedTile href="/yi-jing-simple" className="block" allowed={tiles?.['yi-jing-simple']?.allowed} reason={tiles?.['yi-jing-simple']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -236,10 +241,10 @@ export default function YiJingHubPage() {
               }}
             />
           </motion.div>
-        </Link>
+        </GatedTile>
 
         {/* TUILE — HEXAGRAMME DU JOUR */}
-        <Link href="/yi-jing-du-jour" className="block">
+        <GatedTile href="/yi-jing-du-jour" className="block" allowed={tiles?.['yi-jing-du-jour']?.allowed} reason={tiles?.['yi-jing-du-jour']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -311,11 +316,11 @@ export default function YiJingHubPage() {
               }}
             />
           </motion.div>
-        </Link>
+        </GatedTile>
 
         {/* TUILE — YI JING AVEC QUESTION */}
         {isLoggedIn ? (
-          <Link href="/yi-jing-question" className="block">
+          <GatedTile href="/yi-jing-question" className="block" allowed={tiles?.['yi-jing-question']?.allowed} reason={tiles?.['yi-jing-question']?.reason} onBlocked={openGate}>
             <motion.div
               className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
               style={{
@@ -387,7 +392,7 @@ export default function YiJingHubPage() {
                 }}
               />
             </motion.div>
-          </Link>
+          </GatedTile>
         ) : (
           <div className="block opacity-50 cursor-not-allowed" onClick={handleLockedClick}>
             <motion.div
@@ -458,6 +463,7 @@ export default function YiJingHubPage() {
         </p>
       </div>
     <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
+    <EntitlementGateModal reason={gateReason} onClose={closeGate} />
     <Firefly page="yi-jing" />
     </div>
   );

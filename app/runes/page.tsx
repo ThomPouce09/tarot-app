@@ -5,8 +5,6 @@
 // thème runes respecté (vert forêt / doré pâle / vert sauge), tout sur un écran
 // mobile sans scroller.
 
-import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -16,6 +14,8 @@ import { RUNE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 import { useLang } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
+import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import GatedTile from '@/components/gated-tile';
 
 // Frise décorative de runes — rendue uniquement après hydratation pour
 // éviter le mismatch d'hydratation (glyphes runiques = Unicode hors-BMP).
@@ -130,12 +130,17 @@ export default function RunesHub() {
   const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
   const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
+  const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
+
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined') {
       setFirstVisit(!localStorage.getItem('runes_tuto_seen'));
     }
   }, []);
+
+  // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
+  useEffect(() => { loadTiles(); }, [loadTiles]);
 
   const openTutorial = (i: number) => {
     setActiveSlide(TUTORIALS[i]);
@@ -170,8 +175,11 @@ export default function RunesHub() {
 
       {/* TUILES : 2 colonnes sur mobile (comme /tarot & /yi-jing) */}
       <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
-        {TILES.map((tile, i) => (
-          <Link key={tile.href} href={tile.href} className="block">
+        {TILES.map((tile, i) => {
+          // Déduit le type de tirage depuis la route : /runes/nornes → runes-nornes.
+          const runeType = 'runes-' + tile.href.split('/').pop();
+          return (
+          <GatedTile key={tile.href} href={tile.href} allowed={tiles?.[runeType]?.allowed} reason={tiles?.[runeType]?.reason} onBlocked={openGate} className="block">
             <motion.div
               className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl cursor-pointer transition-all"
               style={{
@@ -262,10 +270,12 @@ export default function RunesHub() {
                 }}
               />
             </motion.div>
-          </Link>
-        ))}
+          </GatedTile>
+          );
+        })}
       </div>
       <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
+      <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <Firefly page="runes" />
     </RuneBackground>
   );

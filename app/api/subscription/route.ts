@@ -1,11 +1,13 @@
 // app/api/subscription/route.ts
-// Retourne l'abonnement Stripe d'un utilisateur (par email).
-// Appelé par la page abonnement pour charger le statut réel.
-// Si aucun abonnement trouvé, retourne { plan: 'gratuit' }.
+// Retourne l'abonnement + les droits (quotas) d'un utilisateur (par email).
+// Appelé par la page abonnement et par le gating client.
+// Sans abonnement actif → niveau 'apprenti' (gratuit).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe';
+import { getRights } from '@/lib/entitlements';
+import { planToLevel } from '@/lib/entitlements';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +18,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
     }
 
+    const emailNorm = String(email).toLowerCase().trim();
     const user = await prisma.user.findUnique({
-      where: { email: String(email).toLowerCase().trim() },
+      where: { email: emailNorm },
       include: { subscription: true },
     });
 
@@ -26,33 +29,44 @@ export async function GET(request: NextRequest) {
     }
 
     const sub = user.subscription;
-    if (!sub) {
-      return NextResponse.json({ plan: 'gratuit', status: null });
-    }
 
-    // Synchronisation optionnelle : interroger Stripe pour le statut à jour
+    // Synchronisation optionnelle : statut Stripe à jour.
     const stripe = getStripe();
-    if (stripe && sub.stripeSubscriptionId && sub.stripeCustomerId && sub.status !== 'canceled') {
+    if (stripe && sub?.stripeSubscriptionId && sub.stripeCustomerId && sub.status !== 'canceled') {
       try {
         const remote = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
-        const remoteStatus = remote.status;
-        if (remoteStatus !== sub.status) {
-          await prisma.subscription.update({
-            where: { id: sub.id },
-            data: { status: remoteStatus },
-          });
-          sub.status = remoteStatus;
+        if (remote.status !== sub.status) {
+          await prisma.subscription.update({ where: { id: sub.id }, data: { status: remote.status } });
+          sub.status = remote.status;
         }
       } catch {
-        // Stripe inaccessible — on retourne ce qu'on a en base
+        // Stripe inaccessible — statut en base
       }
     }
 
+    const rights = await getRights(emailNorm);
+    const level = rights?.level ?? 'apprenti';
+
     return NextResponse.json({
-      plan: sub.plan,
-      status: sub.status,
-      currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
-      cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
+      plan: sub?.plan ?? 'apprenti',
+      level,
+      status: sub?.status ?? null,
+      billing: sub?.billing ?? 'month',
+      currentPeriodEnd: sub?.currentPeriodEnd?.toISOString() ?? null,
+      cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
+      usage: rights
+        ? {
+            baseUsedToday: rights.baseUsedToday,
+            grandUsedMonth: rights.grandUsedMonth,
+            grandMonthly: rights.grandMonthly,
+            baseUnlimited: rights.baseUnlimited,
+            welcomeBaseUsed: rights.welcomeBaseUsed,
+            welcomeGrandUsed: rights.welcomeGrandUsed,
+            bonusGrand: rights.bonusGrand,
+            rechargeCredits: rights.rechargeCredits,
+            streakDays: rights.streakDays,
+          }
+        : null,
     });
   } catch (e: any) {
     console.error('[api/subscription]', e?.message);
