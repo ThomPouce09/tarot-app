@@ -49,12 +49,12 @@ export default function AccountNav({ user }: { user: any }) {
 
         <div className="flex items-center gap-3 mb-6 px-2">
           <span className="relative inline-flex">
-            <span className={`absolute inset-0 rounded-full bg-amber-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
-            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white font-bold mystic-glow hover:ring-2 hover:ring-amber-300/60 transition-all ${showHint ? 'ring-2 ring-amber-300' : ''}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
+            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-11 h-11 rounded-full avatar-mystic flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${showHint ? 'ring-2 ring-violet-300' : ''}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
               {initial}
             </Link>
             {showHint && (
-              <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-amber-900/90 border border-amber-500/50 px-3 py-1.5 text-[10px] text-amber-100 shadow-lg">
+              <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-violet-900/90 border border-violet-500/50 px-3 py-1.5 text-[10px] text-violet-100 shadow-lg">
                 {t('nav.monespaceHint')}
               </span>
             )}
@@ -94,12 +94,12 @@ export default function AccountNav({ user }: { user: any }) {
         </Link>
         <div className="flex items-center gap-3">
           <span className="relative inline-flex">
-            <span className={`absolute inset-0 rounded-full bg-amber-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
-            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white text-sm font-bold mystic-glow hover:ring-2 hover:ring-amber-300/60 transition-all ${showHint ? 'ring-2 ring-amber-300' : ''}`}>
+            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
+            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-9 h-9 rounded-full avatar-mystic flex items-center justify-center text-white text-sm font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${showHint ? 'ring-2 ring-violet-300' : ''}`}>
               {initial}
             </Link>
             {showHint && (
-              <span className="absolute top-full mt-2 right-0 z-50 whitespace-nowrap rounded-lg bg-amber-900/90 border border-amber-500/50 px-3 py-1.5 text-[10px] text-amber-100 shadow-lg">
+              <span className="absolute top-full mt-2 right-0 z-50 whitespace-nowrap rounded-lg bg-violet-900/90 border border-violet-500/50 px-3 py-1.5 text-[10px] text-violet-100 shadow-lg">
                 {t('nav.monespaceHint')}
               </span>
             )}

@@ -276,16 +276,18 @@ textarea,
 }
 .mystic-input::placeholder { color: rgba(217, 119, 6, 0.5); }
 .mystic-btn {
-  background: linear-gradient(135deg, #d97706, #b45309);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.10) 38%, rgba(255,255,255,0) 58%),
+    linear-gradient(135deg, #8b5cf6, #6d28d9);
   color: #fff;
   font-weight: 600;
   border-radius: 0.6rem;
   padding: 0.65rem 1rem;
   transition: filter .2s, box-shadow .2s;
-  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35);
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.4), inset 0 -3px 8px rgba(76, 29, 149, 0.5);
 }
-.mystic-btn:hover { filter: brightness(1.1); box-shadow: 0 6px 20px rgba(218, 165, 32, 0.4); }
-.mystic-btn:focus-visible { outline: 2px solid #DAA520; outline-offset: 2px; }
+.mystic-btn:hover { filter: brightness(1.1); box-shadow: 0 6px 22px rgba(139, 92, 246, 0.5), inset 0 -3px 8px rgba(76,29,149,0.55); }
+.mystic-btn:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
 .mystic-btn-ghost {
   background: rgba(31, 41, 55, 0.5);
   border: 1px solid rgba(120, 120, 120, 0.4);
@@ -331,14 +333,23 @@ textarea,
   letter-spacing: 0.06em;
   padding: 0.15rem 0.55rem;
   border-radius: 9999px;
-  border: 1px solid rgba(218, 165, 32, 0.4);
-  color: #fde68a;
-  background: rgba(218, 165, 32, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  color: #ddd6fe;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 55%),
+    rgba(124, 58, 237, 0.16);
 }
 .badge-mystic.muted {
   border-color: rgba(156, 163, 175, 0.4);
   color: #cbd5e1;
   background: rgba(156, 163, 175, 0.08);
+}
+/* Pastille avatar — violet mystique à reflet "bonbon" (effet 3D) */
+.avatar-mystic {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 34%, rgba(255,255,255,0) 52%),
+    linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #5b21b6 100%);
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.45), inset 0 -4px 10px rgba(46, 16, 101, 0.45);
 }
 @media (prefers-reduced-motion: reduce) {
   .mystic-glow, .reveal-text, .shimmer, .card-shimmer::after, .mystic-glow * {

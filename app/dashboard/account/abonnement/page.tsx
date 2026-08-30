@@ -193,7 +193,7 @@ export default function AbonnementPage() {
           const info = PLAN_INFO[p];
           const features = t(PLAN_FEATURES_KEY[p]).split('|');
           return (
-            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-amber-500/60' : ''}`}>
+            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-violet-500/60' : ''}`}>
               <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
               <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
               <p className="mystic-subtitle text-sm mb-3">

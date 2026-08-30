@@ -62,7 +62,7 @@ export default function AccountPage() {
     <div className="space-y-6">
       {/* En-tête profil */}
       <div className="mystic-panel p-5 sm:p-7 flex items-center gap-5">
-        <div className="w-20 h-20 shrink-0 rounded-full bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white text-3xl font-bold mystic-glow" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+        <div className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
           {initial}
         </div>
         <div className="min-w-0 flex-1">

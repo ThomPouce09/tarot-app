@@ -168,7 +168,7 @@ export default function PreferencesPage() {
             { key: 'fr', label: 'Français' },
             { key: 'en', label: 'English' },
           ] as const).map((l) => (
-            <button key={l.key} onClick={() => setLang(l.key)} className={`mystic-btn-ghost flex-1 ${lang === l.key ? '!bg-amber-600 !text-white border-amber-500 ring-2 ring-amber-400/70' : 'opacity-60 hover:opacity-100'}`}>
+            <button key={l.key} onClick={() => setLang(l.key)} className={`mystic-btn-ghost flex-1 ${lang === l.key ? '!bg-gradient-to-b !from-violet-500 !to-violet-700 !text-white border-violet-500 ring-2 ring-violet-400/70' : 'opacity-60 hover:opacity-100'}`}>
               {lang === l.key ? `✓ ${l.label}` : l.label}
             </button>
           ))}
@@ -209,7 +209,7 @@ function Toggle({ label, checked, onChange, hint }: { label: string; checked: bo
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-amber-600' : 'bg-gray-700'}`}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-violet-600' : 'bg-gray-700'}`}
       >
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : ''}`} />
       </button>
