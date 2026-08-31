@@ -83,10 +83,27 @@ html, body {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100vw;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #1a0e0a;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* En mode edge-to-edge (APK plein écran), la barre d'état est transparente :
+   on force le fond sombre sur <html> pour que la zone du haut ne soit PAS
+   grise (sinon on voit le fond système par transparence). Et on ajoute des
+   marges safe-area pour que le contenu ne passe jamais sous la barre d'état
+   ni sous le trait de navigation (bas), qui masquaient des éléments. */
+html {
+  background: #1a0e0a;
+}
+body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* iOS/notch : marge latérale éventuelle. Android laisse 0. */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* Le user-select:none ci-dessus se propage aux champs dans la WebView Android
