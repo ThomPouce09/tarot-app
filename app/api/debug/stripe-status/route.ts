@@ -80,8 +80,25 @@ export async function GET(request: NextRequest) {
   if (stripe) {
     outA.stripe.hasKey = true;
     try {
-      if (user.subscription?.stripeCustomerId) {
-        const subs = await stripe.subscriptions.list({ customer: user.subscription.stripeCustomerId });
+      // customerId depuis la base (si presente), sinon recherche par email
+      // (decisif quand db est null : on veut savoir si Stripe a cree un customer).
+      let customerId: string | null = user.subscription?.stripeCustomerId ?? null;
+      if (!customerId) {
+        try {
+          const found: any = await stripe.customers.search({ query: `email:'${e}'`, limit: 5 });
+          customerId = found.data[0]?.id ?? null;
+          outA.stripe.customersByEmail = found.data.map((c: any) => ({ id: c.id, email: c.email }));
+        } catch {
+          // fallback si API Search indisponible
+          const found: any = await stripe.customers.list({ email: e });
+          customerId = found.data.find((c: any) => c.email === e)?.id ?? null;
+          outA.stripe.customersByEmail = found.data.map((c: any) => ({ id: c.id, email: c.email }));
+        }
+      }
+      outA.stripe.customerId = customerId;
+
+      if (customerId) {
+        const subs = await stripe.subscriptions.list({ customer: customerId });
         outA.stripe.customerSubscriptions = subs.data.map((s: any) => ({
           id: s.id,
           status: s.status,
