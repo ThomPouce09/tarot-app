@@ -43,12 +43,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Données session incomplètes', plan: 'apprenti' }, { status: 400 });
     }
 
+    // L'email est renvoyé à la page (elle n'a pas forcément localStorage sur ce
+    // domaine) pour recharger l'état sans dépendre du tarot_user du navigateur.
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const email = user?.email ?? null;
+
     // ── One-shot (bienvenue / recharge) ──
     // Un forfait (initie/arkane) n'est JAMAIS un one-shot : on ne retourne pas.
     const isPlan = plan === 'initie' || plan === 'arkane';
     if (!subscriptionId && !isPlan) {
       await handleOneShot(userId, plan, session.id as string);
-      return NextResponse.json({ plan: 'apprenti', oneShot: plan, success: true });
+      return NextResponse.json({ plan: 'apprenti', oneShot: plan, success: true, email });
     }
 
     // ── Abonnement récurrent ──
@@ -95,6 +100,7 @@ export async function GET(request: NextRequest) {
       plan,
       status: sub.status,
       currentPeriodEnd: periodEnd.toISOString(),
+      email,
     });
   } catch (e: any) {
     console.error('[checkout/confirm]', e?.message);

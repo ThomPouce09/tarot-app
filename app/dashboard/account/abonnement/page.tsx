@@ -108,33 +108,41 @@ export default function AbonnementPage() {
       window.history.replaceState({}, '', window.location.pathname);
     }
 
-    if (!userEmail) return;
+    // Si aucun session_id, rien à confirmer → on recharge juste si connecté.
+    if (!sessionId) {
+      if (userEmail) loadState(userEmail);
+      return;
+    }
 
     const confirmAndLoad = async () => {
-      if (sessionId) {
-        try {
-          setActivating(true);
-          const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
-          const confirmData = await confirmRes.json();
-          if (confirmData.plan && confirmData.plan !== 'apprenti') {
-            setCurrent(confirmData.plan === 'arkane' || confirmData.plan === 'initie' ? confirmData.plan : 'apprenti');
-            setMsg(t('sub.successMsg'));
-            await loadState(userEmail);
-            setActivating(false);
-            return;
+      // Ce confirm ne dépend PAS du localStorage : il résout l'utilisateur via
+      // session.metadata.userId et renvoie l'email. On ne return donc pas si
+      // localStorage est vide (cas redirection vers le domaine Vercel).
+      let confirmEmail = userEmail;
+      try {
+        setActivating(true);
+        const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
+        const confirmData = await confirmRes.json();
+        if (confirmData.email) confirmEmail = confirmData.email;
+        if (confirmData.plan && confirmData.plan !== 'apprenti') {
+          setCurrent(confirmData.plan === 'arkane' || confirmData.plan === 'initie' ? confirmData.plan : 'apprenti');
+          setMsg(t('sub.successMsg'));
+          setEmail(confirmEmail);
+          await loadState(confirmEmail);
+          setActivating(false);
+          return;
+        }
+      } catch { /* fallback poll */ }
+      setActivating(false);
+      if (confirmEmail) {
+        const level = await loadState(confirmEmail);
+        if (level?.level && level.level !== 'apprenti') return;
+        if (params.get('status') === 'success' && sessionId) {
+          for (let i = 0; i < 20; i++) {
+            await new Promise((r) => setTimeout(r, 1500));
+            const nl = await loadState(confirmEmail);
+            if (nl?.level === 'arkane' || nl?.level === 'initie') break;
           }
-        } catch { /* fallback poll */ }
-        setActivating(false);
-      }
-      // Charge l'état ; si retour "success" sans niveau actif → poll (le webhook
-      // Stripe peut être en retard de quelques secondes).
-      const level = await loadState(userEmail);
-      if (level?.level && level.level !== 'apprenti') return;
-      if (params.get('status') === 'success') {
-        for (let i = 0; i < 20; i++) {
-          await new Promise((r) => setTimeout(r, 1500));
-          const nl = await loadState(userEmail);
-          if (nl?.level === 'arkane' || nl?.level === 'initie') break;
         }
       }
     };
