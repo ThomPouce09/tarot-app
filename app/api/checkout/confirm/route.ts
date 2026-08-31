@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error('[checkout/confirm]', e?.message);
-    return NextResponse.json({ error: 'Erreur vérification paiement' }, { status: 500 });
+    // TEMP debug : exposer le message réel pour diagnostiquer le 500.
+    return NextResponse.json({ error: 'Erreur vérification paiement', detail: e?.message }, { status: 500 });
   }
 }
