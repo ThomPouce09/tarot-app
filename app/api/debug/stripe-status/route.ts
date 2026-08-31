@@ -13,13 +13,49 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email');
-  if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 });
+  const sessionId = request.nextUrl.searchParams.get('session_id');
+  if (!email && !sessionId) return NextResponse.json({ error: 'email ou session_id requis' }, { status: 400 });
+
+  const out: any = { email, sessionId };
+
+  if (sessionId) {
+    // Inspect d'une session de checkout : mode, prix attaché, récurrent ?
+    const stripe = getStripe();
+    if (stripe) {
+      try {
+        const s: any = await stripe.checkout.sessions.retrieve(sessionId);
+        const li = s.line_items?.data?.[0]?.price;
+        out.session = {
+          id: s.id,
+          mode: s.mode,
+          status: s.status,
+          payment_status: s.payment_status,
+          subscription: s.subscription,
+          customer: s.customer,
+          metadata: s.metadata,
+          price: li
+            ? {
+                id: li.id,
+                amount: li.unit_amount,
+                currency: li.currency,
+                recurring: li.recurring, // null si one-shot
+                type: li.type,
+              }
+            : null,
+        };
+      } catch (err: any) {
+        out.sessionError = err?.message;
+      }
+    }
+    return NextResponse.json(out);
+  }
+
   const e = String(email).trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email: e }, include: { subscription: true } });
   if (!user) return NextResponse.json({ error: 'user introuvable', email: e });
 
-  const out: any = {
+  const outA: any = {
     email: e,
     userId: user.id,
     db: user.subscription
@@ -38,15 +74,15 @@ export async function GET(request: NextRequest) {
   };
 
   const rights = await getRights(e);
-  if (rights) out.rights = { level: rights.level, baseUnlimited: rights.baseUnlimited, grandMonthly: rights.grandMonthly };
+  if (rights) outA.rights = { level: rights.level, baseUnlimited: rights.baseUnlimited, grandMonthly: rights.grandMonthly };
 
   const stripe = getStripe();
   if (stripe) {
-    out.stripe.hasKey = true;
+    outA.stripe.hasKey = true;
     try {
       if (user.subscription?.stripeCustomerId) {
         const subs = await stripe.subscriptions.list({ customer: user.subscription.stripeCustomerId });
-        out.stripe.customerSubscriptions = subs.data.map((s: any) => ({
+        outA.stripe.customerSubscriptions = subs.data.map((s: any) => ({
           id: s.id,
           status: s.status,
           cancel_at_period_end: s.cancel_at_period_end,
@@ -56,7 +92,7 @@ export async function GET(request: NextRequest) {
       }
       if (user.subscription?.stripeSubscriptionId) {
         const one: any = await stripe.subscriptions.retrieve(user.subscription.stripeSubscriptionId);
-        out.stripe.retrieve = {
+        outA.stripe.retrieve = {
           id: one.id,
           status: one.status,
           plan: one.metadata?.plan,
@@ -66,9 +102,9 @@ export async function GET(request: NextRequest) {
         };
       }
     } catch (err: any) {
-      out.stripe.error = err?.message;
+      outA.stripe.error = err?.message;
     }
   }
 
-  return NextResponse.json(out);
+  return NextResponse.json(outA);
 }
