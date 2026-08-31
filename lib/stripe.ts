@@ -28,12 +28,14 @@ export function getStripe(): Stripe | null {
 export type PlanId = SubscriptionPlanId; // 'initie' | 'arkane'
 
 export function priceIdForPlan(plan: PlanId, billing: 'month' | 'year' = 'month'): string | undefined {
+  if (billing === 'year') {
+    return plan === 'initie' ? process.env.STRIPE_PRICE_INITIE_YEAR : process.env.STRIPE_PRICE_ARKANE_YEAR;
+  }
   const base = plan === 'initie'
     ? process.env.STRIPE_PRICE_INITIE
     : plan === 'arkane'
       ? process.env.STRIPE_PRICE_ARKANE
       : undefined;
-  if (billing === 'year') return process.env.STRIPE_PRICE_INITIE_YEAR ?? (plan === 'arkane' ? process.env.STRIPE_PRICE_ARKANE_YEAR : undefined);
   return base;
 }
 
