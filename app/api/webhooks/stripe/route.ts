@@ -65,24 +65,29 @@ export async function POST(request: NextRequest) {
         const plan = session.metadata?.plan;
         const billing = session.metadata?.billing || 'month';
         const customerId = session.customer as string;
-        let subscriptionId = session.subscription as string | null;
+        const subscriptionId = session.subscription as string | null;
 
         // One-shot (bienvenue / recharge) : pas de subscription → crédite le solde.
-        if (!subscriptionId) {
+        // Un forfait (initie/arkane) n'est JAMAIS un one-shot : on ne `break` pas,
+        // on retrouve l'abonnement chez le customer si session.subscription manque.
+        const isPlan = plan === 'initie' || plan === 'arkane';
+        if (!subscriptionId && !isPlan) {
           await handleOneShot(session, userId, plan);
           break;
         }
         if (!userId || !plan) break;
 
-        // Robustesse : si l'événement arrive sans `session.subscription` pour un
-        // forfait, on le retrouve chez le customer Stripe (premier abonnement).
-        if ((plan === 'initie' || plan === 'arkane') && !subscriptionId) {
+        // Robustesse : session.subscription peut ne pas être propagé sur l'event
+        // (surtout pour un abonnement en mode test) → on le retrouve chez le customer.
+        let subId = subscriptionId;
+        if (!subId && isPlan) {
           const subs = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
-          subscriptionId = subs.data[0]?.id ?? null;
-          if (!subscriptionId) break;
+          subId = subs.data[0]?.id ?? null;
+          if (!subId) break;
         }
+        if (!subId) break;
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const sub = await stripe.subscriptions.retrieve(subId);
         const priceId = (sub.items.data[0]?.price?.id) as string;
         const periodEnd = new Date((sub as any).current_period_end * 1000);
         const status = sub.status;
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
           create: {
             userId,
             stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
+            stripeSubscriptionId: subId,
             stripePriceId: priceId,
             plan,
             billing,
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
           },
           update: {
             stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
+            stripeSubscriptionId: subId,
             stripePriceId: priceId,
             plan,
             billing,

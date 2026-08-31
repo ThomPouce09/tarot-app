@@ -43,8 +43,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Données session incomplètes', plan: 'apprenti' }, { status: 400 });
     }
 
-    // ── One-shot ──
-    if (!subscriptionId) {
+    // ── One-shot (bienvenue / recharge) ──
+    // Un forfait (initie/arkane) n'est JAMAIS un one-shot : on ne retourne pas.
+    const isPlan = plan === 'initie' || plan === 'arkane';
+    if (!subscriptionId && !isPlan) {
       await handleOneShot(userId, plan, session.id as string);
       return NextResponse.json({ plan: 'apprenti', oneShot: plan, success: true });
     }
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest) {
     let subId = subscriptionId;
     // Le session_id peut renvoyer sans `session.subscription` propagé → on le
     // retrouve chez le customer (même contournement que le webhook).
-    if (!subId && (plan === 'initie' || plan === 'arkane')) {
+    if (!subId && isPlan) {
       const subs = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
       subId = subs.data[0]?.id ?? null;
     }
