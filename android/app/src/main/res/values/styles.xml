@@ -15,8 +15,16 @@
         <item name="android:background">@null</item>
     </style>
 
-
+    <!-- THÈME EFFECTIF de MainActivity (enregistrée avec @style/AppTheme.NoActionBarLaunch).
+         Masque la barre d'état (status bar) au niveau du THEME → fiable, indépendant
+         du plugin StatusBar qui la ré-affirmait (bande grise). Le contenu s'étend
+         sur tout l'écran (edge-to-edge). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>
