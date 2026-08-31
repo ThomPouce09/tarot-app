@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paiements désactivés (clé Stripe manquante)' }, { status: 503 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3007';
+    const baseUrl = process.env.APP_URL || 'http://localhost:3007';
     const { plan, billing = 'month', email } = await request.json();
     const oneShot = plan === 'bienvenue' || plan === 'recharge';
     if (!oneShot && plan !== 'initie' && plan !== 'arkane') {

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       data: { confirmationToken: resetToken },
     });
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${resetToken}`;
+    const resetUrl = `${process.env.APP_URL}/auth/confirm?token=${resetToken}`;
 
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
