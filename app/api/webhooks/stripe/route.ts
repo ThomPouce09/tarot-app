@@ -89,7 +89,10 @@ export async function POST(request: NextRequest) {
 
         const sub = await stripe.subscriptions.retrieve(subId);
         const priceId = (sub.items.data[0]?.price?.id) as string;
-        const periodEnd = new Date((sub as any).current_period_end * 1000);
+        // `current_period_end` peut manquer (SDK/expansion) → ne jamais construire
+        // new Date(undefined) (= Invalid Date, rejeté par Prisma). Fallback now().
+        const periodEndSec = (sub as any).current_period_end;
+        const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : new Date();
         const status = sub.status;
 
         await prisma.subscription.upsert({
@@ -137,7 +140,8 @@ export async function POST(request: NextRequest) {
         if (!userId) break;
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) break;
-        const periodEnd = new Date((sub as any).current_period_end * 1000);
+        const subSec = (sub as any).current_period_end;
+        const periodEnd = subSec ? new Date(subSec * 1000) : new Date();
         const plan = sub.metadata?.plan || 'initie';
         const billing = sub.metadata?.billing || 'month';
         await prisma.subscription.create({

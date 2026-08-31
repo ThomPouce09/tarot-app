@@ -71,7 +71,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Abonnement introuvable', plan: 'apprenti' }, { status: 404 });
     }
     const priceId = sub.items.data[0]?.price?.id as string;
-    const periodEnd = new Date((sub as any).current_period_end * 1000);
+    // `current_period_end` peut manquer → jamais new Date(undefined) (= Invalid Date).
+    const periodEndSec = (sub as any).current_period_end;
+    const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : new Date();
 
     await prisma.subscription.upsert({
       where: { userId },
@@ -104,7 +106,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error('[checkout/confirm]', e?.message);
-    // TEMP debug : exposer le message réel pour diagnostiquer le 500.
-    return NextResponse.json({ error: 'Erreur vérification paiement', detail: e?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur vérification paiement' }, { status: 500 });
   }
 }
