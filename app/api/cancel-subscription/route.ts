@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (e: any) {
     console.error('[cancel-subscription]', e?.message);
-    // TEMP debug : exposer le message réel pour diagnostiquer.
-    return NextResponse.json({ error: 'Échec de la résiliation', detail: e?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Échec de la résiliation' }, { status: 500 });
   }
 }

@@ -166,7 +166,8 @@ export async function POST(request: NextRequest) {
         const subscriptionId = sub.id as string;
         const existing = await prisma.subscription.findFirst({ where: { stripeSubscriptionId: subscriptionId } });
         if (!existing) break;
-        const periodEnd = new Date((sub as any).current_period_end * 1000);
+        const endSec = (sub as any).current_period_end;
+        const periodEnd = endSec ? new Date(endSec * 1000) : existing.currentPeriodEnd;
         await prisma.subscription.update({
           where: { id: existing.id },
           data: {
