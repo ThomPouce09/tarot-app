@@ -118,6 +118,24 @@ export async function GET(request: NextRequest) {
           cancel_at_period_end: one.cancel_at_period_end,
         };
       }
+
+      // Journal des événements Stripe récents : prouve si checkout.session.completed
+      // a été émis (et donc si le webhook a été déclenché).
+      const evts: any = await stripe.events.list({ limit: 40 });
+      outA.stripe.recentEvents = evts.data
+        .filter((ev: any) => {
+          const obj = ev.data?.object;
+          return obj?.customer === customerId || obj?.metadata?.userId === user.id || ev.type?.includes('subscription');
+        })
+        .slice(0, 15)
+        .map((ev: any) => ({
+          id: ev.id,
+          type: ev.type,
+          created: new Date(ev.created * 1000).toISOString(),
+          customer: ev.data?.object?.customer,
+          sub: ev.data?.object?.subscription,
+          metaPlan: ev.data?.object?.metadata?.plan,
+        }));
     } catch (err: any) {
       outA.stripe.error = err?.message;
     }
