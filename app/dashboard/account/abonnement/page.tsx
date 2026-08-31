@@ -255,6 +255,10 @@ export default function AbonnementPage() {
   const hasSubscription = current === 'initie' || current === 'arkane';
   const currentRank = hasSubscription ? (RANK[current] ?? 2) : 0;
   const isLocked = (p: PlanId): boolean => {
+    // La recharge cosmique est utile pour Initié (crédits limités) mais sans
+    // objet pour Arkane (consommation illimitée). Proposable pour un compte
+    // sans abonnement ou Initié ; bloquée pour Arkane.
+    if (p === 'recharge') return current === 'arkane';
     // On ne peut pas choisir un plan inférieur au plan actif (sans résilier).
     return hasSubscription && RANK[p] < currentRank;
   };
