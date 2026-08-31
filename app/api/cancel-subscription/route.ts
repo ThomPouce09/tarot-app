@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       cancel_at_period_end: cancel,
     });
 
-    const periodEnd = new Date((updated as any).current_period_end * 1000);
+    // `current_period_end` peut manquer (SDK/expansion) → jamais new Date(undefined).
+    const endSec = (updated as any).current_period_end;
+    const periodEnd = endSec ? new Date(endSec * 1000) : sub.currentPeriodEnd;
     // On conserve le plan réel venant de Stripe (metadata) ; sinon celui en base.
     const plan = updated.metadata?.plan || sub.plan;
     const billing = updated.metadata?.billing || sub.billing;
