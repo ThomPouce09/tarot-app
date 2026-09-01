@@ -3,11 +3,14 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendConfirmationEmail } from '@/lib/mailer';
+import { calcAge } from '@/lib/dates';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, gender, age, phone, comment } = body;
+    const { email, password, firstName, lastName, gender, dateOfBirth, phone, comment } = body;
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
@@ -31,7 +34,8 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         gender,
-        age: age ? parseInt(age) : null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        age: dateOfBirth ? calcAge(dateOfBirth) : null,
         phone,
         comment,
         confirmationToken,
@@ -58,6 +62,7 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
         gender: user.gender,
         age: user.age,
+        dateOfBirth: user.dateOfBirth,
         phone: user.phone,
         comment: user.comment,
         confirmed: user.confirmed,

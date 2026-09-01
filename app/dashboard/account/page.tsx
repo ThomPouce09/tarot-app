@@ -9,7 +9,7 @@ export default function AccountPage() {
   const t = useT();
   const [user, setUser] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', age: '', gender: 'other', comment: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', gender: 'other', comment: '' });
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   // Statut d'activation FIABLE (DB) — ne pas se fier au localStorage (périmé).
@@ -65,7 +65,7 @@ export default function AccountPage() {
   const initial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
 
   const memberSince = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '—';
   const genderLabel = user.gender === 'male' ? t('account.gender.male') : user.gender === 'female' ? t('account.gender.female') : user.gender === 'other' ? t('account.gender.other') : user.gender || '—';
 
@@ -81,11 +81,11 @@ export default function AccountPage() {
       const res = await fetch('/api/auth/update-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, ...form, age: form.age ? parseInt(form.age, 10) : null }),
+        body: JSON.stringify({ email: user.email, ...form, dateOfBirth: form.dateOfBirth || null }),
       });
       const data = await res.json();
       if (res.ok) {
-        const updatedUser = { ...user, ...form, age: form.age ? parseInt(form.age, 10) : null };
+        const updatedUser = { ...user, ...form, dateOfBirth: form.dateOfBirth || null };
         localStorage.setItem('tarot_user', JSON.stringify(updatedUser));
         setUser(updatedUser);
         setEditMode(false);
@@ -153,7 +153,7 @@ export default function AccountPage() {
                   firstName: user.firstName || '',
                   lastName: user.lastName || '',
                   phone: user.phone || '',
-                  age: user.age != null ? String(user.age) : '',
+                  dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : '',
                   gender: user.gender || 'other',
                   comment: user.comment || '',
                 });
@@ -172,7 +172,7 @@ export default function AccountPage() {
               <Field id="firstName" label="Prénom" value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
               <Field id="lastName" label="Nom" value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
               <Field id="phone" label="Téléphone" value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
-              <Field id="age" label="Âge" value={form.age} onChange={(e: any) => setForm({ ...form, age: e.target.value })} type="number" />
+              <Field id="dateOfBirth" label="Date de naissance" value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
             </div>
             <div>
               <label htmlFor="gender" className="mystic-label block mb-1">Genre</label>
@@ -198,7 +198,9 @@ export default function AccountPage() {
             <Row label={t('account.firstName')} value={user.firstName} />
             <Row label={t('account.lastName')} value={user.lastName} />
             <Row label={t('account.phone')} value={user.phone} />
-            <Row label={t('account.age')} value={user.age} />
+            <Row label={t('account.birthDate')} value={user.dateOfBirth
+              ? new Date(user.dateOfBirth).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : user.age != null ? `(${user.age} ans)` : null} />
             <Row label={t('account.gender')} value={genderLabel} />
             <Row label={t('account.comment')} value={user.comment} />
           </dl>

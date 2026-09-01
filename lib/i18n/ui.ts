@@ -47,6 +47,7 @@ export const DICT = {
   'account.lastName': { fr: 'Nom', en: 'Last name' },
   'account.phone': { fr: 'Téléphone', en: 'Phone' },
   'account.age': { fr: 'Âge', en: 'Age' },
+  'account.birthDate': { fr: 'Date de naissance', en: 'Date of birth' },
   'account.gender': { fr: 'Genre', en: 'Gender' },
   'account.gender.male': { fr: 'Homme', en: 'Male' },
   'account.gender.female': { fr: 'Femme', en: 'Female' },

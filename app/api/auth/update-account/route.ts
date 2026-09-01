@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { calcAge } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, lastName, phone, age, gender, comment } = body;
+    const { email, firstName, lastName, phone, dateOfBirth, gender, comment } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         phone,
-        age,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        age: dateOfBirth ? calcAge(dateOfBirth) : null,
       },
     });
 

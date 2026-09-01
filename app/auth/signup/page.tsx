@@ -21,7 +21,7 @@ const signupSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
   gender: z.enum(["male", "female", "other"]).optional(),
-  age: z.number().int().positive("L'âge doit être un nombre positif").optional().or(z.literal(0)),
+  dateOfBirth: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   comment: z.string().optional().or(z.literal('')),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -38,7 +38,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     gender: 'other' as 'male' | 'female' | 'other',
-    age: 0,
+    dateOfBirth: '',
     phone: '',
     comment: '',
   });
@@ -72,7 +72,7 @@ export default function SignUpPage() {
 
     const dataToValidate = {
       ...formData,
-      age: formData.age === 0 ? undefined : formData.age,
+      dateOfBirth: formData.dateOfBirth || undefined,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
       phone: formData.phone === '' ? undefined : formData.phone,
       comment: formData.comment === '' ? undefined : formData.comment,
@@ -323,21 +323,19 @@ export default function SignUpPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="age" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
+                    <label htmlFor="dateOfBirth" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">🎂</span>
-                      Âge
+                      Date de naissance
                     </label>
                     <input
-                      type="number"
-                      id="age"
-                      name="age"
-                      value={formData.age === 0 ? "" : formData.age}
-                      onChange={(e) => setFormData({ ...formData, age: e.target.value ? parseInt(e.target.value) : 0 })}
-                      inputMode="numeric"
+                      type="date"
+                      id="dateOfBirth"
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      max={new Date().toISOString().slice(0, 10)}
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                      placeholder="Âge"
                     />
-                    {errors.age && <p className="text-red-400 text-[10px] mt-1">{errors.age}</p>}
                   </div>
 
                   <div>
