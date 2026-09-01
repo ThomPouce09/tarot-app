@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -11,6 +11,11 @@ import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
 import { ShimmerChars } from '@/components/shimmer-chars';
+import PauseRepas from '@/components/pause-repas';
+
+// useLayoutEffect côté client (s'exécute AVANT le rendu peint), useEffect côté
+// serveur (SSR) — évite les warnings, et surtout les flashs d'état après hydration.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function HomePage() {
   const router = useRouter();
@@ -18,6 +23,7 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // Fond de départ : premier de la liste (fallback), remplacé dès le montage.
   const [background, setBackground] = useState<string>(LANDING_BACKGROUNDS[0]);
+  const [bgReady, setBgReady] = useState(false); // évite le flash "mauvais fond" au refresh
 
   // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
@@ -41,14 +47,14 @@ export default function HomePage() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
   }, []);
 
   // Rotation du fond d'écran à chaque chargement/refresh : lit les préférences
   // utilisateur (tarot_prefs.backgrounds) ; si vide ⇒ tous les fonds en aléatoire.
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     let selected: string[] | null = null;
     try {
       const raw = localStorage.getItem('tarot_prefs');
@@ -56,6 +62,7 @@ export default function HomePage() {
       if (Array.isArray(prefs?.backgrounds) && prefs.backgrounds.length > 0) selected = prefs.backgrounds;
     } catch { /* ignore */ }
     setBackground(pickRandomBackground(selected));
+    setBgReady(true);
   }, []);
 
   const handleLogin = () => {
@@ -70,28 +77,31 @@ export default function HomePage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
-      {/* BACKGROUND : image ou vidéo, selon le fond retenu (rotation aléatoire) */}
-      <div className="absolute inset-0 z-0">
-        {isVideoBackground(background) ? (
-          <video
-            src={background}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <Image
-            src={background}
-            alt="Table mystique Tarot & Yi Jing"
-            fill
-            className="object-cover"
-            priority
-            quality={90}
-          />
-        )}
-      </div>
+      {/* BACKGROUND : image ou vidéo, selon le fond retenu (rotation aléatoire).
+          Rendu seulement une fois le fond choisi (bgReady) → pas de flash du mauvais fond. */}
+      {bgReady && (
+        <div className="absolute inset-0 z-0">
+          {isVideoBackground(background) ? (
+            <video
+              src={background}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <Image
+              src={background}
+              alt="Table mystique Tarot & Yi Jing"
+              fill
+              className="object-cover"
+              priority
+              quality={90}
+            />
+          )}
+        </div>
+      )}
 
       {/* MAIN TITLE */}
       <div
@@ -104,7 +114,8 @@ export default function HomePage() {
             fontFamily: 'var(--font-cinzel-deco), serif',
             color: '#DAA520',
             letterSpacing: '0.2em',
-            textShadow: '0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)',
+            textShadow: '0 1px 1px rgba(0,0,0,1), 0 2px 4px rgba(0,0,0,1), 0 4px 9px rgba(0,0,0,0.95), 0 7px 16px rgba(0,0,0,0.65), 0 12px 26px rgba(0,0,0,0.4), 0 0 26px rgba(218,165,32,0.3)',
+            transform: 'scale(1.06)',
           }}
         >
           <BrandTitle text={"L'Oracle\ndes\nétoiles"} grow={false} />
@@ -114,7 +125,7 @@ export default function HomePage() {
           style={{
             fontFamily: 'var(--font-cinzel), serif',
             color: '#FFD700',
-            textShadow: '0 0 10px rgba(255,215,0,0.6), 0 1px 4px rgba(0,0,0,0.9)',
+            textShadow: '0 1px 2px rgba(0,0,0,1), 0 2px 6px rgba(0,0,0,0.95), 0 5px 12px rgba(0,0,0,0.6), 0 0 12px rgba(255,215,0,0.4)',
             letterSpacing: '0.05em',
           }}
         >
@@ -373,6 +384,7 @@ export default function HomePage() {
         </Link>
       </div>
 
+    <PauseRepas />
     <Firefly page="landing" />
     </div>
   );

@@ -109,13 +109,16 @@ export const DICT = {
 
   // ─── Account nav (sidebar) ───
   'nav.monespace': { fr: 'Mon espace', en: 'My space' },
-  'nav.monespaceHint': { fr: 'Cliquez ici pour accéder à Mon espace ✦', en: 'Tap here to open My space ✦' },
+  'nav.monespaceHint': { fr: 'Cliquez ici pour accéder à Mon compte', en: 'Tap here to open My account' },
   'nav.security': { fr: 'Sécurité', en: 'Security' },
   'nav.abonnement': { fr: 'Abonnement', en: 'Subscription' },
   'nav.stats': { fr: 'Statistiques', en: 'Statistics' },
   'nav.preferences': { fr: 'Préférences', en: 'Preferences' },
   'nav.historique': { fr: 'Historique', en: 'History' },
   'nav.logout': { fr: 'Déconnexion', en: 'Sign out' },
+  'nav.backHome': { fr: "Retour à l'accueil", en: 'Back to home' },
+  'nav.backHomeHint': { fr: "Cliquez ici pour revenir à l'accueil", en: 'Tap here to go back home' },
+  'nav.ok': { fr: 'OK', en: 'OK' },
 
   // ─── Hubs / Tarot & Yi Jing tiles ───
   'hubs.tarot.title': { fr: 'Le Tarot', en: 'The Tarot' },

@@ -215,13 +215,21 @@ html, body {
 .brand-oracle {
   font-family: var(--font-cormorant), serif;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  background: linear-gradient(100deg, #f5d98b 0%, #daa520 38%, #b8860b 62%, #f5d98b 100%);
+  letter-spacing: 0.08em;
+  background: linear-gradient(100deg, #b8860b 0%, #daa520 22%, #f6e7a6 50%, #daa520 78%, #b8860b 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: #daa520;
-  text-shadow: 0 0 22px rgba(218, 165, 32, 0.45);
+  filter: drop-shadow(0 0 9px rgba(255, 214, 90, 0.3));
+  animation: brand-shine 4.2s ease-in-out infinite;
+}
+
+/* Balayage lumineux droite→gauche du titre de marque (retour accueil). */
+@keyframes brand-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 .mystic-subtitle {
   font-family: var(--font-cinzel), serif;

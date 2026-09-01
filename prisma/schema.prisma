@@ -170,3 +170,23 @@ model PromptTemplate {
   version     Int      @default(1)
   updatedAt   DateTime @updatedAt
 }
+
+// ─── Messages de sagesse « pause repas » (1 par jour, bilingue) ─────────
+// day = jour de l'année (1-365). textFr/textEn = message en français/anglais.
+model DailyMessage {
+  id     String @id @default(cuid())
+  day    Int    @unique
+  textFr String
+  textEn String
+}
+
+// Pause repas : consommation du barman, une fois par jour et par compte (email).
+// `date` = jour local du device (YYYY-MM-DD), ce qui aligne la fenêtre horaire
+// "une fois/jour" sur le fuseau du visiteur.
+model PauseRepasConsumption {
+  id     String   @id @default(cuid())
+  email  String
+  date   String // YYYY-MM-DD (jour local du device)
+  usedAt DateTime @default(now())
+  @@unique([email, date])
+}

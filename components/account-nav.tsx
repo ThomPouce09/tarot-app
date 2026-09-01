@@ -19,22 +19,20 @@ export default function AccountNav({ user }: { user: any }) {
   const t = useT();
   const initial = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '') || user?.email?.[0] || '?').toUpperCase();
 
-  // Indice "cliquez sur l'avatar pour Mon espace" — 1ère visite seulement (mémoïsé)
-  const [showHint, setShowHint] = useState(false);
+  // Visite guidée (une fois après une nouvelle connexion) : bulles à bouton « OK »,
+  // l'une après l'autre. 0 = aucune, 1 = marque → accueil, 2 = avatar → Mon compte.
+  const [tourStep, setTourStep] = useState<0 | 1 | 2>(0);
   useEffect(() => {
-    try {
-      if (!localStorage.getItem('tarot_seen_avatar')) setShowHint(true);
-    } catch {}
-    const to = setTimeout(() => setShowHint(false), 6000);
-    return () => clearTimeout(to);
+    try { if (!sessionStorage.getItem('tarot_tour_done')) setTourStep(1); } catch {}
   }, []);
-  const dismissHint = () => {
-    setShowHint(false);
-    try { localStorage.setItem('tarot_seen_avatar', '1'); } catch {}
+  const okTour = () => {
+    if (tourStep === 1) setTourStep(2);
+    else if (tourStep === 2) { setTourStep(0); try { sessionStorage.setItem('tarot_tour_done', '1'); } catch {} }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
+    try { sessionStorage.removeItem('tarot_tour_done'); } catch {}
     router.push('/');
   };
 
@@ -42,21 +40,36 @@ export default function AccountNav({ user }: { user: any }) {
     <>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:flex-col w-64 shrink-0 p-5 border-r border-amber-800/20 bg-gradient-to-b from-gray-950/60 to-gray-950/20">
-        <Link href="/" className="flex items-center gap-2 mb-6 group">
-          <img src="/logo-espace.png" alt="Logo" className="h-9 w-auto object-contain" />
-          <span className="brand-oracle text-xl">L&apos;oracle des étoiles</span>
+        <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 mb-6 group">
+          <img src="/logo-espace.png" alt="" className="h-9 w-auto object-contain" />
+          <span className="brand-oracle text-2xl transition-all duration-200 group-hover:brightness-125">
+            L&apos;oracle des étoiles
+          </span>
+          <span aria-hidden className="text-amber-300/90 text-lg leading-none transition-all duration-200 group-hover:-translate-x-0.5" style={{ fontFamily: 'var(--font-cinzel), serif' }}>‹</span>
+          <span aria-hidden className="absolute inset-x-0 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+          {tourStep === 1 && (
+            <div className="absolute left-0 top-full mt-2 z-50 w-60 rounded-xl border border-amber-500/60 bg-amber-950/95 px-4 py-3 text-amber-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+              <p className="text-[11px] leading-relaxed">{t('nav.backHomeHint')}</p>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); okTour(); }} className="mt-2 w-full rounded-md bg-amber-500/90 py-1 text-[11px] font-semibold text-amber-950 transition-colors hover:bg-amber-400">
+                {t('nav.ok')}
+              </button>
+            </div>
+          )}
         </Link>
 
         <div className="flex items-center gap-3 mb-6 px-2">
           <span className="relative inline-flex">
-            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
-            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-11 h-11 rounded-full avatar-mystic flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${showHint ? 'ring-2 ring-violet-300' : ''}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${tourStep === 2 ? 'animate-ping' : 'hidden'}`} />
+            <Link href="/dashboard/account" aria-label={t('nav.monespace')} className={`relative w-11 h-11 rounded-full avatar-mystic flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${tourStep === 2 ? 'ring-2 ring-violet-300' : ''}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
               {initial}
             </Link>
-            {showHint && (
-              <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-violet-900/90 border border-violet-500/50 px-3 py-1.5 text-[10px] text-violet-100 shadow-lg">
-                {t('nav.monespaceHint')}
-              </span>
+            {tourStep === 2 && (
+              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-60 rounded-xl border border-violet-500/60 bg-violet-950/95 px-4 py-3 text-violet-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                <p className="text-[11px] leading-relaxed">{t('nav.monespaceHint')}</p>
+                <button type="button" onClick={okTour} className="mt-2 w-full rounded-md bg-violet-500/90 py-1 text-[11px] font-semibold text-violet-950 transition-colors hover:bg-violet-400">
+                  {t('nav.ok')}
+                </button>
+              </div>
             )}
           </span>
           <div className="min-w-0">
@@ -88,20 +101,34 @@ export default function AccountNav({ user }: { user: any }) {
 
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-40 w-full flex items-center justify-between px-4 py-3 bg-gray-950/90 backdrop-blur border-b border-amber-800/20">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo-espace.png" alt="Logo" className="w-8 h-8 object-contain" />
-          <span className="brand-oracle text-lg">L&apos;oracle des étoiles</span>
+        <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 group">
+          <img src="/logo-espace.png" alt="" className="w-8 h-8 object-contain" />
+          <span className="brand-oracle text-xl transition-all duration-200 group-hover:brightness-125">
+            L&apos;oracle des étoiles
+          </span>
+          <span aria-hidden className="text-amber-300/75 text-base leading-none" style={{ fontFamily: 'var(--font-cinzel), serif' }}>‹</span>
+          {tourStep === 1 && (
+            <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-xl border border-amber-500/60 bg-amber-950/95 px-4 py-3 text-amber-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+              <p className="text-[10px] leading-relaxed">{t('nav.backHomeHint')}</p>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); okTour(); }} className="mt-2 w-full rounded-md bg-amber-500/90 py-1 text-[10px] font-semibold text-amber-950 transition-colors hover:bg-amber-400">
+                {t('nav.ok')}
+              </button>
+            </div>
+          )}
         </Link>
         <div className="flex items-center gap-3">
           <span className="relative inline-flex">
-            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${showHint ? 'animate-ping' : 'hidden'}`} />
-            <Link href="/dashboard/account" onClick={dismissHint} aria-label={t('nav.monespace')} className={`relative w-9 h-9 rounded-full avatar-mystic flex items-center justify-center text-white text-sm font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${showHint ? 'ring-2 ring-violet-300' : ''}`}>
+            <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${tourStep === 2 ? 'animate-ping' : 'hidden'}`} />
+            <Link href="/dashboard/account" aria-label={t('nav.monespace')} className={`relative w-9 h-9 rounded-full avatar-mystic flex items-center justify-center text-white text-sm font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${tourStep === 2 ? 'ring-2 ring-violet-300' : ''}`}>
               {initial}
             </Link>
-            {showHint && (
-              <span className="absolute top-full mt-2 right-0 z-50 whitespace-nowrap rounded-lg bg-violet-900/90 border border-violet-500/50 px-3 py-1.5 text-[10px] text-violet-100 shadow-lg">
-                {t('nav.monespaceHint')}
-              </span>
+            {tourStep === 2 && (
+              <div className="absolute top-full mt-2 right-0 z-50 w-52 rounded-xl border border-violet-500/60 bg-violet-950/95 px-4 py-3 text-violet-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                <p className="text-[10px] leading-relaxed">{t('nav.monespaceHint')}</p>
+                <button type="button" onClick={okTour} className="mt-2 w-full rounded-md bg-violet-500/90 py-1 text-[10px] font-semibold text-violet-950 transition-colors hover:bg-violet-400">
+                  {t('nav.ok')}
+                </button>
+              </div>
             )}
           </span>
         </div>
