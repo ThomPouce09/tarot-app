@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useLang } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
+import AuthGate from '@/components/auth-gate';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -839,7 +840,7 @@ function YiQingRig() {
 }
 
 // --- Main Page ---
-export default function YiQingPage() {
+function YiQingPage() {
   const lang = useLang();
   return (
     <div
@@ -917,4 +918,8 @@ export default function YiQingPage() {
       </div>
     </div>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><YiQingPage /></AuthGate>;
 }

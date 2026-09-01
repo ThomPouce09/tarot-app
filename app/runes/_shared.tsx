@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
+import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 
 /* Palette centralisée */
@@ -389,6 +390,7 @@ export function RuneAnalysis({
   const [error, setError] = useState('');
   // Vidéo d'attente aléatoire (analyse-runesX.mp4) pendant l'interprétation.
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const { gateReason, closeGate, openGate } = useEntitlement();
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
@@ -430,11 +432,20 @@ export function RuneAnalysis({
         sense: r.reversed ? r.rune.reversed : r.rune.upright,
         reversed: r.reversed,
       }));
+      // Identité + type (pour le gating serveur) : runes-mjolnir | runes-nornes | runes-yggdrasil.
+      const runeType = `runes-${mode}`;
+      let userId = '';
+      try { const u = localStorage.getItem('tarot_user'); if (u) userId = JSON.parse(u).email || ''; } catch { /* noop */ }
       const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runes: payload, mode, focus }),
+        body: JSON.stringify({ runes: payload, mode, focus, userId, type: runeType }),
       });
+      if (res.status === 402) {
+        const d = await res.json().catch(() => ({}));
+        if (mountedRef.current) { setLoading(false); openGate(d.reason || 'limit-grand'); }
+        return;
+      }
       if (!res.ok) {
         throw new Error(`API ${res.status}`);
       }
@@ -459,6 +470,7 @@ export function RuneAnalysis({
 
   return (
     <div className="mt-6">
+      <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       {!sections && !loading && !error && (
         <div className="text-center">
           <RuneButton variant="gold" onClick={run}>

@@ -5,10 +5,8 @@
 //  - charger les droits (GET /api/subscription) une fois / quand le compte change
 //  - vérifier + consommer un tirage (POST /api/entitlement) avant de le lancer
 //  - afficher une modale élégante si le tirage est bloqué (limite / paywall)
-// Version APK : tous les fetch('/api/...') passent par le wrapper api() (backend distant).
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 
@@ -137,9 +135,9 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
         <h3 className="mystic-title text-lg mb-2" style={{ color: '#DAA520' }}>{title}</h3>
         <p className="text-gray-300 text-sm leading-relaxed mb-4">{text}</p>
         <div className="flex gap-3">
-          <Link href="/dashboard/account/abonnement" className="mystic-btn flex-1 text-center" onClick={onClose}>
+          <a href="/dashboard/account/abonnement" className="mystic-btn flex-1 text-center" onClick={onClose}>
             {t('gate.upgrade')}
-          </Link>
+          </a>
           <button onClick={onClose} className="mystic-btn-ghost flex-1">{t('gate.close')}</button>
         </div>
       </div>

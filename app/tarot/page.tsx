@@ -2,6 +2,7 @@
 
 import { useLang } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
+import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
+import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
@@ -76,6 +78,7 @@ export default function TarotHubPage() {
   const t = useT();
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
+  const auth = useRequireVerified();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -118,6 +121,7 @@ export default function TarotHubPage() {
     setTimeout(() => setShowLoginPrompt(false), 3000);
   };
 
+  if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
       {/* BACKGROUND: même image que la landing */}

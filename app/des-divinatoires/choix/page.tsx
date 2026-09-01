@@ -33,6 +33,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 /** Mini-renderer markdown → React nodes */
 function md(text: string) {
@@ -514,7 +515,7 @@ function RecapCard({
 // ──────────────────────────────────────────────
 // Page principale
 // ──────────────────────────────────────────────
-export default function ChoixPage() {
+function ChoixPage() {
   const [step, setStep] = useState<Step>('A_intro');
   const t = useT();
 
@@ -753,9 +754,6 @@ export default function ChoixPage() {
                   type="text"
                   value={questionDraft}
                   onChange={(e) => setQuestionDraft(e.target.value)}
-                  autoCorrect="on"
-                  spellCheck={true}
-                  autoCapitalize="sentences"
                   placeholder={t('des.choix.askPlaceholder')}
                   className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
                   style={{
@@ -972,9 +970,6 @@ export default function ChoixPage() {
                     type="text"
                     value={questionBDraft}
                     onChange={(e) => setQuestionBDraft(e.target.value)}
-                    autoCorrect="on"
-                    spellCheck={true}
-                    autoCapitalize="sentences"
                     placeholder={t('des.choix.secondPlaceholder')}
                     className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
                     style={{
@@ -1185,4 +1180,8 @@ export default function ChoixPage() {
       </div>
     </DiceBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><ChoixPage /></AuthGate>;
 }

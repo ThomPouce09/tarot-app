@@ -4,7 +4,8 @@ import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
-import StatusBarController from '@/components/status-bar-controller'
+
+// (static export : pas de force-dynamic)
 
 const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel', weight: ['400', '500', '600', '700'] })
 const cinzelDeco = Cinzel_Decorative({ subsets: ['latin'], variable: '--font-cinzel-deco', weight: ['400', '700'] })
@@ -74,7 +75,6 @@ export default function RootLayout({
           {children}
           <ChunkLoadErrorHandler />
           <LoginModal />
-          <StatusBarController />
           {/* Portal root pour affichage garanti au-dessus de tout */}
           <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
         </LanguageProvider>

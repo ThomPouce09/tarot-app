@@ -17,6 +17,7 @@ import {
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading } from '@/lib/save-reading';
 import { useT } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
@@ -36,7 +37,7 @@ const LEGEND = [
   'La perspective supérieure, la réalisation finale ou le message spirituel à retenir.',
 ];
 
-export default function YggdrasilPage() {
+function YggdrasilPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [done, setDone] = useState(false);
@@ -120,4 +121,8 @@ export default function YggdrasilPage() {
       </div>
     </RuneBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><YggdrasilPage /></AuthGate>;
 }

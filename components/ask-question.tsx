@@ -97,9 +97,6 @@ export function AskQuestion({
               type="text"
               value={question}
               onChange={handleInputChange}
-              autoCorrect="on"
-              spellCheck={true}
-              autoCapitalize="sentences"
               placeholder={placeholder || t('askQuestion.placeholder')}
               className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
               style={{

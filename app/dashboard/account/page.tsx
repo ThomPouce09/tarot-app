@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
@@ -10,20 +10,63 @@ export default function AccountPage() {
   const t = useT();
   const [user, setUser] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', age: '', gender: 'other', comment: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', gender: 'other', comment: '' });
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  // Statut d'activation FIABLE (DB) — ne pas se fier au localStorage (périmé).
+  const [confirmed, setConfirmed] = useState<boolean | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
-  if (!user && stored) {
-    try { setUser(JSON.parse(stored)); } catch {}
-  }
+  // Chargement initial depuis localStorage — HORS du rendu, sinon :
+  // "Update hook called on initial render" (setState pendant le rendu interdit).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('tarot_user');
+      if (stored) setUser(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  // Recharge le statut d'activation depuis la DB (source de vérité).
+  useEffect(() => {
+    if (!user?.email) return;
+    api('/api/auth/refresh-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email }),
+    })
+      .then((r) => r.json())
+      .then((d) => setConfirmed(typeof d.confirmed === 'boolean' ? d.confirmed : false))
+      .catch(() => setConfirmed(false));
+  }, [user?.email]);
+
   if (!user) return null;
+
+  const isConfirmed = confirmed === true;
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendMsg('');
+    try {
+      const res = await api('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+      const data = await res.json();
+      if (res.ok) setResendMsg(t('account.resendSent'));
+      else setResendMsg(data.error || t('account.resendError'));
+    } catch {
+      setResendMsg(t('account.resendError'));
+    } finally {
+      setResending(false);
+    }
+  };
 
   const initial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
 
   const memberSince = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '—';
   const genderLabel = user.gender === 'male' ? t('account.gender.male') : user.gender === 'female' ? t('account.gender.female') : user.gender === 'other' ? t('account.gender.other') : user.gender || '—';
 
@@ -39,11 +82,11 @@ export default function AccountPage() {
       const res = await api('/api/auth/update-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, ...form, age: form.age ? parseInt(form.age, 10) : null }),
+        body: JSON.stringify({ email: user.email, ...form, dateOfBirth: form.dateOfBirth || null }),
       });
       const data = await res.json();
       if (res.ok) {
-        const updatedUser = { ...user, ...form, age: form.age ? parseInt(form.age, 10) : null };
+        const updatedUser = { ...user, ...form, dateOfBirth: form.dateOfBirth || null };
         localStorage.setItem('tarot_user', JSON.stringify(updatedUser));
         setUser(updatedUser);
         setEditMode(false);
@@ -71,13 +114,28 @@ export default function AccountPage() {
           </h1>
           <p className="text-gray-400 text-sm truncate">{user.email}</p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <span className={`badge-mystic ${user.confirmed ? '' : 'muted'}`}>
-              {user.confirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
+            <span className={`badge-mystic ${isConfirmed ? '' : 'muted'}`}>
+              {confirmed === null ? t('account.checking') : isConfirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
             </span>
             <span className="badge-mystic muted">{t('account.memberSince')} {memberSince}</span>
           </div>
         </div>
       </div>
+
+      {confirmed === false && (
+        <div className="mystic-panel p-4 space-y-2 border-amber-700/40 bg-amber-900/15">
+          <p className="text-sm text-amber-100">{t('account.confirmNotice')}</p>
+          <p className="text-xs text-amber-200/80">{t('account.confirmAdvice')}</p>
+          {resendMsg && <p role="status" aria-live="polite" className="text-xs text-amber-100">{resendMsg}</p>}
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="mystic-btn text-sm px-4 py-1.5"
+          >
+            {resending ? t('account.checking') : t('account.resendEmail')}
+          </button>
+        </div>
+      )}
 
       {message && (
         <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
@@ -96,7 +154,7 @@ export default function AccountPage() {
                   firstName: user.firstName || '',
                   lastName: user.lastName || '',
                   phone: user.phone || '',
-                  age: user.age != null ? String(user.age) : '',
+                  dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : '',
                   gender: user.gender || 'other',
                   comment: user.comment || '',
                 });
@@ -115,7 +173,7 @@ export default function AccountPage() {
               <Field id="firstName" label="Prénom" value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
               <Field id="lastName" label="Nom" value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
               <Field id="phone" label="Téléphone" value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
-              <Field id="age" label="Âge" value={form.age} onChange={(e: any) => setForm({ ...form, age: e.target.value })} type="number" />
+              <Field id="dateOfBirth" label="Date de naissance" value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
             </div>
             <div>
               <label htmlFor="gender" className="mystic-label block mb-1">Genre</label>
@@ -141,7 +199,9 @@ export default function AccountPage() {
             <Row label={t('account.firstName')} value={user.firstName} />
             <Row label={t('account.lastName')} value={user.lastName} />
             <Row label={t('account.phone')} value={user.phone} />
-            <Row label={t('account.age')} value={user.age} />
+            <Row label={t('account.birthDate')} value={user.dateOfBirth
+              ? new Date(user.dateOfBirth).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : user.age != null ? `(${user.age} ans)` : null} />
             <Row label={t('account.gender')} value={genderLabel} />
             <Row label={t('account.comment')} value={user.comment} />
           </dl>
@@ -155,14 +215,6 @@ export default function AccountPage() {
 }
 
 function Field({ id, label, value, onChange, type = 'text' }: { id: string; label: string; value: any; onChange: (e: any) => void; type?: string }) {
-  // autoComplete sémantique : active la complétion clavier (WebView Android).
-  const ac =
-    type === 'tel' ? 'tel'
-    : type === 'number' ? 'off'
-    : id === 'firstName' ? 'given-name'
-    : id === 'lastName' ? 'family-name'
-    : id === 'email' ? 'email'
-    : 'off';
   return (
     <div>
       <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
@@ -171,7 +223,7 @@ function Field({ id, label, value, onChange, type = 'text' }: { id: string; labe
         type={type}
         value={value}
         onChange={onChange}
-        autoComplete={ac}
+        autoComplete="off"
         className="mystic-input"
       />
     </div>

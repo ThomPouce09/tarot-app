@@ -24,6 +24,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -273,7 +274,7 @@ function DiceAnalysis({
             accent="#c4a0e0"
             title={
               <>
-                Consultation de l&apos;Oracle
+                Consultation de l'Oracle
                 <span className="oracle-loader-dot">.</span>
                 <span className="oracle-loader-dot">.</span>
                 <span className="oracle-loader-dot">.</span>
@@ -306,7 +307,7 @@ function DiceAnalysis({
 }
 
 // ── Page principale ──
-export default function ObstacleSolutionPage() {
+function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
   const t = useT();
 
@@ -531,9 +532,6 @@ export default function ObstacleSolutionPage() {
               type="text"
               value={qText}
               onChange={(e) => setQText(e.target.value)}
-              autoCorrect="on"
-              spellCheck={true}
-              autoCapitalize="sentences"
               placeholder="Garder en mémoire votre question"
               className="w-full max-w-sm rounded-lg px-4 py-2 text-sm mx-auto mb-4"
               style={{
@@ -565,7 +563,7 @@ export default function ObstacleSolutionPage() {
               — OU —
             </p>
             <p className="text-sm mb-4 max-w-xs mx-auto" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
-              Concentrez-vous sur l&apos;obstacle qui vous préoccupe et lancez directement les dés
+              Concentrez-vous sur l'obstacle qui vous préoccupe et lancez directement les dés
             </p>
             <button
               onClick={() => { setQuestion(null); rollObstacle(); }}
@@ -899,4 +897,8 @@ export default function ObstacleSolutionPage() {
       </div>
     </DiceBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><ObstacleSolutionPage /></AuthGate>;
 }

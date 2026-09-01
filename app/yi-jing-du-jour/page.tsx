@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
+import AuthGate from '@/components/auth-gate';
 import { api } from '@/lib/api-client';
 
 // ─── Types ───────────────────────────────────────────────
@@ -103,7 +104,7 @@ function Sparkles() {
 }
 
 // ─── Page Principale ─────────────────────────────────────
-export default function YiJingDuJourPage() {
+function YiJingDuJourPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -385,4 +386,8 @@ export default function YiJingDuJourPage() {
       `}</style>
     </div>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><YiJingDuJourPage /></AuthGate>;
 }

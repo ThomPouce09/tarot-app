@@ -31,10 +31,10 @@ export default function CookieBanner() {
             <p>Nous utilisons des cookies pour améliorer votre expérience. En continuant, vous acceptez notre <a href="/privacy" className="underline" style={{ color: '#DAA520' }}>Politique de confidentialité</a>.</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={acceptEssential} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'rgba(218,165,32,0.2)', color: '#DAA520', border: '1px solid rgba(218,165,32,0.3)' }}>
+            <button onClick={acceptEssential} className="mystic-btn-ghost text-sm">
               Essentiels seulement
             </button>
-            <button onClick={acceptAll} className="px-4 py-2 rounded-lg text-sm font-bold" style={{ background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)', color: '#1a0e0a' }}>
+            <button onClick={acceptAll} className="mystic-btn text-sm">
               Tout accepter
             </button>
           </div>

@@ -28,6 +28,8 @@ const DEFAULT_PREFS: Prefs = {
   haptics: true,
 };
 
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 export default function PreferencesPage() {
   const t = useT();
   const lang = useLang();
@@ -198,9 +200,18 @@ export default function PreferencesPage() {
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.notifications')}</h2>
         <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
         {prefs.dailyReminder && (
-          <p className="text-gray-400 text-xs pl-1">
-            {t('prefs.reminderFixedHour')} <strong>21h</strong>
-          </p>
+          <div className="flex items-center justify-between pl-1">
+            <span className="text-gray-400 text-xs">{t('prefs.reminderHour')}</span>
+            <select
+              value={prefs.dailyReminderHour}
+              onChange={(e) => update({ dailyReminderHour: Number(e.target.value) })}
+              className="bg-gray-800/70 border border-amber-700/40 rounded px-2 py-1 text-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            >
+              {HOURS.map((h) => (
+                <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+              ))}
+            </select>
+          </div>
         )}
         {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l&apos;app.</p>}
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />

@@ -10,6 +10,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
+import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
@@ -75,6 +76,7 @@ export default function YiJingHubPage() {
   const t = useT();
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
+  const auth = useRequireVerified();
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -117,6 +119,7 @@ export default function YiJingHubPage() {
     setTimeout(() => setShowLoginPrompt(false), 3000);
   };
 
+  if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <div className="relative w-full min-h-screen overflow-y-auto flex items-center justify-center">
       {/* BACKGROUND */}

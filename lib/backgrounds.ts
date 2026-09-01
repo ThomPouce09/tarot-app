@@ -1,6 +1,12 @@
-// lib/backgrounds.ts — Fonds d'écran de la landing page
-// Version APK : identique à main (aucune dépendance native). Source de vérité
-// unique des fonds disponibles (public/backgrounds/landing-bg*.{jpg,mp4}).
+// ─── Fonds d'écran de la landing page ──────────────────────────────────────
+// Source de vérité unique des fonds disponibles. Chaque entrée est un chemin
+// public vers un fichier de `public/backgrounds/` nommé `landing-bgX.jpg`
+// (ou `.png` / `.mp4`). Pour ajouter un fond : dépose le fichier dans
+// `public/backgrounds/` à ce nom ET ajoute son chemin ici.
+//
+// Le fond peut être une image (affichée en <Image fill>) ou une vidéo
+// (rendue en <video autoPlay muted loop playsInline>) — détection via
+// `isVideoBackground()`.
 
 export const LANDING_BACKGROUNDS: string[] = [
   '/backgrounds/landing-bg.jpg',

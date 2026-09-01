@@ -2,19 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── WebView / mobile reset ─────────────────────────────────────────────
-   Supprime le « rectangle » gris/bleu que le navigateur (et la WebView
-   Android Capacitor) affiche autour des éléments lors d'un tap/clic
-   (-webkit-tap-highlight-color) et l'outline de focus au clic. Sans ça,
-   cliquer une image/icône cliquable dessine un surlignage rectangulaire
-   — perçu comme une transparence mal gérée. */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-*:focus:not(:focus-visible) {
-  outline: none;
-}
-
 :root {
   --card-width: 120px;
   --card-height: 180px;
@@ -83,37 +70,10 @@ html, body {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100vw;
-  min-height: 100dvh;
+  min-height: 100vh;
   background: #1a0e0a;
   -webkit-user-select: none;
   user-select: none;
-}
-
-/* En mode edge-to-edge (APK plein écran), la barre d'état est transparente :
-   on force le fond sombre sur <html> pour que la zone du haut ne soit PAS
-   grise (sinon on voit le fond système par transparence). Et on ajoute des
-   marges safe-area pour que le contenu ne passe jamais sous la barre d'état
-   ni sous le trait de navigation (bas), qui masquaient des éléments. */
-html {
-  background: #1a0e0a;
-}
-body {
-  min-height: 100dvh;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  /* iOS/notch : marge latérale éventuelle. Android laisse 0. */
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-}
-
-/* Le user-select:none ci-dessus se propage aux champs dans la WebView Android
-   et casse la sélection/la prédiction de saisie (suggestions clavier). On le
-   force à 'text' sur les zones de saisie pour restaurer l'édition native. */
-input,
-textarea,
-[contenteditable="true"] {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 /* Custom scrollbar for fan area */
@@ -255,13 +215,21 @@ textarea,
 .brand-oracle {
   font-family: var(--font-cormorant), serif;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  background: linear-gradient(100deg, #f5d98b 0%, #daa520 38%, #b8860b 62%, #f5d98b 100%);
+  letter-spacing: 0.08em;
+  background: linear-gradient(100deg, #b8860b 0%, #daa520 22%, #f6e7a6 50%, #daa520 78%, #b8860b 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: #daa520;
-  text-shadow: 0 0 22px rgba(218, 165, 32, 0.45);
+  filter: drop-shadow(0 0 9px rgba(255, 214, 90, 0.3));
+  animation: brand-shine 4.2s ease-in-out infinite;
+}
+
+/* Balayage lumineux droite→gauche du titre de marque (retour accueil). */
+@keyframes brand-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 .mystic-subtitle {
   font-family: var(--font-cinzel), serif;

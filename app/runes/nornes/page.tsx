@@ -20,6 +20,7 @@ import { ShakeTutorial } from './shake-tutorial';
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { useT } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
@@ -28,7 +29,7 @@ const RuneStonesSet = dynamic(
 
 const NORNES_POS = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir'];
 
-export default function NornesPage() {
+function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
@@ -320,4 +321,8 @@ export default function NornesPage() {
       </div>
     </RuneBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><NornesPage /></AuthGate>;
 }

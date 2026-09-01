@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { TAROT_CARDS } from "@/lib/tarot-data";
 import YiSlideNav from '@/components/yi-slide-nav';
+import AuthGate from '@/components/auth-gate';
 
 const CARD_WIDTH = 85;
 const CARD_HEIGHT = 145;
@@ -72,7 +73,7 @@ function CardComponent({ card, label }: { card: Card; label?: string }) {
   );
 }
 
-export default function Tarot5CartesPage() {
+function Tarot5CartesPage() {
   const [question, setQuestion] = useState("");
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
   const [shuffling, setShuffling] = useState(false);
@@ -162,16 +163,9 @@ export default function Tarot5CartesPage() {
             <motion.button
               onClick={handleSubmit}
               disabled={!question.trim()}
-              className="w-full mt-2 py-2.5 rounded-xl font-bold tracking-wide text-xs"
-              style={{
-                fontFamily: "var(--font-cinzel), serif",
-                background: question.trim()
-                  ? "linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)"
-                  : "rgba(60, 50, 20, 0.4)",
-                color: question.trim() ? "#1a0e0a" : "rgba(255, 215, 0, 0.3)",
-              }}
-              whileHover={question.trim() ? { scale: 1.02 } : {}}
-              whileTap={question.trim() ? { scale: 0.98 } : {}}
+              className="w-full mt-2 mystic-btn text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               ✨ Valider et tirer les 5 cartes
             </motion.button>
@@ -242,13 +236,7 @@ export default function Tarot5CartesPage() {
         >
           <motion.button
             onClick={handleInterpretation}
-            className="px-6 py-3 rounded-xl text-sm font-bold tracking-wide"
-            style={{
-              fontFamily: "var(--font-cinzel), serif",
-              background: "linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)",
-              color: "#1a0e0a",
-              boxShadow: "0 0 30px rgba(218,165,32,0.5)",
-            }}
+            className="mystic-btn px-6 py-3 text-sm font-bold tracking-wide"
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -258,4 +246,8 @@ export default function Tarot5CartesPage() {
       )}
     </div>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><Tarot5CartesPage /></AuthGate>;
 }

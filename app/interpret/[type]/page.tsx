@@ -9,6 +9,7 @@ import { useLang, useT } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
+import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 
 interface Interpretation {
@@ -38,6 +39,7 @@ function InterpretationInner() {
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gateReason, setGateReason] = useState<any>(null);
   const [hexagram, setHexagram] = useState<{
     numero: number;
     name?: string;
@@ -142,8 +144,14 @@ function InterpretationInner() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then((res) => res.json().then((data) => ({ status: res.status, data })))
+      .then(({ status, data }) => {
+        if (status === 402) {
+          setGateReason(data.reason || 'limit-grand');
+          setError(null);
+          setLoading(false);
+          return;
+        }
         if (data.error) throw new Error(data.error);
         setInterpretation(data);
       })
@@ -153,6 +161,10 @@ function InterpretationInner() {
       })
       .finally(() => setLoading(false));
   }, [type, searchParams]);
+
+  if (gateReason) {
+    return <EntitlementGateModal reason={gateReason} onClose={() => setGateReason(null)} />;
+  }
 
   if (loading || !videoEnded) {
     // ready = l'interprétation est arrivée → l'overlay peut enchaîner vers la

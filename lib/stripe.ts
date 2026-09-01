@@ -7,7 +7,7 @@
 // renvoie null et les routes retournent une 503 propre ("paiements désactivés").
 
 import Stripe from 'stripe';
-import { PLAN_PRICE_EUR } from './plans';
+import { PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, type SubscriptionPlanId } from './plans';
 
 let _stripe: Stripe | null | undefined;
 
@@ -23,17 +23,31 @@ export function getStripe(): Stripe | null {
   return _stripe;
 }
 
-// Plans -> Prix Stripe (récupérés/créés côté serveur).
+// Plans récurrents -> Prix Stripe (récupérés/créés côté serveur).
 // On stocke les Price ID dans l'env pour ne pas les coder en dur ici.
-export type PlanId = 'initie' | 'oracle';
+export type PlanId = SubscriptionPlanId; // 'initie' | 'arkane'
 
-export function priceIdForPlan(plan: PlanId): string | undefined {
-  if (plan === 'initie') return process.env.STRIPE_PRICE_INITIE;
-  if (plan === 'oracle') return process.env.STRIPE_PRICE_ORACLE;
-  return undefined;
+export function priceIdForPlan(plan: PlanId, billing: 'month' | 'year' = 'month'): string | undefined {
+  if (billing === 'year') {
+    return plan === 'initie' ? process.env.STRIPE_PRICE_INITIE_YEAR : process.env.STRIPE_PRICE_ARKANE_YEAR;
+  }
+  const base = plan === 'initie'
+    ? process.env.STRIPE_PRICE_INITIE
+    : plan === 'arkane'
+      ? process.env.STRIPE_PRICE_ARKANE
+      : undefined;
+  return base;
 }
 
-export const PLAN_AMOUNTS: Record<PlanId, { amount: number; currency: 'eur'; interval: 'month'; name: string }> = {
+export const PLAN_AMOUNTS: Record<PlanId, { amount: number; currency: 'eur'; interval: 'month' | 'year'; name: string }> = {
   initie: { amount: 490, currency: 'eur', interval: 'month', name: 'Initié' },
-  oracle: { amount: 990, currency: 'eur', interval: 'month', name: 'Oracle' },
+  arkane: { amount: 790, currency: 'eur', interval: 'month', name: 'Arkane' },
 };
+
+// One-shot : recharge cosmique (2€). Bienvenue = offert (sans Stripe).
+export const ONE_SHOT_AMOUNTS = { recharge: 200 }; // 2€ en centimes
+export const ONE_SHOT_NAMES: Record<OneShotPlan, string> = {
+  recharge: 'Recharge cosmique — 105 crédits',
+  bienvenue: 'Pack de bienvenue',
+};
+export type OneShotPlan = 'recharge' | 'bienvenue';

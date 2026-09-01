@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import TarotApp from '@/app/components/tarot-app';
 import YiSlideNav from '@/components/yi-slide-nav';
+import AuthGate from '@/components/auth-gate';
 
 const TOTAL_PICKS = 5;
 
@@ -21,7 +22,7 @@ const CROSS_LAYOUT = [
   { area: 'a4', label: 'La Base', icon: '❋' },
 ];
 
-export default function TarotUpgradePage() {
+function TarotUpgradePage() {
   const router = useRouter();
 
   // AUTH GUARD: redirect if not logged in
@@ -175,8 +176,7 @@ export default function TarotUpgradePage() {
             <button
               onClick={handleQuestionSubmit}
               disabled={!questionText.trim()}
-              className={`flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#DAA520] via-[#E8C87A] to-[#FFD700] py-4 text-base font-bold uppercase tracking-[0.1em] text-[#3A2407] transition-all duration-300 hover:shadow-[0_0_30px_rgba(218,165,32,0.45)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
-              style={{ fontFamily: 'var(--font-cinzel), serif' }}
+              className={`mystic-btn flex w-full items-center justify-center gap-2.5 py-4 text-base font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
             >
               Enregistrer et tirer vos cartes
             </button>
@@ -202,4 +202,8 @@ export default function TarotUpgradePage() {
       )}
     </div>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><TarotUpgradePage /></AuthGate>;
 }

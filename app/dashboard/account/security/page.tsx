@@ -165,19 +165,10 @@ export default function SecurityPage() {
 }
 
 function Field({ id, label, value, onChange, type }: { id: string; label: string; value: string; onChange: (v: string) => void; type?: string }) {
-  // autoComplete sémantique : active la complétion clavier (save mot de passe,
-  // téléphone, etc.) au lieu de la couper — requis en WebView Android.
-  const ac =
-    type === 'password' ? (id === 'cur' ? 'current-password' : 'new-password')
-    : type === 'tel' ? 'tel'
-    : type === 'number' ? 'off'
-    : id === 'firstName' ? 'given-name'
-    : id === 'lastName' ? 'family-name'
-    : 'off';
   return (
     <div>
       <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
-      <input id={id} type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={ac} className="mystic-input" />
+      <input id={id} type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} autoComplete="off" className="mystic-input" />
     </div>
   );
 }

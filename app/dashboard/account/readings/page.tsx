@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api-client';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
+import { api } from '@/lib/api-client';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 

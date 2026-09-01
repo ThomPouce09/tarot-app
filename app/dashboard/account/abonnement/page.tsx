@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useT } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
-import { openCheckout } from '@/lib/checkout-open';
-import { App } from '@capacitor/app';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
+import { api } from '@/lib/api-client';
 
 // Niveaux affichés, ordre d'exposition.
 const CARDS: PlanId[] = ['bienvenue', 'apprenti', 'recharge', 'initie', 'arkane'];
@@ -150,20 +148,6 @@ export default function AbonnementPage() {
       }
     };
     confirmAndLoad();
-
-    // Refraîchit l'état au retour d'avant-plan (ex. sortie du portail Stripe,
-    // du Custom Tab de checkout, ou d'un onglet) : la page reste montée en
-    // WebView, donc le useEffect ci-dessus ne se relance pas seul.
-    let appSub: { remove: () => void } | null = null;
-    (async () => {
-      try {
-        const sub = await App.addListener('appStateChange', (state) => {
-          if (state.isActive) loadState(email);
-        });
-        appSub = sub as unknown as { remove: () => void };
-      } catch { /* web: App indisponible, ignore */ }
-    })();
-    return () => appSub?.remove?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
@@ -187,7 +171,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        openCheckout(data.url);
+        window.location.href = data.url;
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -212,7 +196,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        openCheckout(data.url);
+        window.location.href = data.url;
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -233,7 +217,7 @@ export default function AbonnementPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.url) { openCheckout(data.url); return; }
+      if (data.url) { window.location.href = data.url; return; }
       setMsg(data.error || "Échec de l'ouverture du portail.");
     } catch {
       setMsg("Erreur de connexion au serveur.");
@@ -273,8 +257,8 @@ export default function AbonnementPage() {
   const currentRank = hasSubscription ? (RANK[current] ?? 2) : 0;
   const isLocked = (p: PlanId): boolean => {
     // La recharge cosmique est utile pour Initié (crédits limités) mais sans
-    // objet pour Arkane (consommation illimitée). Elle reste proposable pour
-    // un compte sans abonnement ou Initié ; bloquée pour Arkane.
+    // objet pour Arkane (consommation illimitée). Proposable pour un compte
+    // sans abonnement ou Initié ; bloquée pour Arkane.
     if (p === 'recharge') return current === 'arkane';
     // On ne peut pas choisir un plan inférieur au plan actif (sans résilier).
     return hasSubscription && RANK[p] < currentRank;
