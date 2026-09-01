@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 
@@ -12,12 +12,55 @@ export default function AccountPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', age: '', gender: 'other', comment: '' });
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  // Statut d'activation FIABLE (DB) — ne pas se fier au localStorage (périmé).
+  const [confirmed, setConfirmed] = useState<boolean | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('tarot_user') : null;
-  if (!user && stored) {
-    try { setUser(JSON.parse(stored)); } catch {}
-  }
+  // Chargement initial depuis localStorage — HORS du rendu, sinon :
+  // "Update hook called on initial render" (setState pendant le rendu interdit).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('tarot_user');
+      if (stored) setUser(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  // Recharge le statut d'activation depuis la DB (source de vérité).
+  useEffect(() => {
+    if (!user?.email) return;
+    fetch('/api/auth/refresh-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email }),
+    })
+      .then((r) => r.json())
+      .then((d) => setConfirmed(typeof d.confirmed === 'boolean' ? d.confirmed : false))
+      .catch(() => setConfirmed(false));
+  }, [user?.email]);
+
   if (!user) return null;
+
+  const isConfirmed = confirmed === true;
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendMsg('');
+    try {
+      const res = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+      const data = await res.json();
+      if (res.ok) setResendMsg(t('account.resendSent'));
+      else setResendMsg(data.error || t('account.resendError'));
+    } catch {
+      setResendMsg(t('account.resendError'));
+    } finally {
+      setResending(false);
+    }
+  };
 
   const initial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
 
@@ -70,13 +113,28 @@ export default function AccountPage() {
           </h1>
           <p className="text-gray-400 text-sm truncate">{user.email}</p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <span className={`badge-mystic ${user.confirmed ? '' : 'muted'}`}>
-              {user.confirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
+            <span className={`badge-mystic ${isConfirmed ? '' : 'muted'}`}>
+              {confirmed === null ? t('account.checking') : isConfirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
             </span>
             <span className="badge-mystic muted">{t('account.memberSince')} {memberSince}</span>
           </div>
         </div>
       </div>
+
+      {confirmed === false && (
+        <div className="mystic-panel p-4 space-y-2 border-amber-700/40 bg-amber-900/15">
+          <p className="text-sm text-amber-100">{t('account.confirmNotice')}</p>
+          <p className="text-xs text-amber-200/80">{t('account.confirmAdvice')}</p>
+          {resendMsg && <p role="status" aria-live="polite" className="text-xs text-amber-100">{resendMsg}</p>}
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="mystic-btn text-sm px-4 py-1.5"
+          >
+            {resending ? t('account.checking') : t('account.resendEmail')}
+          </button>
+        </div>
+      )}
 
       {message && (
         <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">

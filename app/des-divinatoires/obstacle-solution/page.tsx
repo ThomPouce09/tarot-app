@@ -23,6 +23,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT, useLang } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -305,7 +306,7 @@ function DiceAnalysis({
 }
 
 // ── Page principale ──
-export default function ObstacleSolutionPage() {
+function ObstacleSolutionPage() {
   const [step, setStep] = useState<Step>('intro');
   const t = useT();
 
@@ -895,4 +896,8 @@ export default function ObstacleSolutionPage() {
       </div>
     </DiceBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><ObstacleSolutionPage /></AuthGate>;
 }

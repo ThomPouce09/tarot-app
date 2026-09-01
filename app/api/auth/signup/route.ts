@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
-
-export const dynamic = 'force-dynamic';
+import { sendConfirmationEmail } from '@/lib/mailer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +37,17 @@ export async function POST(request: NextRequest) {
         confirmationToken,
       },
     });
+
+    // Envoi de l'email d'activation (helper partagé lib/mailer.sendConfirmationEmail).
+    try {
+      await sendConfirmationEmail({ email: user.email, firstName: user.firstName, token: confirmationToken });
+    } catch (emailError: any) {
+      console.error('[signup] email activation error:', emailError);
+      return NextResponse.json(
+        { error: 'Compte créé, mais échec de l\'envoi de l\'email d\'activation : ' + (emailError?.message || 'inconnu') },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       success: true,

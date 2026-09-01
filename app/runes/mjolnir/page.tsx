@@ -17,6 +17,7 @@ import {
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading } from '@/lib/save-reading';
 import { useT } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const RuneStonesSet = dynamic(
   () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
@@ -38,7 +39,7 @@ const POS = [
   'Centre de la tête — La Frappe',
 ];
 
-export default function MjolnirPage() {
+function MjolnirPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   const [done, setDone] = useState(false);
@@ -129,4 +130,8 @@ export default function MjolnirPage() {
       </div>
     </RuneBackground>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><MjolnirPage /></AuthGate>;
 }

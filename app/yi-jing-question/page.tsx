@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useLang } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
+import AuthGate from '@/components/auth-gate';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 const BOX_IMG = "/images/boite.png";
@@ -805,7 +806,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
 }
 
 // --- Main Page ---
-export default function YiJingQuestionPage() {
+function YiJingQuestionPage() {
   const lang = useLang();
   const [question, setQuestion] = useState('');
   const [questionAsked, setQuestionAsked] = useState(false);
@@ -938,17 +939,7 @@ export default function YiJingQuestionPage() {
             <motion.button
               onClick={handleSubmitQuestion}
               disabled={!question.trim()}
-              className="w-full mt-3 py-3 rounded-xl font-bold tracking-wide transition-all"
-              style={{
-                fontFamily: 'var(--font-cinzel), serif',
-                background: question.trim()
-                  ? 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)'
-                  : 'rgba(60, 50, 20, 0.4)',
-                color: question.trim() ? '#1a0e0a' : 'rgba(255, 215, 0, 0.3)',
-                boxShadow: question.trim() ? '0 0 30px rgba(218,165,32,0.4)' : 'none',
-                border: '2px solid rgba(218,165,32,0.3)',
-                cursor: question.trim() ? 'pointer' : 'not-allowed',
-              }}
+              className="w-full mt-3 mystic-btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={question.trim() ? { scale: 1.03 } : {}}
               whileTap={question.trim() ? { scale: 0.97 } : {}}
             >
@@ -989,4 +980,8 @@ export default function YiJingQuestionPage() {
       )}
     </div>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><YiJingQuestionPage /></AuthGate>;
 }

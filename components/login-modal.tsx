@@ -147,16 +147,7 @@ export function LoginModal() {
           </div>
           <button
             type="submit"
-            className="w-full py-3 rounded-lg font-bold transition-all mt-6"
-            style={{
-              fontFamily: 'var(--font-cinzel-deco), serif',
-              background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-              color: '#1a0e0a',
-              boxShadow: '0 0 20px rgba(218,165,32,0.4)',
-              border: '1px solid rgba(218,165,32,0.5)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            className="w-full mystic-btn mt-6"
           >
             {t('login.submit')}
           </button>

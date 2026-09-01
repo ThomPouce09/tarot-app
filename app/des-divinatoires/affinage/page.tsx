@@ -43,6 +43,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { useT } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
 const AstroDiceCup = dynamic(
@@ -86,7 +87,7 @@ function diceStaticTextFor(f: TargetFaces, kinds: DieKind[]) {
   return kinds.map((k) => `${KIND_LABEL[k]} ${f[k]} : ${meaningFor(k, f[k])}`).join('\n');
 }
 
-export default function AffinagePage() {
+function AffinagePage() {
   const [phase, setPhase] = useState<Phase>('initial');
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
@@ -1014,4 +1015,8 @@ export default function AffinagePage() {
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=swipe"
       /></>
   );
+}
+
+export default function GatedPage() {
+  return <AuthGate><AffinagePage /></AuthGate>;
 }

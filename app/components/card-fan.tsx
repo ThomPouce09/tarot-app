@@ -527,14 +527,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
         >
           <motion.button
             onClick={handleRequestInterpretation}
-            className="px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
-            style={{
-              fontFamily: 'var(--font-cinzel), serif',
-              background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-              color: '#1a0e0a',
-              boxShadow: '0 0 40px rgba(218,165,32,0.5), 0 6px 20px rgba(0,0,0,0.6)',
-              border: '2px solid rgba(218,165,32,0.4)',
-            }}
+            className="mystic-btn px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg md:text-xl font-bold tracking-wide"
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >

@@ -61,7 +61,7 @@ export default function ForgotPasswordModal() {
             )}
             <button
               onClick={() => router.push('/auth/login')}
-              className="w-full py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white mt-4"
+              className="w-full mystic-btn mt-4"
             >
               Retour connexion
             </button>
@@ -87,13 +87,13 @@ export default function ForgotPasswordModal() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 py-2 border border-amber-800/50 rounded-lg text-amber-300"
+                className="flex-1 mystic-btn-ghost"
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-lg text-white"
+                className="flex-1 mystic-btn"
               >
                 Envoyer
               </button>

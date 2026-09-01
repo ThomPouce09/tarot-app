@@ -16,6 +16,7 @@ import { useLang } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
+import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 
 // Frise décorative de runes — rendue uniquement après hydratation pour
 // éviter le mismatch d'hydratation (glyphes runiques = Unicode hors-BMP).
@@ -131,6 +132,7 @@ export default function RunesHub() {
   const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
+  const auth = useRequireVerified();
 
   useEffect(() => {
     setMounted(true);
@@ -165,6 +167,7 @@ export default function RunesHub() {
       stopSound('runes');
     };
   }, []);
+  if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <RuneBackground>
       <YiSlideNav />

@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json();
 
-    if (!token || !password) {
-      return NextResponse.json({ error: 'Token et mot de passe requis' }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ error: 'Token requis' }, { status: 400 });
     }
 
     const user = await prisma.user.findFirst({
@@ -38,16 +38,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token invalide' }, { status: 400 });
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: await (require('bcryptjs') as any).hash(password, 12),
-        confirmed: true,
-        confirmationToken: null,
-      },
-    });
+    // Activation de compte (token seul) OU réinitialisation (token + nouveau mdp).
+    const data: { confirmed: boolean; confirmationToken: null; password?: string } = {
+      confirmed: true,
+      confirmationToken: null,
+    };
+    if (password) {
+      data.password = await (require('bcryptjs') as any).hash(password, 12);
+    }
 
-    return NextResponse.json({ success: true, message: 'Mot de passe mis à jour' });
+    await prisma.user.update({ where: { id: user.id }, data });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Compte activé',
+      user: { id: user.id, email: user.email, confirmed: true },
+    });
   } catch (error: any) {
     console.error('Confirm error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

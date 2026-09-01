@@ -216,16 +216,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading || isBlocked}
-            className="w-full py-3 rounded-lg font-bold transition-all disabled:opacity-50"
-            style={{
-              fontFamily: 'var(--font-cinzel-deco), serif',
-              background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-              color: '#1a0e0a',
-              boxShadow: '0 0 20px rgba(218,165,32,0.4)',
-              border: '1px solid rgba(218,165,32,0.5)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            className="w-full mystic-btn disabled:opacity-50"
           >
             {isLoading ? 'Connexion...' : isBlocked ? 'Bloqué' : t('login.submit')}
           </button>
@@ -273,13 +264,7 @@ export default function LoginPage() {
                 <p style={{ color: 'rgba(255,215,0,0.5)', fontSize: '0.8rem' }}>Vérifiez votre boîte mail (y compris spam)</p>
                 <button
                   onClick={() => setShowForgotPassword(false)}
-                  className="w-full py-2 rounded-lg"
-                  style={{
-                    fontFamily: 'var(--font-cinzel), serif',
-                    background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-                    color: '#1a0e0a',
-                    border: '1px solid rgba(218,165,32,0.5)',
-                  }}
+                  className="w-full mystic-btn"
                 >
                   Fermer
                 </button>
@@ -311,24 +296,13 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(false)}
-                    className="flex-1 py-2 rounded-lg"
-                    style={{
-                      fontFamily: 'var(--font-cinzel), serif',
-                      border: '1px solid rgba(218,165,32,0.4)',
-                      color: '#FFD700',
-                    }}
+                    className="flex-1 mystic-btn-ghost"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 rounded-lg"
-                    style={{
-                      fontFamily: 'var(--font-cinzel-deco), serif',
-                      background: 'linear-gradient(135deg, #8B6914 0%, #DAA520 50%, #8B6914 100%)',
-                      color: '#1a0e0a',
-                      border: '1px solid rgba(218,165,32,0.5)',
-                    }}
+                    className="flex-1 mystic-btn"
                   >
                     Envoyer
                   </button>
