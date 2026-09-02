@@ -30,10 +30,6 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['banner', 'list', 'sound'],
     },
-    StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#0d1b2a',
-    },
   },
   android: {
     allowMixedContent: false,
