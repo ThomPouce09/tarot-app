@@ -23,16 +23,16 @@ export default function AccountNav({ user }: { user: any }) {
   // l'une après l'autre. 0 = aucune, 1 = marque → accueil, 2 = avatar → Mon compte.
   const [tourStep, setTourStep] = useState<0 | 1 | 2>(0);
   useEffect(() => {
-    try { if (!sessionStorage.getItem('tarot_tour_done')) setTourStep(1); } catch {}
+    try { if (!localStorage.getItem('tarot_tour_done')) setTourStep(1); } catch {}
   }, []);
   const okTour = () => {
     if (tourStep === 1) setTourStep(2);
-    else if (tourStep === 2) { setTourStep(0); try { sessionStorage.setItem('tarot_tour_done', '1'); } catch {} }
+    else if (tourStep === 2) { setTourStep(0); try { localStorage.setItem('tarot_tour_done', '1'); } catch {} }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
-    try { sessionStorage.removeItem('tarot_tour_done'); } catch {}
+    try { localStorage.removeItem('tarot_tour_done'); } catch {}
     router.push('/');
   };
 
