@@ -4,6 +4,7 @@ import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
+import StatusBarController from '@/components/status-bar-controller'
 
 // (static export : pas de force-dynamic)
 
@@ -71,6 +72,7 @@ export default function RootLayout({
         }} />
       </head>
       <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} ${cormorant.variable} font-sans antialiased`} suppressHydrationWarning>
+        <StatusBarController />
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
