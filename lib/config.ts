@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-// CONFIGURATION - Tarot Divinatoire
+// CONFIGURATION - Oracle des Etoiles
 // ═══════════════════════════════════════════════════════════════════
 // Paramètres ajustables pour l'interface et les animations
 // ═══════════════════════════════════════════════════════════════════

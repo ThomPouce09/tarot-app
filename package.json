@@ -18,6 +18,7 @@
     "seed": "tsx --require dotenv/config scripts/safe-seed.ts"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@playwright/test": "^1.61.1",
     "@resvg/resvg-js": "^2.6.2",

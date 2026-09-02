@@ -13,14 +13,14 @@ const medieval = MedievalSharp({ subsets: ['latin'], variable: '--font-medieval'
 const cormorant = Cormorant_Garamond({ subsets: ['latin'], variable: '--font-cormorant', weight: ['400', '500', '600', '700'] })
 
 export const metadata = {
-  title: 'Tarot Divinatoire — Tirage de 3 Cartes',
+  title: 'Oracle des Etoiles — Tirage de 3 Cartes',
   description: 'Découvrez votre destinée à travers un tirage de tarot médiéval de 3 cartes. Une expérience mystique et immersive.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
   },
   openGraph: {
-    title: 'Tarot Divinatoire — Tirage de 3 Cartes',
+    title: 'Oracle des Etoiles — Tirage de 3 Cartes',
     description: 'Découvrez votre destinée à travers un tirage de tarot médiéval.',
     images: ['/og-image.png'],
   },

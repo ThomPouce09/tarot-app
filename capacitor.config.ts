@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.tarot.app',
-  appName: 'Tarot Divinatoire',
+  appName: 'Oracle des Etoiles',
   webDir: 'out',
   server: {
     androidScheme: 'https',

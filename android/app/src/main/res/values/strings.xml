@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Tarot Divination</string>
-    <string name="title_activity_main">Tarot Divination</string>
+    <string name="app_name">Oracle des Etoiles</string>
+    <string name="title_activity_main">Oracle des Etoiles</string>
     <string name="package_name">com.tarot.divination</string>
     <string name="custom_url_scheme">com.tarot.divination</string>
 </resources>

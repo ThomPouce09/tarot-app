@@ -35,7 +35,7 @@ export async function sendConfirmationEmail({
   await mailer.sendMail({
     from: MAIL_FROM,
     to: email,
-    subject: 'Activation de votre compte Tarot Divinatoire',
+    subject: 'Activation de votre compte Oracle des Etoiles',
     text:
       `${salutation}\n\n` +
       `Pour activer votre compte et accéder aux univers, cliquez sur ce lien :\n` +

@@ -208,6 +208,6 @@ export function renderLetter(d: LetterData): string {
   <div class="cta-wrap"><a class="cta" href="https://tarot-app-one-sage.vercel.app/yi-jing-du-jour" style="color:#2a1700;">✦ Tirer maintenant ✦</a></div>
   <p class="adv">L'Oracle vous attend — un tirage par jour suffit à entretenir la flamme.</p>
 
-  <div class="foot"><div class="sep">─── ✦ ───</div><p>Vous recevez cette lettre chaque semaine.</p><p>Gérez vos <a href="https://tarot-app-one-sage.vercel.app/dashboard/account/preferences">préférences</a>.</p><p style="margin-top:8px;">Tarot Divination · L'art de lire votre chemin</p></div>
+  <div class="foot"><div class="sep">─── ✦ ───</div><p>Vous recevez cette lettre chaque semaine.</p><p>Gérez vos <a href="https://tarot-app-one-sage.vercel.app/dashboard/account/preferences">préférences</a>.</p><p style="margin-top:8px;">Oracle des Etoiles · L'art de lire votre chemin</p></div>
 </div></body></html>`;
 }

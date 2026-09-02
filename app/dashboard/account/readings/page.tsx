@@ -204,7 +204,7 @@ export default function ReadingsPage() {
   const generateShareText = useCallback((r: Reading): string => {
     const m = metaOf(r);
     const lines: string[] = [];
-    const app = '✨ Tarot Divinatoire';
+    const app = '✨ Oracle des Etoiles';
 
     // En-tête
     lines.push(`📜 ${m.label}`);
@@ -323,7 +323,7 @@ export default function ReadingsPage() {
     const text = generateShareText(r);
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Tarot Divinatoire', text });
+        await navigator.share({ title: 'Oracle des Etoiles', text });
       } catch { /* user cancelled */ }
     } else {
       try {
