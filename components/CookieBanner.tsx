@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function CookieBanner() {
   const [show, setShow] = useState(false);
@@ -28,7 +29,7 @@ export default function CookieBanner() {
       <div className="max-w-4xl mx-auto rounded-xl p-4" style={{ background: 'rgba(26, 14, 10, 0.95)', border: '1px solid rgba(218, 165, 32, 0.3)', boxShadow: '0 0 40px rgba(218,165,32,0.2)' }}>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex-1 text-sm" style={{ color: 'rgba(255,215,0,0.8)', fontFamily: 'var(--font-cinzel), serif' }}>
-            <p>Nous utilisons des cookies pour améliorer votre expérience. En continuant, vous acceptez notre <a href="/privacy" className="underline" style={{ color: '#DAA520' }}>Politique de confidentialité</a>.</p>
+            <p>Nous utilisons des cookies pour améliorer votre expérience. En continuant, vous acceptez notre <Link href="/privacy" className="underline" style={{ color: '#DAA520' }}>Politique de confidentialité</Link>.</p>
           </div>
           <div className="flex gap-2">
             <button onClick={acceptEssential} className="mystic-btn-ghost text-sm">

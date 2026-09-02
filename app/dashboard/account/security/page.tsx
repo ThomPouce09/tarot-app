@@ -168,7 +168,7 @@ function Field({ id, label, value, onChange, type }: { id: string; label: string
   return (
     <div>
       <label htmlFor={id} className="mystic-label block mb-1">{label}</label>
-      <input id={id} type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} autoComplete="off" className="mystic-input" />
+      <input id={id} type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={type === 'email' ? 'email' : type === 'tel' ? 'tel' : type === 'password' ? 'current-password' : 'off'} className="mystic-input" />
     </div>
   );
 }

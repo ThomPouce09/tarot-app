@@ -223,7 +223,7 @@ function Field({ id, label, value, onChange, type = 'text' }: { id: string; labe
         type={type}
         value={value}
         onChange={onChange}
-        autoComplete="off"
+        autoComplete={type === 'email' ? 'email' : type === 'tel' ? 'tel' : type === 'password' ? 'current-password' : 'off'}
         className="mystic-input"
       />
     </div>

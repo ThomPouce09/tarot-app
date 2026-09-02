@@ -132,7 +132,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               inputMode="email"
-              autoComplete="off"
+              autoComplete="email"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -276,7 +276,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   inputMode="email"
-                  autoComplete="off"
+                  autoComplete="email"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}

@@ -177,7 +177,7 @@ export default function SignUpPage() {
                     value={formData.email}
                     onChange={handleChange}
                     inputMode="email"
-                    autoComplete="off"
+                    autoComplete="email"
                     className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all backdrop-blur-sm"
                     placeholder="votre@email.com"
                     required

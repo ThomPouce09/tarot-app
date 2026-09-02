@@ -64,16 +64,51 @@
   box-sizing: border-box;
 }
 
+/* ── WebView / mobile reset ─────────────────────────────────────────────
+   Supprime le « rectangle » gris/bleu autour des éléments au tap/clic dans
+   la WebView Android Capacitor (-webkit-tap-highlight-color) ainsi que
+   l'outline de focus au clic. Sans ça, cliquer une image/icône cliquable
+   dessine un surlignage rectangulaire. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
   width: 100vw;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #1a0e0a;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Edge-to-edge (APK plein écran) : fond sombre sur <html> pour que la zone
+   du haut ne soit pas grise, et marges safe-area pour que le contenu ne
+   passe jamais sous la barre d'état ni sous le trait de navigation. */
+html {
+  background: #1a0e0a;
+}
+body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* user-select:none se propage aux champs dans la WebView Android et casse
+   la sélection/la prédiction de saisie : on restaure l'édition native. */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Custom scrollbar for fan area */
