@@ -96,7 +96,10 @@ html {
 }
 body {
   min-height: 100dvh;
-  padding-top: env(safe-area-inset-top, 0px);
+  /* Pleine hauteur : pas de padding-top safe-area pour que le contenu occupe
+     le haut de l'écran (edge-to-edge) ; le fond sombre + immersive natif gèrent
+     la zone la barre d'état. On garde bottom/left/right pour la navigation/notch. */
+  padding-top: 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
