@@ -24,6 +24,9 @@ export default function HomePage() {
   // Fond de départ : premier de la liste (fallback), remplacé dès le montage.
   const [background, setBackground] = useState<string>(LANDING_BACKGROUNDS[0]);
   const [bgReady, setBgReady] = useState(false); // évite le flash "mauvais fond" au refresh
+  // Video masquée (opacity 0) tant qu'elle n'est pas prête à jouer → évite la frame
+  // noire étirée (flash" cercle/ovale) au retour vers la landing.
+  const [videoReady, setVideoReady] = useState(false);
 
   // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
@@ -88,7 +91,11 @@ export default function HomePage() {
               muted
               loop
               playsInline
-              className="absolute inset-0 w-full h-full object-cover"
+              preload="auto"
+              onLoadedData={() => setVideoReady(true)}
+              onCanPlay={() => setVideoReady(true)}
+              onPlaying={() => setVideoReady(true)}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
             />
           ) : (
             <Image
