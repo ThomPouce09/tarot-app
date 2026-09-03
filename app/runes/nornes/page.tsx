@@ -16,9 +16,10 @@ import {
   SageCard,
   RUNE_THEME,
 } from '../_shared';
-import { ShakeTutorial } from './shake-tutorial';
+import { NornesTutorialModal } from './nornes-tutorial-modal';
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
+import { useEntitlement } from '@/lib/use-entitlement';
 import { useT } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 
@@ -32,13 +33,21 @@ const NORNES_POS = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — 
 function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
+  // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
+  // « Tisser une nouvelle voie » + « Recommencer un tirage » n'apparaissent
+  // qu'après — jamais avant).
+  const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
+  // Idem pour l'interprétation du Conseil d'Odin (4ème rune).
+  const [adviceAnalysisDone, setAdviceAnalysisDone] = useState(false);
+  // Abonnement : la variation Arkane (Conseil d'Odin) est réservée aux abonnés Arkane.
+  const { sub: entSub } = useEntitlement();
+  const isArkane = entSub?.level === 'arkane';
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
   const [question, setQuestion] = useState<string | null>(null);
-  // Séquence d'apparition au 1er chargement :
-  //   'question' → le champ question (concentration)
-  //   'demo'     → le tutoriel animé montre le geste (sac qui se secoue)
-  //   'ready'    → le tutoriel s'efface, le sac devient secouable (roll)
-  const [intro, setIntro] = useState<'question' | 'demo' | 'ready'>('question');
+  // Modale « Principe du Fil des Nornes » affichée au chargement :
+  //   'demo'  → la modale est ouverte (le sac est inactif derrière)
+  //   'ready' → « Compris » cliqué : la modale se ferme, le sac s'active (roll)
+  const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
   const t = useT();
   const readingIdRef = useRef<string | null>(null);
   const savedRef = useRef(false);
@@ -60,26 +69,30 @@ function NornesPage() {
     setIsRolling(true);
     savedRef.current = false;
     readingIdRef.current = null;
+    // Nouveau tirage → les interprétations doivent être (re)affichées avant
+    // que les actions « Recommencer » / « Tisser une nouvelle voie » réapparaissent.
+    setMainAnalysisDone(false);
+    setAdviceAnalysisDone(false);
   }, []);
 
-  // 🎬 Séquence d'apparition au chargement :
-  // 1. 'question' : le champ question invite à la concentration (visible d'emblée)
-  // 2. 'demo' : le tutoriel animé apparaît, reste ~5s, montre le geste
-  // 3. 'ready' : le tutoriel sort en fondu (~0.45s), PUIS le sac s'active (roll
-  //    différé de 600ms pour éviter tout chevauchement visuel).
+  // Clic sur « Compris » : ferme la modale → le champ question (obligatoire) est
+  // mis en avant ; le sac ne s'active qu'après l'enregistrement de la question.
+  const understand = useCallback(() => {
+    setIntro('ready');
+  }, []);
+
+  // Question obligatoire : elle conditionne l'activation du sac (roll différé
+  // de 350ms pour laisser le champ se refermer proprement).
+  const handleQuestionConfirm = useCallback((q: string | null) => {
+    if (!q) return;
+    setQuestion(q);
+    const t3 = window.setTimeout(() => roll(), 350);
+    cleanupRef.current = () => window.clearTimeout(t3);
+  }, [roll]);
+
+  // Nettoie le timeout de roll différé si l'on quitte la page avant le clic.
   useEffect(() => {
-    const t1 = window.setTimeout(() => setIntro('demo'), 1200);
-    const t2 = window.setTimeout(() => {
-      setIntro('ready');
-      const t3 = window.setTimeout(() => roll(), 600);
-      cleanupRef.current = () => window.clearTimeout(t3);
-    }, 6200);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      cleanupRef.current?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => cleanupRef.current?.();
   }, []);
 
   const handleRest = useCallback(async (r: DrawnRune[]) => {
@@ -111,6 +124,18 @@ function NornesPage() {
     setIsRolling(true);
   }, []);
 
+  // « Tisser une nouvelle voie » : le clic a lieu en bas de page → recentrer
+  // la vue sur le sac du Conseil d'Odin dès qu'il apparaît (laisse le temps
+  // au sac de se monter avant le scroll).
+  const adviceBagRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (phase !== 'advice') return;
+    const t = window.setTimeout(() => {
+      adviceBagRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 450);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
   const handleAdviceRest = useCallback(async (r: DrawnRune[]) => {
     setIsRolling(false);
     setRunes((prev) => {
@@ -138,8 +163,26 @@ function NornesPage() {
     }
   }, []);
 
+  // Révélation IA du tirage principal prête. Le focus est géré par RuneAnalysis
+  // lui-même (il amène sa tête — la grande tuile URD — en haut d'écran).
+  const onMainAnalysis = useCallback(
+    (text: string) => {
+      setMainAnalysisDone(true);
+      onAnalysis(text);
+    },
+    [onAnalysis],
+  );
+
+  // Révélation IA du Conseil d'Odin prête (permet le « Recommencer » du bloc advice).
+  const onAdviceAnalysis = useCallback(
+    (text: string) => {
+      setAdviceAnalysisDone(true);
+      onAnalysis(text);
+    },
+    [onAnalysis],
+  );
+
   const hasAdvice = runes.length === 4;
-  const skuld = runes[2];
 
   return (
     <RuneBackground>
@@ -151,42 +194,35 @@ function NornesPage() {
       />
 
       <div className="mx-auto max-w-2xl px-4">
-        {/* 🎬 Enchaînement au 1er chargement :
-            1. Le champ question RESTE visible (concentration) — il ne disparaît
-               que quand l'utilisateur confirme sa question (mécanisme interne).
-            2. 'demo' : le tutoriel animé apparaît ~5s, montre le geste.
-            3. 'ready' : le tutoriel sort en fondu, le sac devient actif (roll
-               différé pour éviter tout chevauchement visuel).
-            Le champ + la zone tutoriel gardent des hauteurs stables pour ne pas
-            décaler la zone de tirage pendant les transitions. */}
-        <div className="py-2">
-          {phase === 'idle' && (
-            <AskQuestion onConfirm={setQuestion} accentColor={RUNE_THEME.goldPale} autoFocus={false} />
-          )}
-        </div>
+        {/* Modale « Principe du Fil des Nornes » affichée avant le tirage : elle
+            recouvre la page jusqu'au clic « Compris ». */}
+        {intro === 'demo' && <NornesTutorialModal onDone={understand} />}
 
-        {/* Zone tutoriel : sa hauteur se déploie avec la modale puis se rétracte
-            à 0 quand elle disparaît → la zone de tirage remonte à sa place. */}
-        <motion.div
-          className="overflow-hidden text-center"
-          initial={false}
-          animate={{ height: intro === 'demo' ? 'auto' : 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          <AnimatePresence>
-            {intro === 'demo' && (
-              <motion.div
-                key="tuto"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.45, ease: 'easeOut' }}
-              >
-                <ShakeTutorial />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        {/* QUESTION (obligatoire, mise en avant) : le tirage ne démarre qu'une
+            fois la question écrite + enregistrée. L'invite « Écrivez votre
+            question… » est dans l'encadré du champ, au-dessus du texte. */}
+        {phase === 'idle' && !question && (
+          <div className="py-2">
+            <motion.div
+              className="rounded-2xl"
+              animate={{
+                boxShadow: [
+                  `0 0 0 1px ${RUNE_THEME.goldPale}33, 0 0 14px ${RUNE_THEME.goldPale}18`,
+                  `0 0 0 1px ${RUNE_THEME.goldPale}88, 0 0 34px ${RUNE_THEME.goldPale}55`,
+                  `0 0 0 1px ${RUNE_THEME.goldPale}33, 0 0 14px ${RUNE_THEME.goldPale}18`,
+                ],
+              }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <AskQuestion
+                required
+                onConfirm={handleQuestionConfirm}
+                accentColor={RUNE_THEME.goldPale}
+                autoFocus={false}
+              />
+            </motion.div>
+          </div>
+        )}
 
         <RuneStonesSet
           count={3}
@@ -209,18 +245,21 @@ function NornesPage() {
                 reversed={runes[0]?.reversed}
                 position="Urd — Le Passé"
                 meaning="Les origines de la situation, ce qui est déjà accompli."
+                compactInfo
               />
               <RuneReading
                 rune={runes[1]?.rune ?? null}
                 reversed={runes[1]?.reversed}
                 position="Verdandi — Le Présent"
                 meaning="La nécessité actuelle, le mouvement en cours."
+                compactInfo
               />
               <RuneReading
                 rune={runes[2]?.rune ?? null}
                 reversed={runes[2]?.reversed}
                 position="Skuld — L’Avenir"
                 meaning="L’aboutissement logique si rien ne change."
+                compactInfo
               />
             </motion.div>
           )}
@@ -236,13 +275,15 @@ function NornesPage() {
               { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
               { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
             ]}
-            onAnalysis={onAnalysis}
+            onAnalysis={onMainAnalysis}
+            autoRun
           />
         )}
 
-        {/* Variation "Briser le Destin" */}
+        {/* Variation "Briser le Destin" — réservée aux abonnés Arkane, et
+            uniquement APRÈS l'affichage de l'interprétation IA du tirage initial. */}
         <AnimatePresence>
-          {phase === 'done' && !hasAdvice && (
+          {phase === 'done' && !hasAdvice && mainAnalysisDone && isArkane && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -265,13 +306,15 @@ function NornesPage() {
         {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
             ré-affiché pour ce round : count=1, layout horizontal. */}
         {phase === 'advice' && (
-          <RuneStonesSet
-            count={1}
-            layout="horizontal"
-            isRolling={isRolling}
-            onRest={handleAdviceRest}
-            height={340}
-          />
+          <div ref={adviceBagRef} className="scroll-mt-4">
+            <RuneStonesSet
+              count={1}
+              layout="horizontal"
+              isRolling={isRolling}
+              onRest={handleAdviceRest}
+              height={340}
+            />
+          </div>
         )}
 
         {/* 4ème rune : Conseil d'Odin */}
@@ -291,6 +334,7 @@ function NornesPage() {
                   rune={runes[3].rune}
                   reversed={runes[3].reversed}
                   position="Conseil d'Odin"
+                  compactInfo
                 />
               </SageCard>
               {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
@@ -304,16 +348,21 @@ function NornesPage() {
                   { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
                   { rune: runes[3].rune, reversed: runes[3].reversed, position: 'Conseil d’Odin' },
                 ]}
-                onAnalysis={onAnalysis}
+                onAnalysis={onAdviceAnalysis}
+                autoRun
               />
-              <div className="mt-6 text-center">
-                <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
-              </div>
+              {/* « Recommencer » uniquement après l'affichage de l'interprétation d'Odin */}
+              {adviceAnalysisDone && (
+                <div className="mt-6 text-center">
+                  <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {phase === 'done' && !hasAdvice && (
+        {/* « Recommencer un tirage » uniquement après l'affichage de l'interprétation IA */}
+        {phase === 'done' && !hasAdvice && mainAnalysisDone && (
           <div className="mt-8 text-center">
             <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
           </div>

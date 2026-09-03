@@ -199,6 +199,7 @@ export const DICT = {
   'sub.activePlan': { fr: 'Forfait actif', en: 'Active plan' },
   'sub.activeStatus': { fr: 'Abonné', en: 'Subscribed' },
   'sub.activeHint': { fr: 'Vous profitez de tous les avantages de votre forfait.', en: 'You enjoy all the benefits of your plan.' },
+  'sub.expiredNotice': { fr: 'Votre abonnement a expiré le {date}. Réabonnez-vous pour retrouver vos avantages.', en: 'Your subscription expired on {date}. Resubscribe to regain your benefits.' },
   'sub.canceledStatus': { fr: 'Résilié', en: 'Canceled' },
   'sub.canceledHint': { fr: 'Votre forfait reste actif jusqu\'à la fin de la période.', en: 'Your plan stays active until the end of the period.' },
   'sub.untilDate': { fr: 'jusqu\'au', en: 'until' },
@@ -365,6 +366,11 @@ export const DICT = {
   'runes.nornes.tutoStep1': { fr: 'Formulez votre question dans votre esprit', en: 'Frame your question in your mind' },
   'runes.nornes.tutoStep2': { fr: 'Secouez le sac à plusieurs reprises', en: 'Shake the pouch again and again' },
   'runes.nornes.tutoStep3': { fr: 'Les runes sortent une par une', en: 'The runes come out one by one' },
+  'runes.nornes.gotIt': { fr: 'Compris', en: 'Got it' },
+  'runes.nornes.modalTitle': { fr: 'Principe du Fil des Nornes', en: 'Principle of the Thread of the Norns' },
+  'runes.nornes.modalStep1': { fr: 'Formulez votre question et enregistrez la', en: 'Formulate your question and save it' },
+  'runes.nornes.modalStep2': { fr: 'Secouez le sac des runes en tapant dessus', en: 'Shake the rune pouch by tapping it' },
+  'runes.nornes.modalStep3': { fr: 'Les runes (représentant le passé, le présent et l’avenir) sortent une par une. Une fois la 3ᵉ sortie, l’interprétation de l’Oracle vous apparaîtra…', en: 'The runes (representing the past, the present and the future) come out one by one. Once the 3rd is out, the Oracle’s interpretation will appear…' },
   'runes.nornes.advice': { fr: 'Tisser une nouvelle voie', en: 'Weave a new path' },
   'runes.mjolnir.title': { fr: 'Le Marteau de Mjölnir', en: 'The Hammer of Mjölnir' },
   'runes.mjolnir.subtitle': { fr: 'Affronter un obstacle majeur : cinq runes en forme de T pour briser le blocage.', en: 'Face a major obstacle: five runes in a T to shatter the block.' },
@@ -446,6 +452,7 @@ export const DICT = {
   'askQuestion.label': { fr: '🔮 Quelle est votre question (facultatif) ?', en: '🔮 What is your question (optional) ?' },
   'askQuestion.placeholder': { fr: 'Posez votre question…', en: 'Ask your question…' },
   'askQuestion.confirm': { fr: 'Enregistrer', en: 'Save' },
+  'askQuestion.requiredHint': { fr: 'Écrivez votre question pour activer le tirage', en: 'Type your question to start the draw' },
   'askQuestion.skip': { fr: 'Passer — lancer directement', en: 'Skip — draw directly' },
 
   // ─── History: labels vues dés / runes ───
