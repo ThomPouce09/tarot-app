@@ -218,6 +218,8 @@ export const DICT = {
   'sub.dailyLeft': { fr: 'Base du jour restante', en: 'Base left today' },
   'sub.streak': { fr: 'Série', en: 'Streak' },
   'sub.dashTitle': { fr: 'Ma consommation restante', en: 'My remaining usage' },
+  'sub.meterGift': { fr: 'Cadeau des créatures', en: 'Creature gift' },
+  'sub.giftExpires': { fr: 'expire le', en: 'expires on' },
   'sub.meterBase': { fr: 'Tirages de base', en: 'Base draws' },
   'sub.meterGrand': { fr: 'Tirages avancés', en: 'Advanced draws' },
   'sub.meterGrandShort': { fr: 'avancés', en: 'advanced' },

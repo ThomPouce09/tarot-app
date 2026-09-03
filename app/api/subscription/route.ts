@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
             welcomeGrandUsed: rights.welcomeGrandUsed,
             bonusGrand: rights.bonusGrand,
             rechargeCredits: rights.rechargeCredits,
+            giftTickets: rights.giftTickets,
+            giftExpiresAt: rights.giftExpiresAt ? rights.giftExpiresAt.toISOString() : null,
             streakDays: rights.streakDays,
           }
         : null,

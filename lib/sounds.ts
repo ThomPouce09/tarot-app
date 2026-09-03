@@ -70,6 +70,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'creatures3', file: '/audio/creatures3.mp3', category: 'ambient', label: 'Créature 3', duration: 1.10, usage: 'Tap sur la luciole — variant 3' },
   { key: 'creatures4', file: '/audio/creatures4.mp3', category: 'ambient', label: 'Créature 4', duration: 1.00, usage: 'Tap sur la luciole — variant 4' },
   { key: 'creatures5', file: '/audio/creatures5.mp3', category: 'ambient', label: 'Créature 5', duration: 1.60, usage: 'Tap sur la luciole — variant 5' },
+  { key: 'cadeau', file: '/audio/cadeau.mp3', category: 'ambient', label: 'Cadeau magique', duration: 2.00, usage: 'Cadeau des créatures — message offert réclamé' },
 ];
 
 /** Index clé → entrée, pour lookup O(1). */

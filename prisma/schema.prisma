@@ -79,6 +79,10 @@ model Usage {
   // Solde de la recharge cosmique (one-shot) : pool de crédits mixable.
   // 2€ = 105 crédits ; base = 7 crédits ; avancé = 15 crédits (15x7 = 105 = 7x15).
   rechargeCredits Int      @default(0)
+  // Cadeau des créatures : tickets de tirage offerts (1 ticket = 1 tirage de
+  // n'importe quel type, consommé avant les crédits) + dernier cadeau réclamé.
+  giftTickets     Int      @default(0)
+  giftLastAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

@@ -18,6 +18,7 @@
 import { prisma } from './prisma';
 import { classify, type Universe } from './classification';
 import { PLAN_CAPACITY, RECHARGE_CREDITS, CREDITS_BASE, CREDITS_GRAND, type SubscriptionPlanId } from './plans';
+import { giftStillValid, giftExpiresAt } from './gift';
 
 // Recharge cosmique : pool de crédits exact (défini dans plans.ts, client-safe).
 // Ré-exportés pour les appels serveur.
@@ -35,6 +36,8 @@ export interface Rights {
   welcomeGrandUsed: boolean;
   bonusGrand: number;
   rechargeCredits: number;
+  giftTickets: number; // tickets « cadeau des créatures » (1 = 1 tirage offert)
+  giftExpiresAt: Date | null; // expiration du ticket (réclamation + 5 jours)
   streakDays: number;
 }
 
@@ -89,6 +92,12 @@ async function loadUsage(userId: string) {
   const patch: Record<string, unknown> = {};
   if (existing.dateKey !== tk) { patch.dateKey = tk; patch.baseUsedToday = 0; patch.grandUsedToday = 0; }
   if (existing.monthKey !== mk) { patch.monthKey = mk; patch.grandUsedMonth = 0; }
+  // Cadeau des créatures : un tirage offert NON utilisé expire 5 jours après
+  // sa réclamation → purge automatique (le panneau « Consommation restante »
+  // et les droits ne montrent alors plus le ticket).
+  if ((existing.giftTickets ?? 0) > 0 && !giftStillValid(existing.giftLastAt ?? null, existing.giftTickets ?? 0)) {
+    patch.giftTickets = 0;
+  }
   if (Object.keys(patch).length) {
     return prisma.usage.update({ where: { userId }, data: patch });
   }
@@ -120,6 +129,8 @@ export async function getRights(email: string): Promise<Rights | null> {
     welcomeGrandUsed: u.welcomeGrandUsed,
     bonusGrand: u.bonusGrand,
     rechargeCredits: u.rechargeCredits,
+    giftTickets: u.giftTickets,
+    giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets),
     streakDays: u.streakDays,
   };
 }
@@ -150,8 +161,11 @@ export async function canDo(email: string, type: string, question: string | null
     if (!rights.welcomeBaseUsed.includes(cls.universe)) {
       return { allowed: true, reason: 'welcome-base-ok', message: '' };
     }
-    // Apprenti : 1 base/jour gratuit. Au-delà → 7 crédits de recharge.
+    // Apprenti : 1 base/jour gratuit. Au-delà → ticket cadeau, puis 7 crédits.
     if (rights.baseUsedToday >= 1) {
+      if (rights.giftTickets > 0) {
+        return { allowed: true, reason: 'ok', message: '' };
+      }
       if (rights.rechargeCredits >= CREDITS_BASE) {
         return { allowed: true, reason: 'ok', message: '' };
       }
@@ -168,6 +182,10 @@ export async function canDo(email: string, type: string, question: string | null
   // 1er grand du pack bienvenue (au choix).
   if (!rights.welcomeGrandUsed) {
     return { allowed: true, reason: 'welcome-grand-ok', message: '' };
+  }
+  // Ticket cadeau (créatures) : couvre ce tirage avant bonus/crédits.
+  if (rights.giftTickets > 0) {
+    return { allowed: true, reason: 'ok', message: '' };
   }
   // Bonus streak cumulable.
   if (rights.bonusGrand > 0) {
@@ -221,6 +239,9 @@ export async function consume(email: string, type: string, question: string | nu
       } else if (u.baseUsedToday < 1) {
         // Apprenti : 1 base/jour gratuit.
         patch.baseUsedToday = u.baseUsedToday + 1;
+      } else if (u.giftTickets > 0) {
+        // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
+        patch.giftTickets = u.giftTickets - 1;
       } else {
         // Au-delà du gratuit/jour → consomme 7 crédits de recharge.
         patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
@@ -228,9 +249,13 @@ export async function consume(email: string, type: string, question: string | nu
     }
     // (initie/arkane actif : base illimitée, aucun compteur)
   } else {
-    // Grand : épuise d'abord les droits one-shot, puis les crédits, puis le quota mensuel.
+    // Grand : épuise d'abord les droits one-shot, puis les tickets cadeau,
+    // puis les crédits, puis le quota mensuel.
     if (!u.welcomeGrandUsed) {
       patch.welcomeGrandUsed = true;
+    } else if (u.giftTickets > 0) {
+      // Cadeau des créatures : un ticket couvre ce tirage.
+      patch.giftTickets = u.giftTickets - 1;
     } else if (u.bonusGrand > 0) {
       patch.bonusGrand = u.bonusGrand - 1;
     } else if (u.rechargeCredits >= CREDITS_GRAND) {

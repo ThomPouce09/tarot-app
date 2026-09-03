@@ -1,11 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { playSound } from '@/lib/sounds';
 
 type Props = {
-  data: { creature: { name: string; image: string; color: string | null }; text: string; category: string };
+  data: {
+    creature: { name: string; image: string; color: string | null };
+    text: string;
+    category: string;
+    giftClaimable?: boolean;
+    lang?: string;
+  };
   onClose: () => void;
+  /** Présent quand le message est un cadeau réclamable → affiche le bouton. */
+  onClaim?: () => Promise<boolean>;
 };
 
 const GOLD = '#F3C969';
@@ -154,22 +163,110 @@ function SpeedLines({ show }: { show: boolean }) {
   );
 }
 
-export default function CreaturePopup({ data, onClose }: Props) {
+// Icône cadeau SVG inline (règle projet : pas d'emoji/Material).
+function GiftIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3.5" y="8.2" width="17" height="11.3" rx="2" />
+      <path d="M3.5 12.4h17" />
+      <path d="M12 8.2v11.3" />
+      <path d="M12 8.2c0-2.6 1.6-4.4 3.4-4.4 1.7 0 2.7 1.2 1.6 3-1 .9-2.8 1.2-5 1.4z" />
+      <path d="M12 8.2c0-2.6-1.6-4.4-3.4-4.4C6.9 3.8 5.9 5 7 6.8c1 .9 2.8 1.2 5 1.4z" />
+    </svg>
+  );
+}
+
+// Éclat doré de célébration autour du bandeau « Cadeau récupéré ».
+function GiftBurst({ glow }: { glow: string }) {
+  const parts = useMemo(
+    () =>
+      Array.from({ length: 14 }).map((_, i) => {
+        const ang = (Math.PI * 2 * i) / 14 + Math.random() * 0.5;
+        const dist = 46 + Math.random() * 34;
+        return { dx: Math.cos(ang) * dist, dy: Math.sin(ang) * dist, s: 3 + Math.random() * 5 };
+      }),
+    [],
+  );
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-0 w-0">
+      {parts.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: p.s,
+            height: p.s,
+            background: glow,
+            boxShadow: `0 0 8px 2px ${glow}`,
+            left: 0,
+            top: 0,
+            marginLeft: -p.s / 2,
+            marginTop: -p.s / 2,
+          }}
+          initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          animate={{ opacity: 0, x: p.dx, y: p.dy, scale: 0.3 }}
+          transition={{ duration: 0.9, ease: 'easeOut' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function CreaturePopup({ data, onClaim, onClose }: Props) {
   const { creature, text } = data;
   const [imgError, setImgError] = useState(false);
   const [show, setShow] = useState(true); // tout (créature + texte) visible jusqu'à 6s
+  const [claimState, setClaimState] = useState<'idle' | 'claiming' | 'claimed' | 'failed'>('idle');
   const glow = creature.color || GOLD;
+  const isEn = data.lang === 'en';
+
+  // Timers de fermeture : repoussables après la réclamation d'un cadeau.
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const scheduleClose = useCallback(
+    (hideDelay: number, closeDelay: number) => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      timersRef.current.push(setTimeout(() => setShow(false), hideDelay));
+      timersRef.current.push(setTimeout(() => onClose(), closeDelay));
+    },
+    [onClose],
+  );
 
   // À 6s, TOUT s'efface ensemble (créature, nom, texte, sortilèges) en fondu doux.
   // Laisser ~1,1s de fondu puis on ferme réellement.
   useEffect(() => {
-    const hide = setTimeout(() => setShow(false), 6000);
-    const close = setTimeout(() => onClose(), 6000 + 1200);
+    scheduleClose(6000, 6000 + 1200);
     return () => {
-      clearTimeout(hide);
-      clearTimeout(close);
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
     };
-  }, [onClose]);
+  }, [scheduleClose]);
+
+  // Réclame le cadeau : célébration + fermeture repoussée si succès.
+  const handleClaim = useCallback(async () => {
+    if (!onClaim || claimState !== 'idle') return;
+    setClaimState('claiming');
+    const ok = await onClaim().catch(() => false);
+    if (ok) {
+      setClaimState('claimed');
+      // Carillon magique du cadeau : l'instant où le tirage offert est crédité.
+      playSound('cadeau', 1);
+      scheduleClose(3000, 3000 + 1400); // laisse la célébration se jouer
+    } else {
+      setClaimState('failed');
+      scheduleClose(2200, 2200 + 1200);
+    }
+  }, [onClaim, claimState, scheduleClose]);
 
   return (
     // Overlay plein écran : clic extérieur = fermeture (avant 6s).
@@ -254,6 +351,58 @@ export default function CreaturePopup({ data, onClose }: Props) {
             >
               {text.toLowerCase()}
             </div>
+
+            {/* Cadeau d'une créature (message « credits » réclamable) : bouton de
+                réclamation → célébration dorée quand le tirage offert est crédité. */}
+            {data.category === 'credits' && data.giftClaimable && (
+              <div className="relative mt-3 flex items-center justify-center">
+                {claimState === 'claimed' && <GiftBurst glow={glow} />}
+                {claimState === 'idle' && (
+                  <button
+                    type="button"
+                    onClick={handleClaim}
+                    className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold transition-transform hover:scale-[1.04] active:scale-95"
+                    style={{
+                      background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
+                      color: '#1c1206',
+                      fontFamily: 'var(--font-cinzel), serif',
+                      boxShadow: '0 0 18px rgba(243,201,105,0.55), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                    }}
+                  >
+                    <GiftIcon size={15} />
+                    {isEn ? 'Claim my gift' : 'Réclamer mon cadeau'}
+                  </button>
+                )}
+                {claimState === 'claiming' && (
+                  <span className="text-sm font-bold text-[#FFD86B]" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                    ✦ …
+                  </span>
+                )}
+                {claimState === 'claimed' && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+                    className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold"
+                    style={{
+                      background: 'rgba(243,201,105,0.16)',
+                      border: '1.5px solid rgba(243,201,105,0.7)',
+                      color: '#FFD86B',
+                      fontFamily: 'var(--font-cinzel), serif',
+                      textShadow: '0 0 14px rgba(255,200,80,0.7)',
+                    }}
+                  >
+                    <GiftIcon size={15} />
+                    {isEn ? 'Gift claimed! Your next draw is free ✦' : 'Cadeau récupéré ! Ton prochain tirage est offert ✦'}
+                  </motion.span>
+                )}
+                {claimState === 'failed' && (
+                  <span className="text-xs italic" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#c9b27e' }}>
+                    {isEn ? 'A gift was already claimed recently…' : 'Un cadeau a déjà été réclamé récemment…'}
+                  </span>
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       </motion.div>

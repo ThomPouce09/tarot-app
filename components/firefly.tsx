@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { playSound } from '@/lib/sounds';
@@ -8,7 +8,16 @@ import { FIREFLY_CONFIG } from '@/config/firefly';
 import CreaturePopup from './creature-popup';
 
 type Creature = { id: string; slug: string; name: string; image: string; color: string | null };
-type PopupData = { creature: Creature; text: string; category: string };
+type PopupData = { creature: Creature; text: string; category: string; giftClaimable?: boolean; lang: string };
+
+/** Email courant depuis localStorage (tarot_user) — identique à lib/use-entitlement. */
+function readEmailLocal(): string {
+  try {
+    return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email ?? '';
+  } catch {
+    return '';
+  }
+}
 
 // Tirage aléatoire dans une plage [min, max]
 function rand([a, b]: [number, number]) {
@@ -54,15 +63,24 @@ export default function Firefly({ page }: { page: string }) {
       if (!aliveRef.current) return;
 
       try {
-        const res = await fetch(`/api/creature?page=${encodeURIComponent(page)}&lang=${lang}`);
+        const email = readEmailLocal();
+        const res = await fetch(
+          `/api/creature?page=${encodeURIComponent(page)}&lang=${lang}${email ? `&email=${encodeURIComponent(email)}` : ''}`,
+        );
         const data = await res.json();
         if (!aliveRef.current || !data.creature) return cycle();
 
         setCreature(data.creature as Creature);
         setPending(
           data.message
-            ? { creature: data.creature, text: data.message.text, category: data.message.category }
-            : { creature: data.creature, text: '', category: '' },
+            ? {
+                creature: data.creature,
+                text: data.message.text,
+                category: data.message.category,
+                giftClaimable: data.message.giftClaimable === true,
+                lang,
+              }
+            : { creature: data.creature, text: '', category: '', lang },
         );
         // Place la luciole au milieu de l'écran (pas de frame au centre extrême)
         setPos({
@@ -119,6 +137,24 @@ export default function Firefly({ page }: { page: string }) {
 
   const glow = creature?.color || GOLD;
 
+  // Réclame le cadeau d'une créature (1 tirage offert, rare : max 1/5 jours).
+  const claimGift = useCallback(async (): Promise<boolean> => {
+    const email = readEmailLocal();
+    if (!email) return false;
+    try {
+      const res = await fetch('/api/gift/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) return false;
+      const d = await res.json().catch(() => ({}));
+      return d?.ok === true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   return (
     <>
       <AnimatePresence>
@@ -147,6 +183,8 @@ export default function Firefly({ page }: { page: string }) {
                 setPopup(pending);
                 popupActiveRef.current = true;
                 setBurst(null);
+                // Cadeau exceptionnel : carillon magique dédié à l'ouverture.
+                if (pending.giftClaimable) playSound('cadeau', 0.8);
               }, 620);
             }}
             className="firefly-dot fixed cursor-pointer rounded-full"
@@ -217,6 +255,7 @@ export default function Firefly({ page }: { page: string }) {
         {popup && (
           <CreaturePopup
             data={popup}
+            onClaim={popup.giftClaimable ? claimGift : undefined}
             onClose={() => {
               setPopup(null);
               popupActiveRef.current = false; // la créature n'est plus active

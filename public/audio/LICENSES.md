@@ -35,6 +35,12 @@ Licence : Creative Commons Zero 1.0
 | `spell.mp3` | Effet magique (Yi Jing) |
 | `stick-draw.mp3` | Tirage des bâtons Yi Jing |
 
+## Sons générés maison (ajoutés le 3 septembre 2026)
+
+| Fichier | Usage prévu |
+|---|---|
+| `cadeau.mp3` | Carillon « cadeau des créatures » (tirage offert) — synthèse CC0 inédite (cloches C6-E6-G6-C7 + scintillements), générée par script Python/ffmpeg |
+
 ## Notes
 
 - Tous les fichiers sont en **MP3** (compatibilité Safari/iOS + Android)
