@@ -11,6 +11,8 @@ import { Capacitor } from '@capacitor/core';
 import { api } from '@/lib/api-client';
 
 let registered = false;
+// Canal local créé une seule fois pour le repli « app au premier plan ».
+let foregroundReady = false;
 
 function getEmail(): string {
   try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch { return ''; }
@@ -29,6 +31,42 @@ async function saveToken(token: string | null) {
   } catch { /* réseau — on retentera à la prochaine demande */ }
 }
 
+// Repli premier plan : sur Android, un push reçu pendant que l'app est OUVERTE
+// n'affiche aucune notification système (comportement FCM natif). On la rejoue
+// en notification locale pour que le rappel soit visible dans tous les cas.
+async function enableForegroundFallback() {
+  if (foregroundReady || !Capacitor.isNativePlatform()) return;
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    await LocalNotifications.createChannel({
+      id: 'oracle-reminders',
+      name: 'Rappels Oracle des Étoiles',
+      description: 'Rappels quotidiens et messages de l’Oracle',
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+    }).catch(() => { /* canal déjà présent → OK */ });
+    foregroundReady = true;
+    await PushNotifications.addListener('pushNotificationReceived', (n: any) => {
+      const id = Math.floor(Math.random() * 0x7fffffff);
+      LocalNotifications.schedule({
+        notifications: [
+          {
+            id,
+            channelId: 'oracle-reminders',
+            title: n?.title || 'L\'Oracle des Étoiles',
+            body: n?.body || '',
+            extra: n?.data || {},
+          },
+        ],
+      }).catch(() => {});
+    });
+  } catch (e) {
+    console.warn('[push] repli premier plan indisponible', e);
+  }
+}
+
 // Enregistre l'app auprès de FCM et stocke le token.
 async function register(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
@@ -36,6 +74,7 @@ async function register(): Promise<boolean> {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     await PushNotifications.addListener('registration', (t) => saveToken(t.value));
     await PushNotifications.addListener('registrationError', () => {});
+    await enableForegroundFallback();
     await PushNotifications.register();
     return true;
   } catch (e) {
@@ -80,6 +119,7 @@ export function initPush() {
     // Re-réussit simplement à récupérer le token existant si permission déjà donnée.
     import('@capacitor/push-notifications').then(({ PushNotifications }) => {
       PushNotifications.addListener('registration', (t) => saveToken(t.value));
+      enableForegroundFallback();
       PushNotifications.checkPermissions().then((st) => {
         if (st.receive !== 'denied') PushNotifications.register().catch(() => {});
       }).catch(() => {});
