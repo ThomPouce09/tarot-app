@@ -14,6 +14,13 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 
+// Fonds d'écran aléatoires du hub /des-divinatoires (fournis par l'utilisateur).
+const DES_BACKDROPS = [
+  '/backgrounds/des-divinatoires1.jpg',
+  '/backgrounds/des-divinatoires2.jpg',
+  '/backgrounds/des-divinatoires3.jpg',
+];
+
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
 // rendue uniquement après hydratation (cohérent avec /runes) pour éviter
 // tout mismatch d'hydratation.
@@ -215,6 +222,14 @@ export default function DesDivinatoiresHub() {
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
   const auth = useRequireVerified();
+
+  // Fond d'écran : l'une des 3 images fournies, choisie au hasard à chaque
+  // visite (côté client → aucun mismatch d'hydratation).
+  const [bg, setBg] = useState<string | null>(null);
+  useEffect(() => {
+    setBg(DES_BACKDROPS[Math.floor(Math.random() * DES_BACKDROPS.length)]);
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     // Lueur d'appel au 1er passage (une seule fois).
@@ -253,7 +268,7 @@ export default function DesDivinatoiresHub() {
   }, []);
   if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
-    <DiceBackground>
+    <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
       <DiceTitle
         title="Les Dés du zodiaque"

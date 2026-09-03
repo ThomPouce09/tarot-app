@@ -8,20 +8,49 @@
 // (rendue en <video autoPlay muted loop playsInline>) — détection via
 // `isVideoBackground()`.
 
+export type BackgroundLevel = 'apprenti' | 'initie' | 'arkane';
+
+// Liste COMPLÈTE (forfait Arkane) — doit refléter les fichiers réels de
+// `public/backgrounds/` (⚠️ certains ont changé de nom : bg7 = mp4 uniquement).
 export const LANDING_BACKGROUNDS: string[] = [
   '/backgrounds/landing-bg.jpg',
   '/backgrounds/landing-bg0.jpg',
+  '/backgrounds/landing-bg1.jpg',
   '/backgrounds/landing-bg2.jpg',
   '/backgrounds/landing-bg3.jpg',
   '/backgrounds/landing-bg4.mp4',
   '/backgrounds/landing-bg5.jpg',
   '/backgrounds/landing-bg6.jpg',
-  '/backgrounds/landing-bg7.jpg',
   '/backgrounds/landing-bg7.mp4',
   '/backgrounds/landing-bg8.jpg',
   '/backgrounds/landing-bg8.mp4',
   '/backgrounds/landing-bg9.jpg',
+  '/backgrounds/landing-bg10.jpg',
 ];
+
+// Fond disponibles selon le forfait :
+// - Apprenti : 2 fonds (landing-bg2.jpg, landing-bg3.jpg)
+// - Initié  : 7 fonds (bg, bg0, bg2, bg3, bg4.mp4, bg6, bg7.mp4)
+// - Arkane  : les 13 fonds ci-dessus
+export const BACKGROUND_POOLS: Record<BackgroundLevel, string[]> = {
+  apprenti: ['/backgrounds/landing-bg2.jpg', '/backgrounds/landing-bg3.jpg'],
+  initie: [
+    '/backgrounds/landing-bg.jpg',
+    '/backgrounds/landing-bg0.jpg',
+    '/backgrounds/landing-bg2.jpg',
+    '/backgrounds/landing-bg3.jpg',
+    '/backgrounds/landing-bg4.mp4',
+    '/backgrounds/landing-bg6.jpg',
+    '/backgrounds/landing-bg7.mp4',
+  ],
+  arkane: LANDING_BACKGROUNDS,
+};
+
+/** Fonds autorisés pour un niveau donné (tous si niveau inconnu/absent). */
+export function backgroundsForLevel(level?: BackgroundLevel | null): string[] {
+  if (level && BACKGROUND_POOLS[level]) return BACKGROUND_POOLS[level];
+  return LANDING_BACKGROUNDS;
+}
 
 /** Vrai si le chemin de fond correspond à un fichier vidéo (.mp4 / .webm). */
 export function isVideoBackground(path: string): boolean {
@@ -29,20 +58,22 @@ export function isVideoBackground(path: string): boolean {
 }
 
 /**
- * Choisit le fond à afficher pour une session donnée.
- * - `selected` (option de l'utilisateur) : liste des fonds choisis.
- * - Si vide ou `none` → tous les fonds disponibles, en mode aléatoire (défaut).
+ * Choisit la liste des fonds à afficher pour une session donnée.
+ * - `selected` (option de l'utilisateur) : fonds choisis.
+ * - `level` (forfait) : restreint à ce qui est disponible (Apprenti/Initié).
+ * - Si `selected` vide ou `none` → tous les fonds du niveau, en aléatoire.
  */
-export function resolveBackgrounds(selected?: string[] | null): string[] {
+export function resolveBackgrounds(selected?: string[] | null, level?: BackgroundLevel | null): string[] {
+  const allowed = backgroundsForLevel(level);
   if (selected && selected.length > 0) {
-    const valid = selected.filter((p) => LANDING_BACKGROUNDS.includes(p));
+    const valid = selected.filter((p) => allowed.includes(p));
     if (valid.length > 0) return valid;
   }
-  return LANDING_BACKGROUNDS;
+  return allowed;
 }
 
-/** Sélectionne un fond au hasard (suffit pour la rotation au refresh/relance). */
-export function pickRandomBackground(selected?: string[] | null): string {
-  const pool = resolveBackgrounds(selected);
+/** Sélectionne un fond au hasard (rotation au refresh/relance). */
+export function pickRandomBackground(selected?: string[] | null, level?: BackgroundLevel | null): string {
+  const pool = resolveBackgrounds(selected, level);
   return pool[Math.floor(Math.random() * pool.length)];
 }

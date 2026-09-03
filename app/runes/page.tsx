@@ -23,6 +23,40 @@ import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 const FRIEZE_TOP = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
 const FRIEZE_BOTTOM = 'ᛟᛞᛜᛚᛗᛖᛒᛏᛊᛉᛈᛇᛃᛁᚾᚺᚹᚷᚲᚱᚨᚦᚢᚠ';
 
+// Fonds d'écran aléatoires du hub /runes (fournis par l'utilisateur).
+const RUNES_BACKDROPS = ['/backgrounds/runes1.jpg', '/backgrounds/runes2.jpg', '/backgrounds/runes3.jpg'];
+
+// Affiche l'une des 3 images en fond (choisie au montage, côté client →
+// aucun mismatch d'hydratation), sous un voile sombre pour la lisibilité.
+function RunesRandomBackdrop() {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    setSrc(RUNES_BACKDROPS[Math.floor(Math.random() * RUNES_BACKDROPS.length)]);
+  }, []);
+  if (!src) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: -1 }}>
+      <motion.img
+        src={src}
+        alt=""
+        className="h-full w-full object-cover"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.9, ease: 'easeInOut' }}
+        style={{ objectPosition: 'center 30%' }}
+      />
+      {/* Voile : garde le titre et les tuiles parfaitement lisibles */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(6,18,11,0.66) 0%, rgba(6,18,11,0.38) 35%, rgba(6,18,11,0.45) 65%, rgba(6,18,11,0.82) 100%)',
+        }}
+      />
+    </div>
+  );
+}
+
 function RuneFrieze({ position }: { position: 'top' | 'bottom' }) {
   return (
     <div
@@ -170,6 +204,7 @@ export default function RunesHub() {
   if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <RuneBackground>
+      <RunesRandomBackdrop />
       <YiSlideNav />
       <RuneTitle
         title="Runes Scandinaves : Interroger le Futhark"

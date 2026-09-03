@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
 import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
-import { LANDING_BACKGROUNDS, isVideoBackground } from '@/lib/backgrounds';
-import { api } from '@/lib/api-client';
+import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
+import { useEntitlement } from '@/lib/use-entitlement';
 
 type Prefs = {
   dailyReminder: boolean;
@@ -46,6 +46,11 @@ export default function PreferencesPage() {
   const [reminderBlocked, setReminderBlocked] = useState(false);
   const [, setUser] = useState<any>(null);
 
+  // Forfait effectif → fonds disponibles (Apprenti 2 / Initié 7 / Arkane tous).
+  const { sub } = useEntitlement();
+  const level: BackgroundLevel = (sub?.level as BackgroundLevel) || 'apprenti';
+  const availableBgs = backgroundsForLevel(level);
+
   const email = (() => {
     if (typeof window === 'undefined') return '';
     try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch { return ''; }
@@ -53,7 +58,7 @@ export default function PreferencesPage() {
 
   // Hydrater depuis le serveur (source de vérité) au montage, si connecté.
   const hydrateFromServer = useCallback((e: string) => {
-    api(`/api/prefs?email=${encodeURIComponent(e)}`)
+    fetch(`/api/prefs?email=${encodeURIComponent(e)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d) return;
@@ -82,7 +87,7 @@ export default function PreferencesPage() {
   // Persiste côté serveur (lettre + rappel) à chaque changement des champs serveur.
   const syncServer = (next: Prefs) => {
     if (!email) return;
-    api('/api/prefs', {
+    fetch('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds }),
@@ -111,6 +116,24 @@ export default function PreferencesPage() {
       else if (!patch.dailyReminder) setReminderBlocked(false);
     }
   };
+
+  // Sélection minimale garantie : si aucune sélection valide n'existe (nouvel
+  // utilisateur ou ancienne config « tous en aléatoire » = vide), on coche tous
+  // les fonds du forfait. Un état « aucun papier peint choisi » est impossible.
+  useEffect(() => {
+    if (availableBgs.length === 0) return;
+    setPrefs((p) => {
+      const valid = p.backgrounds.filter((b) => availableBgs.includes(b));
+      if (valid.length > 0) return p; // sélection déjà correcte
+      const next = { ...p, backgrounds: [...availableBgs] };
+      try {
+        localStorage.setItem('tarot_prefs', JSON.stringify(next));
+      } catch { /* ignore */ }
+      syncServer(next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableBgs]);
 
   const requestReminderPermission = () => {
     // Déclenche la demande de permission + enregistrement du token FCM côté Capacitor.
@@ -151,26 +174,34 @@ export default function PreferencesPage() {
         <Toggle label={t('prefs.haptics')} checked={prefs.haptics} onChange={(v) => update({ haptics: v })} hint={t('prefs.hapticsHint')} />
       </div>
 
-      {/* Fond d'écran de l'accueil */}
+      {/* Fond d'écran de l'accueil — rangée compacte ; seuls les fonds du
+          forfait sont proposés (Apprenti 2 / Initié 7 / Arkane tous). */}
       <div className="mystic-panel p-5 space-y-3">
-        <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.background')}</h2>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="mystic-subtitle text-sm">{t('prefs.background')}</h2>
+          {availableBgs.length < LANDING_BACKGROUNDS.length && (
+            <span className="text-[10px] uppercase tracking-wider text-amber-200/70">{availableBgs.length} {t('prefs.backgroundPlanCount')} · {level}</span>
+          )}
+        </div>
         <p className="text-gray-400 text-xs leading-relaxed">
-          {prefs.backgrounds.length === 0 ? t('prefs.backgroundAllRandom') : t('prefs.backgroundSelected')}
+          {t('prefs.backgroundSelected')}
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          {LANDING_BACKGROUNDS.map((bg) => {
+        <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-7 gap-1.5">
+          {availableBgs.map((bg) => {
             const selected = prefs.backgrounds.includes(bg);
             return (
               <button
                 key={bg}
                 type="button"
                 onClick={() => {
-                  const next = selected
-                    ? prefs.backgrounds.filter((b) => b !== bg)
-                    : [...prefs.backgrounds, bg];
+                  // Au moins UN fond doit rester sélectionné : on interdit de
+                  // décocher le dernier (aucun état « vide » possible).
+                  const base = prefs.backgrounds.filter((b) => availableBgs.includes(b));
+                  if (selected && base.length <= 1) return;
+                  const next = selected ? base.filter((b) => b !== bg) : [...base, bg];
                   update({ backgrounds: next });
                 }}
-                className={`relative overflow-hidden rounded-lg border transition-all aspect-video ${selected ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-gray-700/60 opacity-70 hover:opacity-100'}`}
+                className={`relative overflow-hidden rounded-md border transition-all aspect-video w-full ${selected ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-gray-700/60 opacity-75 hover:opacity-100'}`}
                 style={{ background: '#0a0604' }}
               >
                 {isVideoBackground(bg) ? (
@@ -179,7 +210,7 @@ export default function PreferencesPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={bg} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 )}
-                <span className="absolute bottom-1 right-1 text-xs font-semibold px-1.5 py-0.5 rounded"
+                <span className="absolute bottom-0.5 right-0.5 text-[10px] font-semibold px-1 py-px rounded"
                   style={{ background: selected ? 'rgba(218,165,32,0.9)' : 'rgba(0,0,0,0.55)', color: selected ? '#1a0e0a' : '#fff' }}>
                   {selected ? '✓' : ''}
                 </span>
@@ -188,8 +219,8 @@ export default function PreferencesPage() {
           })}
         </div>
         {/* Sélection multiple volontaire : coché = inclus dans la rotation ; aucun coché = tous (aléatoire) */}
-        {prefs.backgrounds.length < LANDING_BACKGROUNDS.length && (
-          <button onClick={() => update({ backgrounds: [...LANDING_BACKGROUNDS] })} className="mystic-btn-ghost text-xs">{t('prefs.backgroundSelectAll')}</button>
+        {availableBgs.some((b) => !prefs.backgrounds.includes(b)) && (
+          <button onClick={() => update({ backgrounds: [...availableBgs] })} className="mystic-btn-ghost text-xs">{t('prefs.backgroundSelectAll')}</button>
         )}
       </div>
 

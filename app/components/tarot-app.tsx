@@ -21,7 +21,8 @@ const ENABLE_SPARKLES = true;
 const ENABLE_BREATH = true;
 const ENABLE_HAND_DUST = true;
 
-const N = 78;
+// Nombre de cartes de l'éventail = deck effectif (78 complètes, ou 22 si le
+// tirage est limité aux arcanes majeurs). Calculé côté composant (deck.length).
 const SPREAD_MS = 3000;
 const EDGE = 10;
 const CARD_W = 62;
@@ -384,6 +385,8 @@ export default function TarotApp({
   positionIcons = DEFAULT_POSITION_ICONS,
   title = 'Tirage 3 cartes',
   spreadType = 'tarot-3-cartes',
+  // true = la pioche ne contient que les 22 arcanes majeurs (tirage 3 cartes).
+  majorsOnly = false,
   // Rappelé avec les ids des cartes choisies au moment du bouton "Consulter
   // l'Oracle" (pour les tirages custom type tarot-5-c-manuelle). S'il est
   // fourni, la navigation interne par défaut est remplacée.
@@ -404,6 +407,7 @@ export default function TarotApp({
   positionIcons?: string[];
   title?: string;
   spreadType?: string;
+  majorsOnly?: boolean;
   onInterpret?: (cardIds: number[]) => void;
   question?: string;
   backgroundImage?: string;
@@ -429,18 +433,25 @@ export default function TarotApp({
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
-  /* ---- Deck 78 cartes (tarot-test) ---- */
+  /* ---- Deck (78 cartes, ou 22 arcanes majeurs si majorsOnly) ---- */
   // Déterministe au 1er render (évite le mismatch d'hydratation Math.random SSR/client).
   // Le mélange aléatoire est appliqué APRÈS hydratation, dans un useEffect.
-  const [deck, setDeck] = useState<TarotCard[]>(() => [...TAROT_CARDS]);
+  const deckBase = useMemo(
+    () => (majorsOnly ? TAROT_CARDS.filter((c) => c.arcana === 'major') : [...TAROT_CARDS]),
+    [majorsOnly],
+  );
+  const [deck, setDeck] = useState<TarotCard[]>(() => [...deckBase]);
   useEffect(() => {
-    const d = [...TAROT_CARDS];
+    const d = [...deckBase];
     for (let i = d.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [d[i], d[j]] = [d[j], d[i]];
     }
     setDeck(d);
-  }, []);
+  }, [deckBase]);
+
+  // Géométrie de l'éventail : suit la taille RÉELLE du deck (78 ou 22 majeurs).
+  const nCards = deck.length;
 
   const [picked, setPicked] = useState<{ slot: number; cardId: number; name: string }[]>([]);
   const pickedIdx = useRef(new Set<number>());
@@ -488,7 +499,7 @@ export default function TarotApp({
   const [dust, setDust] = useState<DustParticle[]>([]);
   const dustIdRef = useRef(0);
 
-  const zoomRef = useRef({ center: N / 2, amount: 0 });
+  const zoomRef = useRef({ center: nCards / 2, amount: 0 });
   const [, force] = useState(0);
   const rerender = useCallback(() => force((v) => (v + 1) & 0xffff), []);
 
@@ -638,9 +649,9 @@ export default function TarotApp({
   }, [handDone]);
 
   /* ---- Géométrie ---- */
-  const gap = (vw - EDGE * 2 - CARD_W) / (N - 1);
+  const gap = (vw - EDGE * 2 - CARD_W) / (nCards - 1);
   const slotFor = (i: number) => EDGE + CARD_W / 2 + i * gap;
-  const idxAt = (mx: number) => Math.max(0, Math.min(N - 1, (mx - EDGE - CARD_W / 2) / gap));
+  const idxAt = (mx: number) => Math.max(0, Math.min(nCards - 1, (mx - EDGE - CARD_W / 2) / gap));
   const K = ZONE * Math.max(0, TOUCH_SPACING - gap);
   const zoomOffset = (i: number) => {
     const z = zoomRef.current;
@@ -655,9 +666,9 @@ export default function TarotApp({
   };
   const clampX = (x: number) => Math.max(EDGE + CARD_W / 2, Math.min(vw - EDGE - CARD_W / 2, x));
 
-  // Clampé à N-1 : la main et la dernière carte restent dans l'écran,
-  // pas d'index "fantôme" (N) sur la dernière frame du balayage.
-  const spreadFront = Math.min(N - 1, Math.floor(progress * N));
+  // Clampé à nCards-1 : la main et la dernière carte restent dans
+  // l'écran, pas d'index "fantôme" sur la dernière frame du balayage.
+  const spreadFront = Math.min(nCards - 1, Math.floor(progress * nCards));
 
   /* ---- Émission de poussière dorée pendant le balayage de la main ---- */
   useEffect(() => {
@@ -731,7 +742,7 @@ export default function TarotApp({
     if (dragId.current === e.pointerId) {
       const dx = e.clientX - dragStartX.current;
       if (Math.abs(dx) > 6) movedRef.current = true;
-      zoomRef.current.center = Math.max(0, Math.min(N - 1, dragStartCenter.current - dx / 24));
+      zoomRef.current.center = Math.max(0, Math.min(nCards - 1, dragStartCenter.current - dx / 24));
       rerender();
     }
   };
@@ -747,7 +758,7 @@ export default function TarotApp({
       } else if (zoomRef.current.amount > 0.02) {
         // tap hors pioche après pinch -> réinitialise l'étalement de départ
         zoomRef.current.amount = 0;
-        zoomRef.current.center = N / 2;
+        zoomRef.current.center = nCards / 2;
         rerender();
       }
     }
@@ -761,7 +772,7 @@ export default function TarotApp({
     if (tgt && tgt.closest && tgt.closest("[data-deck-index]")) return;
     if (zoomRef.current.amount > 0.02) {
       zoomRef.current.amount = 0;
-      zoomRef.current.center = N / 2;
+      zoomRef.current.center = nCards / 2;
       rerender();
     }
   };
@@ -1084,12 +1095,12 @@ export default function TarotApp({
                 <div key={f} style={{ position: "absolute", left: f * 100 + "%", top: 0, bottom: 0, width: 1, background: "rgba(255,220,160,0.2)" }} />
               ))}
               {[...pickedIdx.current].map((i) => (
-                <div key={i} style={{ position: "absolute", left: (i / (N - 1)) * 100 + "%", top: 0, bottom: 0, width: 3, background: "#ffd97a", boxShadow: "0 0 4px #ffd97a" }} />
+                <div key={i} style={{ position: "absolute", left: (i / (nCards - 1)) * 100 + "%", top: 0, bottom: 0, width: 3, background: "#ffd97a", boxShadow: "0 0 4px #ffd97a" }} />
               ))}
               <div style={{
                 position: "absolute", top: -1, bottom: -1,
-                left: Math.max(0, ((z.center - ZONE) / (N - 1)) * 100) + "%",
-                width: Math.min(100, ((ZONE * 2) / (N - 1)) * 100) + "%",
+                left: Math.max(0, ((z.center - ZONE) / (nCards - 1)) * 100) + "%",
+                width: Math.min(100, ((ZONE * 2) / (nCards - 1)) * 100) + "%",
                 background: zoomActive ? "linear-gradient(90deg, rgba(255,200,90,0.25), rgba(255,220,130,0.85), rgba(255,200,90,0.25))" : "rgba(255,220,150,0.3)",
                 borderRadius: 4, transition: "background .3s",
                 boxShadow: zoomActive ? "0 0 10px rgba(255,200,90,0.8)" : "none",
@@ -1101,7 +1112,7 @@ export default function TarotApp({
               fontFamily: "serif", fontSize: 13, whiteSpace: "nowrap",
               textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s",
             }}>
-              carte {Math.round(z.center) + 1} / {N}
+              carte {Math.round(z.center) + 1} / {nCards}
             </span>
           </div>
         </div>
@@ -1128,7 +1139,7 @@ export default function TarotApp({
             {deck.map((c, i) => {
               if (i <= spreadFront) return null;
               return (
-                <div key={c.id} className="absolute" style={{ left: EDGE, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3", zIndex: 100 + (N - 1 - i), transform: "translateX(0)" }} aria-hidden>
+                <div key={c.id} className="absolute" style={{ left: EDGE, bottom: "40%", width: CARD_W, aspectRatio: "2 / 3", zIndex: 100 + (nCards - 1 - i), transform: "translateX(0)" }} aria-hidden>
                   <CardBack />
                 </div>
               );
@@ -1154,7 +1165,7 @@ export default function TarotApp({
                   "--sc": sc,
                   transform: `translateX(-50%) scale(${sc})`,
                   transformOrigin: "bottom center",
-                  // Éventail : droite (i=N-1) au-dessus, gauche recouverte.
+                  // Éventail : droite (i=nCards-1) au-dessus, gauche recouverte.
                   // near/lift gardent des z supérieurs (zoom/lift).
                   zIndex: lifting ? 350 : near ? 300 - Math.round(Math.abs(i - z.center) * 10) : 100 + i,
                   transition: deploying ? "none" : "left .08s linear, transform .12s ease-out, filter .2s",
