@@ -8,11 +8,12 @@
 // par tes visuels définitifs).
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import { useLang } from '@/lib/i18n';
 
 /* Palette centralisée */
 export const RUNE_THEME = {
@@ -285,19 +286,120 @@ export function BackToRunes() {
   );
 }
 
-/* Légende de lecture d'une rune tirée (nom + sens + signification). */
+/* Glyphe ⓘ (info) SVG inline — règle projet : pas d'emoji/Material. */
+function InfoGlyph({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 10.8v5.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="12" cy="7.4" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+/* Légende de lecture d'une rune tirée (nom + sens + signification).
+   compactInfo : tuile compacte (symbole + nom + position) avec une bulle ⓘ
+   qui déplie l'explication à la demande — au lieu du long texte affiché. */
 export function RuneReading({
   rune,
   position,
   meaning,
   reversed,
+  compactInfo = false,
 }: {
   rune: Rune | null;
   position: string;
   meaning?: string;
   reversed?: boolean;
+  compactInfo?: boolean;
 }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   if (!rune) return null;
+
+  const infoText = meaning ?? (reversed ? rune.reversed : rune.upright);
+
+  // Variante compacte : la tuile reste fine, l'explication est derrière la bulle ⓘ.
+  if (compactInfo) {
+    return (
+      <div
+        className="relative mx-auto w-full max-w-xl rounded-xl px-3 py-2.5"
+        style={{
+          background: `linear-gradient(150deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forestDeep}aa 100%)`,
+          border: `1.5px solid ${RUNE_THEME.goldPale}44`,
+        }}
+      >
+        {/* Bulle ⓘ (haut-droite) : déplie l'explication de la position */}
+        <button
+          type="button"
+          onClick={() => setInfoOpen((o) => !o)}
+          aria-expanded={infoOpen}
+          aria-label={infoOpen ? 'Masquer l’explication' : 'En savoir plus sur cette position'}
+          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+          style={{
+            color: RUNE_THEME.goldPale,
+            background: infoOpen ? `${RUNE_THEME.goldPale}26` : 'transparent',
+            border: `1px solid ${RUNE_THEME.goldPale}${infoOpen ? '88' : '00'}`,
+          }}
+        >
+          <InfoGlyph size={16} />
+        </button>
+
+        <div className="flex items-center gap-3 pr-9">
+          <span
+            style={{
+              fontFamily: 'var(--font-cinzel-deco), serif',
+              fontSize: 26,
+              lineHeight: 1,
+              color: RUNE_THEME.goldPale,
+              display: 'inline-block',
+              transform: reversed ? 'rotate(180deg)' : 'none',
+            }}
+          >
+            {rune.symbol}
+          </span>
+          <div className="min-w-0 text-left">
+            <p
+              className="text-[10px] uppercase tracking-widest"
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldSoft }}
+            >
+              {position}
+            </p>
+            <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.sagePale }}>
+              {rune.name}
+              {reversed ? ' (à l’envers)' : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Explication dépliée par la bulle ⓘ */}
+        <AnimatePresence initial={false}>
+          {infoOpen && (
+            <motion.div
+              key="info"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <p
+                className="mt-2 border-t pt-2 text-xs leading-relaxed"
+                style={{
+                  borderColor: `${RUNE_THEME.goldPale}22`,
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: RUNE_THEME.sage,
+                }}
+              >
+                {infoText}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // Layout classique (autres pages runes) : carte avec le texte affiché.
   return (
     <div
       className="mx-auto max-w-xl rounded-2xl p-4"
@@ -336,7 +438,7 @@ export function RuneReading({
         className="mt-2 text-center text-sm leading-relaxed"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
       >
-        {meaning ?? (reversed ? rune.reversed : rune.upright)}
+        {infoText}
       </p>
     </div>
   );
@@ -372,6 +474,7 @@ export function RuneAnalysis({
   focus,
   buttonLabel = "✨ Interroger l'Oracle",
   onAnalysis,
+  autoRun = false,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -379,6 +482,8 @@ export function RuneAnalysis({
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
   onAnalysis?: (text: string) => void;
+  /** Lance l'interprétation IA automatiquement dès le montage (pas de bouton). */
+  autoRun?: boolean;
 }) {
   const [sections, setSections] = useState<
     { position: string; rune: string; sens: string; lecture: string }[] | null
@@ -389,21 +494,43 @@ export function RuneAnalysis({
   const [error, setError] = useState('');
   // Vidéo d'attente aléatoire (analyse-runesX.mp4) pendant l'interprétation.
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // Messages d'attente rotatifs, affichés en bas de la vidéo (par langue).
+  const [waitMsgs, setWaitMsgs] = useState<string[]>([]);
+  const [msgIndex, setMsgIndex] = useState(0);
+  const lang = useLang();
   const { gateReason, closeGate, openGate } = useEntitlement();
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
-  // Charge une vidéo d'attente au hasard (détectée dynamiquement côté serveur).
+  // Type d'attente (pool de messages) selon le tirage : les Nornes (nornes &
+  // nornes2) ajoutent leur message dédié, Yggdrasil le sien, Mjölnir la base.
+  const waitType =
+    mode === 'nornes' ? 'runes-nornes'
+    : mode === 'yggdrasil' ? 'runes-yggdrasil'
+    : 'runes-mjolnir';
+
+  // Charge une vidéo d'attente au hasard (détectée dynamiquement côté serveur)
+  // + la liste des messages d'attente de la langue courante.
   const pickVideo = useCallback(async () => {
     try {
-      const res = await fetch(`/api/interpretation-wait?type=runes&lang=fr`, { cache: 'no-store' });
+      const res = await fetch(`/api/interpretation-wait?type=${waitType}&lang=${lang}`, { cache: 'no-store' });
       const data = await res.json();
       const urls: string[] = data?.backgroundUrls ?? [];
       if (urls.length > 0) setVideoUrl(urls[0]);
+      setWaitMsgs(Array.isArray(data?.messages) ? (data.messages as string[]) : []);
+      setMsgIndex(0);
     } catch {
       // Pas de vidéo : l'état loading texte suffit.
     }
-  }, []);
+  }, [waitType, lang]);
+
+  // Rotation douce des messages d'attente (tant que l'analyse est en cours).
+  // Chaque message reste affiché ~6s (assez long pour être lu confortablement).
+  useEffect(() => {
+    if (!loading || waitMsgs.length < 2) return;
+    const id = window.setInterval(() => setMsgIndex((i) => i + 1), 6000);
+    return () => window.clearInterval(id);
+  }, [loading, waitMsgs.length]);
 
   // La vidéo est montée APRÈS le fetch (hors geste utilisateur) : l'attribut
   // autoPlay peut être bloqué par le navigateur. On force play() explicitement
@@ -467,10 +594,64 @@ export function RuneAnalysis({
     }
   }, [runes, mode, focus]);
 
+  // autoRun : lance l'interprétation dès le montage (pas de bouton) + amène le
+  // focus sur la zone d'attente une fois l'analyse en cours.
+  const boxRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const ranRef = useRef(false);
+  const runStartRef = useRef(0);
+  const waitFocusedRef = useRef(false);
+
+  // Force le layer transparent (sous la vidéo) à s'afficher : son bas s'aligne
+  // sur le bas de l'écran → la vidéo, au-dessus, est garantie entièrement
+  // visible (scrollIntoView fonctionne sur tout conteneur de scroll).
+  const focusWaitBottom = useCallback(() => {
+    if (waitFocusedRef.current || !spacerRef.current) return;
+    waitFocusedRef.current = true;
+    spacerRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, []);
+
+  useEffect(() => {
+    if (!autoRun || ranRef.current) return;
+    ranRef.current = true;
+    runStartRef.current = Date.now();
+    run();
+    // ~1,8s de délai : laisse le temps de VOIR le tirage (runes + tuiles)
+    // avant de rediriger le focus vers la vidéo d'attente.
+    const t = window.setTimeout(focusWaitBottom, 1800);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun]);
+
+  // Si la vidéo n'est pas encore montée à l'échéance des 1,8s, le focus part
+  // dès qu'elle apparaît ; sinon le timer ci-dessus s'en est déjà chargé.
+  useEffect(() => {
+    if (!autoRun || !videoUrl || waitFocusedRef.current) return;
+    const elapsed = Date.now() - runStartRef.current;
+    const t = window.setTimeout(focusWaitBottom, Math.max(0, 1800 - elapsed));
+    return () => window.clearTimeout(t);
+  }, [autoRun, videoUrl, focusWaitBottom]);
+
+  // Révélation IA prête → amener le début de l'interprétation en tête d'écran
+  // (la grande tuile de la position, pas les tuiles compactes au-dessus).
+  const scrolledSectionsRef = useRef(false);
+  useEffect(() => {
+    if (!autoRun || !sections || loading || scrolledSectionsRef.current) return;
+    scrolledSectionsRef.current = true;
+    const t = window.setTimeout(() => {
+      boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [autoRun, sections, loading]);
+
   return (
-    <div className="mt-6">
+    <div
+      className="mt-6"
+      ref={boxRef}
+      style={{ scrollMarginTop: '4vh' }}
+    >
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
-      {!sections && !loading && !error && (
+      {!autoRun && !sections && !loading && !error && (
         <div className="text-center">
           <RuneButton variant="gold" onClick={run}>
             {buttonLabel}
@@ -480,12 +661,14 @@ export function RuneAnalysis({
 
       {loading && (
         videoUrl ? (
-          /* Vidéo d'attente aléatoire (16:9), centrée, en boucle */
-          <div className="flex justify-center">
+          <>
+            {/* Vidéo d'attente aléatoire (16:9), centrée, en boucle, avec messages
+               d'attente rotatifs superposés en bas (sur voile dégradé). */}
+            <div className="relative mx-auto w-full max-w-xl">
             <video
               key={videoUrl}
               ref={videoRef}
-              className="aspect-video w-full max-w-xl rounded-2xl object-cover shadow-[0_0_40px_rgba(218,165,32,0.25)]"
+              className="aspect-video w-full rounded-2xl object-cover shadow-[0_0_40px_rgba(218,165,32,0.25)]"
               style={{ border: `1px solid ${RUNE_THEME.goldPale}44` }}
               src={videoUrl}
               autoPlay
@@ -493,7 +676,44 @@ export function RuneAnalysis({
               loop
               playsInline
             />
-          </div>
+            {/* Voile bas pour la lisibilité du message */}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-2xl"
+              style={{
+                background: 'linear-gradient(to top, rgba(6,18,11,0.92) 0%, rgba(6,18,11,0.35) 55%, transparent 100%)',
+                height: '42%',
+              }}
+            />
+            {/* Message d'attente rotatif */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-3 text-center">
+              <AnimatePresence mode="wait">
+                {waitMsgs.length > 0 && (
+                  <motion.p
+                    key={msgIndex % waitMsgs.length}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-[11px] italic sm:text-xs"
+                    style={{
+                      fontFamily: 'var(--font-cinzel), serif',
+                      color: RUNE_THEME.goldPale,
+                      textShadow: '0 1px 8px rgba(0,0,0,0.85)',
+                    }}
+                  >
+                    {waitMsgs[msgIndex % waitMsgs.length]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+            </div>
+
+            {/* Layer transparent sous la vidéo : sert d'ancre de scroll. En le
+                forçant à s'afficher (focusWaitBottom), le bas de la vidéo reste
+                au-dessus du bord bas de l'écran → la vidéo tient entièrement à
+                l'écran, bandeau de messages compris. */}
+            <div ref={spacerRef} aria-hidden="true" className="h-[20vh] w-full" />
+          </>
         ) : (
           <div
             className="text-center text-sm italic"

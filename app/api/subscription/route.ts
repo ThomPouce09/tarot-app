@@ -30,14 +30,22 @@ export async function GET(request: NextRequest) {
 
     const sub = user.subscription;
 
-    // Synchronisation optionnelle : statut Stripe à jour.
+    // Synchronisation optionnelle : statut Stripe à jour (status + fin de période,
+    // pour que la vérification d'expiration locale soit exacte).
     const stripe = getStripe();
     if (stripe && sub?.stripeSubscriptionId && sub.stripeCustomerId && sub.status !== 'canceled') {
       try {
         const remote = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
-        if (remote.status !== sub.status) {
-          await prisma.subscription.update({ where: { id: sub.id }, data: { status: remote.status } });
+        // current_period_end peut manquer sur le type SDK → cast (pattern webhook).
+        const endSec = (remote as any).current_period_end as number | null | undefined;
+        const remoteEnd = endSec ? new Date(endSec * 1000) : sub.currentPeriodEnd;
+        if (remote.status !== sub.status || remoteEnd.getTime() !== sub.currentPeriodEnd.getTime()) {
+          await prisma.subscription.update({
+            where: { id: sub.id },
+            data: { status: remote.status, currentPeriodEnd: remoteEnd },
+          });
           sub.status = remote.status;
+          sub.currentPeriodEnd = remoteEnd;
         }
       } catch {
         // Stripe inaccessible — statut en base

@@ -128,11 +128,36 @@ const CONFIG: Record<string, {
     minDurationMs: 3500,
     videoNoLoop: true,
   },
-  // ── Runes : vidéos d'attente analyse-runesX.mp4 (générées à la requête) ──
+  // ── Runes scandinaves ─────────────────────────────────────────────────────
+  // Base commune à TOUS les tirages runes ; les messages spécifiques (Nornes,
+  // Yggdrasil) sont insérés par GET() selon le type demandé (runes-nornes,
+  // runes-nornes2, runes-mjolnir, runes-yggdrasil…).
   'runes': {
     messages: {
-      fr: ['L’Oracle déchiffre les runes…', 'Les runes murmurent leur sagesse…', 'Les Nornes tissent le fil…'],
-      en: ['The Oracle deciphers the runes…', 'The runes whisper their wisdom…', 'The Norns weave the thread…'],
+      fr: [
+        'Les runes s’éveillent, la vérité va éclater …',
+        'Odin incline son regard sur votre tirage, patience …',
+        'Les pierres runiques murmurent leurs secrets. La révélation est proche …',
+        'Huginn et Muninn rapportent la sagesse des runes …',
+        'L’ancien Futhark dévoile ses glyphes. Patientez !',
+        'Urd puise à la source du destin, sa gourde est bientôt pleine de la réponse à votre question …',
+        'Les runes gravées s’illuminent une à une. Leur sagesse va apparaître …',
+        'Le givre et le feu scellent déjà la réponse à votre question.',
+        'Heimdall veille sur les runes. Elles parlent de vous …',
+        'Les runes tracent leur chemin vers la lumière. Patience …',
+      ],
+      en: [
+        'The runes awaken — the truth is about to burst forth…',
+        'Odin turns his gaze upon your draw — patience…',
+        'The rune stones whisper their secrets. The revelation is near…',
+        'Huginn and Muninn bring back the wisdom of the runes…',
+        'The Elder Futhark unveils its glyphs. Be patient!',
+        'Urd draws from the well of fate — her gourd is nearly full of the answer to your question…',
+        'The carved runes light up one by one. Their wisdom is about to appear…',
+        'Frost and fire are already sealing the answer to your question.',
+        'Heimdall watches over the runes. They speak of you…',
+        'The runes carve their path toward the light. Patience…',
+      ],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -142,11 +167,27 @@ const CONFIG: Record<string, {
   },
 };
 
+// Messages d'attente spécifiques à certains tirages runes (ajoutés à la base).
+const RUNE_EXTRA_MSGS: Record<string, { fr: string; en: string }> = {
+  nornes: {
+    fr: 'Les Nornes tissent le fil de votre destin …',
+    en: 'The Norns weave the thread of your destiny…',
+  },
+  yggdrasil: {
+    fr: 'Yggdrasil, le frêne du monde, frémit …',
+    en: 'Yggdrasil, the world ash, trembles…',
+  },
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || '';
   const lang = searchParams.get('lang') === 'en' ? 'en' : 'fr';
-  const cfg = CONFIG[type];
+  let cfg = CONFIG[type];
+
+  // Les types de tirages runes (runes-nornes, runes-nornes2, runes-mjolnir,
+  // runes-yggdrasil…) partagent la config commune 'runes'.
+  if (!cfg && type.startsWith('runes')) cfg = CONFIG['runes'];
 
   if (!cfg) {
     // Fallback generique
@@ -157,6 +198,21 @@ export async function GET(request: NextRequest) {
       animation: 'fade',
       minDurationMs: 2500,
     });
+  }
+
+  // Pool de messages d'attente : base commune à tous les tirages runes, plus
+  // le message spécifique du tirage (Nornes / Yggdrasil) quand il y correspond.
+  let messages = cfg.messages[lang];
+  if (type.startsWith('runes')) {
+    const isEn = lang === 'en';
+    messages = [...cfg.messages[lang]];
+    if (type.includes('nornes')) {
+      const ex = RUNE_EXTRA_MSGS.nornes;
+      messages.splice(2, 0, isEn ? ex.en : ex.fr);
+    } else if (type.includes('yggdrasil')) {
+      const ex = RUNE_EXTRA_MSGS.yggdrasil;
+      messages.splice(2, 0, isEn ? ex.en : ex.fr);
+    }
   }
 
   // Vidéos d'attente : mélange aléatoire à CHAQUE requête (ordre différent à
@@ -177,7 +233,7 @@ export async function GET(request: NextRequest) {
     .filter((u, i, self) => self.indexOf(u) === i);
 
   return NextResponse.json({
-    messages: cfg.messages[lang],
+    messages,
     backgroundType: cfg.backgroundType,
     backgroundUrls,
     noLoopUrls,

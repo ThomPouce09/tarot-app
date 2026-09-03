@@ -41,6 +41,8 @@ interface AskQuestionProps {
   questionValueRef?: React.MutableRefObject<string | null>;
   /** Désactiver l'auto-focus (ex: quand le résultat du tirage est affiché avant) */
   autoFocus?: boolean;
+  /** Question obligatoire : le bouton de confirmation reste désactivé tant que le champ est vide. */
+  required?: boolean;
 }
 
 export function AskQuestion({
@@ -54,6 +56,7 @@ export function AskQuestion({
   glowLabel,
   questionValueRef,
   autoFocus = true,
+  required = false,
 }: AskQuestionProps) {
   const t = useT();
   const [question, setQuestion] = useState('');
@@ -75,6 +78,7 @@ export function AskQuestion({
 
   const handleConfirm = () => {
     const q = question.trim();
+    if (required && !q) return; // question obligatoire : rien à enregistrer
     onConfirm(q || null);
     setVisible(false);
     onLaunch?.();
@@ -82,10 +86,13 @@ export function AskQuestion({
 
   const handleLaunch = () => {
     const q = question.trim();
+    if (required && !q) return;
     onConfirm(q || null);
     setVisible(false);
     onLaunch?.();
   };
+
+  const qEmpty = required && !question.trim();
 
   // Bouton assorti au thème de la page : accentColor foncé (hex) ; sinon teal par défaut.
   const btnBg = accentColor && accentColor.startsWith('#') ? darkenHex(accentColor, 0.45) : '#005f6a';
@@ -98,13 +105,29 @@ export function AskQuestion({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          className="mb-4 text-center rounded-2xl border p-4"
+          className={`mb-4 text-center rounded-2xl border p-4 ${required ? 'border-2' : ''}`}
           style={{
-            borderColor: 'rgba(100,180,255,0.35)',
+            borderColor: accentColor
+              ? required
+                ? `${accentColor}aa`
+                : `${accentColor}59`
+              : 'rgba(100,180,255,0.35)',
           }}
         >
           {glowLabel && (
             <p className="mb-3 affinage-glow">{glowLabel}</p>
+          )}
+          {required && (
+            <p
+              className="mb-2.5 text-sm"
+              style={{
+                fontFamily: 'var(--font-cinzel), serif',
+                color: accentColor || '#8ab4ff',
+                textShadow: accentColor ? `0 0 12px ${accentColor}55` : 'none',
+              }}
+            >
+              {t('askQuestion.requiredHint')}
+            </p>
           )}
           <div className="flex items-center gap-2 justify-center flex-wrap">
             <input
@@ -117,6 +140,7 @@ export function AskQuestion({
               style={{
                 background: 'rgba(0,0,0,0.35)',
                 border: `1px solid ${accentColor || 'rgba(100,180,255,0.4)'}`,
+                boxShadow: required && !question.trim() ? `0 0 14px ${accentColor ? `${accentColor}44` : 'rgba(100,180,255,0.25)'}` : 'none',
                 color: '#f0e6d3',
                 fontFamily: 'var(--font-cormorant), serif',
               }}
@@ -126,12 +150,19 @@ export function AskQuestion({
             />
             <button
               onClick={handleConfirm}
-              className="rounded-full px-4 py-[9px] text-sm font-semibold transition-all hover:opacity-80"
+              disabled={qEmpty}
+              className="rounded-full px-4 py-[9px] text-sm font-semibold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100"
               style={{
-                background: btnBg,
+                // Gloss : reflet blanc dégradé par-dessus la couleur de base
+                // (même technique que .mystic-btn) + biseau bas ombré.
+                background: `
+                  linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+                  ${btnBg}`,
                 color: '#fff',
                 fontFamily: 'var(--font-cinzel), serif',
-                boxShadow: `0 0 12px ${btnGlow}`,
+                boxShadow: qEmpty
+                  ? 'none'
+                  : `0 0 12px ${btnGlow}, inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)`,
               }}
             >
               {confirmLabel || t('askQuestion.confirm')}

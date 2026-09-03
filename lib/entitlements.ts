@@ -70,6 +70,14 @@ export function planToLevel(plan: string | null | undefined): EntitlementLevel {
   return 'apprenti';
 }
 
+// ── Abonnement RÉELLEMENT actif : status 'active' ET période non expirée.
+// Le status seul ne suffit pas : si la date de fin (currentPeriodEnd) est passée
+// (webhook Stripe manqué, sync différée), l'accès doit être coupé immédiatement.
+export function subIsActive(sub?: { status?: string | null; currentPeriodEnd?: Date | null } | null): boolean {
+  if (!sub || sub.status !== 'active') return false;
+  return !!sub.currentPeriodEnd && sub.currentPeriodEnd.getTime() > Date.now();
+}
+
 // ── Charge (avec reset quotidien/mensuel paresseux) ─────────────
 async function loadUsage(userId: string) {
   const tk = todayKey();
@@ -95,7 +103,7 @@ export async function getRights(email: string): Promise<Rights | null> {
   });
   if (!user) return null;
 
-  const subActive = user.subscription?.status === 'active';
+  const subActive = subIsActive(user.subscription);
   const u = await loadUsage(user.id);
   // Niveau effectif : si l'abonnement n'est pas actif, on retombe sur apprenti.
   const plan = user.subscription?.plan ?? null;
@@ -130,7 +138,7 @@ export async function canDo(email: string, type: string, question: string | null
   const rights = await getRights(email);
   if (!rights) return { allowed: false, reason: 'not-logged', message: 'Compte introuvable.' };
 
-  const subActive = user.subscription?.status === 'active';
+  const subActive = subIsActive(user.subscription);
 
   // ── TIRAGE DE BASE ──
   if (cls.isBase) {
@@ -190,7 +198,7 @@ export async function consume(email: string, type: string, question: string | nu
   const decision = await canDo(email, type, question);
   if (!decision.allowed) return decision;
 
-  const subActive = user.subscription?.status === 'active';
+  const subActive = subIsActive(user.subscription);
   const u = await loadUsage(user.id);
   const tk = todayKey();
   const mk = monthKey();

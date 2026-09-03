@@ -314,6 +314,19 @@ export default function AbonnementPage() {
         </p>
       )}
 
+      {/* Abonnement expiré : la période (currentPeriodEnd) est terminée → plus
+          aucun privilège (niveau retombé sur apprenti) + invitation à se réabonner. */}
+      {!!currentPeriodEnd && current === 'apprenti' && new Date(currentPeriodEnd).getTime() < Date.now() && (
+        <div className="rounded-2xl p-4 border border-red-800/40 bg-red-950/20">
+          <p role="status" aria-live="polite" className="text-sm text-red-200">
+            {t('sub.expiredNotice').replace(
+              '{date}',
+              new Date(currentPeriodEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Bandeau statut d'un abonnement actif */}
       {(isArkane || current === 'initie') && (
         <div className={`mystic-panel p-4 flex flex-wrap items-center justify-between gap-3 ${cancelAtPeriodEnd ? 'border-amber-600/40' : ''}`}>

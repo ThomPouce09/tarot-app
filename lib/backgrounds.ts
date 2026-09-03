@@ -10,9 +10,17 @@
 
 export const LANDING_BACKGROUNDS: string[] = [
   '/backgrounds/landing-bg.jpg',
+  '/backgrounds/landing-bg0.jpg',
   '/backgrounds/landing-bg2.jpg',
   '/backgrounds/landing-bg3.jpg',
   '/backgrounds/landing-bg4.mp4',
+  '/backgrounds/landing-bg5.jpg',
+  '/backgrounds/landing-bg6.jpg',
+  '/backgrounds/landing-bg7.jpg',
+  '/backgrounds/landing-bg7.mp4',
+  '/backgrounds/landing-bg8.jpg',
+  '/backgrounds/landing-bg8.mp4',
+  '/backgrounds/landing-bg9.jpg',
 ];
 
 /** Vrai si le chemin de fond correspond à un fichier vidéo (.mp4 / .webm). */
