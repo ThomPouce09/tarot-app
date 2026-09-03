@@ -9,6 +9,17 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n';
 
+/** Fonce une couleur hex (facteur 0-1) → bouton assorti à l'accent du thème. */
+function darkenHex(hex: string, f: number): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  const r = Math.round(((n >> 16) & 255) * f);
+  const g = Math.round(((n >> 8) & 255) * f);
+  const b = Math.round((n & 255) * f);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
 interface AskQuestionProps {
   /** Appelé avec la question une fois validée (ou null si ignorée). */
   onConfirm: (question: string | null) => void;
@@ -76,6 +87,10 @@ export function AskQuestion({
     onLaunch?.();
   };
 
+  // Bouton assorti au thème de la page : accentColor foncé (hex) ; sinon teal par défaut.
+  const btnBg = accentColor && accentColor.startsWith('#') ? darkenHex(accentColor, 0.45) : '#005f6a';
+  const btnGlow = `${btnBg}80`;
+
   return (
     <AnimatePresence>
       {visible && (
@@ -113,10 +128,10 @@ export function AskQuestion({
               onClick={handleConfirm}
               className="rounded-full px-4 py-[9px] text-sm font-semibold transition-all hover:opacity-80"
               style={{
-                background: '#005f6a',
+                background: btnBg,
                 color: '#fff',
                 fontFamily: 'var(--font-cinzel), serif',
-                boxShadow: '0 0 12px rgba(0,95,106,0.5)',
+                boxShadow: `0 0 12px ${btnGlow}`,
               }}
             >
               {confirmLabel || t('askQuestion.confirm')}
@@ -132,11 +147,11 @@ export function AskQuestion({
           onClick={handleLaunch}
           className="mt-12 rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
           style={{
-            background: '#005f6a',
+            background: btnBg,
             color: '#fff',
             fontFamily: 'var(--font-cinzel-deco), serif',
-            boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-            border: '1px solid rgba(0,95,106,0.6)',
+            boxShadow: `0 0 24px ${btnGlow}`,
+            border: `1px solid ${btnBg}99`,
             position: 'relative',
             zIndex: 20,
           }}

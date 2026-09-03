@@ -445,7 +445,7 @@ export const DICT = {
   // ─── Ask Question (composant partagé) ───
   'askQuestion.label': { fr: '🔮 Quelle est votre question (facultatif) ?', en: '🔮 What is your question (optional) ?' },
   'askQuestion.placeholder': { fr: 'Posez votre question…', en: 'Ask your question…' },
-  'askQuestion.confirm': { fr: 'Enregister', en: 'Save' },
+  'askQuestion.confirm': { fr: 'Enregistrer', en: 'Save' },
   'askQuestion.skip': { fr: 'Passer — lancer directement', en: 'Skip — draw directly' },
 
   // ─── History: labels vues dés / runes ───
