@@ -7,3 +7,11 @@ export function calcAge(dob: string): number | null {
   if (isNaN(d.getTime())) return null;
   return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000));
 }
+
+// Garde de suppression de compte : nb de jours avant de pouvoir recréer un compte.
+export const DELETION_GRACE_DAYS = 40;
+
+// Jours écoulés (nombres entiers) depuis une date.
+export function daysSince(date: Date): number {
+  return Math.floor((Date.now() - date.getTime()) / 86400000);
+}

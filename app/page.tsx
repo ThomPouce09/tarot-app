@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLang, useT } from '@/lib/i18n';
-import { LANDING_BACKGROUNDS, isVideoBackground, pickRandomBackground } from '@/lib/backgrounds';
+import { LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
 import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
@@ -27,6 +27,19 @@ export default function HomePage() {
   // Video masquée (opacity 0) tant qu'elle n'est pas prête à jouer → évite la frame
   // noire étirée (flash" cercle/ovale) au retour vers la landing.
   const [videoReady, setVideoReady] = useState(false);
+  // Niveau effectif résolu (restreint le pool de fonds) — lu par les boutons ‹ ›.
+  const bgLevelRef = useRef<BackgroundLevel>('apprenti');
+  // ‹ › affichés uniquement pour Initié/Arkane (l'Apprenti passe par Préférences).
+  const [canCycle, setCanCycle] = useState(false);
+  // Fonds sélectionnés par l'utilisateur (tarot_prefs) — lu au clic (toujours frais).
+  const readSelectedBgs = (): string[] | null => {
+    try {
+      const raw = localStorage.getItem('tarot_prefs');
+      const prefs = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(prefs?.backgrounds) && prefs.backgrounds.length > 0) return prefs.backgrounds;
+    } catch { /* ignore */ }
+    return null;
+  };
 
   // Scintillement INDEPENDANT par tuile (timers non synchronises), 4-18s
   const tarotShimmer = useShimmer(t('landing.tile.tarot'), 4000, 18000);
@@ -55,18 +68,63 @@ export default function HomePage() {
     if (user) setIsLoggedIn(true);
   }, []);
 
-  // Rotation du fond d'écran à chaque chargement/refresh : lit les préférences
-  // utilisateur (tarot_prefs.backgrounds) ; si vide ⇒ tous les fonds en aléatoire.
+  // Fond d'écran à l'ouverture : STABLE — on reprend le fond mémorisé
+  // (tarot_bg) s'il est dans le pool (sélection utilisateur ∩ forfait), sinon
+  // le premier du pool. Aucun aléa. Les forfaits Initié/Arkane peuvent faire
+  // défiler sur place avec les boutons ‹ › ; l'Apprenti passe par Préférences.
   useIsomorphicLayoutEffect(() => {
-    let selected: string[] | null = null;
-    try {
-      const raw = localStorage.getItem('tarot_prefs');
-      const prefs = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(prefs?.backgrounds) && prefs.backgrounds.length > 0) selected = prefs.backgrounds;
-    } catch { /* ignore */ }
-    setBackground(pickRandomBackground(selected));
-    setBgReady(true);
+    let cancelled = false;
+    (async () => {
+      let lvl: BackgroundLevel = 'apprenti';
+      try {
+        const rawUser = localStorage.getItem('tarot_user');
+        const email = rawUser ? (JSON.parse(rawUser)?.email ?? '') : '';
+        if (email) {
+          const res = await fetch(`/api/subscription?email=${encodeURIComponent(email)}`);
+          if (res.ok) {
+            const d = await res.json();
+            if (d && (d.level === 'initie' || d.level === 'arkane')) lvl = d.level;
+          }
+        }
+      } catch {
+        // Hors-ligne / erreur → pool Apprenti (le plus restrictif : aucun fond
+        // hors-forfait ne peut être montré par erreur).
+      }
+      if (cancelled) return;
+      bgLevelRef.current = lvl;
+      setCanCycle(lvl === 'initie' || lvl === 'arkane');
+      const pool = resolveBackgrounds(readSelectedBgs(), lvl);
+      if (!pool.length) return;
+      let current = pool[0];
+      try {
+        const stored = localStorage.getItem('tarot_bg');
+        if (stored && pool.includes(stored)) current = stored;
+      } catch { /* ignore */ }
+      setBackground(current);
+      setBgReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // Défilement manuel (réservé Initié/Arkane) : fond suivant / précédent dans
+  // le pool (sélection utilisateur, sinon pool du forfait), mémorisé.
+  const cycleBackground = useCallback(
+    (dir: 1 | -1) => {
+      const pool = resolveBackgrounds(readSelectedBgs(), bgLevelRef.current);
+      if (pool.length < 2) return;
+      const idx = pool.indexOf(background);
+      const next = pool[(idx + dir + pool.length) % pool.length];
+      if (!next || next === background) return;
+      setVideoReady(false); // le nouveau fond (si vidéo) repart masqué → fade-in
+      setBackground(next);
+      try {
+        localStorage.setItem('tarot_bg', next);
+      } catch { /* ignore */ }
+    },
+    [background],
+  );
 
   const handleLogin = () => {
     // Si déjà connecté : aller directement sur Mon espace (pas de re-login).
@@ -80,10 +138,17 @@ export default function HomePage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
-      {/* BACKGROUND : image ou vidéo, selon le fond retenu (rotation aléatoire).
-          Rendu seulement une fois le fond choisi (bgReady) → pas de flash du mauvais fond. */}
+      {/* BACKGROUND : image ou vidéo, selon le fond retenu. Rendu seulement une
+          fois le fond choisi (bgReady) → pas de flash. Fondu doux à chaque
+          défilement (key = fond courant). */}
       {bgReady && (
-        <div className="absolute inset-0 z-0">
+        <motion.div
+          key={background}
+          className="absolute inset-0 z-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
+        >
           {isVideoBackground(background) ? (
             <video
               src={background}
@@ -107,7 +172,7 @@ export default function HomePage() {
               quality={90}
             />
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* MAIN TITLE */}
@@ -390,6 +455,49 @@ export default function HomePage() {
           </motion.div>
         </Link>
       </div>
+
+    {/* Défilement des fonds sur place — réservé aux forfaits Initié/Arkane.
+        L'Apprenti change ses fonds depuis Préférences. */}
+    {bgReady && canCycle && (
+      <div className="absolute bottom-3 right-3 z-[9997] flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => cycleBackground(-1)}
+          aria-label="Fond précédent"
+          title="Fond précédent"
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+          style={{
+            background: 'rgba(26,14,10,0.55)',
+            border: '1px solid rgba(218,165,32,0.5)',
+            color: '#FFD700',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 12px rgba(218,165,32,0.25)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M14.5 5.5 8 12l6.5 6.5" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => cycleBackground(1)}
+          aria-label="Fond suivant"
+          title="Fond suivant"
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+          style={{
+            background: 'rgba(26,14,10,0.55)',
+            border: '1px solid rgba(218,165,32,0.5)',
+            color: '#FFD700',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 12px rgba(218,165,32,0.25)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m9.5 5.5 6.5 6.5-6.5 6.5" />
+          </svg>
+        </button>
+      </div>
+    )}
 
     <PauseRepas />
     <Firefly page="landing" />

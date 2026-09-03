@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,32 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
+    }
+
+    // Compte supprimé (tombeau) : garde anti-reconnexion de 40 jours.
+    if (user.deletedAt) {
+      const elapsed = daysSince(user.deletedAt);
+      if (elapsed < DELETION_GRACE_DAYS) {
+        const remaining = DELETION_GRACE_DAYS - elapsed;
+        const untilLabel = new Date(
+          user.deletedAt.getTime() + DELETION_GRACE_DAYS * 86400000
+        ).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return NextResponse.json(
+          {
+            error: `Votre compte a été supprimé. Vous pourrez recréer un compte à partir du ${untilLabel} (dans ${remaining} jour${remaining > 1 ? 's' : ''}).`,
+            code: 'ACCOUNT_DELETED',
+            remainingDays: remaining,
+          },
+          { status: 403 }
+        );
+      }
+      // Les 40 jours passés : purge le tombeau, le compte est définitivement supprimé.
+      await prisma.$transaction([
+        prisma.reading.deleteMany({ where: { userId: user.id } }),
+        prisma.subscription.deleteMany({ where: { userId: user.id } }),
+        prisma.user.delete({ where: { id: user.id } }),
+      ]);
       return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
     }
 

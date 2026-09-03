@@ -2,7 +2,8 @@ import TarotApp from '../components/tarot-app';
 import AuthGate from '@/components/auth-gate';
 
 function Home() {
-  return <TarotApp />;
+  // Tirage 3 cartes : la pioche ne présente que les 22 arcanes majeurs.
+  return <TarotApp majorsOnly />;
 }
 
 export default function GatedPage() {

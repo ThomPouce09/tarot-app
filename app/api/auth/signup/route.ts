@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendConfirmationEmail } from '@/lib/mailer';
-import { calcAge } from '@/lib/dates';
+import { calcAge, daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,31 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
-      return NextResponse.json({ error: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.' }, { status: 400 });
+      // Compte tombé (supprimé) : garde anti-recéation de 40 jours.
+      if (existing.deletedAt) {
+        const elapsed = daysSince(existing.deletedAt);
+        if (elapsed < DELETION_GRACE_DAYS) {
+          const remaining = DELETION_GRACE_DAYS - elapsed;
+          const untilLabel = new Date(
+            existing.deletedAt.getTime() + DELETION_GRACE_DAYS * 86400000
+          ).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          return NextResponse.json(
+            {
+              error: `Cet email a été utilisé par un compte supprimé. Vous pourrez le réutiliser à partir du ${untilLabel} (dans ${remaining} jour${remaining > 1 ? 's' : ''}).`,
+              code: 'ACCOUNT_DELETED',
+            },
+            { status: 403 }
+          );
+        }
+        // 40 jours passés : purge le tombeau, la recréation est autorisée.
+        await prisma.$transaction([
+          prisma.reading.deleteMany({ where: { userId: existing.id } }),
+          prisma.subscription.deleteMany({ where: { userId: existing.id } }),
+          prisma.user.delete({ where: { id: existing.id } }),
+        ]);
+      } else {
+        return NextResponse.json({ error: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.' }, { status: 400 });
+      }
     }
 
     const hashedPassword = await (bcrypt as any).hash(password, 12);

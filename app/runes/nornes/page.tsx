@@ -39,9 +39,10 @@ function NornesPage() {
   const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
   // Idem pour l'interprétation du Conseil d'Odin (4ème rune).
   const [adviceAnalysisDone, setAdviceAnalysisDone] = useState(false);
-  // Abonnement : la variation Arkane (Conseil d'Odin) est réservée aux abonnés Arkane.
+  // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
+  // réservée aux abonnés payants : Initié et Arkane.
   const { sub: entSub } = useEntitlement();
-  const isArkane = entSub?.level === 'arkane';
+  const canOdinAdvice = entSub?.level === 'initie' || entSub?.level === 'arkane';
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
   const [question, setQuestion] = useState<string | null>(null);
   // Modale « Principe du Fil des Nornes » affichée au chargement :
@@ -280,10 +281,11 @@ function NornesPage() {
           />
         )}
 
-        {/* Variation "Briser le Destin" — réservée aux abonnés Arkane, et
-            uniquement APRÈS l'affichage de l'interprétation IA du tirage initial. */}
+        {/* Variation "Briser le Destin" — réservée aux abonnés Initié et
+            Arkane, et uniquement APRÈS l'affichage de l'interprétation IA du
+            tirage initial. */}
         <AnimatePresence>
-          {phase === 'done' && !hasAdvice && mainAnalysisDone && isArkane && (
+          {phase === 'done' && !hasAdvice && mainAnalysisDone && canOdinAdvice && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
