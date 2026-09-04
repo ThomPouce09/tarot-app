@@ -17,14 +17,20 @@ import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
+// Liste AUTO-GÉNÉRÉE au build/dev (scripts/gen-backdrops.cjs lit
+// public/backgrounds/runes*.jpg) : déposer un nouveau runesN.jpg suffit.
+import runesBackdrops from '@/lib/generated/backdrops-runes.json';
 
 // Frise décorative de runes — rendue uniquement après hydratation pour
 // éviter le mismatch d'hydratation (glyphes runiques = Unicode hors-BMP).
 const FRIEZE_TOP = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
 const FRIEZE_BOTTOM = 'ᛟᛞᛜᛚᛗᛖᛒᛏᛊᛉᛈᛇᛃᛁᚾᚺᚹᚷᚲᚱᚨᚦᚢᚠ';
 
-// Fonds d'écran aléatoires du hub /runes (fournis par l'utilisateur).
-const RUNES_BACKDROPS = ['/backgrounds/runes1.jpg', '/backgrounds/runes2.jpg', '/backgrounds/runes3.jpg'];
+// Fonds d'écran aléatoires du hub /runes — liste auto-générée ci-dessus
+// (fallback statique si la génération n'a pas tourné).
+const RUNES_BACKDROPS = (runesBackdrops as string[]).length
+  ? (runesBackdrops as string[])
+  : ['/backgrounds/runes1.jpg', '/backgrounds/runes2.jpg', '/backgrounds/runes3.jpg'];
 
 // Affiche l'une des 3 images en fond (choisie au montage, côté client →
 // aucun mismatch d'hydratation), sous un voile sombre pour la lisibilité.

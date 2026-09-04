@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLang, useT } from '@/lib/i18n';
-import { LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
+import { DEFAULT_BACKGROUND, LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
 import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
@@ -95,7 +95,9 @@ export default function HomePage() {
       setCanCycle(lvl === 'initie' || lvl === 'arkane');
       const pool = resolveBackgrounds(readSelectedBgs(), lvl);
       if (!pool.length) return;
-      let current = pool[0];
+      // Par défaut : fond CLAIR (landing-bg4.mp4) — on le garde tant que
+      // l'utilisateur n'a pas épinglé un autre fond via les flèches ‹ ›.
+      let current = pool.includes(DEFAULT_BACKGROUND) ? DEFAULT_BACKGROUND : pool[0];
       try {
         const stored = localStorage.getItem('tarot_bg');
         if (stored && pool.includes(stored)) current = stored;

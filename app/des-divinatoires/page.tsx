@@ -13,13 +13,17 @@ import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
-
-// Fonds d'écran aléatoires du hub /des-divinatoires (fournis par l'utilisateur).
-const DES_BACKDROPS = [
-  '/backgrounds/des-divinatoires1.jpg',
-  '/backgrounds/des-divinatoires2.jpg',
-  '/backgrounds/des-divinatoires3.jpg',
-];
+// Fonds aléatoires du hub /des-divinatoires — liste AUTO-GÉNÉRÉE au build/dev
+// (scripts/gen-backdrops.cjs lit public/backgrounds/des-divinatoires*.jpg) :
+// déposer un nouveau fichier numéroté suffit, aucune édition de code.
+import desBackdrops from '@/lib/generated/backdrops-des.json';
+const DES_BACKDROPS = (desBackdrops as string[]).length
+  ? (desBackdrops as string[])
+  : [
+      '/backgrounds/des-divinatoires1.jpg',
+      '/backgrounds/des-divinatoires2.jpg',
+      '/backgrounds/des-divinatoires3.jpg',
+    ];
 
 // Frise décorative de signes astrologiques — SVG vectoriel (trait fin doré),
 // rendue uniquement après hydratation (cohérent avec /runes) pour éviter

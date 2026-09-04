@@ -69,3 +69,6 @@ _tunnel.out
 google-services.json
 *-firebase-adminsdk-*.json
 .env.firebase.local
+
+# Liste auto-générée des fonds (regénérée au build/dev)
+lib/generated/

@@ -225,12 +225,14 @@ function GiftBurst({ glow }: { glow: string }) {
 export default function CreaturePopup({ data, onClaim, onClose }: Props) {
   const { creature, text } = data;
   const [imgError, setImgError] = useState(false);
-  const [show, setShow] = useState(true); // tout (créature + texte) visible jusqu'à 6s
+  const [show, setShow] = useState(true); // tout (créature + texte) visible
   const [claimState, setClaimState] = useState<'idle' | 'claiming' | 'claimed' | 'failed'>('idle');
   const glow = creature.color || GOLD;
   const isEn = data.lang === 'en';
 
-  // Timers de fermeture : repoussables après la réclamation d'un cadeau.
+  // Pas de fermeture automatique : la créature reste affichée jusqu'à ce que
+  // l'utilisateur tape EN DEHORS du message (overlay) — il lit à son rythme.
+  // Seuls les retours « cadeau » (succès/échec) ferment après leur animation.
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const scheduleClose = useCallback(
     (hideDelay: number, closeDelay: number) => {
@@ -242,15 +244,14 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
     [onClose],
   );
 
-  // À 6s, TOUT s'efface ensemble (créature, nom, texte, sortilèges) en fondu doux.
-  // Laisser ~1,1s de fondu puis on ferme réellement.
   useEffect(() => {
-    scheduleClose(6000, 6000 + 1200);
+    // Nettoyage des timers au démontage (aucun timer de fermeture initial).
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
-  }, [scheduleClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Réclame le cadeau : célébration + fermeture repoussée si succès.
   const handleClaim = useCallback(async () => {
@@ -269,7 +270,7 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
   }, [onClaim, claimState, scheduleClose]);
 
   return (
-    // Overlay plein écran : clic extérieur = fermeture (avant 6s).
+    // Overlay plein écran : clic extérieur = fermeture (aucune fermeture auto).
     // Fond assombri tant que le message est visible (révèle le rendu du sortilège).
     <motion.div
       className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto p-4"

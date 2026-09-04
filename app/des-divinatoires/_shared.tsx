@@ -75,7 +75,7 @@ export function DiceBackground({
           <StarryNight variant={starryVariant} />
         </div>
       )}
-      {/* fond d'écran personnalisé (optionnel) */}
+      {/* fond d'écran personnalisé (optionnel) — affiché à 100 % (aucun voile sombre) */}
       {bgImage && (
         <div
           className="pointer-events-none absolute inset-0"
@@ -83,7 +83,6 @@ export function DiceBackground({
             backgroundImage: `url(${bgImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            opacity: 0.35,
           }}
         />
       )}
@@ -122,11 +121,16 @@ export function DiceTitle({
       </h1>
       {subtitle && (
         <p
-          className="mx-auto mt-3 max-w-xl text-sm sm:text-base italic"
+          className="mx-auto mt-3 max-w-xl text-[13px] italic sm:text-sm"
           style={{
             fontFamily: 'var(--font-cinzel), serif',
-            color: DICE_THEME.glyph,
-            opacity: 0.85,
+            fontWeight: 700,
+            color: '#FF69B4', // rose bonbon — sous-titre
+            opacity: 0.97,
+            // Bordure extérieure très fine sur les lettres (fuchsia) + ombre portée sombre.
+            WebkitTextStroke: '0.5px #FF00FF',
+            textShadow:
+              '0 1px 3px rgba(70,5,40,0.55), 0 3px 10px rgba(60,8,35,0.5)',
           }}
         >
           {subtitle}
@@ -472,7 +476,7 @@ export function DiceAnalysis({
                   className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
                   style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                 >
-                  Passer à l'action
+                  Passer à l&apos;action
                 </p>
                 <ul className="mx-auto max-w-xl space-y-2">
                   {actions.map((a, i) => (
@@ -507,7 +511,7 @@ export function DiceAnalysis({
         {hasErrored && !loading && (
           <div className="mt-4 text-center">
             <DiceButton variant="ocre" onClick={run}>
-              🔄 Relancer l'analyse
+              🔄 Relancer l&apos;analyse
             </DiceButton>
           </div>
         )}
