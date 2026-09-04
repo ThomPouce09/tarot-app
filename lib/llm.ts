@@ -29,8 +29,10 @@ const PROVIDERS: OracleProvider[] = [
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
     apiKey: process.env.OPENROUTER_API_KEY,
-    // gemma-4-26b : rapide et concis pour les interprétations tarot/yi-jing
-    models: ['google/gemma-4-26b-a4b-it:free'],
+    // Modèles gratuits, essayés dans l'ordre (le circuit breaker protège des 429) :
+    //   - minimax-m3 : ~4s, français correct (remplaçant principal de gemma)
+    //   - gemma-4-26b : ancien secours, souvent rate-limité upstream
+    models: ['minimax/minimax-m3:free', 'google/gemma-4-26b-a4b-it:free'],
   },
 ];
 

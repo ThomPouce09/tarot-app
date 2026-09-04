@@ -13,7 +13,6 @@ import {
   RuneButton,
   RuneReading,
   RuneAnalysis,
-  SageCard,
   RUNE_THEME,
 } from '../_shared';
 import { NornesTutorialModal } from './nornes-tutorial-modal';
@@ -51,6 +50,10 @@ function NornesPage() {
   const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
   const t = useT();
   const readingIdRef = useRef<string | null>(null);
+  // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
+  // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
+  // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
+  const mainAnalysisRef = useRef<Record<string, unknown> | null>(null);
   const savedRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -74,6 +77,7 @@ function NornesPage() {
     // que les actions « Recommencer » / « Tisser une nouvelle voie » réapparaissent.
     setMainAnalysisDone(false);
     setAdviceAnalysisDone(false);
+    mainAnalysisRef.current = null;
   }, []);
 
   // Clic sur « Compris » : ferme la modale → le champ question (obligatoire) est
@@ -141,7 +145,6 @@ function NornesPage() {
     setIsRolling(false);
     setRunes((prev) => {
       const all = [...prev.slice(0, 3), r[0]];
-      // Mettre à jour la lecture historique avec la 4e rune + interprétation combinée
       if (readingIdRef.current) {
         const allCards = all.map((d, i) => ({
           name: d.rune?.name,
@@ -149,10 +152,17 @@ function NornesPage() {
           reversed: d.reversed,
           position: NORNES_POS[i] || 'Conseil d’Odin',
         }));
-        updateReading(readingIdRef.current, {
-          cards: allCards,
-          interpretation: staticInterpretation(all, 4),
-        });
+        // On n'écrase PAS l'interprétation IA du fil par le texte statique :
+        // elle est conservée puis fusionnée avec le Conseil d'Odin quand son
+        // analyse arrive (onAdviceAnalysis) — l'historique montre tout le tirage.
+        if (mainAnalysisRef.current) {
+          updateReading(readingIdRef.current, { cards: allCards });
+        } else {
+          updateReading(readingIdRef.current, {
+            cards: allCards,
+            interpretation: staticInterpretation(all, 4),
+          });
+        }
       }
       return all;
     });
@@ -169,6 +179,14 @@ function NornesPage() {
   const onMainAnalysis = useCallback(
     (text: string) => {
       setMainAnalysisDone(true);
+      // Conserver l'analyse structurée du fil (JSON) : elle sera fusionnée avec
+      // le Conseil d'Odin à destination de l'historique (onAdviceAnalysis).
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          mainAnalysisRef.current = parsed as Record<string, unknown>;
+        }
+      } catch { /* texte non JSON : rien à conserver */ }
       onAnalysis(text);
     },
     [onAnalysis],
@@ -178,6 +196,33 @@ function NornesPage() {
   const onAdviceAnalysis = useCallback(
     (text: string) => {
       setAdviceAnalysisDone(true);
+      // Fusionner l'analyse du Conseil d'Odin AVEC celle du fil (U/V/S) : la
+      // lecture historique doit montrer TOUT le tirage, pas seulement le Conseil
+      // (sinon la 2e écriture écrase la 1ère).
+      try {
+        const odin = JSON.parse(text) as Record<string, any>;
+        const main = mainAnalysisRef.current;
+        if (odin && main && Array.isArray(odin.sections)) {
+          // Format structuré à DEUX blocs pour l'historique :
+          //   fil     → sections U/V/S + synthèse + 1er Conseil d'Odin
+          //   tissage → section du Conseil + 2e Conseil d'Odin
+          const merged = {
+            version: 'nornes-full',
+            fil: {
+              sections: Array.isArray(main.sections) ? (main.sections as unknown[]) : [],
+              synthese: (main.synthese as string) || '',
+              conseil_action: (main.conseil_action as string) || '',
+            },
+            tissage: {
+              sections: odin.sections as unknown[],
+              synthese: (odin.synthese as string) || '',
+              conseil_action: (odin.conseil_action as string) || '',
+            },
+          };
+          onAnalysis(JSON.stringify(merged));
+          return;
+        }
+      } catch { /* réponse non JSON → on garde le texte reçu */ }
       onAnalysis(text);
     },
     [onAnalysis],
@@ -319,7 +364,12 @@ function NornesPage() {
           </div>
         )}
 
-        {/* 4ème rune : Conseil d'Odin */}
+        {/* 4ème rune : Conseil d'Odin — révélation UNIQUE (réorganisation du
+            « Tisser une autre voie ») : le SageCard + la RuneReading en double
+            ont été retirés. RuneAnalysis (odinReveal) n'affiche qu'UN bouton
+            « Révéler le Conseil d'Odin » ; la carte parchemin dorée révèle la
+            rune, son sens, la lecture et l'action concrète — sans section ni
+            « Synthèse » dupliquées. */}
         <AnimatePresence>
           {phase === 'advice' && runes[3] && (
             <motion.div
@@ -327,25 +377,11 @@ function NornesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              {/* La révélation de la rune d'Odin (simple) — le texte du Conseil
-                  vient de l'interprétation IA ci-dessous (bouton « Révéler le
-                  Conseil d'Odin », carte fond conseil-odin.png). */}
-              <SageCard title={t('runes.conseilOdin')}>
-                <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
-                  L’action précise à mener au présent (Verdandi) pour modifier
-                  l’avenir (Skuld).
-                </p>
-                <RuneReading
-                  rune={runes[3].rune}
-                  reversed={runes[3].reversed}
-                  position="Conseil d'Odin"
-                  compactInfo
-                />
-              </SageCard>
               {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
               <RuneAnalysis
                 mode="nornes"
                 focus="odin"
+                odinReveal
                 buttonLabel="Consulter l'Oracle sur le conseil d'Odin"
                 runes={[
                   { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },

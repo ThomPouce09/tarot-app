@@ -523,6 +523,7 @@ export function RuneAnalysis({
   buttonLabel = "✨ Interroger l'Oracle",
   onAnalysis,
   autoRun = false,
+  odinReveal = false,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -532,6 +533,12 @@ export function RuneAnalysis({
   onAnalysis?: (text: string) => void;
   /** Lance l'interprétation IA automatiquement dès le montage (pas de bouton). */
   autoRun?: boolean;
+  /** « Tisser une autre voie » (/nornes) : révélation UNIQUE du Conseil d'Odin —
+      ni section « Conseil d'Odin » ni bloc « Synthèse » dupliqués. La rune, son
+      sens, la lecture et l'action sont révélés en un seul acte (bouton → carte
+      parchemin dorée + texte). Opt-in : les autres pages gardent le rendu
+      historique (nornes2, analyse initiale, mjolnir, yggdrasil). */
+  odinReveal?: boolean;
 }) {
   const [sections, setSections] = useState<
     { position: string; rune: string; sens: string; lecture: string }[] | null
@@ -727,6 +734,15 @@ export function RuneAnalysis({
     return () => window.clearTimeout(t);
   }, [autoRun, sections, loading]);
 
+  // Conseil d'Odin du tissage (/nornes, prop odinReveal — exigence user
+  // 2026-09-04) : l'analyse IA de la nouvelle rune s'affiche DIRECTEMENT
+  // (carte standard SANS l'en-tête de position « Conseil d'Odin », qui
+  // dupliquerait le titre de la révélation) ; la « Synthèse » est fondue en
+  // phrase de clôture DANS la carte (pas de bloc dupliqué) ; le bouton
+  // « Révéler le Conseil d'Odin » + la carte parchemin dorée restent SOUS
+  // l'analyse, avec la même mécanique que dans la 1ère phase.
+  const unifiedOdin = odinReveal && mode === 'nornes' && focus === 'odin';
+
   return (
     <div
       className="mt-6"
@@ -827,12 +843,14 @@ export function RuneAnalysis({
                 border: `1px solid ${RUNE_THEME.goldPale}44`,
               }}
             >
-              <p
-                className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
-              >
-                {s.position}
-              </p>
+              {!unifiedOdin && (
+                <p
+                  className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
+                >
+                  {s.position}
+                </p>
+              )}
               <p
                 className="mb-2 text-center text-base"
                 style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}
@@ -851,10 +869,18 @@ export function RuneAnalysis({
               >
                 {s.lecture}
               </p>
+              {unifiedOdin && synthese && (
+                <p
+                  className="mt-3 text-center text-sm italic leading-relaxed"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sagePale }}
+                >
+                  {synthese}
+                </p>
+              )}
             </div>
           ))}
 
-          {synthese && (
+          {!unifiedOdin && synthese && (
             <div
               className="mt-4 rounded-2xl p-4"
               style={{

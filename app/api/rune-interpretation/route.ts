@@ -9,7 +9,7 @@
 // pendant cet appel.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { callOracle } from '@/lib/llm';
+import { callOracle, extractJsonObject } from '@/lib/llm';
 import { enforceGate } from '@/lib/gate-server';
 
 type Mode = 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -23,24 +23,6 @@ interface RuneInput {
   position: string;
   sense: string; // sens réel (upright ou reversed) issu de runes.ts
   reversed: boolean;
-}
-
-// Extrait le 1er objet JSON valide d'une réponse LLM (même robustesse que l'existant).
-function extractJson(text: string): any {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(text.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
 }
 
 function buildNornesPrompt(runes: RuneInput[]): string {
@@ -65,8 +47,8 @@ ${liste}
 IMPORTANT : utilise IMPÉRATIVEMENT ces noms et ces sens réels (ne les invente pas).
 
 Lis le fil comme une histoire continue : le passé a engendré le présent, qui mène
-vers l'avenir. Si une 4e rune (Conseil d'Odin) est présente, dis concrètement quel
-petit geste poser au présent pour modifier la trajectoire.
+vers l'avenir. Dis concrètement quel petit geste poser au présent pour modifier
+la trajectoire.
 
 Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 {
@@ -76,7 +58,7 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
     { "position": "Skuld — L'Avenir", "rune": "...", "sens": "...", "lecture": "1 à 2 phrases : où mène la trajectoire actuelle." }
   ],
   "synthese": "1 phrase qui résume le fil des Nornes, bienveillante.",
-  "conseil_action": "Si une 4e rune (Conseil d'Odin) est présente : 1 phrase d'action concrète à poser aujourd'hui. Sinon : une phrase pour accueillir l'avenir."
+  "conseil_action": "OBLIGATOIRE : 1 phrase d'action concrète à poser aujourd'hui pour infléchir Skuld (Verdandi). Ne JAMAIS omettre cette clé."
 }
 Réponds UNIQUEMENT avec l'objet JSON.`;
 }
@@ -155,8 +137,17 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   }
+  // Les petits modèles gratuits (secours) omettent parfois « conseil_action »
+  // ou répondent en prose. Une relance UNIQUE le réclame explicitement.
+  let json = extractJsonObject(content) as Record<string, any>;
+  if (json && Array.isArray(json.sections) && !String(json.conseil_action || '').trim()) {
+    const retry = (await callOracle(prompt + '\n\nRAPPEL ABSOLU : le JSON DOIT contenir la clé "conseil_action" (1 phrase d\'action concrète). Ne renvoie QUE l\'objet JSON complet.')) || '';
+    const jsonRetry = extractJsonObject(retry) as Record<string, any>;
+    if (jsonRetry && Array.isArray(jsonRetry.sections) && String(jsonRetry.conseil_action || '').trim()) {
+      json = jsonRetry;
+    }
+  }
   try {
-    const json = extractJson(content);
     if (json && Array.isArray(json.sections)) {
       const sections = (json.sections as any[])
         .filter((s) => s && s.lecture && String(s.lecture).trim().length > 0)
