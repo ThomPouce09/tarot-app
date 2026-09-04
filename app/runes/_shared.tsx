@@ -15,6 +15,7 @@ import type { Rune } from '@/components/rune-stones/runes';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import { playSound } from '@/lib/sounds';
 import { useLang } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 // Étincelles dorées de la révélation du Conseil d'Odin (positions/délais
 // déterministes — pas de random pendant le rendu).
@@ -583,7 +584,7 @@ export function RuneAnalysis({
   // + la liste des messages d'attente de la langue courante.
   const pickVideo = useCallback(async () => {
     try {
-      const res = await fetch(`/api/interpretation-wait?type=${waitType}&lang=${lang}`, { cache: 'no-store' });
+      const res = await api(`/api/interpretation-wait?type=${waitType}&lang=${lang}`, { cache: 'no-store' });
       const data = await res.json();
       const urls: string[] = data?.backgroundUrls ?? [];
       if (urls.length > 0) setVideoUrl(urls[0]);
@@ -633,7 +634,7 @@ export function RuneAnalysis({
       const runeType = `runes-${mode}`;
       let userId = '';
       try { const u = localStorage.getItem('tarot_user'); if (u) userId = JSON.parse(u).email || ''; } catch { /* noop */ }
-      const res = await fetch('/api/rune-interpretation', {
+      const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runes: payload, mode, focus, userId, type: runeType }),

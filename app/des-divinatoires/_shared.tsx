@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { api } from '@/lib/api-client';
 
 // Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
 const StarryNight = dynamic(() => import('@/components/starry-night'), {
@@ -338,7 +339,7 @@ export function DiceAnalysis({
     setSynthese('');
     setActions([]);
     try {
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),

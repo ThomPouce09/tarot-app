@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
@@ -87,7 +88,7 @@ export default function PreferencesPage() {
   // Persiste côté serveur (lettre + rappel) à chaque changement des champs serveur.
   const syncServer = (next: Prefs) => {
     if (!email) return;
-    fetch('/api/prefs', {
+    api('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds }),
