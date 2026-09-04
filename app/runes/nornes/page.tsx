@@ -1,6 +1,7 @@
 'use client';
 
-// app/runes/nornes/page.tsx — Niveau 2.1 : Le Fil des Nornes (Passé/Présent/Avenir)
+// app/runes/nornes/page.tsx — Niveau 2.1 : Le Fil des Nornes — Précis
+// (tirage AVANCÉ : réponse ciblée sur la question exacte posée).
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, useRef } from 'react';
@@ -13,7 +14,6 @@ import {
   RuneButton,
   RuneReading,
   RuneAnalysis,
-  SageCard,
   RUNE_THEME,
 } from '../_shared';
 import { NornesTutorialModal } from './nornes-tutorial-modal';
@@ -34,11 +34,8 @@ function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
-  // « Tisser une nouvelle voie » + « Recommencer un tirage » n'apparaissent
-  // qu'après — jamais avant).
+  // « Tisser une nouvelle voie » n'apparaît qu'après — jamais avant).
   const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
-  // Idem pour l'interprétation du Conseil d'Odin (4ème rune).
-  const [adviceAnalysisDone, setAdviceAnalysisDone] = useState(false);
   // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
   // réservée au forfait ARKANE.
   const { sub: entSub } = useEntitlement();
@@ -51,6 +48,10 @@ function NornesPage() {
   const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
   const t = useT();
   const readingIdRef = useRef<string | null>(null);
+  // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
+  // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
+  // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
+  const mainAnalysisRef = useRef<Record<string, unknown> | null>(null);
   const savedRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -70,10 +71,10 @@ function NornesPage() {
     setIsRolling(true);
     savedRef.current = false;
     readingIdRef.current = null;
-    // Nouveau tirage → les interprétations doivent être (re)affichées avant
-    // que les actions « Recommencer » / « Tisser une nouvelle voie » réapparaissent.
+    // Nouveau tirage → l'interprétation doit être (re)affichée avant que
+    // l'action « Tisser une nouvelle voie » réapparaisse.
     setMainAnalysisDone(false);
-    setAdviceAnalysisDone(false);
+    mainAnalysisRef.current = null;
   }, []);
 
   // Clic sur « Compris » : ferme la modale → le champ question (obligatoire) est
@@ -104,7 +105,7 @@ function NornesPage() {
       savedRef.current = true;
       const id = await saveReading({
         type: 'runes-nornes',
-        spread: 'Le Fil des Nornes',
+        spread: 'Le Fil des Nornes — Précis',
         cards: r.slice(0, 3).map((d, i) => ({
           name: d.rune?.name,
           symbol: d.rune?.symbol,
@@ -141,7 +142,6 @@ function NornesPage() {
     setIsRolling(false);
     setRunes((prev) => {
       const all = [...prev.slice(0, 3), r[0]];
-      // Mettre à jour la lecture historique avec la 4e rune + interprétation combinée
       if (readingIdRef.current) {
         const allCards = all.map((d, i) => ({
           name: d.rune?.name,
@@ -149,10 +149,17 @@ function NornesPage() {
           reversed: d.reversed,
           position: NORNES_POS[i] || 'Conseil d’Odin',
         }));
-        updateReading(readingIdRef.current, {
-          cards: allCards,
-          interpretation: staticInterpretation(all, 4),
-        });
+        // On n'écrase PAS l'interprétation IA du fil par le texte statique :
+        // elle est conservée puis fusionnée avec le Conseil d'Odin quand son
+        // analyse arrive (onAdviceAnalysis) — l'historique montre tout le tirage.
+        if (mainAnalysisRef.current) {
+          updateReading(readingIdRef.current, { cards: allCards });
+        } else {
+          updateReading(readingIdRef.current, {
+            cards: allCards,
+            interpretation: staticInterpretation(all, 4),
+          });
+        }
       }
       return all;
     });
@@ -169,15 +176,49 @@ function NornesPage() {
   const onMainAnalysis = useCallback(
     (text: string) => {
       setMainAnalysisDone(true);
+      // Conserver l'analyse structurée du fil (JSON) : elle sera fusionnée avec
+      // le Conseil d'Odin à destination de l'historique (onAdviceAnalysis).
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          mainAnalysisRef.current = parsed as Record<string, unknown>;
+        }
+      } catch { /* texte non JSON : rien à conserver */ }
       onAnalysis(text);
     },
     [onAnalysis],
   );
 
-  // Révélation IA du Conseil d'Odin prête (permet le « Recommencer » du bloc advice).
+  // Révélation IA du Conseil d'Odin prête → fusion avec le fil pour l'historique.
   const onAdviceAnalysis = useCallback(
     (text: string) => {
-      setAdviceAnalysisDone(true);
+      // Fusionner l'analyse du Conseil d'Odin AVEC celle du fil (U/V/S) : la
+      // lecture historique doit montrer TOUT le tirage, pas seulement le Conseil
+      // (sinon la 2e écriture écrase la 1ère).
+      try {
+        const odin = JSON.parse(text) as Record<string, any>;
+        const main = mainAnalysisRef.current;
+        if (odin && main && Array.isArray(odin.sections)) {
+          // Format structuré à DEUX blocs pour l'historique :
+          //   fil     → sections U/V/S + synthèse + 1er Conseil d'Odin
+          //   tissage → section du Conseil + 2e Conseil d'Odin
+          const merged = {
+            version: 'nornes-full',
+            fil: {
+              sections: Array.isArray(main.sections) ? (main.sections as unknown[]) : [],
+              synthese: (main.synthese as string) || '',
+              conseil_action: (main.conseil_action as string) || '',
+            },
+            tissage: {
+              sections: odin.sections as unknown[],
+              synthese: (odin.synthese as string) || '',
+              conseil_action: (odin.conseil_action as string) || '',
+            },
+          };
+          onAnalysis(JSON.stringify(merged));
+          return;
+        }
+      } catch { /* réponse non JSON → on garde le texte reçu */ }
       onAnalysis(text);
     },
     [onAnalysis],
@@ -189,7 +230,7 @@ function NornesPage() {
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title={t('runes.nornes.title')}
+        title={t('runes.nornes.titlePrecis')}
         subtitle={t('runes.nornes.subtitle')}
         compact
       />
@@ -298,7 +339,7 @@ function NornesPage() {
                 Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une
                 nouvelle voie.
               </p>
-              <RuneButton variant="gold" onClick={adviceRoll}>
+              <RuneButton variant="save" onClick={adviceRoll}>
                 {t('runes.nornes.advice')}
               </RuneButton>
             </motion.div>
@@ -319,7 +360,12 @@ function NornesPage() {
           </div>
         )}
 
-        {/* 4ème rune : Conseil d'Odin */}
+        {/* 4ème rune : Conseil d'Odin — révélation UNIQUE (réorganisation du
+            « Tisser une autre voie ») : le SageCard + la RuneReading en double
+            ont été retirés. RuneAnalysis (odinReveal) n'affiche qu'UN bouton
+            « Révéler le Conseil d'Odin » ; la carte parchemin dorée révèle la
+            rune, son sens, la lecture et l'action concrète — sans section ni
+            « Synthèse » dupliquées. */}
         <AnimatePresence>
           {phase === 'advice' && runes[3] && (
             <motion.div
@@ -327,25 +373,11 @@ function NornesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              {/* La révélation de la rune d'Odin (simple) — le texte du Conseil
-                  vient de l'interprétation IA ci-dessous (bouton « Révéler le
-                  Conseil d'Odin », carte fond conseil-odin.png). */}
-              <SageCard title={t('runes.conseilOdin')}>
-                <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
-                  L’action précise à mener au présent (Verdandi) pour modifier
-                  l’avenir (Skuld).
-                </p>
-                <RuneReading
-                  rune={runes[3].rune}
-                  reversed={runes[3].reversed}
-                  position="Conseil d'Odin"
-                  compactInfo
-                />
-              </SageCard>
               {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
               <RuneAnalysis
                 mode="nornes"
                 focus="odin"
+                odinReveal
                 buttonLabel="Consulter l'Oracle sur le conseil d'Odin"
                 runes={[
                   { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
@@ -356,22 +388,9 @@ function NornesPage() {
                 onAnalysis={onAdviceAnalysis}
                 autoRun
               />
-              {/* « Recommencer » uniquement après l'affichage de l'interprétation d'Odin */}
-              {adviceAnalysisDone && (
-                <div className="mt-6 text-center">
-                  <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* « Recommencer un tirage » uniquement après l'affichage de l'interprétation IA */}
-        {phase === 'done' && !hasAdvice && mainAnalysisDone && (
-          <div className="mt-8 text-center">
-            <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
-          </div>
-        )}
       </div>
     </RuneBackground>
   );

@@ -49,7 +49,8 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'yi-jing-question':    { group: 'yijing', label: 'Yi Jing (question)' },
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
   'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
-  'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes' },
+  'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes — Précis' },
+  'runes-nornes2':       { group: 'rune',   label: 'Le Fil des Nornes — Simplifié' },
   'runes-mjolnir':       { group: 'rune',   label: 'Le Marteau de Mjölnir' },
   'runes-yggdrasil':     { group: 'rune',   label: "Les Racines d'Yggdrasil" },
   'runes':               { group: 'rune',   label: 'Runes' },
@@ -204,7 +205,7 @@ export default function ReadingsPage() {
   const generateShareText = useCallback((r: Reading): string => {
     const m = metaOf(r);
     const lines: string[] = [];
-    const app = '✨ Oracle des Etoiles';
+    const app = '✨ Tarot Divinatoire';
 
     // En-tête
     lines.push(`📜 ${m.label}`);
@@ -260,8 +261,9 @@ export default function ReadingsPage() {
       if (r.interpretation) {
         try {
           const parsed = JSON.parse(r.interpretation);
-          if (parsed?.synthese) lines.push(`
-📜 ${parsed.synthese.slice(0, 300)}`);
+          // Format nornes complet (versionné) : la synthèse vit sous `fil`.
+          const syn = parsed?.synthese || parsed?.fil?.synthese || parsed?.tissage?.synthese;
+          if (syn) lines.push(`\n📜 ${String(syn).slice(0, 300)}`);
         } catch {}
       }
     } else if (m.group === 'des') {
@@ -323,7 +325,7 @@ export default function ReadingsPage() {
     const text = generateShareText(r);
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Oracle des Etoiles', text });
+        await navigator.share({ title: 'Tarot Divinatoire', text });
       } catch { /* user cancelled */ }
     } else {
       try {
@@ -768,6 +770,11 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
 function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
   const t = useT();
   const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+  // Carte dépliée (accordéon) : une seule ouverte à la fois ; re-tap ferme.
+  // Clé = `${groupe}-${index}` pour distinguer les runes des deux blocs.
+  const [openCard, setOpenCard] = useState<string | null>(null);
+  // Changement de lecture affichée → replier la carte ouverte.
+  useEffect(() => setOpenCard(null), [r.id]);
 
   // Tente une interprétation structurée (JSON de l'API IA)
   let structured: { sections?: any[]; synthese?: string; conseil_action?: string } | null = null;
@@ -775,7 +782,11 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
   if (r.interpretation) {
     try {
       const parsed = JSON.parse(r.interpretation);
-      if (parsed && typeof parsed === 'object' && (parsed.sections || parsed.synthese)) {
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        (parsed.sections || parsed.synthese || parsed.version === 'nornes-full' || parsed.fil || parsed.tissage)
+      ) {
         structured = parsed;
       } else {
         rawInterpretation = r.interpretation;
@@ -784,6 +795,73 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
       rawInterpretation = r.interpretation;
     }
   }
+
+  // Normalisation des positions (tirets/dash et apostrophes variantes ignorés).
+  const normPos = (s?: string) =>
+    (s || '').toLowerCase().replace(/[\u2014\u2013-]/g, '-').replace(/[\u2019']/g, "'").trim();
+  const isConseilPos = (s?: string) => normPos(s).includes('conseil');
+
+  // Les tirages nornes COMPLETS (3 Nornes + rune « Conseil d'Odin » du tissage)
+  // s'affichent en DEUX blocs distincts :
+  //   1. Le Fil des Nornes — 3 runes (analyse IA au tap) + Synthèse + 1er Conseil d'Odin
+  //   2. Tisser une nouvelle voie — rune du Conseil (analyse IA au tap) + 2e Conseil d'Odin
+  type RunGroup = {
+    cards: any[];
+    sections: any[];
+    synthese?: string;
+    conseil_action?: string;
+  };
+  const parsedAll = structured as (RunGroup & { version?: string; fil?: RunGroup; tissage?: RunGroup }) | null;
+  const hasTissage =
+    cards.some((c) => isConseilPos(c.position)) ||
+    (structured?.sections || []).some((s) => isConseilPos(s.position));
+
+  const groups: RunGroup[] = [];
+  if (structured && parsedAll && parsedAll.version === 'nornes-full' && parsedAll.fil && parsedAll.tissage) {
+    // Format versionné (nouveaux tirages complets) : blocs déjà séparés.
+    groups.push(
+      { ...parsedAll.fil, cards: cards.filter((c) => !isConseilPos(c.position)) },
+      { ...parsedAll.tissage, cards: cards.filter((c) => isConseilPos(c.position)) },
+    );
+  } else if (hasTissage) {
+    // Tirages complets enregistrés avant le format versionné : on sépare cartes
+    // et sections par position (le conseil_action unique est celui du tissage).
+    groups.push(
+      {
+        cards: cards.filter((c) => !isConseilPos(c.position)),
+        sections: (structured?.sections || []).filter((s) => !isConseilPos(s.position)),
+        synthese: structured?.synthese || '',
+      },
+      {
+        cards: cards.filter((c) => isConseilPos(c.position)),
+        sections: (structured?.sections || []).filter((s) => isConseilPos(s.position)),
+        conseil_action: structured?.conseil_action || '',
+      },
+    );
+  } else if (structured && ((structured.sections && structured.sections.length > 0) || structured.synthese)) {
+    // Tirage simple (3 runes) ou autre : un seul bloc, comme avant.
+    groups.push({
+      cards,
+      sections: structured.sections || [],
+      synthese: structured.synthese || '',
+      conseil_action: structured.conseil_action || '',
+    });
+  }
+  // Sections d'un groupe sans carte correspondante (sécurité : contenu jamais perdu).
+  const orphanSectionsOf = (g: RunGroup) =>
+    g.sections.filter(
+      (s) =>
+        !g.cards.some((c) => {
+          const np = normPos(c.position);
+          return np !== '' && np === normPos(s.position);
+        }),
+    );
+  // Analyse IA d'une carte = section appariée par position dans son groupe.
+  const analysisOf = (g: RunGroup, cardPos?: string) => {
+    const np = normPos(cardPos);
+    if (!np) return null;
+    return g.sections.find((s) => normPos(s.position) === np) || null;
+  };
 
   return (
     <div className="mt-4 space-y-3">
@@ -806,9 +884,114 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
           <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
         </div>
       )}
-      {cards.length === 0 ? (
+      {groups.length === 0 && cards.length === 0 ? (
         <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
+      ) : groups.length > 0 ? (
+        groups.map((g, gi) => {
+          const isTissage = isConseilPos(g.cards[0]?.position) || (g.sections || []).some((s) => isConseilPos(s.position));
+          const orphanSections = orphanSectionsOf(g);
+          return (
+            <div key={gi} className="space-y-2">
+              {/* Titre de bloc (seulement quand il y a fil + tissage) */}
+              {groups.length > 1 && (
+                <div className="flex items-center gap-3 pt-1.5">
+                  <span className="h-px flex-1" style={{ background: 'rgba(212,180,131,0.30)' }} />
+                  <span className="text-[11px] uppercase tracking-[0.2em]" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+                    {isTissage ? t('runes.nornes.advice') : t('runes.nornes.title')}
+                  </span>
+                  <span className="h-px flex-1" style={{ background: 'rgba(212,180,131,0.30)' }} />
+                </div>
+              )}
+
+              {/* Cartes du groupe — tap : analyse IA de la rune */}
+              {g.cards.map((c, i) => {
+                const sec = analysisOf(g, c.position);
+                const key = `${gi}-${i}`;
+                const open = openCard === key;
+                const expandable = !!sec;
+                return (
+                  <div
+                    key={key}
+                    role={expandable ? 'button' : undefined}
+                    tabIndex={expandable ? 0 : undefined}
+                    aria-expanded={expandable ? open : undefined}
+                    onClick={() => { if (expandable) setOpenCard(open ? null : key); }}
+                    onKeyDown={
+                      expandable
+                        ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenCard(open ? null : key); } }
+                        : undefined
+                    }
+                    className={`border rounded-lg p-3 transition-colors ${expandable ? 'cursor-pointer select-none active:bg-black/10' : ''}`}
+                    style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(138,109,59,0.10)' }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl leading-none shrink-0" style={{ color: '#e9d9ac' }}>{c.symbol || 'ᛟ'}</span>
+                      <span className="font-semibold text-sm flex-1" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+                        {c.position || `Rune ${i + 1}`}
+                      </span>
+                      {c.reversed && <em className="text-amber-400 text-xs shrink-0">— renversée</em>}
+                      {expandable && (
+                        <span
+                          className={`text-[10px] shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                          style={{ color: '#D4B483', opacity: 0.6 }}
+                        >
+                          ▼
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-gray-100 font-serif italic text-sm"><Highlight text={c.name || ''} query={query} /></p>
+                    {/* Analyse IA de la rune — révélée uniquement au tap */}
+                    {open && sec && (
+                      <div className="mt-2.5 border-t pt-2.5 space-y-1.5" style={{ borderColor: 'rgba(138,109,59,0.25)' }}>
+                        {sec.sens && (
+                          <p className="text-xs italic" style={{ color: '#c4b998' }}>
+                            <Highlight text={sec.sens || ''} query={query} />
+                          </p>
+                        )}
+                        {sec.lecture && (
+                          <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={sec.lecture || ''} query={query} /></p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Synthèse — uniquement dans le bloc du Fil */}
+              {!isTissage && g.synthese && (
+                <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
+                  <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
+                    <span>📜</span>{t('readings.synthese')}
+                  </h4>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={g.synthese} query={query} /></p>
+                </div>
+              )}
+
+              {/* Conseil d'Odin (1er : fil — 2e : tissage) */}
+              {g.conseil_action && (
+                <div className="rounded-lg p-3" style={{ border: '1px solid rgba(212,180,131,0.45)', background: 'rgba(138,109,59,0.14)' }}>
+                  <h4 className="text-sm font-semibold mb-1 flex items-center gap-2" style={{ color: '#e9c77b', fontFamily: 'var(--font-cinzel), serif' }}>
+                    <span className="text-xs">✦</span>{t('runes.conseilOdin')}
+                  </h4>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={g.conseil_action} query={query} /></p>
+                </div>
+              )}
+
+              {/* Sections du groupe sans carte associée (sécurité : contenu jamais perdu) */}
+              {orphanSections.map((s, i) => (
+                <div key={`o${i}`} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(52,42,28,0.50)' }}>
+                  <h4 className="font-semibold text-xs mb-1.5 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
+                    <span className="text-base">{s.rune}</span>
+                    <span>{s.position} — <em className="text-amber-400 not-italic">{s.sens}</em></span>
+                  </h4>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.lecture} query={query} /></p>
+                </div>
+              ))}
+            </div>
+          );
+        })
       ) : (
+        /* Anciens tirages sans interprétation structurée : cartes seules */
         cards.map((c, i) => (
           <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(138,109,59,0.10)' }}>
             <h4 className="font-semibold text-sm mb-1 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
@@ -819,40 +1002,6 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
             <p className="text-gray-100 font-serif italic text-sm"><Highlight text={c.name || ''} query={query} /></p>
           </div>
         ))
-      )}
-
-      {/* Interprétation structurée */}
-      {structured && (
-        <div className="space-y-2 mt-3">
-          {/* Synthèse */}
-          {structured.synthese && (
-            <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
-              <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>📜</span>{t('readings.synthese')}
-              </h4>
-              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.synthese} query={query} /></p>
-            </div>
-          )}
-          {/* Sections par position */}
-          {structured.sections?.map((s, i) => (
-            <div key={i} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(52,42,28,0.50)' }}>
-              <h4 className="font-semibold text-xs mb-1.5 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
-                <span className="text-base">{s.rune}</span>
-                <span>{s.position} — <em className="text-amber-400 not-italic">{s.sens}</em></span>
-              </h4>
-              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.lecture} query={query} /></p>
-            </div>
-          ))}
-          {/* Conseil d'action */}
-          {structured.conseil_action && (
-            <div className="bg-amber-950/20 border border-amber-800/30 rounded-lg p-3">
-              <h4 className="text-amber-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>💡</span>{t('readings.advice')}
-              </h4>
-              <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.conseil_action} query={query} /></p>
-            </div>
-          )}
-        </div>
       )}
 
       {/* Fallback : interprétation texte brut (anciens tirages) */}

@@ -164,7 +164,10 @@ export function RuneTitle({
   );
 }
 
-/* Bouton principal (vert sapin, bord doré pâle) */
+/* Bouton principal (vert sapin, bord doré pâle).
+   variant='save' : reprise exacte du design « Enregistrer » (pilule teal
+   glossée + halo) que l'utilisateur apprécie — utilisé pour « Compris »,
+   « Tisser une nouvelle voie » et la relance de l'analyse IA. */
 export function RuneButton({
   children,
   onClick,
@@ -174,8 +177,35 @@ export function RuneButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'gold';
+  variant?: 'primary' | 'gold' | 'save';
 }) {
+  if (variant === 'save') {
+    return (
+      <motion.button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        whileHover={disabled ? undefined : { scale: 1.04, y: -2 }}
+        whileTap={disabled ? undefined : { scale: 0.97 }}
+        className="rounded-full px-7 py-3 text-sm sm:text-base font-bold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100"
+        style={{
+          // Gloss : reflet blanc dégradé par-dessus la couleur de base
+          // (même recette que le bouton « Enregistrer » de ask-question).
+          background: `
+            linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+            #005f6a`,
+          color: '#fff',
+          fontFamily: 'var(--font-cinzel), serif',
+          boxShadow: disabled
+            ? 'none'
+            : '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {children}
+      </motion.button>
+    );
+  }
   const bg =
     variant === 'gold'
       ? disabled
@@ -523,15 +553,30 @@ export function RuneAnalysis({
   buttonLabel = "✨ Interroger l'Oracle",
   onAnalysis,
   autoRun = false,
+  odinReveal = false,
+  question = null,
+  gateType = null,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
+  /** Type de quota consommé par l'appel IA (défaut : runes-<mode>). /nornes2
+      passe 'runes-nornes2' : le mode IA reste 'nornes' mais la lecture à
+      l'aveugle consomme le tirage de BASE « Simplifié », pas l'avancé. */
+  gateType?: string | null;
   focus?: 'odin';
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
   onAnalysis?: (text: string) => void;
   /** Lance l'interprétation IA automatiquement dès le montage (pas de bouton). */
   autoRun?: boolean;
+  /** Question/intention du consultant (thème choisi) : cible l'analyse IA. */
+  question?: string | null;
+  /** « Tisser une autre voie » (/nornes) : révélation UNIQUE du Conseil d'Odin —
+      ni section « Conseil d'Odin » ni bloc « Synthèse » dupliqués. La rune, son
+      sens, la lecture et l'action sont révélés en un seul acte (bouton → carte
+      parchemin dorée + texte). Opt-in : les autres pages gardent le rendu
+      historique (nornes2, analyse initiale, mjolnir, yggdrasil). */
+  odinReveal?: boolean;
 }) {
   const [sections, setSections] = useState<
     { position: string; rune: string; sens: string; lecture: string }[] | null
@@ -564,6 +609,99 @@ export function RuneAnalysis({
     }, 150);
     return () => window.clearTimeout(t);
   }, [conseilRevealed]);
+
+  // Auto-fit du texte du Conseil d'Odin (1ère phase ET tissage : 1 instance
+  // RuneAnalysis = 1 état local) : la plus GRANDE police (plafonnée) qui tient
+  // dans la zone claire du parchemin — texte court → grossit pour remplir,
+  // texte long → rétrécit sans déborder. Recherche binaire sur le px (la
+  // hauteur d'un texte wrappé n'est pas linéaire), mesure après montage de la
+  // carte. Re-mesure au changement de LARGEUR uniquement (rotation) : le
+  // resize vertical (barre d'URL mobile) est ignoré pour éviter le clignotement.
+  const odinBoxRef = useRef<HTMLDivElement | null>(null);
+  const odinTextRef = useRef<HTMLParagraphElement | null>(null);
+  const [odinFont, setOdinFont] = useState<string | null>(null);
+  useEffect(() => {
+    if (!conseilRevealed || !conseil) return;
+    setOdinFont(null);
+    let cancelled = false;
+    let late: number | undefined;
+    const measure = () => {
+      if (cancelled) return;
+      const box = odinBoxRef.current;
+      const txt = odinTextRef.current;
+      if (!box || !txt) return;
+      const basePx = parseFloat(getComputedStyle(txt).fontSize) || 12;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let lo = 9;
+      let hi = Math.min(basePx * 1.9, 24, bh * 0.3);
+      for (let i = 0; i < 16; i++) {
+        const mid = (lo + hi) / 2;
+        txt.style.fontSize = mid + 'px';
+        // offsetHeight (px de LAYOUT) et pas getBoundingClientRect : la carte
+        // apparaît en spring scale 0.72→1 — le rect renvoie la hauteur VISUELLE
+        // (× scale en cours d'animation) → le fit accepte une police trop
+        // grande qui déborde dès l'animation finie. -1px : marge d'arrondi.
+        if (txt.offsetHeight <= bh - 1) lo = mid;
+        else hi = mid;
+      }
+      // Ne JAMAIS vider style.fontSize à la fin : la mesure tourne plusieurs
+      // fois. Si un re-calcul donne la même taille, setOdinFont est un no-op
+      // React (pas de re-render) et le style inline effacé ne revient jamais →
+      // texte retombé sur le 16px par défaut → déborde en haut ET en bas.
+      const finalPx = Math.round(lo * 10) / 10;
+      txt.style.fontSize = finalPx + 'px';
+      setOdinFont(finalPx + 'px');
+    };
+    const t = window.setTimeout(measure, 80);
+    // Cinzel doit être CHARGÉE avant la mesure définitive : fonts.ready peut
+    // se résoudre AVANT même le début du téléchargement (police pas encore
+    // demandée au moment de l'appel) → mesure sur le fallback serif, puis le
+    // swap réel fait grossir le texte après coup → débordement. fonts.load()
+    // force le chargement et ne résout qu'une fois la police disponible.
+    const fonts = (document as any).fonts;
+    if (fonts?.load) {
+      fonts
+        .load('700 20px Cinzel')
+        .then(() => window.setTimeout(measure, 30))
+        .catch(() => {});
+    }
+    // Filet de sécurité : re-mesure une fois l'animation d'apparition finie.
+    late = window.setTimeout(measure, 1200);
+    // Filet « shrink-only » : si, police réelle + animation installées, le
+    // texte dépasse encore la zone, resserrer jusqu'à ce qu'il tienne (ne
+    // JAMAIS agrandir ici → aucune oscillation possible). Garantit un rendu
+    // sans débordement quel que soit le timing de chargement de Cinzel.
+    const verify = () => {
+      if (cancelled) return;
+      const box = odinBoxRef.current;
+      const txt = odinTextRef.current;
+      if (!box || !txt) return;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let f = parseFloat(txt.style.fontSize) || parseFloat(getComputedStyle(txt).fontSize) || 12;
+      while (f > 9 && txt.offsetHeight > bh - 1) {
+        f -= 0.5;
+        txt.style.fontSize = f + 'px';
+      }
+      setOdinFont(f + 'px');
+    };
+    const v = window.setTimeout(verify, 2000);
+    let lastW = window.innerWidth;
+    const remeasure = () => {
+      if (window.innerWidth === lastW) return;
+      lastW = window.innerWidth;
+      setOdinFont(null);
+      window.setTimeout(measure, 60);
+    };
+    window.addEventListener('resize', remeasure);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+      if (late) window.clearTimeout(late);
+      window.removeEventListener('resize', remeasure);
+    };
+  }, [conseilRevealed, conseil]);
 
   // Précharge conseil-odin.png dès que le conseil est disponible (avant le
   // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
@@ -637,7 +775,7 @@ export function RuneAnalysis({
       const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runes: payload, mode, focus, userId, type: runeType }),
+        body: JSON.stringify({ runes: payload, mode, focus, userId, type: gateType || runeType, question: question || undefined }),
       });
       if (res.status === 402) {
         const d = await res.json().catch(() => ({}));
@@ -664,7 +802,7 @@ export function RuneAnalysis({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [runes, mode, focus]);
+  }, [runes, mode, focus, question]);
 
   // autoRun : lance l'interprétation dès le montage (pas de bouton) + amène le
   // focus sur la zone d'attente une fois l'analyse en cours.
@@ -727,6 +865,15 @@ export function RuneAnalysis({
     return () => window.clearTimeout(t);
   }, [autoRun, sections, loading]);
 
+  // Conseil d'Odin du tissage (/nornes, prop odinReveal — exigence user
+  // 2026-09-04) : l'analyse IA de la nouvelle rune s'affiche DIRECTEMENT
+  // (carte standard SANS l'en-tête de position « Conseil d'Odin », qui
+  // dupliquerait le titre de la révélation) ; la « Synthèse » est fondue en
+  // phrase de clôture DANS la carte (pas de bloc dupliqué) ; le bouton
+  // « Révéler le Conseil d'Odin » + la carte parchemin dorée restent SOUS
+  // l'analyse, avec la même mécanique que dans la 1ère phase.
+  const unifiedOdin = odinReveal && mode === 'nornes' && focus === 'odin';
+
   return (
     <div
       className="mt-6"
@@ -736,7 +883,7 @@ export function RuneAnalysis({
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       {!autoRun && !sections && !loading && !error && (
         <div className="text-center">
-          <RuneButton variant="gold" onClick={run}>
+          <RuneButton variant="save" onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -810,7 +957,7 @@ export function RuneAnalysis({
       {error && !loading && (
         <div className="text-center space-y-2">
           <p className="text-amber-400/70 text-xs italic">{error}</p>
-          <RuneButton variant="gold" onClick={run}>
+          <RuneButton variant="save" onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -827,12 +974,14 @@ export function RuneAnalysis({
                 border: `1px solid ${RUNE_THEME.goldPale}44`,
               }}
             >
-              <p
-                className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
-              >
-                {s.position}
-              </p>
+              {!unifiedOdin && (
+                <p
+                  className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
+                >
+                  {s.position}
+                </p>
+              )}
               <p
                 className="mb-2 text-center text-base"
                 style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}
@@ -851,10 +1000,18 @@ export function RuneAnalysis({
               >
                 {s.lecture}
               </p>
+              {unifiedOdin && synthese && (
+                <p
+                  className="mt-3 text-center text-sm italic leading-relaxed"
+                  style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sagePale }}
+                >
+                  {synthese}
+                </p>
+              )}
             </div>
           ))}
 
-          {synthese && (
+          {!unifiedOdin && synthese && (
             <div
               className="mt-4 rounded-2xl p-4"
               style={{
@@ -887,13 +1044,15 @@ export function RuneAnalysis({
                 <button
                   type="button"
                   onClick={() => setConseilRevealed(true)}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-transform hover:scale-[1.03] active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95"
                   style={{
-                    background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
-                    color: '#2E2A26',
+                    background: `
+                      linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+                      #005f6a`,
+                    color: '#fff',
                     fontFamily: 'var(--font-cinzel), serif',
                     boxShadow:
-                      '0 0 20px rgba(243,201,105,0.45), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                      '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
                   }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -1031,18 +1190,23 @@ export function RuneAnalysis({
                     />
 
                     {/* ── Texte seul, calé DANS le parchemin (zone centrale claire,
-                        largeur réduite pour ne pas toucher le cadre intérieur) ── */}
+                        largeur réduite pour ne pas toucher le cadre intérieur).
+                        Font-size auto-fit : la plus grande qui tient (cf. effet
+                        odinFont ci-dessus) — texte court rempli, long ajusté. ── */}
                     <div
+                      ref={odinBoxRef}
                       className="absolute flex flex-col items-center justify-center"
                       style={{ top: '30%', bottom: '25%', left: '18%', right: '18%' }}
                     >
                       <motion.p
+                        ref={odinTextRef}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55, duration: 0.55 }}
-                        className="text-center text-xs font-bold leading-snug sm:text-[13px]"
+                        className="text-center font-bold leading-snug"
                         style={{
                           fontFamily: 'var(--font-cinzel), serif',
+                          fontSize: odinFont || '12px',
                           color: '#6B4423', // bronze foncé
                           // Effet gravé (bizeautage) : arête supérieure sombre
                           // (creux) + arête inférieure claire (lumière rasante) —

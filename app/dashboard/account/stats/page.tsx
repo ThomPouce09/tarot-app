@@ -39,6 +39,7 @@ function subLabel(type: string): string {
     'yi-jing-du-jour': 'Yi Jing du jour',
     'yi-jing': 'Yi Jing',
     'runes-nornes': 'Fil des Nornes',
+    'runes-nornes2': 'Fil des Nornes (Simplifié)',
     'runes-mjolnir': 'Mjölnir',
     'runes-yggdrasil': 'Yggdrasil',
     'runes': 'Runes',

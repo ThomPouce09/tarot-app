@@ -85,12 +85,20 @@ function RuneFrieze({ position }: { position: 'top' | 'bottom' }) {
 
 const TILES = [
   {
-    href: '/runes/nornes',
+    href: '/runes/nornes2',
     glyph: 'ᚾ', // N – Norn (Urdhr, Verdandi, Skuld)
-    title: 'Le Fil des Nornes',
-    subtitle: 'Passé, présent, avenir — et le conseil d’Odin.',
+    title: 'Le Fil des Nornes — Simplifié',
+    subtitle: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
     bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forest} 100%)`,
     border: `${RUNE_THEME.goldPale}55`,
+  },
+  {
+    href: '/runes/nornes',
+    glyph: 'ᚢ', // U – Urd, la première Norne
+    title: 'Le Fil des Nornes — Précis',
+    subtitle: 'Une question exacte, une réponse ciblée — et le conseil d’Odin.',
+    bg: `linear-gradient(135deg, ${RUNE_THEME.forest} 0%, ${RUNE_THEME.ink} 100%)`,
+    border: `${RUNE_THEME.goldSoft}55`,
   },
   {
     href: '/runes/mjolnir',
@@ -115,10 +123,27 @@ const TILES = [
 const TUTORIALS: TutorialSlide[] = [
   {
     glyph: 'ᚾ',
-    title: 'Le Fil des Nornes',
-    titleEn: 'The Thread of the Norns',
-    desc: 'Passé, présent, avenir — et le conseil d’Odin.',
-    descEn: 'Past, present, future — and Odin’s counsel.',
+    title: 'Le Fil des Nornes — Simplifié',
+    titleEn: 'The Thread of the Norns — Simplified',
+    desc: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
+    descEn: 'Blind draw: shake the pouch, pick 3 runes, let the thread unfold.',
+    steps: [
+      'Choisissez le domaine et l’intention des Nornes',
+      'Secouez le pochon, puis tirez 3 runes face cachée',
+      'Lisez la synthèse + le conseil d’Odin',
+    ],
+    stepsEn: [
+      'Pick the domain and the Norns’ intention',
+      'Shake the pouch, then draw 3 face-down runes',
+      'Read the synthesis + Odin’s counsel',
+    ],
+  },
+  {
+    glyph: 'ᚢ',
+    title: 'Le Fil des Nornes — Précis',
+    titleEn: 'The Thread of the Norns — Precise',
+    desc: 'Une question exacte, une réponse ciblée — et le conseil d’Odin.',
+    descEn: 'One exact question, one targeted answer — and Odin’s counsel.',
     steps: [
       'Formulez votre question',
       'Tirez trois runes : passé, présent, avenir',

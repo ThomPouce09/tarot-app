@@ -70,6 +70,19 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'creatures3', file: '/audio/creatures3.mp3', category: 'ambient', label: 'Créature 3', duration: 1.10, usage: 'Tap sur la luciole — variant 3' },
   { key: 'creatures4', file: '/audio/creatures4.mp3', category: 'ambient', label: 'Créature 4', duration: 1.00, usage: 'Tap sur la luciole — variant 4' },
   { key: 'creatures5', file: '/audio/creatures5.mp3', category: 'ambient', label: 'Créature 5', duration: 1.60, usage: 'Tap sur la luciole — variant 5' },
+  { key: 'cadeau', file: '/audio/cadeau.mp3', category: 'ambient', label: 'Cadeau magique', duration: 2.00, usage: 'Cadeau des créatures — message offert réclamé' },
+
+  // ── Sons magiques (propositions pour la révélation /nornes2, page /son-a-supprimer)
+  { key: 'magic-1', file: '/audio/magic-1.mp3', category: 'ui', label: 'Carillon ascendant', duration: 2.40, usage: 'Révélation magique — do-mi-sol-do + shimmer' },
+  { key: 'magic-2', file: '/audio/magic-2.mp3', category: 'ui', label: 'Pentatonique rapide', duration: 2.20, usage: 'Révélation magique — gamme rapide 8 notes' },
+  { key: 'magic-3', file: '/audio/magic-3.mp3', category: 'ui', label: 'Cloches lointaines', duration: 2.80, usage: 'Révélation magique — cloches longue traîne' },
+  { key: 'magic-4', file: '/audio/magic-4.mp3', category: 'ui', label: 'Scintillement féerique', duration: 2.00, usage: 'Révélation magique — glissando aigu + clochettes' },
+  { key: 'magic-5', file: '/audio/magic-5.mp3', category: 'ui', label: 'Gong profond', duration: 3.00, usage: 'Révélation magique — gong grave + shimmer' },
+  { key: 'magic-6', file: '/audio/magic-6.mp3', category: 'ui', label: 'Glissando de harpe', duration: 2.00, usage: 'Révélation magique — cordes pincées rapides' },
+  { key: 'magic-7', file: '/audio/magic-7.mp3', category: 'ui', label: 'Boîte à musique', duration: 2.20, usage: 'Révélation magique — timbre sec motif G-B-D-G' },
+  { key: 'magic-8', file: '/audio/magic-8.mp3', category: 'ui', label: 'Brume éthérée', duration: 2.60, usage: 'Révélation magique — nappe + cloche' },
+  { key: 'magic-9', file: '/audio/magic-9.mp3', category: 'ui', label: 'Retour de vague', duration: 2.40, usage: 'Révélation magique — swell inversé + cloche' },
+  { key: 'magic-10', file: '/audio/magic-10.mp3', category: 'ui', label: 'Triple étincelle', duration: 2.40, usage: 'Révélation magique — 3 clochettes aiguës + traîne' },
 ];
 
 /** Index clé → entrée, pour lookup O(1). */
