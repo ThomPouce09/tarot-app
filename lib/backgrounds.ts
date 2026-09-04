@@ -7,18 +7,26 @@
 // Le fond peut être une image (affichée en <Image fill>) ou une vidéo
 // (rendue en <video autoPlay muted loop playsInline>) — détection via
 // `isVideoBackground()`.
+//
+// Le fond PAR DÉFAUT est landing-bg4.mp4 (clair/positif) : il est listé en
+// premier et sert de fond tant que l'utilisateur n'a pas épinglé un autre
+// fond via les flèches ‹ › (voir DEFAULT_BACKGROUND).
 
 export type BackgroundLevel = 'apprenti' | 'initie' | 'arkane';
 
+// Fond d'écran par défaut de l'accueil (clair, positif).
+export const DEFAULT_BACKGROUND = '/backgrounds/landing-bg4.mp4';
+
 // Liste COMPLÈTE (forfait Arkane) — doit refléter les fichiers réels de
 // `public/backgrounds/` (⚠️ certains ont changé de nom : bg7 = mp4 uniquement).
+// landing-bg4.mp4 en premier → c'est aussi le 1er coché / le fond par défaut.
 export const LANDING_BACKGROUNDS: string[] = [
+  DEFAULT_BACKGROUND,
   '/backgrounds/landing-bg.jpg',
   '/backgrounds/landing-bg0.jpg',
   '/backgrounds/landing-bg1.jpg',
   '/backgrounds/landing-bg2.jpg',
   '/backgrounds/landing-bg3.jpg',
-  '/backgrounds/landing-bg4.mp4',
   '/backgrounds/landing-bg5.jpg',
   '/backgrounds/landing-bg6.jpg',
   '/backgrounds/landing-bg7.mp4',
@@ -28,18 +36,18 @@ export const LANDING_BACKGROUNDS: string[] = [
   '/backgrounds/landing-bg10.jpg',
 ];
 
-// Fond disponibles selon le forfait :
-// - Apprenti : 2 fonds (landing-bg2.jpg, landing-bg3.jpg)
+// Fonds disponibles selon le forfait :
+// - Apprenti : 2 fonds (landing-bg4.mp4, landing-bg3.jpg)
 // - Initié  : 7 fonds (bg, bg0, bg2, bg3, bg4.mp4, bg6, bg7.mp4)
 // - Arkane  : les 13 fonds ci-dessus
 export const BACKGROUND_POOLS: Record<BackgroundLevel, string[]> = {
-  apprenti: ['/backgrounds/landing-bg2.jpg', '/backgrounds/landing-bg3.jpg'],
+  apprenti: [DEFAULT_BACKGROUND, '/backgrounds/landing-bg3.jpg'],
   initie: [
+    DEFAULT_BACKGROUND,
     '/backgrounds/landing-bg.jpg',
     '/backgrounds/landing-bg0.jpg',
     '/backgrounds/landing-bg2.jpg',
     '/backgrounds/landing-bg3.jpg',
-    '/backgrounds/landing-bg4.mp4',
     '/backgrounds/landing-bg6.jpg',
     '/backgrounds/landing-bg7.mp4',
   ],
@@ -61,7 +69,7 @@ export function isVideoBackground(path: string): boolean {
  * Choisit la liste des fonds à afficher pour une session donnée.
  * - `selected` (option de l'utilisateur) : fonds choisis.
  * - `level` (forfait) : restreint à ce qui est disponible (Apprenti/Initié).
- * - Si `selected` vide ou `none` → tous les fonds du niveau, en aléatoire.
+ * - Si `selected` vide ou `none` → tous les fonds du niveau.
  */
 export function resolveBackgrounds(selected?: string[] | null, level?: BackgroundLevel | null): string[] {
   const allowed = backgroundsForLevel(level);
@@ -70,10 +78,4 @@ export function resolveBackgrounds(selected?: string[] | null, level?: Backgroun
     if (valid.length > 0) return valid;
   }
   return allowed;
-}
-
-/** Sélectionne un fond au hasard (rotation au refresh/relance). */
-export function pickRandomBackground(selected?: string[] | null, level?: BackgroundLevel | null): string {
-  const pool = resolveBackgrounds(selected, level);
-  return pool[Math.floor(Math.random() * pool.length)];
 }

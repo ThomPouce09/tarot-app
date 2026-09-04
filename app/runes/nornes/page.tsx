@@ -40,9 +40,9 @@ function NornesPage() {
   // Idem pour l'interprétation du Conseil d'Odin (4ème rune).
   const [adviceAnalysisDone, setAdviceAnalysisDone] = useState(false);
   // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
-  // réservée aux abonnés payants : Initié et Arkane.
+  // réservée au forfait ARKANE.
   const { sub: entSub } = useEntitlement();
-  const canOdinAdvice = entSub?.level === 'initie' || entSub?.level === 'arkane';
+  const canOdinAdvice = entSub?.level === 'arkane';
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
   const [question, setQuestion] = useState<string | null>(null);
   // Modale « Principe du Fil des Nornes » affichée au chargement :
@@ -327,6 +327,9 @@ function NornesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
+              {/* La révélation de la rune d'Odin (simple) — le texte du Conseil
+                  vient de l'interprétation IA ci-dessous (bouton « Révéler le
+                  Conseil d'Odin », carte fond conseil-odin.png). */}
               <SageCard title={t('runes.conseilOdin')}>
                 <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
                   L’action précise à mener au présent (Verdandi) pour modifier

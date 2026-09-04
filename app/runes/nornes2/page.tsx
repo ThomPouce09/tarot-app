@@ -21,6 +21,7 @@ import {
 } from '../_shared';
 import { ShakeTutorial } from '../nornes/shake-tutorial';
 import { type ScatterPick } from './rune-scatter';
+import { useEntitlement } from '@/lib/use-entitlement';
 import { SacredTable } from './sacred-table';
 import { RuneStonesSet } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
@@ -40,6 +41,9 @@ export default function Nornes2Page() {
   const [question, setQuestion] = useState<string | null>(null);
   const [scatterKey, setScatterKey] = useState(0);
   const t = useT();
+  // Conseil d'Odin (« Briser le Destin ») : réservé au forfait ARKANE.
+  const { sub: entSub } = useEntitlement();
+  const canOdinAdvice = entSub?.level === 'arkane';
   const readingIdRef = useRef<string | null>(null);
   const savedRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -252,9 +256,9 @@ export default function Nornes2Page() {
           />
         )}
 
-        {/* Variation "Briser le Destin" */}
+        {/* Variation "Briser le Destin" — réservée au forfait ARKANE */}
         <AnimatePresence>
-          {phase === 'reading' && !hasAdvice && (
+          {phase === 'reading' && !hasAdvice && canOdinAdvice && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -293,6 +297,9 @@ export default function Nornes2Page() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
+              {/* La révélation de la rune d'Odin (simple) — le texte du Conseil
+                  vient de l'interprétation IA ci-dessous (bouton « Révéler le
+                  Conseil d'Odin », carte fond conseil-odin.png). */}
               <SageCard title={t('runes.conseilOdin')}>
                 <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
                   L’action précise à mener au présent (Verdandi) pour modifier

@@ -13,8 +13,35 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
-import { api } from '@/lib/api-client';
+import { playSound } from '@/lib/sounds';
 import { useLang } from '@/lib/i18n';
+
+// Étincelles dorées de la révélation du Conseil d'Odin (positions/délais
+// déterministes — pas de random pendant le rendu).
+const SPARKS: {
+  x: string;
+  y: string;
+  rise: number;
+  size: number;
+  delay: number;
+  dur: number;
+  spin: number;
+  color: string;
+  char: string;
+}[] = [
+  { x: '8%', y: '38%', rise: 90, size: 13, delay: 0.1, dur: 0.3, spin: 40, color: '#FFE9A8', char: '✦' },
+  { x: '16%', y: '58%', rise: 70, size: 9, delay: 0.45, dur: 0.2, spin: -30, color: '#FFF3CF', char: '✧' },
+  { x: '24%', y: '30%', rise: 110, size: 12, delay: 0.25, dur: 0.4, spin: 60, color: '#FFD97A', char: '✦' },
+  { x: '37%', y: '64%', rise: 80, size: 10, delay: 0.65, dur: 0.15, spin: -50, color: '#FFF0C2', char: '✧' },
+  { x: '48%', y: '22%', rise: 120, size: 14, delay: 0.15, dur: 0.5, spin: 25, color: '#FFE9A8', char: '✦' },
+  { x: '58%', y: '60%', rise: 75, size: 9, delay: 0.5, dur: 0.2, spin: -40, color: '#FFF9E0', char: '✧' },
+  { x: '66%', y: '34%', rise: 100, size: 12, delay: 0.35, dur: 0.35, spin: 45, color: '#FFD97A', char: '✦' },
+  { x: '76%', y: '55%', rise: 85, size: 10, delay: 0.7, dur: 0.2, spin: -60, color: '#FFEFC0', char: '✧' },
+  { x: '86%', y: '40%', rise: 95, size: 13, delay: 0.2, dur: 0.45, spin: 35, color: '#FFE9A8', char: '✦' },
+  { x: '93%', y: '62%', rise: 70, size: 9, delay: 0.55, dur: 0.25, spin: -25, color: '#FFF3CF', char: '✧' },
+  { x: '30%', y: '80%', rise: 65, size: 11, delay: 0.8, dur: 0.3, spin: 30, color: '#FFE0A0', char: '✦' },
+  { x: '70%', y: '84%', rise: 60, size: 10, delay: 0.9, dur: 0.25, spin: -35, color: '#FFF9E0', char: '✧' },
+];
 
 /* Palette centralisée */
 export const RUNE_THEME = {
@@ -307,12 +334,15 @@ export function RuneReading({
   meaning,
   reversed,
   compactInfo = false,
+  light = false,
 }: {
   rune: Rune | null;
   position: string;
   meaning?: string;
   reversed?: boolean;
   compactInfo?: boolean;
+  /** Variante claire : plaque crème + texte anthracite (ex. Conseil d'Odin). */
+  light?: boolean;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
   if (!rune) return null;
@@ -324,10 +354,17 @@ export function RuneReading({
     return (
       <div
         className="relative mx-auto w-full max-w-xl rounded-xl px-3 py-2.5"
-        style={{
-          background: `linear-gradient(150deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forestDeep}aa 100%)`,
-          border: `1.5px solid ${RUNE_THEME.goldPale}44`,
-        }}
+        style={
+          light
+            ? {
+                background: 'rgba(253,249,238,0.66)',
+                border: '1.5px solid rgba(150,115,55,0.55)',
+              }
+            : {
+                background: `linear-gradient(150deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forestDeep}aa 100%)`,
+                border: `1.5px solid ${RUNE_THEME.goldPale}44`,
+              }
+        }
       >
         {/* Bulle ⓘ (haut-droite) : déplie l'explication de la position */}
         <button
@@ -337,9 +374,11 @@ export function RuneReading({
           aria-label={infoOpen ? 'Masquer l’explication' : 'En savoir plus sur cette position'}
           className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
           style={{
-            color: RUNE_THEME.goldPale,
-            background: infoOpen ? `${RUNE_THEME.goldPale}26` : 'transparent',
-            border: `1px solid ${RUNE_THEME.goldPale}${infoOpen ? '88' : '00'}`,
+            color: light ? '#8a6a2b' : RUNE_THEME.goldPale,
+            background: infoOpen ? (light ? 'rgba(150,115,55,0.22)' : `${RUNE_THEME.goldPale}26`) : 'transparent',
+            border: light
+              ? `1px solid rgba(150,115,55,${infoOpen ? '0.55' : '0'})`
+              : `1px solid ${RUNE_THEME.goldPale}${infoOpen ? '88' : '00'}`,
           }}
         >
           <InfoGlyph size={16} />
@@ -351,7 +390,7 @@ export function RuneReading({
               fontFamily: 'var(--font-cinzel-deco), serif',
               fontSize: 26,
               lineHeight: 1,
-              color: RUNE_THEME.goldPale,
+              color: light ? '#2E2A26' : RUNE_THEME.goldPale,
               display: 'inline-block',
               transform: reversed ? 'rotate(180deg)' : 'none',
             }}
@@ -361,11 +400,11 @@ export function RuneReading({
           <div className="min-w-0 text-left">
             <p
               className="text-[10px] uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldSoft }}
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: light ? '#8a6a2b' : RUNE_THEME.goldSoft }}
             >
               {position}
             </p>
-            <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.sagePale }}>
+            <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: light ? '#2E2A26' : RUNE_THEME.sagePale }}>
               {rune.name}
               {reversed ? ' (à l’envers)' : ''}
             </p>
@@ -386,9 +425,9 @@ export function RuneReading({
               <p
                 className="mt-2 border-t pt-2 text-xs leading-relaxed"
                 style={{
-                  borderColor: `${RUNE_THEME.goldPale}22`,
+                  borderColor: light ? 'rgba(150,115,55,0.25)' : `${RUNE_THEME.goldPale}22`,
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: RUNE_THEME.sage,
+                  color: light ? '#3f3a33' : RUNE_THEME.sage,
                 }}
               >
                 {infoText}
@@ -404,17 +443,24 @@ export function RuneReading({
   return (
     <div
       className="mx-auto max-w-xl rounded-2xl p-4"
-      style={{
-        background: `linear-gradient(150deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forestDeep}aa 100%)`,
-        border: `1.5px solid ${RUNE_THEME.goldPale}44`,
-      }}
+      style={
+        light
+          ? {
+              background: 'rgba(253,249,238,0.72)',
+              border: '1.5px solid rgba(150,115,55,0.55)',
+            }
+          : {
+              background: `linear-gradient(150deg, ${RUNE_THEME.forestMid}33 0%, ${RUNE_THEME.forestDeep}aa 100%)`,
+              border: `1.5px solid ${RUNE_THEME.goldPale}44`,
+            }
+      }
     >
       <div className="mb-1 text-center">
         <span
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
             fontSize: 38,
-            color: RUNE_THEME.goldPale,
+            color: light ? '#2E2A26' : RUNE_THEME.goldPale,
             display: 'inline-block',
             transform: reversed ? 'rotate(180deg)' : 'none',
           }}
@@ -424,20 +470,20 @@ export function RuneReading({
       </div>
       <p
         className="text-center text-sm uppercase tracking-widest"
-        style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldSoft }}
+        style={{ fontFamily: 'var(--font-cinzel), serif', color: light ? '#8a6a2b' : RUNE_THEME.goldSoft }}
       >
         {position}
       </p>
       <p
         className="text-center text-base font-bold"
-        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.sagePale }}
+        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: light ? '#2E2A26' : RUNE_THEME.sagePale }}
       >
         {rune.name}
         {reversed ? ' (à l’envers)' : ''}
       </p>
       <p
         className="mt-2 text-center text-sm leading-relaxed"
-        style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
+        style={{ fontFamily: 'var(--font-cinzel), serif', color: light ? '#3f3a33' : RUNE_THEME.sage }}
       >
         {infoText}
       </p>
@@ -491,6 +537,9 @@ export function RuneAnalysis({
   >(null);
   const [synthese, setSynthese] = useState('');
   const [conseil, setConseil] = useState('');
+  // Conseil d'Odin : texte isolé du JSON → révélé par le bouton dédié (bas de
+  // l'interprétation), dans la carte au fond conseil-odin.png.
+  const [conseilRevealed, setConseilRevealed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   // Vidéo d'attente aléatoire (analyse-runesX.mp4) pendant l'interprétation.
@@ -499,9 +548,29 @@ export function RuneAnalysis({
   const [waitMsgs, setWaitMsgs] = useState<string[]>([]);
   const [msgIndex, setMsgIndex] = useState(0);
   const lang = useLang();
-  const { gateReason, closeGate, openGate } = useEntitlement();
+  const { sub: entSub, gateReason, closeGate, openGate } = useEntitlement();
+  const isArkane = entSub?.level === 'arkane';
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
+  // Carte du Conseil d'Odin : au clic sur « Révéler », centre la révélation
+  // dans le viewport (cadre entier visible, bien placé).
+  const revealStageRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!conseilRevealed || !revealStageRef.current) return;
+    const t = window.setTimeout(() => {
+      revealStageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [conseilRevealed]);
+
+  // Précharge conseil-odin.png dès que le conseil est disponible (avant le
+  // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
+  useEffect(() => {
+    if (!conseil || !isArkane || mode !== 'nornes') return;
+    const img = new Image();
+    img.src = '/images/conseil-odin.png';
+  }, [conseil, isArkane, mode]);
 
   // Type d'attente (pool de messages) selon le tirage : les Nornes (nornes &
   // nornes2) ajoutent leur message dédié, Yggdrasil le sien, Mjölnir la base.
@@ -514,7 +583,7 @@ export function RuneAnalysis({
   // + la liste des messages d'attente de la langue courante.
   const pickVideo = useCallback(async () => {
     try {
-      const res = await api(`/api/interpretation-wait?type=${waitType}&lang=${lang}`, { cache: 'no-store' });
+      const res = await fetch(`/api/interpretation-wait?type=${waitType}&lang=${lang}`, { cache: 'no-store' });
       const data = await res.json();
       const urls: string[] = data?.backgroundUrls ?? [];
       if (urls.length > 0) setVideoUrl(urls[0]);
@@ -550,6 +619,7 @@ export function RuneAnalysis({
     setSections(null);
     setSynthese('');
     setConseil('');
+    setConseilRevealed(false);
     void pickVideo();
     try {
       const payload = runes.map((r) => ({
@@ -563,7 +633,7 @@ export function RuneAnalysis({
       const runeType = `runes-${mode}`;
       let userId = '';
       try { const u = localStorage.getItem('tarot_user'); if (u) userId = JSON.parse(u).email || ''; } catch { /* noop */ }
-      const res = await api('/api/rune-interpretation', {
+      const res = await fetch('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runes: payload, mode, focus, userId, type: runeType }),
@@ -617,21 +687,32 @@ export function RuneAnalysis({
     ranRef.current = true;
     runStartRef.current = Date.now();
     run();
-    // ~1,8s de délai : laisse le temps de VOIR le tirage (runes + tuiles)
+    // ~1,5s de délai : laisse le temps de VOIR le tirage (runes + tuiles)
     // avant de rediriger le focus vers la vidéo d'attente.
-    const t = window.setTimeout(focusWaitBottom, 1800);
+    const t = window.setTimeout(focusWaitBottom, 1500);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRun]);
 
-  // Si la vidéo n'est pas encore montée à l'échéance des 1,8s, le focus part
+  // Si la vidéo n'est pas encore montée à l'échéance des 1,5s, le focus part
   // dès qu'elle apparaît ; sinon le timer ci-dessus s'en est déjà chargé.
   useEffect(() => {
     if (!autoRun || !videoUrl || waitFocusedRef.current) return;
     const elapsed = Date.now() - runStartRef.current;
-    const t = window.setTimeout(focusWaitBottom, Math.max(0, 1800 - elapsed));
+    const t = window.setTimeout(focusWaitBottom, Math.max(0, 1500 - elapsed));
     return () => window.clearTimeout(t);
   }, [autoRun, videoUrl, focusWaitBottom]);
+
+  // Relance MANUELLE (bouton d'erreur, bouton « Consulter l'Oracle » de
+  // nornes2, …) : quand la vidéo d'attente apparaît, on la ramène à l'écran
+  // (même ancrage que le flux autoRun) — sinon le focus resterait sur le
+  // bouton, souvent sous la ligne de flottaison.
+  useEffect(() => {
+    if (autoRun || !loading || !videoUrl) return;
+    waitFocusedRef.current = false;
+    const t = window.setTimeout(focusWaitBottom, 120);
+    return () => window.clearTimeout(t);
+  }, [autoRun, loading, videoUrl, focusWaitBottom]);
 
   // Révélation IA prête → amener le début de l'interprétation en tête d'écran
   // (la grande tuile de la position, pas les tuiles compactes au-dessus).
@@ -795,7 +876,212 @@ export function RuneAnalysis({
             </div>
           )}
 
-          {conseil && (
+          {/* Conseil d'Odin (tirages nornes : initial ET tissage) : le texte vient
+              du JSON de l'interprétation IA (conseil_action) — isolé puis révélé
+              par le bouton dédié. Carte conseil-odin.png (cadre + parchemin),
+              texte calé DANS le parchemin. Réservé au forfait ARKANE. */}
+          {conseil && mode === 'nornes' && isArkane && (
+            <div className="mt-4 text-center">
+              {!conseilRevealed ? (
+                <button
+                  type="button"
+                  onClick={() => setConseilRevealed(true)}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-transform hover:scale-[1.03] active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
+                    color: '#2E2A26',
+                    fontFamily: 'var(--font-cinzel), serif',
+                    boxShadow:
+                      '0 0 20px rgba(243,201,105,0.45), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="3.2" />
+                    <path d="M2.5 12s3.2-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.2 5.5-9.5 5.5S2.5 12 2.5 12z" />
+                  </svg>
+                  Révéler le Conseil d&apos;Odin
+                </button>
+              ) : (
+                <motion.div
+                  ref={revealStageRef}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="relative mx-auto scroll-mt-24"
+                  style={{ maxWidth: 560 }}
+                >
+                  {/* ── Rayons dorés derrière la carte ── */}
+                  <motion.div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        'conic-gradient(from 0deg, rgba(255,214,110,0) 0deg, rgba(255,214,110,0.5) 12deg, rgba(255,214,110,0) 24deg, rgba(255,214,110,0) 60deg, rgba(255,214,110,0.42) 72deg, rgba(255,214,110,0) 84deg, rgba(255,214,110,0) 120deg, rgba(255,214,110,0.5) 132deg, rgba(255,214,110,0) 144deg, rgba(255,214,110,0) 180deg, rgba(255,214,110,0.42) 192deg, rgba(255,214,110,0) 204deg, rgba(255,214,110,0) 240deg, rgba(255,214,110,0.5) 252deg, rgba(255,214,110,0) 264deg, rgba(255,214,110,0) 300deg, rgba(255,214,110,0.42) 312deg, rgba(255,214,110,0) 324deg, rgba(255,214,110,0) 360deg)',
+                      filter: 'blur(2px)',
+                    }}
+                    initial={{ opacity: 0, scale: 0.25, rotate: 0 }}
+                    animate={{ opacity: [0, 0.85, 0], scale: 1.55, rotate: 18 }}
+                    transition={{ duration: 1.4, times: [0, 0.4, 1], ease: 'easeOut' }}
+                  />
+                  {/* ── Halo lumineux arrière-plan ── */}
+                  <motion.div
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-6"
+                    style={{
+                      background:
+                        'radial-gradient(circle at 50% 45%, rgba(255,225,140,0.55), rgba(255,215,120,0.12) 55%, transparent 75%)',
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.9, 0.45] }}
+                    transition={{ duration: 1.2, times: [0, 0.35, 1] }}
+                  />
+
+                  {/* ── Titre AU-DESSUS de la carte (orné, doré) ── */}
+                  <motion.h3
+                    initial={{ opacity: 0, y: 10, scale: 0.94 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className="mb-3 flex items-center justify-center gap-2.5 px-2 text-center sm:gap-3"
+                  >
+                    <motion.span
+                      aria-hidden
+                      className="h-px flex-1"
+                      style={{ maxWidth: 90, background: 'linear-gradient(90deg, transparent, rgba(243,201,105,0.85))' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    />
+                    <span
+                      aria-hidden
+                      className="text-sm"
+                      style={{ color: '#F3C969', textShadow: '0 0 12px rgba(243,201,105,0.8)' }}
+                    >
+                      ✦
+                    </span>
+                    <span
+                      className="text-xl uppercase tracking-[0.14em] sm:text-2xl"
+                      style={{
+                        fontFamily: 'var(--font-cinzel-deco), serif',
+                        backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, #F3C969 48%, #C9962E 100%)',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                        filter:
+                          'drop-shadow(0 2px 3px rgba(0,0,0,0.55)) drop-shadow(0 0 16px rgba(243,201,105,0.4))',
+                      }}
+                    >
+                      Conseil d&apos;Odin
+                    </span>
+                    <span
+                      aria-hidden
+                      className="text-sm"
+                      style={{ color: '#F3C969', textShadow: '0 0 12px rgba(243,201,105,0.8)' }}
+                    >
+                      ✦
+                    </span>
+                    <motion.span
+                      aria-hidden
+                      className="h-px flex-1"
+                      style={{ maxWidth: 90, background: 'linear-gradient(270deg, transparent, rgba(243,201,105,0.85))' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    />
+                  </motion.h3>
+
+                  {/* ── La carte (parchemin conseil-odin.png) ── */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.72, y: 26, filter: 'blur(10px)' }}
+                    animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ type: 'spring', damping: 15, stiffness: 150, mass: 0.9 }}
+                    onAnimationStart={() => playSound('spell')}
+                    className="relative w-full overflow-hidden rounded-xl"
+                    style={{
+                      aspectRatio: '450 / 292',
+                      backgroundImage: "url('/images/conseil-odin.png')",
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'center',
+                      boxShadow: '0 14px 44px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)',
+                    }}
+                  >
+                    {/* Reflet lumineux qui balaie la carte */}
+                    <motion.div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-y-0 w-1/2"
+                      style={{
+                        background:
+                          'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.5) 45%, rgba(255,255,255,0.08) 60%, transparent 100%)',
+                        left: '-60%',
+                      }}
+                      initial={{ left: '-60%' }}
+                      animate={{ left: '110%' }}
+                      transition={{ delay: 0.35, duration: 0.95, ease: 'easeInOut' }}
+                    />
+                    {/* Lueur dorée pulsante (fond) */}
+                    <motion.div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background:
+                          'radial-gradient(circle at 50% 42%, rgba(255,222,130,0.5), transparent 70%)',
+                      }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.55, 0.18, 0.4, 0.18] }}
+                      transition={{ delay: 0.5, duration: 1.6, times: [0, 0.3, 0.55, 0.8, 1] }}
+                    />
+
+                    {/* ── Texte seul, calé DANS le parchemin (zone centrale claire,
+                        largeur réduite pour ne pas toucher le cadre intérieur) ── */}
+                    <div
+                      className="absolute flex flex-col items-center justify-center"
+                      style={{ top: '30%', bottom: '25%', left: '18%', right: '18%' }}
+                    >
+                      <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.55, duration: 0.55 }}
+                        className="text-center text-xs font-bold leading-snug sm:text-[13px]"
+                        style={{
+                          fontFamily: 'var(--font-cinzel), serif',
+                          color: '#6B4423', // bronze foncé
+                          // Effet gravé (bizeautage) : arête supérieure sombre
+                          // (creux) + arête inférieure claire (lumière rasante) —
+                          // comme si le texte était incisé dans le parchemin.
+                          textShadow:
+                            '0 -1px 0 rgba(74,44,12,0.5), 0 1px 0 rgba(255,249,233,0.85), 0 2px 4px rgba(100,70,25,0.18)',
+                        }}
+                      >
+                        {conseil}
+                      </motion.p>
+                    </div>
+                  </motion.div>
+
+                  {/* ── Étincelles ascendantes ── */}
+                  {SPARKS.map((s, i) => (
+                    <motion.span
+                      key={i}
+                      aria-hidden
+                      className="pointer-events-none absolute select-none"
+                      style={{
+                        left: s.x,
+                        top: s.y,
+                        fontSize: s.size,
+                        color: s.color,
+                        textShadow: '0 0 8px rgba(255,220,120,0.9)',
+                      }}
+                      initial={{ opacity: 0, y: 0, scale: 0.4 }}
+                      animate={{ opacity: [0, 1, 0], y: -s.rise, scale: [0.4, 1.2, 0.5], rotate: s.spin }}
+                      transition={{ delay: 0.5 + s.delay, duration: 1.5 + s.dur, ease: 'easeOut' }}
+                    >
+                      {s.char}
+                    </motion.span>
+                  ))}
+                </motion.div>
+              )}
+            </div>
+          )}
+
+          {/* Conseil générique (autres tirages : pas le Conseil d'Odin nornes) — affiché en clair. */}
+          {conseil && mode !== 'nornes' && (
             <div
               className="mt-4 rounded-2xl p-4"
               style={{
