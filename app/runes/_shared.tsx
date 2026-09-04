@@ -572,6 +572,99 @@ export function RuneAnalysis({
     return () => window.clearTimeout(t);
   }, [conseilRevealed]);
 
+  // Auto-fit du texte du Conseil d'Odin (1ère phase ET tissage : 1 instance
+  // RuneAnalysis = 1 état local) : la plus GRANDE police (plafonnée) qui tient
+  // dans la zone claire du parchemin — texte court → grossit pour remplir,
+  // texte long → rétrécit sans déborder. Recherche binaire sur le px (la
+  // hauteur d'un texte wrappé n'est pas linéaire), mesure après montage de la
+  // carte. Re-mesure au changement de LARGEUR uniquement (rotation) : le
+  // resize vertical (barre d'URL mobile) est ignoré pour éviter le clignotement.
+  const odinBoxRef = useRef<HTMLDivElement | null>(null);
+  const odinTextRef = useRef<HTMLParagraphElement | null>(null);
+  const [odinFont, setOdinFont] = useState<string | null>(null);
+  useEffect(() => {
+    if (!conseilRevealed || !conseil) return;
+    setOdinFont(null);
+    let cancelled = false;
+    let late: number | undefined;
+    const measure = () => {
+      if (cancelled) return;
+      const box = odinBoxRef.current;
+      const txt = odinTextRef.current;
+      if (!box || !txt) return;
+      const basePx = parseFloat(getComputedStyle(txt).fontSize) || 12;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let lo = 9;
+      let hi = Math.min(basePx * 1.9, 24, bh * 0.3);
+      for (let i = 0; i < 16; i++) {
+        const mid = (lo + hi) / 2;
+        txt.style.fontSize = mid + 'px';
+        // offsetHeight (px de LAYOUT) et pas getBoundingClientRect : la carte
+        // apparaît en spring scale 0.72→1 — le rect renvoie la hauteur VISUELLE
+        // (× scale en cours d'animation) → le fit accepte une police trop
+        // grande qui déborde dès l'animation finie. -1px : marge d'arrondi.
+        if (txt.offsetHeight <= bh - 1) lo = mid;
+        else hi = mid;
+      }
+      // Ne JAMAIS vider style.fontSize à la fin : la mesure tourne plusieurs
+      // fois. Si un re-calcul donne la même taille, setOdinFont est un no-op
+      // React (pas de re-render) et le style inline effacé ne revient jamais →
+      // texte retombé sur le 16px par défaut → déborde en haut ET en bas.
+      const finalPx = Math.round(lo * 10) / 10;
+      txt.style.fontSize = finalPx + 'px';
+      setOdinFont(finalPx + 'px');
+    };
+    const t = window.setTimeout(measure, 80);
+    // Cinzel doit être CHARGÉE avant la mesure définitive : fonts.ready peut
+    // se résoudre AVANT même le début du téléchargement (police pas encore
+    // demandée au moment de l'appel) → mesure sur le fallback serif, puis le
+    // swap réel fait grossir le texte après coup → débordement. fonts.load()
+    // force le chargement et ne résout qu'une fois la police disponible.
+    const fonts = (document as any).fonts;
+    if (fonts?.load) {
+      fonts
+        .load('700 20px Cinzel')
+        .then(() => window.setTimeout(measure, 30))
+        .catch(() => {});
+    }
+    // Filet de sécurité : re-mesure une fois l'animation d'apparition finie.
+    late = window.setTimeout(measure, 1200);
+    // Filet « shrink-only » : si, police réelle + animation installées, le
+    // texte dépasse encore la zone, resserrer jusqu'à ce qu'il tienne (ne
+    // JAMAIS agrandir ici → aucune oscillation possible). Garantit un rendu
+    // sans débordement quel que soit le timing de chargement de Cinzel.
+    const verify = () => {
+      if (cancelled) return;
+      const box = odinBoxRef.current;
+      const txt = odinTextRef.current;
+      if (!box || !txt) return;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let f = parseFloat(txt.style.fontSize) || parseFloat(getComputedStyle(txt).fontSize) || 12;
+      while (f > 9 && txt.offsetHeight > bh - 1) {
+        f -= 0.5;
+        txt.style.fontSize = f + 'px';
+      }
+      setOdinFont(f + 'px');
+    };
+    const v = window.setTimeout(verify, 2000);
+    let lastW = window.innerWidth;
+    const remeasure = () => {
+      if (window.innerWidth === lastW) return;
+      lastW = window.innerWidth;
+      setOdinFont(null);
+      window.setTimeout(measure, 60);
+    };
+    window.addEventListener('resize', remeasure);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+      if (late) window.clearTimeout(late);
+      window.removeEventListener('resize', remeasure);
+    };
+  }, [conseilRevealed, conseil]);
+
   // Précharge conseil-odin.png dès que le conseil est disponible (avant le
   // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
   useEffect(() => {
@@ -1057,18 +1150,23 @@ export function RuneAnalysis({
                     />
 
                     {/* ── Texte seul, calé DANS le parchemin (zone centrale claire,
-                        largeur réduite pour ne pas toucher le cadre intérieur) ── */}
+                        largeur réduite pour ne pas toucher le cadre intérieur).
+                        Font-size auto-fit : la plus grande qui tient (cf. effet
+                        odinFont ci-dessus) — texte court rempli, long ajusté. ── */}
                     <div
+                      ref={odinBoxRef}
                       className="absolute flex flex-col items-center justify-center"
                       style={{ top: '30%', bottom: '25%', left: '18%', right: '18%' }}
                     >
                       <motion.p
+                        ref={odinTextRef}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55, duration: 0.55 }}
-                        className="text-center text-xs font-bold leading-snug sm:text-[13px]"
+                        className="text-center font-bold leading-snug"
                         style={{
                           fontFamily: 'var(--font-cinzel), serif',
+                          fontSize: odinFont || '12px',
                           color: '#6B4423', // bronze foncé
                           // Effet gravé (bizeautage) : arête supérieure sombre
                           // (creux) + arête inférieure claire (lumière rasante) —

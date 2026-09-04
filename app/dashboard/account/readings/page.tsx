@@ -818,8 +818,8 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
   if (structured && parsedAll && parsedAll.version === 'nornes-full' && parsedAll.fil && parsedAll.tissage) {
     // Format versionné (nouveaux tirages complets) : blocs déjà séparés.
     groups.push(
-      { cards: cards.filter((c) => !isConseilPos(c.position)), ...parsedAll.fil },
-      { cards: cards.filter((c) => isConseilPos(c.position)), ...parsedAll.tissage },
+      { ...parsedAll.fil, cards: cards.filter((c) => !isConseilPos(c.position)) },
+      { ...parsedAll.tissage, cards: cards.filter((c) => isConseilPos(c.position)) },
     );
   } else if (hasTissage) {
     // Tirages complets enregistrés avant le format versionné : on sépare cartes
