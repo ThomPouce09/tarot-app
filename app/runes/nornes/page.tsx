@@ -1,6 +1,7 @@
 'use client';
 
-// app/runes/nornes/page.tsx — Niveau 2.1 : Le Fil des Nornes (Passé/Présent/Avenir)
+// app/runes/nornes/page.tsx — Niveau 2.1 : Le Fil des Nornes — Précis
+// (tirage AVANCÉ : réponse ciblée sur la question exacte posée).
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, useRef } from 'react';
@@ -33,11 +34,8 @@ function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
-  // « Tisser une nouvelle voie » + « Recommencer un tirage » n'apparaissent
-  // qu'après — jamais avant).
+  // « Tisser une nouvelle voie » n'apparaît qu'après — jamais avant).
   const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
-  // Idem pour l'interprétation du Conseil d'Odin (4ème rune).
-  const [adviceAnalysisDone, setAdviceAnalysisDone] = useState(false);
   // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
   // réservée au forfait ARKANE.
   const { sub: entSub } = useEntitlement();
@@ -73,10 +71,9 @@ function NornesPage() {
     setIsRolling(true);
     savedRef.current = false;
     readingIdRef.current = null;
-    // Nouveau tirage → les interprétations doivent être (re)affichées avant
-    // que les actions « Recommencer » / « Tisser une nouvelle voie » réapparaissent.
+    // Nouveau tirage → l'interprétation doit être (re)affichée avant que
+    // l'action « Tisser une nouvelle voie » réapparaisse.
     setMainAnalysisDone(false);
-    setAdviceAnalysisDone(false);
     mainAnalysisRef.current = null;
   }, []);
 
@@ -108,7 +105,7 @@ function NornesPage() {
       savedRef.current = true;
       const id = await saveReading({
         type: 'runes-nornes',
-        spread: 'Le Fil des Nornes',
+        spread: 'Le Fil des Nornes — Précis',
         cards: r.slice(0, 3).map((d, i) => ({
           name: d.rune?.name,
           symbol: d.rune?.symbol,
@@ -192,10 +189,9 @@ function NornesPage() {
     [onAnalysis],
   );
 
-  // Révélation IA du Conseil d'Odin prête (permet le « Recommencer » du bloc advice).
+  // Révélation IA du Conseil d'Odin prête → fusion avec le fil pour l'historique.
   const onAdviceAnalysis = useCallback(
     (text: string) => {
-      setAdviceAnalysisDone(true);
       // Fusionner l'analyse du Conseil d'Odin AVEC celle du fil (U/V/S) : la
       // lecture historique doit montrer TOUT le tirage, pas seulement le Conseil
       // (sinon la 2e écriture écrase la 1ère).
@@ -234,7 +230,7 @@ function NornesPage() {
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title={t('runes.nornes.title')}
+        title={t('runes.nornes.titlePrecis')}
         subtitle={t('runes.nornes.subtitle')}
         compact
       />
@@ -343,7 +339,7 @@ function NornesPage() {
                 Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une
                 nouvelle voie.
               </p>
-              <RuneButton variant="gold" onClick={adviceRoll}>
+              <RuneButton variant="save" onClick={adviceRoll}>
                 {t('runes.nornes.advice')}
               </RuneButton>
             </motion.div>
@@ -392,22 +388,9 @@ function NornesPage() {
                 onAnalysis={onAdviceAnalysis}
                 autoRun
               />
-              {/* « Recommencer » uniquement après l'affichage de l'interprétation d'Odin */}
-              {adviceAnalysisDone && (
-                <div className="mt-6 text-center">
-                  <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* « Recommencer un tirage » uniquement après l'affichage de l'interprétation IA */}
-        {phase === 'done' && !hasAdvice && mainAnalysisDone && (
-          <div className="mt-8 text-center">
-            <RuneButton onClick={roll}>{t('runes.retry')}</RuneButton>
-          </div>
-        )}
       </div>
     </RuneBackground>
   );

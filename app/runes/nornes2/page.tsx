@@ -1,55 +1,76 @@
 'use client';
 
-// app/runes/nornes2/page.tsx — « Le Fil des Nornes · Tirage à l'aveugle ».
-// Variante de /runes/nornes : on secoue le sac pour faire sortir progressivement
-// TOUTES les runes face cachée, puis on sélectionne 3 runes pour le tirage
-// complet (Urd / Verdandi / Skuld + analyse IA + Conseil d'Odin).
+// app/runes/nornes2/page.tsx — Niveau 2.1 bis : « Le Fil des Nornes —
+// Simplifié » : le tirage de BASE de l'univers Runes (à l'aveugle).
+// Le joueur secoue le sac, les 24 runes sortent face cachée et s'éparpillent
+// sur la table ; il en choisit 3 à l'aveugle. Les 3 élues sont alors mises en
+// valeur SUR LA TABLE par le scatter (envol en ligne + retournement + halo
+// doré — elles sont déjà sorties et étalées, pas de nouvelle sortie du
+// pochon), puis le déroulement est IDENTIQUE à /runes/nornes (validé) :
+// lecture Urd/Verdandi/Skuld, analyse IA, Conseil d'Odin (ARKANE, tirage
+// séparé depuis le sac), historique fusionné fil + tissage.
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import YiSlideNav from '@/components/yi-slide-nav';
-import { AskQuestion } from '@/components/ask-question';
+import { ThemeSelector } from './theme-selector';
 import {
   RuneBackground,
   RuneTitle,
   RuneButton,
   RuneReading,
   RuneAnalysis,
-  SageCard,
   RUNE_THEME,
 } from '../_shared';
-import { ShakeTutorial } from '../nornes/shake-tutorial';
+import { NornesTutorialModal } from '../nornes/nornes-tutorial-modal';
+import { type DrawnRune } from '@/components/rune-stones';
 import { type ScatterPick } from './rune-scatter';
-import { useEntitlement } from '@/lib/use-entitlement';
-import { SacredTable } from './sacred-table';
-import { RuneStonesSet } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
+import { useEntitlement } from '@/lib/use-entitlement';
 import { useT } from '@/lib/i18n';
+import AuthGate from '@/components/auth-gate';
 
 const RuneScatter = dynamic(() => import('./rune-scatter').then((m) => m.RuneScatter), {
   ssr: false,
 });
 
+const RuneStonesSet = dynamic(
+  () => import('@/components/rune-stones').then((m) => m.RuneStonesSet),
+  { ssr: false },
+);
+
 const NORNES_POS = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir'];
 
-export default function Nornes2Page() {
-  const [runes, setRunes] = useState<DrawnRune2[]>([]);
-  // picks : les 3 runes choisies à l'aveugle (avant la table sacrée)
+function Nornes2Page() {
+  const [isRolling, setIsRolling] = useState(false);
+  const [runes, setRunes] = useState<DrawnRune[]>([]);
+  // picks : les 3 runes choisies à l'aveugle (face cachée) → preset révélé.
   const [picks, setPicks] = useState<ScatterPick[] | null>(null);
-  const [phase, setPhase] = useState<'intro' | 'scatter' | 'reveal' | 'reading' | 'advice'>('intro');
-  const [question, setQuestion] = useState<string | null>(null);
-  const [scatterKey, setScatterKey] = useState(0);
-  const t = useT();
-  // Conseil d'Odin (« Briser le Destin ») : réservé au forfait ARKANE.
+  // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
+  // « Tisser une nouvelle voie » n'apparaît qu'après — jamais avant).
+  const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
+  // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
+  // réservée au forfait ARKANE.
   const { sub: entSub } = useEntitlement();
   const canOdinAdvice = entSub?.level === 'arkane';
+  const [phase, setPhase] = useState<'idle' | 'scatter' | 'done' | 'advice'>('idle');
+  const [question, setQuestion] = useState<string | null>(null);
+  // Modale « Principe du Fil des Nornes » affichée au chargement :
+  //   'demo'  → la modale est ouverte (le scatter est inactif derrière)
+  //   'ready' → « Compris » cliqué : la modale se ferme, le sac s'active.
+  const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
+  const t = useT();
   const readingIdRef = useRef<string | null>(null);
+  // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
+  // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
+  // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
+  const mainAnalysisRef = useRef<Record<string, unknown> | null>(null);
   const savedRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
 
   // Construit un texte d'interprétation statique à partir des runes tirées.
-  const staticInterpretation = useCallback((r: DrawnRune2[], count: number) => {
+  const staticInterpretation = useCallback((r: DrawnRune[], count: number) => {
     return r.slice(0, count).map((d, i) => {
       const name = d.rune?.name || 'Rune';
       const sense = d.reversed ? d.rune?.reversed : d.rune?.upright;
@@ -58,60 +79,89 @@ export default function Nornes2Page() {
     }).join('\n\n');
   }, []);
 
-  // 🎬 Séquence d'apparition : question (concentration) → tutoriel animé (~5s)
-  // → activation du scatter (le sac devient secouable).
+  const roll = useCallback(() => {
+    setRunes([]);
+    setPicks(null);
+    setPhase('idle');
+    setIsRolling(false);
+    savedRef.current = false;
+    readingIdRef.current = null;
+    // Nouveau tirage → l'interprétation doit être (re)affichée avant que
+    // l'action « Tisser une nouvelle voie » réapparaisse.
+    setMainAnalysisDone(false);
+    setQuestion(null); // le sélecteur de thème réapparaît
+    mainAnalysisRef.current = null;
+  }, []);
+
+  // Clic sur « Compris » : ferme la modale → la question (obligatoire) est
+  // mise en avant ; le sac ne s'active qu'après son enregistrement.
+  const understand = useCallback(() => {
+    setIntro('ready');
+  }, []);
+
+  // Thème + intention choisis : ils conditionnent l'activation du sac
+  // (scatter différé de 350 ms pour laisser le panneau se refermer proprement).
+  const handleThemeConfirm = useCallback((q: string) => {
+    setQuestion(q);
+    const t3 = window.setTimeout(() => setPhase('scatter'), 350);
+    cleanupRef.current = () => window.clearTimeout(t3);
+  }, []);
+
+  // Nettoie le timeout différé si l'on quitte la page avant le clic.
   useEffect(() => {
-    const t2 = window.setTimeout(() => {
-      setPhase('scatter');
-      setScatterKey((k) => k + 1); // active le scatter (enabled)
-    }, 6200);
-    return () => {
-      window.clearTimeout(t2);
-      cleanupRef.current?.();
-    };
+    return () => cleanupRef.current?.();
   }, []);
 
-  // État du scatter : activé seulement après la séquence d'intro (~6.2s).
-  const scatterEnabled = phase === 'scatter' && scatterKey > 0;
-
-  // 🎯 3 runes choisies et révélées → la table sacrée les met en valeur
-  // (vol animé + gyro), puis on passe à la lecture.
-  const handleScatterComplete = useCallback((p: ScatterPick[]) => {
-    setPicks(p);
-    setPhase('reveal');
-  }, []);
-
-  // Les 3 runes sont posées sur la table sacrée → lecture + interprétation IA.
-  const handleRevealSettled = useCallback(async () => {
-    if (!picks) return;
-    setRunes(picks);
-    setPhase('reading');
-    if (!savedRef.current) {
-      savedRef.current = true;
-      const id = await saveReading({
-        type: 'runes-nornes',
-        spread: 'Le Fil des Nornes — Tirage à l’aveugle',
-        cards: picks.slice(0, 3).map((d, i) => ({
-          name: d.rune?.name,
-          symbol: d.rune?.symbol,
-          reversed: d.reversed,
-          position: NORNES_POS[i],
-        })),
-        interpretation: staticInterpretation(picks, 3),
-        question,
-      });
-      if (id) readingIdRef.current = id;
-      setQuestion(null);
-    }
-  }, [picks, staticInterpretation, question]);
+  // 🎯 Les 3 runes sont choisies à l'aveugle ; le scatter les a déjà révélées
+  //    sur la table (envol en ligne + flip + halo — pas de sortie du pochon :
+  //    elles sont déjà sorties et étalées). On passe directement à la lecture.
+  const handleScatterComplete = useCallback(
+    async (p: ScatterPick[]) => {
+      setPicks(p);
+      setRunes(p);
+      setPhase('done');
+      if (!savedRef.current) {
+        savedRef.current = true;
+        const id = await saveReading({
+          type: 'runes-nornes2',
+          spread: 'Le Fil des Nornes — Simplifié',
+          cards: p.slice(0, 3).map((d, i) => ({
+            name: d.rune?.name,
+            symbol: d.rune?.symbol,
+            reversed: d.reversed,
+            position: NORNES_POS[i],
+          })),
+          interpretation: staticInterpretation(p, 3),
+          question,
+        });
+        if (id) readingIdRef.current = id;
+        // NB : la question/thème reste en place — elle est transmise à
+        // l'analyse IA (RuneAnalysis) et sera réinitialisée au prochain roll.
+      }
+    },
+    [staticInterpretation, question],
+  );
 
   const adviceRoll = useCallback(() => {
     setPhase('advice');
+    setIsRolling(true);
   }, []);
 
-  const handleAdviceRest = useCallback(async (picks: ScatterPick[]) => {
+  // « Tisser une nouvelle voie » : le clic a lieu en bas de page → recentrer
+  // la vue sur le sac du Conseil d'Odin dès qu'il apparaît.
+  const adviceBagRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (phase !== 'advice') return;
+    const t = window.setTimeout(() => {
+      adviceBagRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 450);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
+  const handleAdviceRest = useCallback(async (r: DrawnRune[]) => {
+    setIsRolling(false);
     setRunes((prev) => {
-      const all = [...prev.slice(0, 3), picks[0]];
+      const all = [...prev.slice(0, 3), r[0]];
       if (readingIdRef.current) {
         const allCards = all.map((d, i) => ({
           name: d.rune?.name,
@@ -119,10 +169,17 @@ export default function Nornes2Page() {
           reversed: d.reversed,
           position: NORNES_POS[i] || 'Conseil d’Odin',
         }));
-        updateReading(readingIdRef.current, {
-          cards: allCards,
-          interpretation: staticInterpretation(all, 4),
-        });
+        // On n'écrase PAS l'interprétation IA du fil par le texte statique :
+        // elle est conservée puis fusionnée avec le Conseil d'Odin quand son
+        // analyse arrive (onAdviceAnalysis) — l'historique montre tout le tirage.
+        if (mainAnalysisRef.current) {
+          updateReading(readingIdRef.current, { cards: allCards });
+        } else {
+          updateReading(readingIdRef.current, {
+            cards: allCards,
+            interpretation: staticInterpretation(all, 4),
+          });
+        }
       }
       return all;
     });
@@ -134,88 +191,114 @@ export default function Nornes2Page() {
     }
   }, []);
 
-  const hasAdvice = runes.length === 4;
-  const inReading = phase === 'reading' || phase === 'advice';
+  // Révélation IA du tirage principal prête. Le focus est géré par RuneAnalysis
+  // lui-même (il amène sa tête — la grande tuile URD — en haut d'écran).
+  const onMainAnalysis = useCallback(
+    (text: string) => {
+      setMainAnalysisDone(true);
+      // Conserver l'analyse structurée du fil (JSON) : elle sera fusionnée avec
+      // le Conseil d'Odin à destination de l'historique (onAdviceAnalysis).
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          mainAnalysisRef.current = parsed as Record<string, unknown>;
+        }
+      } catch { /* texte non JSON : rien à conserver */ }
+      onAnalysis(text);
+    },
+    [onAnalysis],
+  );
 
-  const reset = useCallback(() => {
-    setRunes([]);
-    setPicks(null);
-    setPhase('intro');
-    setScatterKey(0);
-    savedRef.current = false;
-    readingIdRef.current = null;
-    // Relance la séquence intro (question → tuto → scatter)
-    const t2 = window.setTimeout(() => {
-      setPhase('scatter');
-      setScatterKey((k) => k + 1);
-    }, 6200);
-    cleanupRef.current = () => window.clearTimeout(t2);
-  }, []);
+  // Révélation IA du Conseil d'Odin prête → fusion avec le fil pour l'historique.
+  const onAdviceAnalysis = useCallback(
+    (text: string) => {
+      // Fusionner l'analyse du Conseil d'Odin AVEC celle du fil (U/V/S) : la
+      // lecture historique doit montrer TOUT le tirage, pas seulement le Conseil
+      // (sinon la 2e écriture écrase la 1ère).
+      try {
+        const odin = JSON.parse(text) as Record<string, any>;
+        const main = mainAnalysisRef.current;
+        if (odin && main && Array.isArray(odin.sections)) {
+          // Format structuré à DEUX blocs pour l'historique :
+          //   fil     → sections U/V/S + synthèse + 1er Conseil d'Odin
+          //   tissage → section du Conseil + 2e Conseil d'Odin
+          const merged = {
+            version: 'nornes-full',
+            fil: {
+              sections: Array.isArray(main.sections) ? (main.sections as unknown[]) : [],
+              synthese: (main.synthese as string) || '',
+              conseil_action: (main.conseil_action as string) || '',
+            },
+            tissage: {
+              sections: odin.sections as unknown[],
+              synthese: (odin.synthese as string) || '',
+              conseil_action: (odin.conseil_action as string) || '',
+            },
+          };
+          onAnalysis(JSON.stringify(merged));
+          return;
+        }
+      } catch { /* réponse non JSON → on garde le texte reçu */ }
+      onAnalysis(text);
+    },
+    [onAnalysis],
+  );
+
+  const hasAdvice = runes.length === 4;
+  const scatterActive = phase === 'scatter' && !picks;
 
   return (
     <RuneBackground>
       <YiSlideNav />
       <RuneTitle
-        title={t('runes.nornes.title')}
-        subtitle="Tirage à l'aveugle : secouez le sac, puis choisissez 3 runes face cachée."
+        title={t('runes.nornes2.title')}
+        subtitle={t('runes.nornes2.subtitle')}
         compact
       />
 
-      <div className="mx-auto max-w-2xl px-4">
-        {/* Champ question — reste visible tant que le tirage n'est pas révélé */}
-        <div className="py-2">
-          {!inReading && (
-            <AskQuestion onConfirm={setQuestion} accentColor={RUNE_THEME.goldPale} autoFocus={false} />
-          )}
-        </div>
-
-        {/* Zone tutoriel : se déploie avec le tutoriel puis se rétracte */}
-        <motion.div
-          className="overflow-hidden text-center"
-          initial={false}
-          animate={{ height: !scatterEnabled ? 'auto' : 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          <AnimatePresence>
-            {!scatterEnabled && (
-              <motion.div
-                key="tuto"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.45, ease: 'easeOut' }}
-              >
-                <ShakeTutorial />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Scatter : secouage + sélection de 3 runes — elles se retournent face
-            visible dès la sélection, puis transition vers la table sacrée */}
-        {phase === 'scatter' && (
-          <RuneScatter
-            height={430}
-            enabled={scatterEnabled}
-            onComplete={handleScatterComplete}
+      <div className="mx-auto max-w-2xl px-4 pb-20">
+        {/* Modale « Principe du Fil des Nornes » affichée avant le tirage : elle
+            recouvre la page jusqu'au clic « Compris ». */}
+        {intro === 'demo' && (
+          <NornesTutorialModal
+            onDone={understand}
+            step1Key="runes.nornes2.modalStep1"
+            step2Key="runes.nornes2.modalStep2"
+            step3Key="runes.nornes2.modalStep3"
           />
         )}
 
-        {/* 🎯 Table sacrée : les 3 runes choisies volent du bas vers leurs
-            emplacements (Urd/Verdandi/Skuld), avec l'effet gyroscope (même
-            que /nornes). Elle RESTE affichée quand la lecture + l'analyse IA
-            s'affichent en dessous. */}
-        {(phase === 'reveal' || phase === 'reading') && picks && (
-          <SacredTable
-            picks={picks}
-            height={430}
-            onSettled={handleRevealSettled}
-          />
+        {/* THÈME (obligatoire, mise en avant) : le tirage ne démarre qu'une
+            fois le domaine + l'intention choisis (« Tisser le fil »). */}
+        {phase === 'idle' && !question && (
+          <div className="py-2">
+            <motion.div
+              className="rounded-2xl"
+              animate={{
+                boxShadow: [
+                  `0 0 0 1px ${RUNE_THEME.goldPale}33, 0 0 14px ${RUNE_THEME.goldPale}18`,
+                  `0 0 0 1px ${RUNE_THEME.goldPale}88, 0 0 34px ${RUNE_THEME.goldPale}55`,
+                  `0 0 0 1px ${RUNE_THEME.goldPale}33, 0 0 14px ${RUNE_THEME.goldPale}18`,
+                ],
+              }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <ThemeSelector onConfirm={handleThemeConfirm} />
+            </motion.div>
+          </div>
         )}
 
-        {/* Lecture des 3 Nornes */}
+        {/* ÉTAPE 1 — Tirage à l'aveugle : secouer le sac, choisir 3 runes.
+            La mise en valeur des 3 élues (envol en ligne + flip + halo doré)
+            est jouée PAR LE SCATTER LUI-MÊME : les runes sont déjà sorties et
+            étalées, elles ne repassent pas par le pochon. */}
+        {scatterActive && (
+          <RuneScatter height={430} enabled onComplete={handleScatterComplete} />
+        )}
+
+        {/* Lecture des 3 Nornes (GARDES identiques à /nornes validé) */}
         <AnimatePresence>
-          {inReading && runes.length >= 3 && (
+          {runes.length >= 3 && !isRolling && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -226,39 +309,48 @@ export default function Nornes2Page() {
                 reversed={runes[0]?.reversed}
                 position="Urd — Le Passé"
                 meaning="Les origines de la situation, ce qui est déjà accompli."
+                compactInfo
               />
               <RuneReading
                 rune={runes[1]?.rune ?? null}
                 reversed={runes[1]?.reversed}
                 position="Verdandi — Le Présent"
                 meaning="La nécessité actuelle, le mouvement en cours."
+                compactInfo
               />
               <RuneReading
                 rune={runes[2]?.rune ?? null}
                 reversed={runes[2]?.reversed}
                 position="Skuld — L’Avenir"
                 meaning="L’aboutissement logique si rien ne change."
+                compactInfo
               />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Analyse IA du fil des Nornes */}
-        {inReading && runes.length >= 3 && (
+        {/* Analyse IA du fil des Nornes (3 premières runes) — reste monté même
+            pendant la phase advice pour ne pas tuer une analyse en cours. */}
+        {phase !== 'idle' && runes.length >= 3 && (
           <RuneAnalysis
             mode="nornes"
+            gateType="runes-nornes2"
             runes={[
               { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
               { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
               { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
             ]}
-            onAnalysis={onAnalysis}
+            onAnalysis={onMainAnalysis}
+            question={question}
+            autoRun
           />
         )}
 
-        {/* Variation "Briser le Destin" — réservée au forfait ARKANE */}
+        {/* Variation "Briser le Destin" — réservée aux abonnés Initié et
+            Arkane, et uniquement APRÈS l'affichage de l'interprétation IA du
+            tirage initial. */}
         <AnimatePresence>
-          {phase === 'reading' && !hasAdvice && canOdinAdvice && (
+          {phase === 'done' && !hasAdvice && mainAnalysisDone && canOdinAdvice && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -271,25 +363,32 @@ export default function Nornes2Page() {
                 Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une
                 nouvelle voie.
               </p>
-              <RuneButton variant="gold" onClick={adviceRoll}>
+              <RuneButton variant="save" onClick={adviceRoll}>
                 {t('runes.nornes.advice')}
               </RuneButton>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Conseil d'Odin : tirage d'1 rune dans la zone de tirage (comme /nornes) */}
+        {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
+            ré-affiché pour ce round : count=1, layout horizontal. */}
         {phase === 'advice' && (
-          <RuneStonesSet
-            count={1}
-            layout="horizontal"
-            isRolling
-            onRest={handleAdviceRest}
-            height={300}
-          />
+          <div ref={adviceBagRef} className="scroll-mt-4">
+            <RuneStonesSet
+              count={1}
+              layout="horizontal"
+              isRolling={isRolling}
+              onRest={handleAdviceRest}
+              height={340}
+            />
+          </div>
         )}
 
-        {/* 4ème rune : Conseil d'Odin */}
+        {/* 4ème rune : Conseil d'Odin — révélation UNIQUE (même principe que
+            /nornes) : RuneAnalysis (odinReveal) n'affiche qu'UN bouton
+            « Révéler le Conseil d'Odin » ; la carte parchemin dorée révèle la
+            rune, son sens, la lecture et l'action concrète — sans section ni
+            « Synthèse » dupliquées. */}
         <AnimatePresence>
           {phase === 'advice' && runes[3] && (
             <motion.div
@@ -297,23 +396,12 @@ export default function Nornes2Page() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              {/* La révélation de la rune d'Odin (simple) — le texte du Conseil
-                  vient de l'interprétation IA ci-dessous (bouton « Révéler le
-                  Conseil d'Odin », carte fond conseil-odin.png). */}
-              <SageCard title={t('runes.conseilOdin')}>
-                <p className="mb-3 text-center" style={{ color: RUNE_THEME.sage }}>
-                  L’action précise à mener au présent (Verdandi) pour modifier
-                  l’avenir (Skuld).
-                </p>
-                <RuneReading
-                  rune={runes[3].rune}
-                  reversed={runes[3].reversed}
-                  position="Conseil d'Odin"
-                />
-              </SageCard>
+              {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
               <RuneAnalysis
                 mode="nornes"
+                gateType="runes-nornes2"
                 focus="odin"
+                odinReveal
                 buttonLabel="Consulter l'Oracle sur le conseil d'Odin"
                 runes={[
                   { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
@@ -321,24 +409,17 @@ export default function Nornes2Page() {
                   { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
                   { rune: runes[3].rune, reversed: runes[3].reversed, position: 'Conseil d’Odin' },
                 ]}
-                onAnalysis={onAnalysis}
+                onAnalysis={onAdviceAnalysis}
+                autoRun
               />
-              <div className="mt-6 text-center">
-                <RuneButton onClick={reset}>{t('runes.retry')}</RuneButton>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {phase === 'reading' && !hasAdvice && (
-          <div className="mt-8 text-center">
-            <RuneButton onClick={reset}>{t('runes.retry')}</RuneButton>
-          </div>
-        )}
       </div>
     </RuneBackground>
   );
 }
 
-// Type local (le ScatterPick fournit rune+reversed, aligné sur DrawnRune).
-type DrawnRune2 = ScatterPick;
+export default function GatedPage() {
+  return <AuthGate><Nornes2Page /></AuthGate>;
+}

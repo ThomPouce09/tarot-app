@@ -25,7 +25,7 @@ interface RuneInput {
   reversed: boolean;
 }
 
-function buildNornesPrompt(runes: RuneInput[]): string {
+function buildNornesPrompt(runes: RuneInput[], question?: string | null): string {
   const liste = runes
     .map((r, i) => {
       const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
@@ -48,7 +48,11 @@ IMPORTANT : utilise IMPÉRATIVEMENT ces noms et ces sens réels (ne les invente 
 
 Lis le fil comme une histoire continue : le passé a engendré le présent, qui mène
 vers l'avenir. Dis concrètement quel petit geste poser au présent pour modifier
-la trajectoire.
+la trajectoire.${question ? `
+
+LE CONSULTANT INTERROGE LES RUNES SUR CE SUJET PRÉCIS — ancre TOUTE la lecture
+dans ce sujet (exemples, ton conseil, ta synthèse doivent s'y rapporter) :
+« ${question} »` : ''}
 
 Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 {
@@ -63,7 +67,7 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 Réponds UNIQUEMENT avec l'objet JSON.`;
 }
 
-function buildNornesOdinPrompt(runes: RuneInput[]): string {
+function buildNornesOdinPrompt(runes: RuneInput[], question?: string | null): string {
   // Les 3 premières runes = le fil des Nornes ; la dernière = Conseil d'Odin.
   const nornes = runes.slice(0, 3);
   const odin = runes[runes.length - 1];
@@ -88,7 +92,10 @@ IMPORTANT : utilise IMPÉRATIVEMENT ces noms et ces sens réels (ne les invente 
 
 Explique comment la rune du Conseil d'Odin ÉCLAIRE et MODIFIE le fil :
 quelle porte elle ouvre sur l'avenir (Skuld), et quel petit geste au présent
-(Verdandi) permet de tisser une nouvelle voie. Sois concret et rassurant.
+(Verdandi) permet de tisser une nouvelle voie. Sois concret et rassurant.${question ? `
+
+Sujet précis du consultant — recentre le conseil sur ce sujet :
+« ${question} »` : ''}
 
 Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 {
@@ -126,7 +133,8 @@ export async function POST(request: NextRequest) {
 
   let prompt = '';
   if (m === 'nornes') {
-    prompt = focus === 'odin' ? buildNornesOdinPrompt(runes) : buildNornesPrompt(runes);
+    const qTopic = typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null;
+    prompt = focus === 'odin' ? buildNornesOdinPrompt(runes, qTopic) : buildNornesPrompt(runes, qTopic);
   }
   // mjolnir / yggdrasil : ajoutés ensuite
 

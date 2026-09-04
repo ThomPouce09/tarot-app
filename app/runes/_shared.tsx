@@ -164,7 +164,10 @@ export function RuneTitle({
   );
 }
 
-/* Bouton principal (vert sapin, bord doré pâle) */
+/* Bouton principal (vert sapin, bord doré pâle).
+   variant='save' : reprise exacte du design « Enregistrer » (pilule teal
+   glossée + halo) que l'utilisateur apprécie — utilisé pour « Compris »,
+   « Tisser une nouvelle voie » et la relance de l'analyse IA. */
 export function RuneButton({
   children,
   onClick,
@@ -174,8 +177,35 @@ export function RuneButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'gold';
+  variant?: 'primary' | 'gold' | 'save';
 }) {
+  if (variant === 'save') {
+    return (
+      <motion.button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        whileHover={disabled ? undefined : { scale: 1.04, y: -2 }}
+        whileTap={disabled ? undefined : { scale: 0.97 }}
+        className="rounded-full px-7 py-3 text-sm sm:text-base font-bold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100"
+        style={{
+          // Gloss : reflet blanc dégradé par-dessus la couleur de base
+          // (même recette que le bouton « Enregistrer » de ask-question).
+          background: `
+            linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+            #005f6a`,
+          color: '#fff',
+          fontFamily: 'var(--font-cinzel), serif',
+          boxShadow: disabled
+            ? 'none'
+            : '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {children}
+      </motion.button>
+    );
+  }
   const bg =
     variant === 'gold'
       ? disabled
@@ -524,15 +554,23 @@ export function RuneAnalysis({
   onAnalysis,
   autoRun = false,
   odinReveal = false,
+  question = null,
+  gateType = null,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
+  /** Type de quota consommé par l'appel IA (défaut : runes-<mode>). /nornes2
+      passe 'runes-nornes2' : le mode IA reste 'nornes' mais la lecture à
+      l'aveugle consomme le tirage de BASE « Simplifié », pas l'avancé. */
+  gateType?: string | null;
   focus?: 'odin';
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
   onAnalysis?: (text: string) => void;
   /** Lance l'interprétation IA automatiquement dès le montage (pas de bouton). */
   autoRun?: boolean;
+  /** Question/intention du consultant (thème choisi) : cible l'analyse IA. */
+  question?: string | null;
   /** « Tisser une autre voie » (/nornes) : révélation UNIQUE du Conseil d'Odin —
       ni section « Conseil d'Odin » ni bloc « Synthèse » dupliqués. La rune, son
       sens, la lecture et l'action sont révélés en un seul acte (bouton → carte
@@ -737,7 +775,7 @@ export function RuneAnalysis({
       const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runes: payload, mode, focus, userId, type: runeType }),
+        body: JSON.stringify({ runes: payload, mode, focus, userId, type: gateType || runeType, question: question || undefined }),
       });
       if (res.status === 402) {
         const d = await res.json().catch(() => ({}));
@@ -764,7 +802,7 @@ export function RuneAnalysis({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [runes, mode, focus]);
+  }, [runes, mode, focus, question]);
 
   // autoRun : lance l'interprétation dès le montage (pas de bouton) + amène le
   // focus sur la zone d'attente une fois l'analyse en cours.
@@ -845,7 +883,7 @@ export function RuneAnalysis({
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       {!autoRun && !sections && !loading && !error && (
         <div className="text-center">
-          <RuneButton variant="gold" onClick={run}>
+          <RuneButton variant="save" onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -919,7 +957,7 @@ export function RuneAnalysis({
       {error && !loading && (
         <div className="text-center space-y-2">
           <p className="text-amber-400/70 text-xs italic">{error}</p>
-          <RuneButton variant="gold" onClick={run}>
+          <RuneButton variant="save" onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -1006,13 +1044,15 @@ export function RuneAnalysis({
                 <button
                   type="button"
                   onClick={() => setConseilRevealed(true)}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-transform hover:scale-[1.03] active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95"
                   style={{
-                    background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
-                    color: '#2E2A26',
+                    background: `
+                      linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+                      #005f6a`,
+                    color: '#fff',
                     fontFamily: 'var(--font-cinzel), serif',
                     boxShadow:
-                      '0 0 20px rgba(243,201,105,0.45), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                      '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
                   }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

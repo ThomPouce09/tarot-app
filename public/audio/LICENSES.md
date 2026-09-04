@@ -41,6 +41,23 @@ Licence : Creative Commons Zero 1.0
 |---|---|
 | `cadeau.mp3` | Carillon « cadeau des créatures » (tirage offert) — synthèse CC0 inédite (cloches C6-E6-G6-C7 + scintillements), générée par script Python/ffmpeg |
 
+## Sons magiques « révélation » (proposés le 4 septembre 2026, page /son-a-supprimer)
+
+| Fichier | Description |
+|---|---|
+| `magic-1.mp3` | Carillon ascendant (do-mi-sol-do + écho + shimmer) |
+| `magic-2.mp3` | Pentatonique rapide (8 notes) |
+| `magic-3.mp3` | Cloches lointaines (longue traîne) |
+| `magic-4.mp3` | Scintillement féerique (glissando aigu + clochettes) |
+| `magic-5.mp3` | Gong profond + shimmer |
+| `magic-6.mp3` | Glissando de harpe (cordes pincées) |
+| `magic-7.mp3` | Boîte à musique (timbre sec, motif G-B-D-G) |
+| `magic-8.mp3` | Brume éthérée (nappe désaccordée + cloche) |
+| `magic-9.mp3` | Retour de vague (swell inversé + cloche) |
+| `magic-10.mp3` | Triple étincelle (3 clochettes aiguës + traîne) |
+
+Tous : synthèse maison CC0 inédite (script `scripts/gen-magic-sfx.py`, Python stdlib + ffmpeg), pics à −1,4 dB.
+
 ## Notes
 
 - Tous les fichiers sont en **MP3** (compatibilité Safari/iOS + Android)

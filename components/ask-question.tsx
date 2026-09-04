@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n';
 
-/** Fonce une couleur hex (facteur 0-1) → bouton assorti à l'accent du thème. */
+/** Fonce une couleur hex (facteur 0-1) → gros CTA assorti à l'accent du thème. */
 function darkenHex(hex: string, f: number): string {
   const h = hex.replace('#', '');
   const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
@@ -94,9 +94,13 @@ export function AskQuestion({
 
   const qEmpty = required && !question.trim();
 
-  // Bouton assorti au thème de la page : accentColor foncé (hex) ; sinon teal par défaut.
-  const btnBg = accentColor && accentColor.startsWith('#') ? darkenHex(accentColor, 0.45) : '#005f6a';
+  // « Enregistrer » : pilule teal glossée fixe (même design que RuneButton
+  // variant="save") sur toutes les pages ; accentColor ne teint plus que le
+  // cadre, le champ et le gros CTA de lancement.
+  const btnBg = '#005f6a';
   const btnGlow = `${btnBg}80`;
+  const launchBg = accentColor && accentColor.startsWith('#') ? darkenHex(accentColor, 0.45) : '#005f6a';
+  const launchGlow = `${launchBg}80`;
 
   return (
     <AnimatePresence>
@@ -178,11 +182,11 @@ export function AskQuestion({
           onClick={handleLaunch}
           className="mt-12 rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
           style={{
-            background: btnBg,
+            background: launchBg,
             color: '#fff',
             fontFamily: 'var(--font-cinzel-deco), serif',
-            boxShadow: `0 0 24px ${btnGlow}`,
-            border: `1px solid ${btnBg}99`,
+            boxShadow: `0 0 24px ${launchGlow}`,
+            border: `1px solid ${launchBg}99`,
             position: 'relative',
             zIndex: 20,
           }}

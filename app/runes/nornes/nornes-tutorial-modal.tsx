@@ -10,14 +10,24 @@ import { useT } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 import { ShakePouch } from './shake-tutorial';
 
-const STEPS = [
-  { glyph: 'ᛟ', key: 'runes.nornes.modalStep1' },
-  { glyph: 'ᚲ', key: 'runes.nornes.modalStep2' },
-  { glyph: 'ᛉ', key: 'runes.nornes.modalStep3' },
-];
-
-export function NornesTutorialModal({ onDone }: { onDone: () => void }) {
+export function NornesTutorialModal({
+  onDone,
+  step1Key = 'runes.nornes.modalStep1',
+  step2Key = 'runes.nornes.modalStep2',
+  step3Key = 'runes.nornes.modalStep3',
+}: {
+  onDone: () => void;
+  /** Étapes personnalisables (/nornes2 : thème + révélation côte à côte). */
+  step1Key?: string;
+  step2Key?: string;
+  step3Key?: string;
+}) {
   const t = useT();
+  const STEPS = [
+    { glyph: 'ᛟ', key: step1Key },
+    { glyph: 'ᚲ', key: step2Key },
+    { glyph: 'ᛉ', key: step3Key },
+  ];
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
       {/* Voile sombre */}
@@ -87,7 +97,7 @@ export function NornesTutorialModal({ onDone }: { onDone: () => void }) {
 
         {/* Seul bouton : Compris */}
         <div className="mt-5 flex justify-center">
-          <RuneButton variant="gold" onClick={onDone}>
+          <RuneButton variant="save" onClick={onDone}>
             {t('runes.nornes.gotIt')}
           </RuneButton>
         </div>
