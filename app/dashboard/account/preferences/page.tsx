@@ -47,7 +47,9 @@ export default function PreferencesPage() {
   const [, setUser] = useState<any>(null);
 
   // Forfait effectif → fonds disponibles (Apprenti 2 / Initié 7 / Arkane tous).
-  const { sub } = useEntitlement();
+  // `loaded` = false tant que le forfait réel n'est pas revenu du serveur :
+  // pendant ce temps sub est null et level retombe sur 'apprenti'.
+  const { sub, loaded } = useEntitlement();
   const level: BackgroundLevel = (sub?.level as BackgroundLevel) || 'apprenti';
   const availableBgs = backgroundsForLevel(level);
 
@@ -120,7 +122,16 @@ export default function PreferencesPage() {
   // Sélection minimale garantie : si aucune sélection valide n'existe (nouvel
   // utilisateur ou ancienne config « tous en aléatoire » = vide), on coche tous
   // les fonds du forfait. Un état « aucun papier peint choisi » est impossible.
+  // ⚠️ Ne JAMAIS écraser une sélection tant que le forfait réel est inconnu
+  // (sub null → level 'apprenti') : le pool retomberait sur les 2 fonds par
+  // défaut et remplacerait la sélection d'un abonné (bug « retour dans
+  // Préférences → les 2 fonds par défaut sont cochés »). Le niveau n'est
+  // fiable que lorsque /api/subscription a répondu (sub non null) — pour un
+  // compte connecté, on attend donc sub ; seuls les visiteurs anonymes
+  // (email vide, rien à écraser) gardent l'ancien comportement immédiat.
   useEffect(() => {
+    if (!loaded) return;
+    if (email && !sub) return;
     if (availableBgs.length === 0) return;
     setPrefs((p) => {
       const valid = p.backgrounds.filter((b) => availableBgs.includes(b));
@@ -133,7 +144,7 @@ export default function PreferencesPage() {
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableBgs]);
+  }, [availableBgs, loaded]);
 
   const requestReminderPermission = () => {
     // Déclenche la demande de permission + enregistrement du token FCM côté Capacitor.
