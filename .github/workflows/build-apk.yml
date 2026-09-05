@@ -34,6 +34,23 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Restore debug keystore (signature stable)
+        # SANS ceci, AGP auto-génère un keystore debug DIFFERENT sur chaque
+        # runner → signature différente à chaque build → Android refuse la
+        # mise à jour par-dessus l'app installée (obligation de désinstaller).
+        # Le secret DEBUG_KEYSTORE_B64 (PKCS12, alias androiddebugkey, mots de
+        # passe « android ») est restauré à l'emplacement standard ~/.android/
+        # debug.keystore → signingConfigs.debug le pickera → tous les builds
+        # partagent la même clé → vraies mises à jour in-place.
+        run: |
+          if [ -n "${{ secrets.DEBUG_KEYSTORE_B64 }}" ]; then
+            mkdir -p ~/.android
+            echo "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > ~/.android/debug.keystore
+            echo "debug.keystore restauré ✓ (signature stable)"
+          else
+            echo "::warning::DEBUG_KEYSTORE_B64 absent — signature aléatoire, les mises à jour in-place échoueront"
+          fi
+
       - name: Inject google-services.json (Firebase)
         # Le repo est PUBLIC et google-services.json est gitignoré → le runner
         # ne l'a pas. On le reconstruit depuis le secret GOOGLE_SERVICES_JSON
