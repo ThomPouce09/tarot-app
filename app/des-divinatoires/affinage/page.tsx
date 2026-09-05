@@ -43,6 +43,7 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import EchoBox from '@/components/echo-box';
 import { useT } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 
@@ -160,6 +161,9 @@ function AffinagePage() {
 
   // Références pour la persistance historique (anti-doublon + update IA)
   const readingIdRef = useRef<string | null>(null);
+  // Ref miroir en state : l'encadré « Écho scellé » doit se re-rendre dès que
+  // la lecture est sauvegardée (une ref seule ne déclenche pas de rendu).
+  const [readingId, setReadingId] = useState<string | null>(null);
   const savedRef = useRef(false);
   const originalFacesRef = useRef<TargetFaces | null>(null);
   // Accumulateur d'interprétation : on y ajoute les données au fil des étapes
@@ -186,6 +190,7 @@ function AffinagePage() {
     setResetSignal((n) => n + 1);
     savedRef.current = false;
     readingIdRef.current = null;
+    setReadingId(null);
   }, []);
 
   // Relance sélective : on ne relance QUE le dé concerné. On réduit
@@ -242,7 +247,7 @@ function AffinagePage() {
           interpretation: JSON.stringify(interpAccRef.current),
           question,
         });
-        if (id) readingIdRef.current = id;
+        if (id) { readingIdRef.current = id; setReadingId(id); }
       }
       // Après affinage : mettre à jour la même lecture avec les nouvelles cartes
       // et le type de zoom.
@@ -925,6 +930,16 @@ function AffinagePage() {
                         {t('des.affinage.analyze')}
                       </DiceButton>
                     </div>
+                  )}
+
+                  {/* ✶ L'Écho scellé — prémonction datée née de cette lecture. */}
+                  {readingId && (analysis || analysisSynthese) && (
+                    <EchoBox
+                      domain="des"
+                      readingId={readingId}
+                      question={question}
+                      summary={(analysisSynthese || analysis || '').slice(0, 1200)}
+                    />
                   )}
                 </div>
               </div>

@@ -39,7 +39,7 @@ function subLabel(type: string): string {
     'yi-jing-du-jour': 'Yi Jing du jour',
     'yi-jing': 'Yi Jing',
     'runes-nornes': 'Fil des Nornes',
-    'runes-nornes2': 'Fil des Nornes (Simplifié)',
+    'runes-nornes2': 'Fil des Nornes (simplifié)',
     'runes-mjolnir': 'Mjölnir',
     'runes-yggdrasil': 'Yggdrasil',
     'runes': 'Runes',
@@ -280,6 +280,8 @@ export default function StatsPage() {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [readings, setReadings] = useState<any[]>([]);
+  // Échos clos → « Ferveur de l'oracle » (précision des prémonctions, étape 9)
+  const [echoes, setEchoes] = useState<any[]>([]);
 
   if (typeof window !== 'undefined' && !ready) {
     const stored = localStorage.getItem('tarot_user');
@@ -292,6 +294,10 @@ export default function StatsPage() {
     api(`/api/readings?userId=${encodeURIComponent(user.email)}`)
       .then((r) => r.json())
       .then((data) => setReadings(data.readings || []))
+      .catch(() => {});
+    api(`/api/echo?userId=${encodeURIComponent(user.email)}`)
+      .then((r) => r.json())
+      .then((data) => setEchoes(data.echoes || []))
       .catch(() => {});
   }, [user]);
 
@@ -326,6 +332,15 @@ export default function StatsPage() {
     const recent = sorted.slice(0, 6);
     return { groups, counts, total, streak, best, activeDays, questions, dayMap, byMonth, maxMonth, recent };
   }, [readings, lang]);
+
+  // ── Ferveur de l'oracle : précision des échos clos (oui = 1, partiel = 0.5) ──
+  const fervor = useMemo(() => {
+    const closed = echoes.filter((e: any) => e.verdict);
+    if (!closed.length) return null;
+    const score = closed.reduce((s: number, e: any) =>
+      s + (e.verdict === 'oui' ? 1 : e.verdict === 'partiel' ? 0.5 : 0), 0);
+    return { closed: closed.length, pct: Math.round((score / closed.length) * 100) };
+  }, [echoes]);
 
   if (!user) return null;
 
@@ -366,6 +381,38 @@ export default function StatsPage() {
             <MiniStat label={t('stats.bestStreak')} value={best + ' j'} />
           </div>
         </div>
+      </div>
+
+      {/* ── Ferveur de l'oracle : précision des échos vérifiés (étape 9) ── */}
+      <div className="mystic-panel p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="mystic-subtitle text-sm">🕐 {t('stats.fervor')}</h2>
+          {fervor && (
+            <span className="text-[10px] text-gray-500">
+              {t('stats.fervorClosed').replace('{n}', String(fervor.closed))}
+            </span>
+          )}
+        </div>
+        {fervor ? (
+          <div className="flex items-center gap-5">
+            <div className="flex flex-col items-center shrink-0">
+              <span className="text-4xl leading-none" style={{ filter: 'drop-shadow(0 0 12px rgba(218,165,32,0.55))' }}>🔮</span>
+              <span className="mystic-title text-3xl text-amber-300 mt-2" style={{ textShadow: '0 0 16px rgba(255,215,0,0.45)' }}>{fervor.pct}%</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="h-2 rounded-full bg-gray-800/60 overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{
+                  width: `${fervor.pct}%`,
+                  background: 'linear-gradient(90deg,#DAA520,#FFD700)',
+                  boxShadow: '0 0 10px rgba(255,215,0,0.5)',
+                }} />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">{t('stats.fervorHint')}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[12px] text-gray-400 italic">{t('stats.fervorNone')}</p>
+        )}
       </div>
 
       {/* ── Cartes de stats : 4 types + total ── */}

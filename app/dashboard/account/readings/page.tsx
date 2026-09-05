@@ -19,6 +19,8 @@ interface Reading {
   cards: any[];
   interpretation?: string | null;
   createdAt: string;
+  /** Écho scellé né de cette lecture (badge horloge). */
+  echo?: { id: string; dueAt: string; verdict: string | null } | null;
 }
 
 // --- Mapping type de tirage -> icône/style (réutilise les tuiles de la landing) ---
@@ -50,7 +52,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
   'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
   'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes — Précis' },
-  'runes-nornes2':       { group: 'rune',   label: 'Le Fil des Nornes — Simplifié' },
+  'runes-nornes2':       { group: 'rune',   label: 'Le fil des Nornes (simplifié)' },
   'runes-mjolnir':       { group: 'rune',   label: 'Le Marteau de Mjölnir' },
   'runes-yggdrasil':     { group: 'rune',   label: "Les Racines d'Yggdrasil" },
   'runes':               { group: 'rune',   label: 'Runes' },
@@ -65,6 +67,31 @@ function metaOf(r: Reading) {
   const sub = SUBTYPE_META[r.type] || { group: 'tarot' as const, label: TYPE_META.tarot.label };
   const gm = TYPE_META[sub.group];
   return { ...gm, group: sub.group, label: sub.label };
+}
+
+// --- Badge horloge : un écho scellé est né de cette lecture (étape 6) ---
+// Trois états : en attente (horloge dorée), à vérifier (horloge pulsante),
+// clos (sceau discret avec le verdict).
+function EchoClockBadge({ echo, t }: { echo: NonNullable<Reading['echo']>; t: (k: string) => string }) {
+  if (echo.verdict) {
+    return (
+      <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] align-middle"
+            style={{ background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.25)', color: '#b8963e' }}
+            title={`${t('echo.closed')}: ${t(`echo.verdict.${echo.verdict}`)}`}>
+        ✶ {t('echo.closed')}
+      </span>
+    );
+  }
+  const due = new Date(echo.dueAt).getTime() <= Date.now();
+  return (
+    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] align-middle ${due ? 'animate-pulse' : ''}`}
+          style={due
+            ? { background: 'rgba(218,165,32,0.18)', border: '1px solid rgba(218,165,32,0.55)', color: '#DAA520' }
+            : { background: 'rgba(0,95,106,0.15)', border: '1px solid rgba(0,95,106,0.4)', color: '#4db8c4' }}
+          title={due ? t('echo.dueBadge') : t('echo.pending')}>
+      🕐 {due ? t('echo.dueBadge') : t('echo.pending')}
+    </span>
+  );
 }
 
 // Souligne les occurrences du mot-clé recherché (insensible à la casse)
@@ -523,6 +550,7 @@ export default function ReadingsPage() {
                                     )}
                                     <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: m.bg, border: `1px solid ${m.border}` }}>{m.label}</span>
                                     {r.spread && <span className="text-xs text-gray-400 italic ml-2">— {r.spread}</span>}
+                                    {r.echo && <EchoClockBadge echo={r.echo} t={t} />}
                                   </span>
                                   <span className="text-gray-400 text-xs">{formatTime(r.createdAt)}</span>
                                 </div>

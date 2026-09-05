@@ -367,12 +367,70 @@ textarea,
   color: #cbd5e1;
   background: rgba(156, 163, 175, 0.08);
 }
-/* Pastille avatar — violet mystique à reflet "bonbon" (effet 3D) */
+/* Pastille avatar — boule de verre violette : étoiles or↔argent immobiles,
+   scintillantes en alternance ; reflet de verre par-dessus. */
 .avatar-mystic {
+  position: relative;
+  overflow: hidden;
   background:
     radial-gradient(circle at 30% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 34%, rgba(255,255,255,0) 52%),
     linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #5b21b6 100%);
-  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.45), inset 0 -4px 10px rgba(46, 16, 101, 0.45);
+  box-shadow:
+    0 6px 18px rgba(109, 40, 217, 0.45),
+    inset 0 -4px 10px rgba(46, 16, 101, 0.45),
+    inset 0 2px 8px rgba(255, 255, 255, 0.18),
+    inset 0 -14px 22px -12px rgba(228, 228, 231, 0.38); /* lueur argentée en fond de sphère */
+}
+/* Deux nappes immobiles : nappe A or, nappe B argent. Ce ne sont plus des
+   points mais de vraies étoiles à 5 branches : chaque nappe est un dégradé
+   plein (or / argent) découpé par un masque SVG (data-URI, pas de requête
+   réseau) dont les 7 étoiles sont en coordonnées polaires pseudo-aléatoires,
+   rayon 26–42 % → semis du cœur à la périphérie, fin liseré libre avant le
+   bord. Scintillement en alternance, périodes 3.2 s / 4.6 s non synchronisées. */
+.avatar-mystic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(160deg, #ffe9b8, #ffd782 45%, #e8b64c);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23fff'%3E<path transform='translate(39.2 83.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.6 47.2) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(13.9 43.3) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.4 29.8) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(77.2 49.6) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(60.2 77.5) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(89.0 65.2) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/>%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23fff'%3E<path transform='translate(39.2 83.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.6 47.2) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(13.9 43.3) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.4 29.8) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(77.2 49.6) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(60.2 77.5) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(89.0 65.2) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/>%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+  animation: starTwinkleA 3.2s ease-in-out infinite alternate;
+}
+.avatar-mystic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(160deg, #ffffff, #e2e8f0 45%, #b9c4d4);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23fff'%3E<path transform='translate(81.6 56.1) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(37.5 25.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(64.9 12.0) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.9 64.8) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(14.1 50.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(72.8 31.7) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(58.8 24.4) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/>%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23fff'%3E<path transform='translate(81.6 56.1) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(37.5 25.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(64.9 12.0) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(84.9 64.8) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(14.1 50.9) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(72.8 31.7) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/><path transform='translate(58.8 24.4) scale(2.7)' d='M0 -1 L0.2245 -0.309 L0.9511 -0.309 L0.3633 0.118 L0.5878 0.809 L0 0.382 L-0.5878 0.809 L-0.3633 0.118 L-0.9511 -0.309 L-0.2245 -0.309 Z'/>%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+  animation: starTwinkleB 4.6s ease-in-out infinite alternate;
+}
+@keyframes starTwinkleA {
+  from { opacity: 0.15; }
+  to   { opacity: 0.95; }
+}
+@keyframes starTwinkleB {
+  from { opacity: 0.9; }
+  to   { opacity: 0.12; }
+}
+/* Vitre posée PAR-DESSUS les étoiles : brillance du dôme, rebond de lumière
+   argenté en bas de sphère, petit point spéculaire et bord d'épaisseur du verre. */
+.avatar-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255,255,255,0.9) 0 1.5px, rgba(255,255,255,0.28) 4px, rgba(255,255,255,0) 8px),
+    radial-gradient(140% 62% at 50% -10%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.10) 46%, rgba(255,255,255,0) 64%),
+    radial-gradient(120% 55% at 50% 114%, rgba(228,228,231,0.34) 0%, rgba(228,228,231,0.08) 42%, rgba(228,228,231,0) 60%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.14) 84%, rgba(255,255,255,0.26) 93%, rgba(15,5,40,0.28) 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-mystic::before, .avatar-mystic::after { animation: none; opacity: 0.6; }
 }
 @media (prefers-reduced-motion: reduce) {
   .mystic-glow, .reveal-text, .shimmer, .card-shimmer::after, .mystic-glow * {
@@ -450,7 +508,6 @@ textarea,
   display: inline-block;
   animation: starSpin 4.5s ease-in-out infinite, starTwinkle 3.2s ease-in-out infinite;
 }
-
 /* ===== Animations de la pioche (tarot-app) — dans globals.css (évite l'erreur d'hydratation du <style> JSX) ===== */
 @keyframes sparkFly { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
 @keyframes rippleGold { from { transform: translate(-50%,-50%) scale(0.2); opacity: 0.9; } to { transform: translate(-50%,-50%) scale(2.6); opacity: 0; } }

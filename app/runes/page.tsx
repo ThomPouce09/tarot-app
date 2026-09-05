@@ -87,7 +87,7 @@ const TILES = [
   {
     href: '/runes/nornes2',
     glyph: 'ᚾ', // N – Norn (Urdhr, Verdandi, Skuld)
-    title: 'Le Fil des Nornes — Simplifié',
+    title: 'Le fil des Nornes (simplifié)',
     subtitle: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
     bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forest} 100%)`,
     border: `${RUNE_THEME.goldPale}55`,
@@ -123,8 +123,8 @@ const TILES = [
 const TUTORIALS: TutorialSlide[] = [
   {
     glyph: 'ᚾ',
-    title: 'Le Fil des Nornes — Simplifié',
-    titleEn: 'The Thread of the Norns — Simplified',
+    title: 'Le fil des Nornes (simplifié)',
+    titleEn: 'The Thread of the Norns (Simplified)',
     desc: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
     descEn: 'Blind draw: shake the pouch, pick 3 runes, let the thread unfold.',
     steps: [

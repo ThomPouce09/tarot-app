@@ -16,6 +16,7 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import { playSound } from '@/lib/sounds';
 import { useLang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import EchoBox from '@/components/echo-box';
 
 // Étincelles dorées de la révélation du Conseil d'Odin (positions/délais
 // déterministes — pas de random pendant le rendu).
@@ -130,15 +131,18 @@ export function RuneTitle({
   title,
   subtitle,
   compact,
+  blinkSubtitle,
 }: {
   title: string;
   subtitle?: string;
   compact?: boolean;
+  /** Si vrai, le sous-titre clignote doucement 3 fois puis disparaît. */
+  blinkSubtitle?: boolean;
 }) {
   return (
     <div className={`px-4 text-center ${compact ? 'pt-14 pb-1' : 'pt-16 pb-6'}`}>
       <h1
-        className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-wide"
+        className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-wide"
         style={{
           fontFamily: 'var(--font-cinzel-deco), serif',
           color: RUNE_THEME.goldPale,
@@ -148,19 +152,55 @@ export function RuneTitle({
       >
         {title}
       </h1>
-      {subtitle && (
-        <p
-          className="mx-auto mt-3 max-w-xl text-sm sm:text-base italic"
-          style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            color: RUNE_THEME.sage,
-            opacity: 0.9,
-          }}
-        >
-          {subtitle}
-        </p>
-      )}
+      {subtitle &&
+        (blinkSubtitle ? (
+          <BlinkingSubtitle text={subtitle} />
+        ) : (
+          <p
+            className="mx-auto mt-3 max-w-xl text-sm sm:text-base italic"
+            style={{
+              fontFamily: 'var(--font-cinzel), serif',
+              color: RUNE_THEME.sage,
+              opacity: 0.9,
+            }}
+          >
+            {subtitle}
+          </p>
+        ))}
     </div>
+  );
+}
+
+/* Sous-titre qui pulse doucement 3 fois puis se replie (hauteur → 0),
+   ce qui fait remonter le contenu en dessous sans espace vide. */
+function BlinkingSubtitle({ text }: { text: string }) {
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setGone(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <motion.p
+      animate={
+        gone
+          ? { opacity: 0, height: 0, marginTop: 0 }
+          : { opacity: [0.9, 0.12, 0.9, 0.12, 0.9, 0.12, 0.9] }
+      }
+      transition={
+        gone
+          ? { duration: 0.6, ease: 'easeInOut' }
+          : { duration: 5.4, times: [0, 0.14, 0.28, 0.47, 0.66, 0.85, 1], ease: 'easeInOut' }
+      }
+      style={{
+        overflow: 'hidden',
+        fontFamily: 'var(--font-cinzel), serif',
+        color: RUNE_THEME.sage,
+        fontStyle: 'italic',
+      }}
+      className="mx-auto mt-3 max-w-xl text-sm sm:text-base"
+    >
+      {text}
+    </motion.p>
   );
 }
 
@@ -556,6 +596,7 @@ export function RuneAnalysis({
   odinReveal = false,
   question = null,
   gateType = null,
+  echo = null,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -563,6 +604,9 @@ export function RuneAnalysis({
       passe 'runes-nornes2' : le mode IA reste 'nornes' mais la lecture à
       l'aveugle consomme le tirage de BASE « Simplifié », pas l'avancé. */
   gateType?: string | null;
+  /** Écho : id de la lecture sauvegardée + question → affiche l'encadré
+      « L'Écho scellé » sous l'analyse (Initié/Arkane). Omis/null = pas d'écho. */
+  echo?: { readingId: string | null; question?: string | null } | null;
   focus?: 'odin';
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
@@ -1267,6 +1311,16 @@ export function RuneAnalysis({
                 {conseil}
               </p>
             </div>
+          )}
+
+          {/* ✶ L'Écho scellé — prémonction datée née de cette lecture (Initié/Arkane). */}
+          {echo && (synthese || conseil) && (
+            <EchoBox
+              domain="runes"
+              readingId={echo.readingId}
+              question={echo.question ?? question}
+              summary={[...sections.map((s) => s.lecture), synthese, conseil].filter(Boolean).join('\n')}
+            />
           )}
         </div>
       )}

@@ -71,6 +71,8 @@ export interface LetterData {
   dominant: { key: string; label: string; count: number }[];
   moment: { type: string; label: string; date: string; question: string | null; comment: string } | null;
   daily: { numero: number; name: string | null; glyph: string | null; desc: string | null };
+  /** Échos : { dus: échus à vérifier, pending: encore scellés } (ligne conditionnelle, étape 11). */
+  echoes: { dus: number; pending: number };
 }
 
 export async function buildLetterData(email: string): Promise<LetterData | null> {
@@ -124,6 +126,12 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
 
   const daily = await hexOfDay();
 
+  // Échos : échus à vérifier / encore scellés (ligne conditionnelle de la lettre).
+  const [echoDus, echoPending] = await Promise.all([
+    prisma.echo.count({ where: { userId: user.id, verdict: null, dueAt: { lte: new Date() } } }),
+    prisma.echo.count({ where: { userId: user.id, verdict: null, dueAt: { gt: new Date() } } }),
+  ]);
+
   return {
     firstName: user.firstName || 'cher·ère consultante',
     email: user.email,
@@ -134,6 +142,7 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
     dominant,
     moment,
     daily,
+    echoes: { dus: echoDus, pending: echoPending },
   };
 }
 
@@ -198,6 +207,11 @@ export function renderLetter(d: LetterData): string {
     <div class="q">${d.moment.question ? `« ${d.moment.question} »` : d.moment.comment}</div>
     <div class="r">${d.moment.label} · ${d.moment.date}</div>
   </div></div>` : ''}
+
+  ${d.echoes.dus > 0 ? `<div class="card" style="border-color:rgba(255,215,0,.35);"><div class="card-title"><span class="ic">🕐</span>Vos échos sont parvenus à leur heure</div>
+    <p class="p-muted">${d.echoes.dus} prémonction(s) scellée(s) attendent votre verdict — ${d.echoes.pending > 0 ? `et ${d.echoes.pending} autre(s) mûrissent encore. ` : ''}Brissez le sceau et dites si l'oracle a vu juste.</p>
+    <p style="margin-top:10px;"><a href="https://tarot-app-one-sage.vercel.app/dashboard/account/readings" style="color:var(--gold);font-family:'Cinzel',Georgia,serif;font-size:13px;text-decoration:none;">✦ Vérifier mes échos ✦</a></p>
+  </div>` : d.echoes.pending > 0 ? `<p class="p-muted" style="text-align:center;margin-top:14px;font-style:italic;">🕐 ${d.echoes.pending} écho(s) scellé(s) mûrissent encore — l'heure de la vérification approche.</p>` : ''}
 
   <div class="card"><div class="card-title"><span class="ic">🎴</span>Votre tirage du jour</div><div class="daily">
     <div class="glyph">${d.daily.glyph || '☯'}</div>

@@ -62,6 +62,9 @@ function Nornes2Page() {
   const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
   const t = useT();
   const readingIdRef = useRef<string | null>(null);
+  // Ref miroir en state : l'encadré « Écho scellé » doit se re-rendre dès que
+  // la lecture est sauvegardée (une ref seule ne déclenche pas de rendu).
+  const [readingId, setReadingId] = useState<string | null>(null);
   // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
   // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
   // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
@@ -86,6 +89,7 @@ function Nornes2Page() {
     setIsRolling(false);
     savedRef.current = false;
     readingIdRef.current = null;
+    setReadingId(null);
     // Nouveau tirage → l'interprétation doit être (re)affichée avant que
     // l'action « Tisser une nouvelle voie » réapparaisse.
     setMainAnalysisDone(false);
@@ -124,7 +128,7 @@ function Nornes2Page() {
         savedRef.current = true;
         const id = await saveReading({
           type: 'runes-nornes2',
-          spread: 'Le Fil des Nornes — Simplifié',
+          spread: 'Le fil des Nornes (simplifié)',
           cards: p.slice(0, 3).map((d, i) => ({
             name: d.rune?.name,
             symbol: d.rune?.symbol,
@@ -134,7 +138,7 @@ function Nornes2Page() {
           interpretation: staticInterpretation(p, 3),
           question,
         });
-        if (id) readingIdRef.current = id;
+        if (id) { readingIdRef.current = id; setReadingId(id); }
         // NB : la question/thème reste en place — elle est transmise à
         // l'analyse IA (RuneAnalysis) et sera réinitialisée au prochain roll.
       }
@@ -253,6 +257,7 @@ function Nornes2Page() {
       <RuneTitle
         title={t('runes.nornes2.title')}
         subtitle={t('runes.nornes2.subtitle')}
+        blinkSubtitle
         compact
       />
 
@@ -293,7 +298,7 @@ function Nornes2Page() {
             est jouée PAR LE SCATTER LUI-MÊME : les runes sont déjà sorties et
             étalées, elles ne repassent pas par le pochon. */}
         {scatterActive && (
-          <RuneScatter height={430} enabled onComplete={handleScatterComplete} />
+          <RuneScatter height={480} enabled onComplete={handleScatterComplete} />
         )}
 
         {/* Lecture des 3 Nornes (GARDES identiques à /nornes validé) */}
@@ -342,6 +347,7 @@ function Nornes2Page() {
             ]}
             onAnalysis={onMainAnalysis}
             question={question}
+            echo={{ readingId, question }}
             autoRun
           />
         )}

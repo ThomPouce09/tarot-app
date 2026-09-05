@@ -28,7 +28,7 @@ export interface ScatterPick {
 const STONE_W = 46;
 const STONE_H = 66;
 const ALL = ELDER_FUTHARK; // 24 runes
-const BAG_BOTTOM = 14; // position du sac (px)
+const BAG_BOTTOM = 52; // position du sac (px) — marge sous les libelles
 const BAG_SIZE = 120;
 
 // Espacement minimal entre centres de runes (px) → jamais deux runes qui se
@@ -854,14 +854,14 @@ export function RuneScatter({
             </motion.div>
             {active && !showHint && (
               <span
-                className="pointer-events-none absolute inset-x-0 -bottom-6 text-center text-[11px]"
+                className="pointer-events-none absolute left-1/2 -bottom-6 w-[300px] max-w-[86vw] -translate-x-1/2 text-center text-[11px] leading-snug"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
                   color: RUNE_THEME.goldPale,
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                 }}
               >
-                Secouez le sac
+                Secouez le sac pour en sortir toutes les runes
               </span>
             )}
             {/* Tuto 1re fois : chip SOUS le sac, flèches ⇄ animées. */}
@@ -871,10 +871,10 @@ export function RuneScatter({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
-                  className="pointer-events-none absolute inset-x-0 -bottom-9 flex justify-center"
+                  className="pointer-events-none absolute left-1/2 -bottom-9 flex w-[320px] max-w-[88vw] -translate-x-1/2 justify-center"
                 >
                   <span
-                    className="whitespace-nowrap rounded-full px-3 py-1 text-[11px]"
+                    className="rounded-full px-3 py-1 text-center text-[11px] leading-snug"
                     style={{
                       fontFamily: 'var(--font-cinzel), serif',
                       color: RUNE_THEME.goldPale,
@@ -882,7 +882,7 @@ export function RuneScatter({
                       border: `1px solid ${RUNE_THEME.goldPale}55`,
                     }}
                   >
-                    Tapez ou secouez le sac{' '}
+                    Tapez ou secouez le sac jusqu’à le vider{' '}
                     <motion.span
                       className="inline-block"
                       animate={{ x: [-3, 3, -3] }}

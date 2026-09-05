@@ -23,6 +23,7 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import EchoBox from '@/components/echo-box';
 import { useT, useLang } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 
@@ -300,6 +301,17 @@ function DiceAnalysis({
               {md(deepAnalysis)}
             </div>
           </div>
+        )}
+
+        {/* ✶ L'Écho scellé — né de la Solution (étape finale de la lecture :
+            obstacle + solution sont fusionnés dans la même lecture). */}
+        {spread === 'Solution' && readingId && (deepAnalysis || dbInterpretation) && (
+          <EchoBox
+            domain="des"
+            readingId={readingId}
+            question={question}
+            summary={(deepAnalysis || dbInterpretation || '').slice(0, 1200)}
+          />
         )}
       </div>
     </div>
