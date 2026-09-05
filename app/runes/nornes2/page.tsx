@@ -124,7 +124,7 @@ function Nornes2Page() {
         savedRef.current = true;
         const id = await saveReading({
           type: 'runes-nornes2',
-          spread: 'Le Fil des Nornes — Simplifié',
+          spread: 'Le fil des Nornes (simplifié)',
           cards: p.slice(0, 3).map((d, i) => ({
             name: d.rune?.name,
             symbol: d.rune?.symbol,
@@ -253,6 +253,7 @@ function Nornes2Page() {
       <RuneTitle
         title={t('runes.nornes2.title')}
         subtitle={t('runes.nornes2.subtitle')}
+        blinkSubtitle
         compact
       />
 
@@ -293,7 +294,7 @@ function Nornes2Page() {
             est jouée PAR LE SCATTER LUI-MÊME : les runes sont déjà sorties et
             étalées, elles ne repassent pas par le pochon. */}
         {scatterActive && (
-          <RuneScatter height={430} enabled onComplete={handleScatterComplete} />
+          <RuneScatter height={480} enabled onComplete={handleScatterComplete} />
         )}
 
         {/* Lecture des 3 Nornes (GARDES identiques à /nornes validé) */}

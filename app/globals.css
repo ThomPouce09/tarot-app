@@ -412,7 +412,6 @@ html, body {
   display: inline-block;
   animation: starSpin 4.5s ease-in-out infinite, starTwinkle 3.2s ease-in-out infinite;
 }
-
 /* ===== Animations de la pioche (tarot-app) — dans globals.css (évite l'erreur d'hydratation du <style> JSX) ===== */
 @keyframes sparkFly { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
 @keyframes rippleGold { from { transform: translate(-50%,-50%) scale(0.2); opacity: 0.9; } to { transform: translate(-50%,-50%) scale(2.6); opacity: 0; } }

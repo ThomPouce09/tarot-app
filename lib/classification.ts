@@ -19,7 +19,7 @@ const BASE_TYPES: Record<Universe, string> = {
   tarot: 'tarot-3-cartes',
   yijing: 'yi-jing-du-jour',
   des: 'des-affinage',
-  runes: 'runes-nornes2', // « Le Fil des Nornes — Simplifié » (à l'aveugle)
+  runes: 'runes-nornes2', // « Le fil des Nornes (simplifié) » (à l'aveugle)
 };
 
 const UNIVERSE_TYPES: Record<Universe, string[]> = {

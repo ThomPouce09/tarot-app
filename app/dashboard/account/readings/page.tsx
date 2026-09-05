@@ -49,7 +49,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
   'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
   'runes-nornes':        { group: 'rune',   label: 'Le Fil des Nornes — Précis' },
-  'runes-nornes2':       { group: 'rune',   label: 'Le Fil des Nornes — Simplifié' },
+  'runes-nornes2':       { group: 'rune',   label: 'Le fil des Nornes (simplifié)' },
   'runes-mjolnir':       { group: 'rune',   label: 'Le Marteau de Mjölnir' },
   'runes-yggdrasil':     { group: 'rune',   label: "Les Racines d'Yggdrasil" },
   'runes':               { group: 'rune',   label: 'Runes' },
