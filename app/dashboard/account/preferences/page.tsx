@@ -149,8 +149,10 @@ export default function PreferencesPage() {
   const requestReminderPermission = () => {
     // Déclenche la demande de permission + enregistrement du token FCM côté Capacitor.
     if (typeof window !== 'undefined' && (window as any).__requestPushPermission) {
-      (window as any).__requestPushPermission().catch(() => setReminderBlocked(true));
       setReminderBlocked(false);
+      (window as any).__requestPushPermission()
+        .then((ok: boolean) => { if (!ok) setReminderBlocked(true); })
+        .catch(() => setReminderBlocked(true));
     }
   };
 
