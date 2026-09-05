@@ -62,6 +62,7 @@ export default function AccountNav({ user }: { user: any }) {
             <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${tourStep === 2 ? 'animate-ping' : 'hidden'}`} />
             <Link href="/dashboard/account" aria-label={t('nav.monespace')} className={`relative w-11 h-11 rounded-full avatar-mystic flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${tourStep === 2 ? 'ring-2 ring-violet-300' : ''}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
               {initial}
+              <span className="avatar-glass" aria-hidden />
             </Link>
             {tourStep === 2 && (
               <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-60 rounded-xl border border-violet-500/60 bg-violet-950/95 px-4 py-3 text-violet-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
@@ -121,6 +122,7 @@ export default function AccountNav({ user }: { user: any }) {
             <span className={`absolute inset-0 rounded-full bg-violet-400/70 ${tourStep === 2 ? 'animate-ping' : 'hidden'}`} />
             <Link href="/dashboard/account" aria-label={t('nav.monespace')} className={`relative w-9 h-9 rounded-full avatar-mystic flex items-center justify-center text-white text-sm font-bold hover:ring-2 hover:ring-violet-300/60 transition-all ${tourStep === 2 ? 'ring-2 ring-violet-300' : ''}`}>
               {initial}
+              <span className="avatar-glass" aria-hidden />
             </Link>
             {tourStep === 2 && (
               <div className="absolute top-full mt-2 right-0 z-50 w-52 rounded-xl border border-violet-500/60 bg-violet-950/95 px-4 py-3 text-violet-100 shadow-2xl" style={{ fontFamily: 'var(--font-cinzel), serif' }}>

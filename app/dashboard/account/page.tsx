@@ -106,6 +106,7 @@ export default function AccountPage() {
       <div className="mystic-panel p-5 sm:p-7 flex items-center gap-5">
         <div className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
           {initial}
+          <span className="avatar-glass" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="mystic-title text-2xl sm:text-3xl leading-tight truncate">
