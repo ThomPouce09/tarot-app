@@ -80,3 +80,6 @@ google-services.json
 
 # Liste auto-générée des fonds (regénérée au build/dev)
 lib/generated/
+
+# Keystore debug restauré depuis le secret CI (jamais commité)
+android/app/debug.keystore

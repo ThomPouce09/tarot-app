@@ -38,17 +38,17 @@ jobs:
         # SANS ceci, AGP auto-génère un keystore debug DIFFERENT sur chaque
         # runner → signature différente à chaque build → Android refuse la
         # mise à jour par-dessus l'app installée (obligation de désinstaller).
-        # Le secret DEBUG_KEYSTORE_B64 (PKCS12, alias androiddebugkey, mots de
-        # passe « android ») est restauré à l'emplacement standard ~/.android/
-        # debug.keystore → signingConfigs.debug le pickera → tous les builds
-        # partagent la même clé → vraies mises à jour in-place.
+        # Piège rencontré : placer le PKCS12 dans ~/.android/debug.keystore NE
+        # marche PAS — AGP attend du JKS là, invalide le fichier et régénère une
+        # clé en silence. D'où le chemin explicite android/app/debug.keystore,
+        # référencé par signingConfigs.stable dans app/build.gradle.
         run: |
           if [ -n "${{ secrets.DEBUG_KEYSTORE_B64 }}" ]; then
-            mkdir -p ~/.android
-            echo "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > ~/.android/debug.keystore
+            echo "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > android/app/debug.keystore
             echo "debug.keystore restauré ✓ (signature stable)"
           else
-            echo "::warning::DEBUG_KEYSTORE_B64 absent — signature aléatoire, les mises à jour in-place échoueront"
+            echo "::error::DEBUG_KEYSTORE_B64 absent — le build Gradle échouera (pas de repli sur une clé aléatoire)"
+            exit 1
           fi
 
       - name: Inject google-services.json (Firebase)
@@ -77,6 +77,22 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
+
+      - name: Vérifier la signature (clé stable)
+        # Échoue le build si l'APK n'est PAS signé avec la clé attendue —
+        # empêche la diffusion d'un APK qui casserait les mises à jour in-place.
+        # SHA-256 du cert : e9e2aace… (SHA-1) / 0fe6c97c… (SHA-256), debug.keystore stable.
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK" > /tmp/sig.txt
+          if grep -qi "0fe6c97cdf1709ce7350a915298974a1c90b9c497b3809a8e8c63ae7a2210f03" /tmp/sig.txt; then
+            echo "signature stable vérifiée ✓"
+          else
+            echo "::error::Signature ≠ clé stable attendue — voir ci-dessous"
+            cat /tmp/sig.txt
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
