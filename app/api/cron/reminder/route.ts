@@ -49,6 +49,37 @@ export async function GET(request: NextRequest) {
   let sent = 0, failed = 0;
   const results: Record<string, 'sent' | 'fail'> = {};
 
+  // ── Échos échus (étape 7) : prémonctions arrivées à échéance, jamais notifiées.
+  // Une notif FCM par écho → l'utilisateur brise le sceau et rend son verdict.
+  const dueEchoes = await prisma.echo.findMany({
+    where: { verdict: null, notified: false, dueAt: { lte: now } },
+    select: { id: true, domain: true, dueAt: true, notified: true,
+              user: { select: { email: true, firstName: true, fcmToken: true } } },
+  });
+  let echoSent = 0;
+  for (const e of dueEchoes) {
+    const token = e.user?.fcmToken;
+    // On marque notifié même sans token : pas de relance infinie chaque jour.
+    await prisma.echo.update({ where: { id: e.id }, data: { notified: true } });
+    if (!token || !messaging) continue;
+    try {
+      await messaging.send({
+        token,
+        notification: {
+          title: '🕐 Votre écho a atteint son heure',
+          body: `${e.user.firstName || 'Cher·ère consultante'}, l'oracle a scellé une prémonction pour vous — venez briser le sceau et dire si elle s'est accomplie.`,
+        },
+        data: { url: '/dashboard/account/echoes' },
+        android: { priority: 'high' as const },
+      });
+      echoSent++;
+    } catch (err: any) {
+      if (err?.code === 'messaging/registration-token-not-registered') {
+        await prisma.user.update({ where: { email: e.user.email }, data: { fcmToken: null } });
+      }
+    }
+  }
+
   for (const u of users) {
     const message = {
       token: u.fcmToken!,
@@ -74,5 +105,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ hour: now.getHours(), sent, failed, results });
+  return NextResponse.json({ hour: now.getHours(), sent, failed, echoDue: dueEchoes.length, echoSent, results });
 }

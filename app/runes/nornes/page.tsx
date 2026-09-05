@@ -48,6 +48,9 @@ function NornesPage() {
   const [intro, setIntro] = useState<'demo' | 'ready'>('demo');
   const t = useT();
   const readingIdRef = useRef<string | null>(null);
+  // Ref miroir en state : l'encadré « Écho scellé » doit se re-rendre dès que
+  // la lecture est sauvegardée (une ref seule ne déclenche pas de rendu).
+  const [readingId, setReadingId] = useState<string | null>(null);
   // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
   // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
   // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
@@ -71,6 +74,7 @@ function NornesPage() {
     setIsRolling(true);
     savedRef.current = false;
     readingIdRef.current = null;
+    setReadingId(null);
     // Nouveau tirage → l'interprétation doit être (re)affichée avant que
     // l'action « Tisser une nouvelle voie » réapparaisse.
     setMainAnalysisDone(false);
@@ -115,7 +119,7 @@ function NornesPage() {
         interpretation: staticInterpretation(r, 3),
         question,
       });
-      if (id) readingIdRef.current = id;
+      if (id) { readingIdRef.current = id; setReadingId(id); }
       // Réinitialiser la question pour le prochain tirage
       setQuestion(null);
     }
@@ -318,6 +322,7 @@ function NornesPage() {
               { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
             ]}
             onAnalysis={onMainAnalysis}
+            echo={{ readingId }}
             autoRun
           />
         )}

@@ -16,6 +16,7 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import { playSound } from '@/lib/sounds';
 import { useLang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import EchoBox from '@/components/echo-box';
 
 // Étincelles dorées de la révélation du Conseil d'Odin (positions/délais
 // déterministes — pas de random pendant le rendu).
@@ -595,6 +596,7 @@ export function RuneAnalysis({
   odinReveal = false,
   question = null,
   gateType = null,
+  echo = null,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -602,6 +604,9 @@ export function RuneAnalysis({
       passe 'runes-nornes2' : le mode IA reste 'nornes' mais la lecture à
       l'aveugle consomme le tirage de BASE « Simplifié », pas l'avancé. */
   gateType?: string | null;
+  /** Écho : id de la lecture sauvegardée + question → affiche l'encadré
+      « L'Écho scellé » sous l'analyse (Initié/Arkane). Omis/null = pas d'écho. */
+  echo?: { readingId: string | null; question?: string | null } | null;
   focus?: 'odin';
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
@@ -1306,6 +1311,16 @@ export function RuneAnalysis({
                 {conseil}
               </p>
             </div>
+          )}
+
+          {/* ✶ L'Écho scellé — prémonction datée née de cette lecture (Initié/Arkane). */}
+          {echo && (synthese || conseil) && (
+            <EchoBox
+              domain="runes"
+              readingId={echo.readingId}
+              question={echo.question ?? question}
+              summary={[...sections.map((s) => s.lecture), synthese, conseil].filter(Boolean).join('\n')}
+            />
           )}
         </div>
       )}

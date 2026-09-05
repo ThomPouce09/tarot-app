@@ -25,6 +25,7 @@ model User {
   comment           String?
   gender            String?
   readings          Reading[]
+  echoes            Echo[]
   subscription      Subscription?
   usage             Usage?
   purchases         Purchase[]
@@ -109,8 +110,31 @@ model Reading {
   question       String?
   spread         String?
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  echo           Echo?
 
   @@index([userId, createdAt])
+}
+
+// ─── Échos : prophéties datées nées d'une lecture ───────────
+// L'IA scelle une phrase sur l'avenir (4 univers : tarot, Yi Jing, runes, dés),
+// vérifiable à une échéance (14-45 j). Verdict utilisateur : oui | partiel | non.
+model Echo {
+  id        String    @id @default(cuid())
+  userId    String
+  readingId String?   @unique
+  textFr    String    // l'écho scellé (FR)
+  textEn    String?   // l'écho scellé (EN, parallèle)
+  domain    String    // 'tarot' | 'yi-jing' | 'runes' | 'des'
+  dueAt     DateTime  // échéance de vérification
+  verdict   String?   // 'oui' | 'partiel' | 'non' — null = encore scellé/non clos
+  verdictAt DateTime?
+  notified  Boolean   @default(false) // push d'échéance envoyé (cron)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reading   Reading?  @relation(fields: [readingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueAt])
+  @@index([dueAt, notified])
 }
 
 // ─── Créatures / Lucioles (petits personnages errants) ─────

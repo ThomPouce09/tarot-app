@@ -34,11 +34,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ readings: [] });
     }
 
-    // Get user's readings
+    // Get user's readings (avec l'écho scellé éventuel → badge horloge)
     try {
       const userReadings = await prisma.reading.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
+        include: { echo: { select: { id: true, dueAt: true, verdict: true } } },
       });
 
       // Format response safely
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
         cards: Array.isArray(r.cards) ? r.cards : (typeof r.cards === 'string' ? JSON.parse(r.cards || '[]') : []),
         interpretation: typeof r.interpretation === 'string' ? r.interpretation : (r.interpretation ? JSON.stringify(r.interpretation) : null),
         createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
+        echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict } : null,
       }));
 
       return NextResponse.json({ readings });

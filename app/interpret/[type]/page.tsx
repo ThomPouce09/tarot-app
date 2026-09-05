@@ -10,6 +10,7 @@ import { getHexagramTrigrams } from '@/lib/yijing-data';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
+import EchoBox from '@/components/echo-box';
 
 interface Interpretation {
   situation?: string;
@@ -371,6 +372,14 @@ function InterpretationInner() {
                 </p>
               </div>
             )}
+
+            {/* ✶ L'Écho scellé — prémonction datée (Initié / Arkane) */}
+            <EchoBox
+              domain={isTarot ? 'tarot' : 'yi-jing'}
+              readingId={typeof interpretation.readingId === 'string' ? interpretation.readingId : null}
+              question={searchParams.get('question')}
+              summary={String(interpretation.resume || interpretation.conseil || interpretation.avenir || interpretation.issue || '')}
+            />
           </>
         </div>
       </div>

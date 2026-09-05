@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import { useEntitlement } from '@/lib/use-entitlement';
 
 const LINKS = [
   { href: '/dashboard/account/security', img: '/images/nav-security.png', key: 'nav.security' },
   { href: '/dashboard/account/abonnement', img: '/images/nav-abonnement.png', key: 'nav.abonnement' },
   { href: '/dashboard/account/stats', img: '/images/nav-stats.png', key: 'nav.stats' },
+  { href: '/dashboard/account/echoes', img: '/images/nav-historique.png', key: 'nav.grimoire', arkaneOnly: true },
   { href: '/dashboard/account/readings', img: '/images/nav-historique.png', key: 'nav.historique' },
   { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
 ];
@@ -17,6 +19,9 @@ export default function AccountNav({ user }: { user: any }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useT();
+  // Le Grimoire des Échos est la prérogative des Arkanes (étape 10).
+  const { sub } = useEntitlement();
+  const links = LINKS.filter((l) => !l.arkaneOnly || sub?.level === 'arkane');
   const initial = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '') || user?.email?.[0] || '?').toUpperCase();
 
   // Visite guidée (une fois après une nouvelle connexion) : bulles à bouton « OK »,
@@ -80,7 +85,7 @@ export default function AccountNav({ user }: { user: any }) {
         </div>
 
         <nav className="space-y-1 flex-1">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -138,7 +143,7 @@ export default function AccountNav({ user }: { user: any }) {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex justify-around items-center px-1 py-1.5 bg-gray-950/95 backdrop-blur border-t border-amber-800/20" style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}>
-        {LINKS.map((l) => (
+        {links.map((l) => (
           <Link
             key={l.href}
             href={l.href}

@@ -298,11 +298,12 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
   }
 
   // Sauvegarde DB
+  let savedReadingId: string | null = null;
   if (userId) {
     try {
       const user = await prisma.user.findUnique({ where: { email: userId } });
       if (user) {
-        await prisma.reading.create({
+        const created = await prisma.reading.create({
           data: {
             userId: user.id,
             type: type,
@@ -311,11 +312,12 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
             interpretation: JSON.stringify(parsed)
           }
         });
+        savedReadingId = created.id;
       }
     } catch (dbError) {
       console.error('[interpret] Database save error:', dbError);
     }
   }
 
-  return NextResponse.json(parsed);
+  return NextResponse.json({ ...parsed, readingId: savedReadingId });
 }
