@@ -68,27 +68,91 @@ function metaOf(r: Reading) {
   return { ...gm, group: sub.group, label: sub.label };
 }
 
-// --- Badge horloge : un écho scellé est né de cette lecture (étape 6) ---
-// Trois états : en attente (horloge dorée), à vérifier (horloge pulsante),
-// clos (sceau discret avec le verdict).
-function EchoClockBadge({ echo, t }: { echo: NonNullable<Reading['echo']>; t: (k: string) => string }) {
+// --- Icônes SVG inline (charte unifiée, remplace les emojis) ---
+function Svg({ children, size = 15, className = '', style }: { children: React.ReactNode; size?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} style={style} aria-hidden>
+      {children}
+    </svg>
+  );
+}
+const ChevronIcon = (p: { size?: number; className?: string; style?: React.CSSProperties }) => (
+  <Svg {...p}><polyline points="9 6 15 12 9 18" /></Svg>
+);
+const TrashIcon = (p: { size?: number; className?: string; style?: React.CSSProperties }) => (
+  <Svg {...p}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></Svg>
+);
+const ShareIcon = (p: { size?: number; className?: string; style?: React.CSSProperties }) => (
+  <Svg {...p}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></Svg>
+);
+const ClockIcon = (p: { size?: number; className?: string; style?: React.CSSProperties }) => (
+  <Svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></Svg>
+);
+
+// --- Point écho : un sceau est né de cette lecture (compact, sans texte) ---
+// Trois états : en attente (horloge teal), à vérifier (horloge dorée pulsante), clos (✶).
+function EchoDot({ echo, t }: { echo: NonNullable<Reading['echo']>; t: (k: string) => string }) {
   if (echo.verdict) {
     return (
-      <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] align-middle"
-            style={{ background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.25)', color: '#b8963e' }}
-            title={`${t('echo.closed')}: ${t(`echo.verdict.${echo.verdict}`)}`}>
-        ✶ {t('echo.closed')}
-      </span>
+      <span className="shrink-0 text-[11px] leading-none" style={{ color: '#b8963e', opacity: 0.85 }}
+            title={`${t('echo.closed')}: ${t(`echo.verdict.${echo.verdict}`)}`}>✶</span>
     );
   }
   const due = new Date(echo.dueAt).getTime() <= Date.now();
   return (
-    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] align-middle ${due ? 'animate-pulse' : ''}`}
-          style={due
-            ? { background: 'rgba(218,165,32,0.18)', border: '1px solid rgba(218,165,32,0.55)', color: '#DAA520' }
-            : { background: 'rgba(0,95,106,0.15)', border: '1px solid rgba(0,95,106,0.4)', color: '#4db8c4' }}
-          title={due ? t('echo.dueBadge') : t('echo.pending')}>
-      🕐 {due ? t('echo.dueBadge') : t('echo.pending')}
+    <span className={`shrink-0 ${due ? 'animate-pulse' : ''}`} title={due ? t('echo.dueBadge') : t('echo.pending')}>
+      <ClockIcon size={13} style={{ color: due ? '#DAA520' : '#4db8c4' }} />
+    </span>
+  );
+}
+
+// --- Aperçu visuel du tirage (mini-vignettes repliées sur elles-mêmes) ---
+// Tarot : art réel des lames (/cards/arcana/{id}.jpg). Runes : glyphes ᚠ.
+// Dés : symboles ☿/♄. Yi Jing : hexagramme. Max 5, renversées pivotées.
+function ReadingThumb({ group, card, idx }: { group: string; card: any; idx: number }) {
+  const base = 'shrink-0 rounded-md flex items-center justify-center leading-none';
+  const st: React.CSSProperties = { width: 30, height: 42, fontSize: 15 };
+  if (group === 'tarot') {
+    const id = typeof card === 'number' ? card : (card?.id ?? card?.name?.id);
+    const rev = typeof card === 'object' && card?.reversed;
+    return (
+      <span key={idx} className={base} style={{ ...st, overflow: 'hidden', border: '1px solid rgba(218,165,32,0.35)', transform: rev ? 'rotate(180deg)' : undefined, background: '#1a0a2e' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`/cards/arcana/${Number(id) || 0}.jpg`} alt="" className="w-full h-full object-cover" loading="lazy" />
+      </span>
+    );
+  }
+  if (group === 'rune') {
+    const rev = card?.reversed;
+    return (
+      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(138,109,59,0.45)', background: 'rgba(138,109,59,0.14)', color: '#e9d9ac', transform: rev ? 'rotate(180deg)' : undefined }}>
+        {card?.symbol || 'ᛟ'}
+      </span>
+    );
+  }
+  if (group === 'des') {
+    return (
+      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(46,134,193,0.4)', background: 'rgba(46,134,193,0.12)', color: '#7FB3D5', fontSize: 16 }}>
+        {card?.value || '⚄'}
+      </span>
+    );
+  }
+  // yijing : hexagramme (symbole Unicode ou nom)
+  return (
+    <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(180,140,220,0.4)', background: 'rgba(180,140,220,0.12)', color: '#E0CFF0', fontSize: 18 }}>
+      {card?.symbol || '䷊'}
+    </span>
+  );
+}
+function ReadingThumbs({ r }: { r: Reading }) {
+  const group = metaOf(r).group;
+  const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+  const shown = cards.slice(0, 5);
+  if (shown.length === 0) return null;
+  return (
+    <span className="flex items-center gap-1 shrink-0 -mr-1">
+      {shown.map((c, i) => <ReadingThumb key={i} group={group} card={c} idx={i} />)}
     </span>
   );
 }
@@ -231,13 +295,25 @@ export default function ReadingsPage() {
   const generateShareText = useCallback((r: Reading): string => {
     const m = metaOf(r);
     const lines: string[] = [];
-    const app = '✨ Tarot Divinatoire';
+    const app = "L'Oracle des étoiles";
+
+    // Interprétation JSON (null si texte brut)
+    let interp: any = null;
+    if (r.interpretation) {
+      try { interp = JSON.parse(r.interpretation); } catch { interp = null; }
+    }
+    // Rendu lisible d'une valeur d'interprétation (objet → "clé : valeur")
+    const flat = (v: any): string => {
+      if (typeof v === 'string') return v.trim();
+      if (v && typeof v === 'object') return Object.entries(v).map(([k, x]) => `${k} : ${flat(x)}`).join('\n');
+      return v == null ? '' : String(v);
+    };
 
     // En-tête
     lines.push(`📜 ${m.label}`);
     lines.push('');
 
-    // Heure
+    // Date
     const dateStr = new Date(r.createdAt).toLocaleString('fr-FR', {
       day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
@@ -251,116 +327,148 @@ export default function ReadingsPage() {
       lines.push('');
     }
 
-    // Cartes / dés selon le type
     const cards: any[] = Array.isArray(r.cards) ? r.cards : [];
+    // Nom de carte tarot : objet {name}, objet {name:{name}}, ou ID numérique brut.
+    const cardName = (c: any, i: number) =>
+      (typeof c === 'number' ? TAROT_CARDS.find((k) => k.id === c)?.name
+        : (typeof c?.name === 'string' ? c.name : c?.name?.name)
+        ?? (typeof c?.id === 'number' ? TAROT_CARDS.find((k) => k.id === c.id)?.name : undefined))
+      || `Carte ${i + 1}`;
 
-    if (m.group === 'tarot' && cards.length > 0) {
-      const isTarot3 = cards.length === 3;
-      const pos = isTarot3
+    if (m.group === 'tarot') {
+      const pos = cards.length === 3
         ? ['Passé', 'Présent', 'Futur']
         : ['Situation', 'Défis', 'Soutien', 'Issue', 'Conseil'];
+      const keys = cards.length === 3
+        ? ['passe', 'present', 'avenir']
+        : ['situation', 'defis', 'soutien', 'issue', 'conseil'];
       cards.forEach((c, i) => {
-        const name = c.name?.name || c.name || `Carte ${i + 1}`;
-        const rev = c.reversed ? ' (renversée)' : '';
-        const p = pos[i] || '';
-        lines.push(`${p} : ${name}${rev}`);
-        // interprétation si disponible
-        if (r.interpretation) {
-          try {
-            const parsed = JSON.parse(r.interpretation);
-            // Nouveau format IA : passe/present/avenir ; ancien : carte1/2/3
-            const keys = isTarot3 ? ['passe', 'present', 'avenir'] : ['situation', 'defis', 'soutien', 'issue', 'conseil'];
-            const fallbackKeys = isTarot3 ? ['carte1', 'carte2', 'carte3'] : keys;
-            const k = keys[i] && parsed?.[keys[i]] ? keys[i] : fallbackKeys[i];
-            if (parsed?.[k]) lines.push(`   → ${parsed[k].slice(0, 200)}`);
-          } catch {}
+        lines.push(`${pos[i] || `Carte ${i + 1}`} : ${cardName(c, i)}${c.reversed ? ' (renversée)' : ''}`);
+        const txt = interp?.[keys[i]] || interp?.[`carte${i + 1}`];
+        if (txt) lines.push(`→ ${flat(txt)}`);
+        lines.push('');
+      });
+      if (interp?.resume) { lines.push(`🌟 Résumé : ${flat(interp.resume)}`); lines.push(''); }
+    } else if (m.group === 'rune') {
+      // Sections IA appariées par position (formats nornes2 et nornes versionné)
+      const sections: any[] = interp?.sections || interp?.fil?.sections || [];
+      const norm = (s: any) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+      cards.forEach((c, i) => {
+        lines.push(`${c.symbol || 'ᚱ'} ${c.position || `Rune ${i + 1}`}${c.reversed ? ' (renversée)' : ''} — ${c.name || ''}`);
+        const sec = sections.find((s) => norm(s.position) === norm(c.position));
+        if (sec?.lecture) lines.push(`→ ${flat(sec.lecture)}`);
+        lines.push('');
+      });
+      // Blocs synthèse / conseil (fil + tissage pour le format versionné)
+      const blocks = interp?.version ? [interp.fil, interp.tissage] : [interp];
+      blocks.forEach((b) => {
+        if (!b) return;
+        if (b.synthese) { lines.push(`📜 ${flat(b.synthese)}`); lines.push(''); }
+        if (b.conseil_action) { lines.push(`⚡ ${flat(b.conseil_action)}`); lines.push(''); }
+      });
+    } else if (m.group === 'yijing') {
+      // Clés de structure (situation…conseil ou meditation/conseil/attitude) + résumé
+      const LABELS: Record<string, string> = {
+        situation: 'Situation', defis: 'Défis', soutien: 'Soutien', issue: 'Issue',
+        conseil: 'Conseil', resume: 'Résumé', meditation: 'Méditation', attitude: 'Attitude',
+      };
+      const seen = new Set<string>();
+      Object.entries(interp || {}).forEach(([k, v]) => {
+        if (typeof v === 'string' && v.trim()) {
+          lines.push(`${LABELS[k] || k} : ${v.trim()}`);
+          lines.push('');
+          seen.add(k);
         }
       });
-    } else if (m.group === 'yijing' && cards.length > 0) {
-      lines.push(`Hexagramme : ${cards[0]?.name || ''}`);
-    } else if (m.group === 'rune') {
-      cards.forEach((c, i) => {
-        const rev = c.reversed ? ' (renversée)' : '';
-        lines.push(`${c.symbol || 'ᚱ'} ${c.position || `Rune ${i + 1}`}${rev} — ${c.name || ''}`);
-      });
-      // Interprétation structurée
-      if (r.interpretation) {
-        try {
-          const parsed = JSON.parse(r.interpretation);
-          // Format nornes complet (versionné) : la synthèse vit sous `fil`.
-          const syn = parsed?.synthese || parsed?.fil?.synthese || parsed?.tissage?.synthese;
-          if (syn) lines.push(`\n📜 ${String(syn).slice(0, 300)}`);
-        } catch {}
+      if (seen.size === 0 && r.interpretation) {
+        lines.push(r.interpretation.replace(/<[^>]*>/g, '').trim());
+        lines.push('');
       }
     } else if (m.group === 'des') {
-      // Format structuré (choix, obstacle-solution)
-      if (r.interpretation) {
-        try {
-          const parsed = JSON.parse(r.interpretation);
-          if (parsed?.version === 'des-choix' || parsed?.version === 'des-obstacle-solution') {
-            const isObs = parsed.version === 'des-obstacle-solution';
-            const labelA = isObs ? '═══ Obstacle ═══' : '═══ Choix 1 ═══';
-            const labelB = isObs ? '═══ Solution ═══' : '═══ Choix 2 ═══';
-            if (parsed.facesA) {
-              lines.push(labelA);
-              const pn = PLANET_NAMES[parsed.facesA.planet as string] || parsed.facesA.planet;
-              const sn = SIGN_NAMES[parsed.facesA.sign as string] || parsed.facesA.sign;
-              lines.push(`${parsed.facesA.planet} ${pn} · ${parsed.facesA.sign} ${sn} · Maison ${parsed.facesA.house}`);
-              if (parsed.shortA) lines.push(`→ ${parsed.shortA.slice(0, 300)}`);
-              if (parsed.deepA) lines.push(`🔮 Analyse: ${parsed.deepA.replace(/^##.*$/gm,'').slice(0, 200)}...`);
-            }
-            if (parsed.facesB) {
-              lines.push('');
-              lines.push(labelB);
-              const pn = PLANET_NAMES[parsed.facesB.planet as string] || parsed.facesB.planet;
-              const sn = SIGN_NAMES[parsed.facesB.sign as string] || parsed.facesB.sign;
-              lines.push(`${parsed.facesB.planet} ${pn} · ${parsed.facesB.sign} ${sn} · Maison ${parsed.facesB.house}`);
-              if (parsed.shortB) lines.push(`→ ${parsed.shortB.slice(0, 300)}`);
-              if (parsed.deepB) lines.push(`🔮 Analyse: ${parsed.deepB.replace(/^##.*$/gm,'').slice(0, 200)}...`);
-            }
-          } else {
-            // Format simple
-            Object.entries(parsed).forEach(([k, v]) => {
-              if (typeof v === 'string' && k !== 'found' && k !== 'static') {
-                lines.push(`${k}: ${v.slice(0, 200)}`);
-              }
-            });
-          }
-        } catch {
-          // Fallback : texte brut
-          const t = r.interpretation || '';
-          lines.push(t.slice(0, 500));
+      if (interp?.facesA || interp?.facesB) {
+        // Format choix / obstacle-solution
+        const isObs = interp.version === 'des-obstacle-solution';
+        (['A', 'B'] as const).forEach((sfx, i) => {
+          const f = interp[`faces${sfx}`];
+          if (!f) return;
+          lines.push(`═══ ${isObs ? (i === 0 ? 'Obstacle' : 'Solution') : `Choix ${i + 1}`} ═══`);
+          const pn = PLANET_NAMES[f.planet as string] || f.planet;
+          const sn = SIGN_NAMES[f.sign as string] || f.sign;
+          lines.push(`${f.planet} ${pn} · ${f.sign} ${sn} · Maison ${f.house}`);
+          if (interp[`short${sfx}`]) lines.push(`→ ${flat(interp[`short${sfx}`])}`);
+          if (interp[`deep${sfx}`]) lines.push(flat(interp[`deep${sfx}`]).replace(/^##.*$/gm, '').trim());
+          lines.push('');
+        });
+      } else if (interp?.cards || interp?.oracleFlash) {
+        // Format affinement : dés lancés + lecture
+        if (Array.isArray(interp.cards) && interp.cards.length) {
+          lines.push(`🎲 ${interp.cards.map((d: any) => d.label || d.value).join(' · ')}`);
+          lines.push('');
         }
+        ['static', 'dbInterpretation', 'oracleFlash', 'analysisGlobal'].forEach((k) => {
+          const t = flat(interp[k]);
+          if (t) { lines.push(t); lines.push(''); }
+        });
+      } else if (r.interpretation) {
+        lines.push(r.interpretation.replace(/<[^>]*>/g, '').trim());
+        lines.push('');
       }
     }
 
-    // Fallback pour l'interprétation si rien n'a été extrait
-    if (lines.length <= 5 && r.interpretation) {
-      const t = r.interpretation.replace(/<[^>]*>/g, '').slice(0, 300);
-      if (t) lines.push(t);
+    // Echo
+    if (r.echo) {
+      lines.push(`🕯️ Écho — ${new Date(r.echo.dueAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} :`);
+      lines.push(r.echo.verdict ? r.echo.verdict.trim() : 'Scellé, en attente de s’ouvrir.');
+      lines.push('');
     }
 
     // Footer
-    lines.push('');
     lines.push(`🔮 ${app}`);
 
     return lines.join('\n');
   }, []);
 
+  // Copie dans le presse-papiers avec fallback legacy (contexte non sécurisé / clipboard refusé)
+  const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch { /* essayer le fallback */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch { return false; }
+  }, []);
+
   const doShare = useCallback(async (r: Reading) => {
     const text = generateShareText(r);
-    if (navigator.share) {
+    // Partage natif (mobile) : s'il échoue (desktop sans cible, permission refusée),
+    // on retombe sur la copie presse-papiers au lieu de ne rien faire.
+    if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
       try {
-        await navigator.share({ title: 'Tarot Divinatoire', text });
-      } catch { /* user cancelled */ }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        setShareCopied(r.id);
-        setTimeout(() => setShareCopied(null), 2000);
-      } catch { /* clipboard denied */ }
+        await navigator.share({ title: "L'Oracle des étoiles", text });
+        return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return; // l'utilisateur a annulé volontairement
+        // sinon : fallback copie ci-dessous
+      }
     }
-  }, [generateShareText]);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setShareCopied(r.id);
+      setTimeout(() => setShareCopied(null), 2000);
+    }
+  }, [generateShareText, copyToClipboard]);
 
   // --- Parsers d'interprétation ---
   const parseTarot3 = (raw: string) => {
@@ -422,7 +530,7 @@ export default function ReadingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4">
+      <div className="min-h-[50vh] flex items-center justify-center p-4">
         <p className="text-amber-300 animate-pulse text-lg" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.loading')}</p>
       </div>
     );
@@ -433,14 +541,17 @@ export default function ReadingsPage() {
     <div className="space-y-6">
       {/* Croix retour accueil retirée : le rond avatar du layout mène à Mon espace */}
 
-      <div className="max-w-2xl mx-auto pt-2 pb-24">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}>
-          <img src="/images/nav-historique.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          {t('history.title')}
-        </h1>
-        <p className="text-center text-xs mb-5" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.6)' }}>
-          {t('history.subtitle')}
-        </p>
+      <div className="max-w-2xl mx-auto pb-24">
+        {/* Bandeau du titre : un seul dégradé continu qui remonte sous la têtière et fond dans le ciel cosmique */}
+        <div className="mb-5 px-4 pb-10 -mx-4 sm:-mx-6 lg:-mx-10 -mt-8 md:-mt-12 pt-12 md:pt-16" style={{ background: 'linear-gradient(180deg, rgba(8,5,20,0.92) 0%, rgba(14,8,30,0.80) 45%, rgba(30,16,58,0.45) 78%, rgba(30,16,58,0) 100%)' }}>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}>
+            <img src="/images/nav-historique.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
+            {t('history.title')}
+          </h1>
+          <p className="text-center text-xs" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.6)' }}>
+            {t('history.subtitle')}
+          </p>
+        </div>
 
         {fetchError && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 mb-4">
@@ -457,9 +568,9 @@ export default function ReadingsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('history.searchPlaceholder')}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
+              className="w-full pl-10 pr-4 py-2.5 rounded-full border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
               style={{
-                background: 'rgba(0,0,0,0.45)',
+                background: 'rgba(38,20,70,0.55)',
                 border: '1px solid rgba(218,165,32,0.3)',
                 color: '#FFE9B0',
                 fontFamily: 'var(--font-cormorant), serif',
@@ -472,25 +583,25 @@ export default function ReadingsPage() {
           </div>
         )}
 
-        {/* Filtres par type (icônes landing) */}
+        {/* Filtres par type (icônes landing) — compacts */}
         {readings.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
+          <div className="flex flex-wrap justify-center gap-1.5 mb-4">
             {FILTERS.map((f) => {
               const active = filter === f.key;
               return (
                 <button key={f.key} onClick={() => setFilter(f.key)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all"
                   style={{
                     fontFamily: 'var(--font-cinzel), serif',
                     color: active ? '#1a0e0a' : f.color,
-                    background: active ? f.color : 'rgba(0,0,0,0.4)',
+                    background: active ? f.color : 'rgba(38,20,70,0.5)',
                     borderColor: f.color,
-                    boxShadow: active ? `0 0 16px ${f.color}` : 'none',
+                    boxShadow: active ? `0 0 10px ${f.color}` : 'none',
                     opacity: active ? 1 : 0.8,
                   }}
                 >
-                  <img src={f.icon} alt="" className="w-5 h-5 object-contain" style={{ filter: `drop-shadow(0 0 4px ${f.color})` }} />
-                  <span className="text-xs font-semibold">{t(f.labelKey)}</span>
+                  <img src={f.icon} alt="" className="w-3.5 h-3.5 object-contain" style={{ filter: `drop-shadow(0 0 3px ${f.color})` }} />
+                  <span className="text-[10px] font-semibold">{t(f.labelKey)}</span>
                 </button>
               );
             })}
@@ -512,65 +623,78 @@ export default function ReadingsPage() {
 
               return (
                 <div key={group.dateKey}>
-                  {/* En-tête date + suppression par date */}
-                  <div className="flex items-center justify-between bg-gray-900/60 border border-amber-800/30 rounded-lg px-3 py-2.5 mb-2 hover:bg-gray-800/50 transition-colors">
-                    <button onClick={() => toggleDate(group.dateKey)} className="flex items-center gap-2 text-left flex-1">
-                      <span className={`text-amber-400 text-xs transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-                      <span className="text-amber-200 font-semibold text-xs" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{group.dateLabel}</span>
-                      <span className="flex items-center gap-1.5 text-xs ml-1">
-                        {counts.tarot > 0 && <TypeBadge k="tarot" n={counts.tarot} />}
-                        {counts.yijing > 0 && <TypeBadge k="yijing" n={counts.yijing} />}
-                        {counts.rune > 0 && <TypeBadge k="rune" n={counts.rune} />}
-                        {counts.des > 0 && <TypeBadge k="des" n={counts.des} />}
+                  {/* En-tête date rituel : filet doré + libellé Cinzel + compteurs points */}
+                  <div className="flex items-center gap-2 mb-1.5 group/head">
+                    <button onClick={() => toggleDate(group.dateKey)} className="flex items-center gap-2 flex-1 min-w-0 text-left" aria-expanded={isOpen}>
+                      <ChevronIcon size={13} className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} style={{ color: 'rgba(218,165,32,0.7)' }} />
+                      <span className="h-px flex-1 min-w-4" style={{ background: 'linear-gradient(90deg, transparent, rgba(218,165,32,0.45))' }} />
+                      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.18em] px-1" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F8E3A0', textShadow: '0 0 12px rgba(248,227,160,0.45)' }}>
+                        {group.dateLabel}
                       </span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        {(['tarot', 'yijing', 'rune', 'des'] as const).map((k) => counts[k] > 0 && (
+                          <span key={k} className="flex items-center gap-0.5 text-[10px]" style={{ color: TYPE_META[k].color, opacity: 0.9 }}>
+                            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: TYPE_META[k].color, boxShadow: `0 0 5px ${TYPE_META[k].glow}` }} />
+                            {counts[k]}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="h-px flex-1 min-w-4" style={{ background: 'linear-gradient(90deg, rgba(218,165,32,0.45), transparent)' }} />
                     </button>
                     <button onClick={() => askDeleteDate(group)}
-                      className="ml-2 p-1.5 rounded-md text-red-400/70 hover:text-red-300 hover:bg-red-900/30 transition-all"
+                      className="shrink-0 p-1.5 rounded-md transition-all opacity-70 hover:opacity-100"
+                      style={{ color: '#ff5252' }}
                       aria-label={t('history.deleteDate')} title={t('history.deleteDate')}>
-                      🗑
+                      <TrashIcon size={14} />
                     </button>
                   </div>
 
                   {isOpen && (
-                    <div className="space-y-2 pl-2">
+                    <div className="space-y-1.5 pl-1">
                       {group.readings.map((r) => {
                         const m = metaOf(r);
                         const yiQing = parseYiQing(r.interpretation || '');
+                        // Le spread n'est affiché que s'il apporte une info (évite le doublon avec le libellé).
+                        const spreadInfo = r.spread && !m.label.toLowerCase().includes(r.spread.toLowerCase().replace(/[-—–]/g, ' ').trim()) && !r.spread.toLowerCase().includes(m.label.toLowerCase()) ? r.spread : '';
+                        const hasThumbs = Array.isArray(r.cards) && r.cards.length > 0;
                         return (
-                          <div key={r.id} className="bg-gray-900/80 border rounded-lg overflow-hidden shadow-lg" style={{ borderColor: m.border }}>
-                            <div className="flex items-center">
-                              <button onClick={() => toggleReading(r.id)} className="w-full p-3 text-left hover:bg-gray-800/50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium flex items-center gap-2" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>
-                                    {m.icon.startsWith('/') ? (
-                                      <img src={m.icon} alt="" className="w-7 h-7 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
-                                    ) : (
-                                      <span className="text-xl" style={{ filter: `drop-shadow(0 0 6px ${m.glow})` }}>{m.icon}</span>
-                                    )}
-                                    <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: m.bg, border: `1px solid ${m.border}` }}>{m.label}</span>
-                                    {r.spread && <span className="text-xs text-gray-400 italic ml-2">— {r.spread}</span>}
-                                    {r.echo && <EchoClockBadge echo={r.echo} t={t} />}
+                          <div key={r.id} className="rounded-xl overflow-hidden transition-shadow" style={{ background: 'linear-gradient(180deg, rgba(58,34,102,0.72) 0%, rgba(34,19,64,0.78) 100%)', backdropFilter: 'blur(8px)', border: `1px solid ${m.border}`, boxShadow: openReading === r.id ? `0 0 22px ${m.glow}, 0 4px 14px rgba(0,0,0,0.35)` : '0 2px 10px rgba(0,0,0,0.28)' }}>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => toggleReading(r.id)} className="flex-1 min-w-0 flex items-center gap-2.5 p-2.5 text-left hover:bg-white/[0.03] transition-colors">
+                                {/* Aperçu visuel du tirage (ou icône de type si pas de cartes) */}
+                                {hasThumbs ? (
+                                  <ReadingThumbs r={r} />
+                                ) : (
+                                  <img src={m.icon} alt="" className="w-7 h-7 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
+                                )}
+                                {/* Hiérarchie 2 niveaux : libellé doré fort, méta discrète */}
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="text-[13px] font-semibold truncate" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>{m.label}</span>
+                                    {r.echo && <EchoDot echo={r.echo} t={t} />}
                                   </span>
-                                  <span className="text-gray-400 text-xs">{formatTime(r.createdAt)}</span>
-                                </div>
+                                  {spreadInfo && (
+                                    <span className="block text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.38)' }}>{spreadInfo}</span>
+                                  )}
+                                </span>
+                                <span className="shrink-0 text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatTime(r.createdAt)}</span>
                               </button>
-                              <button onClick={() => askDeleteOne(r)}
-                                className="mr-2 p-1.5 rounded-md text-red-400/60 hover:text-red-300 hover:bg-red-900/30 transition-all shrink-0"
-                                aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
-                                🗑
-                              </button>
+                              {/* Actions discrètes : partage puis suppression */}
                               <button onClick={() => doShare(r)}
-                                className="mr-2 p-1.5 rounded-md text-blue-400/60 hover:text-blue-300 hover:bg-blue-900/30 transition-all shrink-0 relative"
+                                className="shrink-0 p-1.5 rounded-md transition-all opacity-40 hover:opacity-100 relative"
+                                style={{ color: '#4db8c4' }}
                                 aria-label={t('history.share')} title={t('history.share')}>
                                 {shareCopied === r.id ? (
-                                  <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
+                                  <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
                                 ) : (
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                                    <polyline points="16 6 12 2 8 6"/>
-                                    <line x1="12" y1="2" x2="12" y2="15"/>
-                                  </svg>
+                                  <ShareIcon size={14} />
                                 )}
+                              </button>
+                              <button onClick={() => askDeleteOne(r)}
+                                className="shrink-0 mr-1.5 p-1.5 rounded-md transition-all opacity-70 hover:opacity-100"
+                                style={{ color: '#ff5252' }}
+                                aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
+                                <TrashIcon size={14} />
                               </button>
                             </div>
 
@@ -603,7 +727,7 @@ export default function ReadingsPage() {
       {confirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !deleting && setConfirm(null)} />
-          <div className="relative z-10 w-full max-w-sm p-6 rounded-2xl" style={{ background: 'rgba(26,14,10,0.96)', border: '1px solid rgba(218,165,32,0.3)', boxShadow: '0 0 40px rgba(218,165,32,0.2)' }}>
+          <div className="relative z-10 w-full max-w-sm p-6 rounded-2xl" style={{ background: 'rgba(46,26,82,0.96)', border: '1px solid rgba(218,165,32,0.3)', boxShadow: '0 0 40px rgba(218,165,32,0.2)' }}>
             <h3 className="text-xl font-bold text-center mb-3" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700', textShadow: '0 0 15px rgba(255,215,0,0.5)' }}>
               {confirm.mode === 'one' ? t('history.deleteOne') : t('history.deleteDate')}
             </h3>
@@ -668,16 +792,6 @@ function inlineMd(s: string): React.ReactNode {
 }
 
 // --- Sous-composants ---
-function TypeBadge({ k, n }: { k: keyof typeof TYPE_META; n: number }) {
-  const m = TYPE_META[k];
-  return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: m.bg, color: m.color, border: `1px solid ${m.border}` }}>
-      <img src={m.icon} alt="" className="w-3.5 h-3.5 object-contain" style={{ filter: `drop-shadow(0 0 3px ${m.glow})` }} />
-      {n}
-    </span>
-  );
-}
-
 function EmptyState() {
   const t = useT();
   return (
@@ -707,7 +821,7 @@ function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
           <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
-          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+          <p className="text-amber-200 italic text-sm">&quot;<Highlight text={r.question || ''} query={query} />&quot;</p>
         </div>
       )}
       {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
@@ -751,7 +865,7 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
     : (parseTarot5Inline(interpretation) || {});
 
   if (!r.cards || !Array.isArray(r.cards) || r.cards.length === 0) {
-    return <p className="text-gray-400 text-xs italic mt-3">"<Highlight text={r.question || ''} query={query} />"</p>;
+    return <p className="text-gray-400 text-xs italic mt-3">&quot;<Highlight text={r.question || ''} query={query} />&quot;</p>;
   }
 
   return (
@@ -759,7 +873,7 @@ function TarotView({ r, interpretation, query = '' }: { r: Reading; interpretati
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
           <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
-          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+          <p className="text-amber-200 italic text-sm">&quot;<Highlight text={r.question || ''} query={query} />&quot;</p>
         </div>
       )}
       {r.cards.map((c: any, idx: number) => {
@@ -892,23 +1006,10 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
 
   return (
     <div className="mt-4 space-y-3">
-      {/* Petit guide runique */}
-      <details className="group text-xs rounded-lg border p-2.5" style={{ borderColor: 'rgba(138,109,59,0.25)', background: 'rgba(40,30,15,0.40)' }}>
-        <summary className="cursor-pointer text-xs font-semibold flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
-          <span>ᚠ</span> Qu'est-ce que les runes ?
-          <span className="ml-auto group-open:rotate-180 transition-transform text-[10px] opacity-60">▼</span>
-        </summary>
-        <div className="mt-2 text-xs leading-relaxed space-y-1.5" style={{ color: '#c4b998' }}>
-          <p>Les runes sont un ancien alphabet divinatoire d'origine nordique et germanique, le <em>Futhark</em>. Chaque rune n'est pas qu'une lettre : elle porte un nom, un sens symbolique et une énergie.</p>
-          <p>Dans le <strong>Fil des Nornes</strong>, trois runes sont tirées : <strong>Urd</strong> (Passé), <strong>Verdandi</strong> (Présent), <strong>Skuld</strong> (Avenir). Une 4ᵉ rune peut être ajoutée comme <strong>Conseil d'Odin</strong> pour indiquer une action.</p>
-          <p>Une rune <strong>renversée</strong> (retournée) exprime son ombre ou son blocage. L'Oracle IA interprète l'ensemble comme un récit.</p>
-        </div>
-      </details>
-
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
           <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
-          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+          <p className="text-amber-200 italic text-sm">&quot;<Highlight text={r.question || ''} query={query} />&quot;</p>
         </div>
       )}
       {groups.length === 0 && cards.length === 0 ? (
@@ -1125,7 +1226,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
           <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
-          <p className="text-amber-200 italic text-sm">"<Highlight text={r.question || ''} query={query} />"</p>
+          <p className="text-amber-200 italic text-sm">&quot;<Highlight text={r.question || ''} query={query} />&quot;</p>
         </div>
       )}
 
