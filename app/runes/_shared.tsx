@@ -108,7 +108,7 @@ export function RunePouch() {
 export function RuneBackground({ children }: { children: ReactNode }) {
   return (
     <div
-      className="relative min-h-screen w-full overflow-x-hidden"
+      className="relative min-h-[100dvh] w-full overflow-x-hidden"
       style={{
         background: `radial-gradient(ellipse at 50% 0%, ${RUNE_THEME.forest} 0%, ${RUNE_THEME.forestDeep} 55%, #06120b 100%)`,
       }}
