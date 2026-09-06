@@ -44,7 +44,7 @@ export default function AccountNav({ user }: { user: any }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col w-64 shrink-0 p-5 border-r border-amber-800/20 bg-gradient-to-b from-gray-950/60 to-gray-950/20">
+      <aside className="hidden md:flex md:flex-col w-64 shrink-0 p-5 border-r border-amber-800/20 bg-gradient-to-b from-[#160b2a]/95 to-[#0e0720]/90">
         <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 mb-6 group">
           <img src="/logo-espace.png" alt="" className="h-9 w-auto object-contain" />
           <span className="brand-oracle text-2xl transition-all duration-200 group-hover:brightness-125">
@@ -106,7 +106,7 @@ export default function AccountNav({ user }: { user: any }) {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 w-full flex items-center justify-between px-4 py-3 bg-gray-950/90 backdrop-blur border-b border-amber-800/20">
+      <header className="md:hidden sticky top-0 z-40 w-full flex items-center justify-between px-4 py-3 bg-[#0a0514]/90 backdrop-blur border-b border-amber-800/25">
         <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 group">
           <img src="/logo-espace.png" alt="" className="w-8 h-8 object-contain" />
           <span className="brand-oracle text-xl transition-all duration-200 group-hover:brightness-125">

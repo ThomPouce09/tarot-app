@@ -41,7 +41,7 @@ function RunesRandomBackdrop() {
   }, []);
   if (!src) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: -1 }}>
+    <div className="pointer-events-none absolute inset-0 min-h-[100dvh] overflow-hidden" style={{ zIndex: -1 }}>
       <motion.img
         src={src}
         alt=""
