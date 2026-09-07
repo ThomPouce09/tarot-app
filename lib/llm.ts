@@ -3,7 +3,7 @@
  *
  * Ordre de fallback :
  *   1. DeepSeek     : deepseek-v4-flash (rapide, ~1-5s)
- *   2. OpenRouter   : google/gemma-4-26b-a4b-it:free (secours)
+ *   2. b.ai         : qwen3.8-flash (secours)
  *
  * Chaque fournisseur est testé indépendamment ; dès qu'une réponse OK est obtenue,
  * on la renvoie. Si toutes les clés sont absentes ou tous les appels échouent,
@@ -26,13 +26,11 @@ const PROVIDERS: OracleProvider[] = [
     models: ['deepseek-v4-flash'],
   },
   {
-    name: 'OpenRouter',
-    baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    apiKey: process.env.OPENROUTER_API_KEY,
-    // Modèles gratuits, essayés dans l'ordre (le circuit breaker protège des 429) :
-    //   - minimax-m3 : ~4s, français correct (remplaçant principal de gemma)
-    //   - gemma-4-26b : ancien secours, souvent rate-limité upstream
-    models: ['minimax/minimax-m3:free', 'google/gemma-4-26b-a4b-it:free'],
+    name: 'b.ai',
+    baseUrl: 'https://api.b.ai/v1/chat/completions',
+    apiKey: process.env.B_AI_API_KEY,
+    // Modèle gratuit de l'agrégateur (reasoning séparé dans reasoning_content).
+    models: ['qwen3.8-flash'],
   },
 ];
 

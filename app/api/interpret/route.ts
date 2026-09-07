@@ -28,6 +28,7 @@ const VALID_TYPES = [
   'tarot-3-cartes',
   'tarot-5-cartes',
   'tarot-5-c-manuelle',
+  'yi-jing-simplifie',
   'yi-jing-simple',
   'yi-jing-question'
 ] as const;
@@ -210,7 +211,8 @@ export async function POST(request: NextRequest) {
     'tarot-3-cartes': 3,
     'tarot-5-cartes': 5,
     'tarot-5-c-manuelle': 5,
-    'yi-jing-simple': 0, // Yi Jing n'utilise pas de cartes sélectionnées
+    'yi-jing-simplifie': 0, // Yi Jing n'utilise pas de cartes sélectionnées
+    'yi-jing-simple': 0,
     'yi-jing-question': 0
   };
 

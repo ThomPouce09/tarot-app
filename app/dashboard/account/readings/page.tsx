@@ -46,7 +46,8 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'tarot-10-cartes':     { group: 'tarot',  label: 'Tarot 10 cartes' },
   'tirage-ouvert':       { group: 'tarot',  label: 'Tirage Ouvert' },
   'tirage-amoureux':     { group: 'tarot',  label: 'Tirage Amoureux' },
-  'yi-jing-simple':      { group: 'yijing', label: 'Yi Jing simple' },
+  'yi-jing-simplifie':    { group: 'yijing', label: 'Yi Jing simplifié' },
+  'yi-jing-simple':      { group: 'yijing', label: 'Yi Jing précis' },
   'yi-jing-question':    { group: 'yijing', label: 'Yi Jing (question)' },
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
   'yi-jing-du-jour':     { group: 'yijing', label: 'Yi Jing du jour' },
@@ -815,7 +816,7 @@ function EmptyState() {
 
 function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?: string }) {
   const t = useT();
-  const isSimpleFormat = r.type === 'yi-jing-simple' || (interp && interp.situation);
+  const isSimpleFormat = r.type === 'yi-jing-simple' || r.type === 'yi-jing-simplifie' || (interp && interp.situation);
   return (
     <div className="mt-4 space-y-4">
       {r.question && (

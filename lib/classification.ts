@@ -17,14 +17,14 @@ export interface TirageClass {
 // Le reste d'un univers est "avancé".
 const BASE_TYPES: Record<Universe, string> = {
   tarot: 'tarot-3-cartes',
-  yijing: 'yi-jing-du-jour',
+  yijing: 'yi-jing-simplifie', // « Yi Jing » — tirage des baguettes d'achillée (base)
   des: 'des-affinage',
   runes: 'runes-nornes2', // « Le fil des Nornes (simplifié) » (à l'aveugle)
 };
 
 const UNIVERSE_TYPES: Record<Universe, string[]> = {
   tarot: ['tarot-3-cartes', 'tarot-5-cartes', 'tarot-5-c-manuelle'],
-  yijing: ['yi-jing-du-jour', 'yi-jing-simple', 'yi-jing-question', 'yi-qing'],
+  yijing: ['yi-jing-simplifie', 'yi-jing-du-jour', 'yi-jing-simple', 'yi-jing-question', 'yi-qing'],
   des: ['des-affinage', 'des-choix', 'des-obstacle-solution'],
   runes: ['runes-mjolnir', 'runes-nornes', 'runes-nornes2', 'runes-yggdrasil'],
 };

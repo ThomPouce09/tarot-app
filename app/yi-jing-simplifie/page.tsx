@@ -1,5 +1,13 @@
 'use client';
 
+// app/yi-jing-simplifie/page.tsx — « Le Yi Jing simplifié » : même tirage
+// d'achillées que /yi-jing-simple (boîte de 64 baguettes, secouage, élue),
+// mais précédé de la mécanique du Fil des Nornes (nornes2) : le consultant
+// choisit un DOMAINE (4 gardiens du ciel chinois) puis UN sous-thème. La
+// question composée « Domaine — intention » est transmise à l'interprétation
+// IA et à l'historique. Une pastille discrète en bas à gauche permet d'en
+// relire le libellé sans masquer le titre ni la zone de tirage.
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -9,6 +17,7 @@ import { useLang } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
+import { YiThemeSelector, YI_LACQUER } from './theme-selector';
 
 const YI_QING_BG = '/backgrounds/yi-qing-bg.mp4';
 
@@ -57,7 +66,6 @@ const STICK_WIDTH = Math.max(2, INTERIOR_WIDTH / STICK_COUNT);
 const STICK_BASE_BOTTOM_OFFSET = 52;
 
 // --- Device Motion (mobile) ---
-const ACCEL_THRESHOLD = 160; // shake mobile : declenchement moins sensible
 const ACCEL_NOISE_FLOOR = 3.5; // ignore le micro-tremblement (moins sensible)
 
 // --- Animation Swipe (Main) ---
@@ -71,7 +79,7 @@ const SWIPE_TEXT_MAX_WIDTH = '140px';
 
 // --- Positionnement UI ---
 const PROGRESS_BAR_ABOVE_BOX = 45; // POSITIF = remonte la barre (top = 50% - (RIG_H/2 + val))
-const TITLE_TOP = 48;
+const TITLE_TOP = 40;
 
 // --- Texte de Résultat ("Le sort a parlé" & "Baguette n°..") ---
 const RESULT_CONTAINER_BOTTOM = '24%';
@@ -145,7 +153,7 @@ function getStickRise(stick: Stick, progress: number): number {
 }
 
 // --- YiQingRig Component ---
-function YiQingRig({ questionAsked, question }: { questionAsked: boolean; question: string }) {
+function YiQingRig({ question }: { question: string }) {
   const lang = useLang();
   const [sticks] = useState<Stick[]>(makeSticks);
   const [shiftX, setShiftX] = useState(0);
@@ -172,9 +180,15 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
   const frozenProgressRef = useRef(0);
   const hasTriggeredRef = useRef(false); // 🛡️ Verrou synchrone immédiat
   const rafRef = useRef<number | null>(null);
-  const lastDirRef = useRef<number>(0);      // direction du dernier mouvement (shake)
-  const reversalsRef = useRef<number>(0);    // nombre d'inversions de direction
-  const SHAKE_REVERSALS_REQUIRED = 4;        // secousses reelles (aller-retour) minimum
+  const lastDirRef = useRef<number>(0);      // direction du dernier mouvement (doigt)
+  const reversalsRef = useRef<number>(0);    // nombre d'inversions de direction (doigt)
+  const SHAKE_REVERSALS_REQUIRED = 4;        // secousses reelles (aller-retour) minimum au doigt
+  // Shake mobile : plus long et plus exigeant que le doigt — il faut prouver
+  // des aller-retour sur CHAQUE axe (horizontal et vertical) avant de tirer.
+  const SHAKE_ACCEL_THRESHOLD = 900;         // effort cumule (legere baisse)
+  const SHAKE_REVERSALS_PER_AXIS = 3;        // aller-retours horizontaux ET verticaux
+  const shakeDirRef = useRef<{ h: number; v: number }>({ h: 0, v: 0 });
+  const shakeRevRef = useRef<{ h: number; v: number }>({ h: 0, v: 0 });
   // Audio de tirage : instance réutilisable + déverrouillage autoplay au 1er geste/capteur.
   const drawSoundRef = useRef<HTMLAudioElement | null>(null);
   const unlockAudio = useCallback(() => {
@@ -258,7 +272,6 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
 
   // --- DeviceMotion (shake) ---
   useEffect(() => {
-    if (!questionAsked) return; // le tirage ne demarre qu'apres la question
     if (phase === 'done' || phase === 'jumping') return;
     
     const handleMotion = (e: DeviceMotionEvent) => {
@@ -277,13 +290,18 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
         const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (magnitude > ACCEL_NOISE_FLOOR) {
             const distance = magnitude * 8;
-            // direction dominante du mouvement (pour detecter un vrai shake aller-retour)
-            const dir = Math.abs(dx) > Math.abs(dy) ? Math.sign(dx) : Math.sign(dy);
-            if (lastDirRef.current !== 0 && dir !== 0 && dir !== lastDirRef.current) {
-              reversalsRef.current += 1;
+            // aller-retour comptes SEPARERMENT par axe : secouer horizontalement
+            // ET verticalement est exige avant de laisser sortir la baguette.
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 1.2) {
+              const h = Math.sign(dx);
+              if (shakeDirRef.current.h !== 0 && h !== shakeDirRef.current.h) shakeRevRef.current.h += 1;
+              if (h !== 0) shakeDirRef.current.h = h;
+            } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 1.2) {
+              const v = Math.sign(dy);
+              if (shakeDirRef.current.v !== 0 && v !== shakeDirRef.current.v) shakeRevRef.current.v += 1;
+              if (v !== 0) shakeDirRef.current.v = v;
             }
-            if (dir !== 0) lastDirRef.current = dir;
-            
+
             setShiftX((prevX) => {
               const next = Math.max(-MAX_BOX_SHIFT_X, Math.min(MAX_BOX_SHIFT_X, prevX + dx * HORIZONTAL_SENSITIVITY * 2));
               shiftXRef.current = next;
@@ -293,9 +311,12 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
 
             setTotalMovement((prev) => {
               const next = prev + distance;
-              // declenchement uniquement apres assez de secousses reelles (aller-retour)
-              if (reversalsRef.current >= SHAKE_REVERSALS_REQUIRED && next >= ACCEL_THRESHOLD) {
-                triggerDraw(Math.min(1, next / ACCEL_THRESHOLD), shiftXRef.current);
+              // declenchement : aller-retour sur les DEUX axes + effort cumule
+              const axesDone =
+                shakeRevRef.current.h >= SHAKE_REVERSALS_PER_AXIS &&
+                shakeRevRef.current.v >= SHAKE_REVERSALS_PER_AXIS;
+              if (axesDone && next >= SHAKE_ACCEL_THRESHOLD) {
+                triggerDraw(Math.min(1, next / SHAKE_ACCEL_THRESHOLD), shiftXRef.current);
               }
               return next;
             });
@@ -338,11 +359,10 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
         window.removeEventListener('devicemotion', handleMotion);
       }
     };
-  }, [phase, triggerDraw, questionAsked]);
+  }, [phase, triggerDraw]);
 
   // --- Pointer events (desktop drag) ---
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!questionAsked) return; // question obligatoire avant le tirage
     if (phase === 'done' || phase === 'jumping') return;
     dragging.current = true;
     setIsShaking(true); // debut secouage -> retire le glow de la boite
@@ -466,7 +486,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
     : Math.min(1, totalMovement / MOVEMENT_THRESHOLD);
 
   const TITLE_BLOCK_RESERVE = 60;
-  const showSwipeHint = questionAsked && phase === 'idle' && totalMovement === 0;
+  const showSwipeHint = phase === 'idle' && totalMovement === 0;
 
   return (
     <div
@@ -536,7 +556,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
         }
       ` }} />
       {/* ✅ Barre de progression FIXE */}
-      {questionAsked && phase === 'idle' && (
+      {phase === 'idle' && (
         <div 
           className="w-32 h-1.5 rounded-full overflow-hidden z-30" 
           style={{ 
@@ -792,23 +812,25 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
               setInterpreting(true);
               // drawnRef.current est 0-based (0..63) -> +1 pour l'hexagramme 1..64
               localStorage.setItem('yi-jing-simple-baguette', String((drawnRef.current ?? 0) + 1));
-              // Question posée dans la modale (transmise à l'IA + historique).
+              // Question « Domaine — intention » : lue par /yi-jing-simplifie/interpretation
+              // puis transmise à l'IA et à l'historique (mêmes clés que la version simple).
               localStorage.setItem('yi-jing-simple-question', question);
-              router.push('/yi-jing-simple/interpretation');
+              router.push('/yi-jing-simplifie/interpretation');
             }}
             disabled={interpreting}
             className="yi-interpret-btn px-6 sm:px-10 py-3 sm:py-4 rounded-xl text-base sm:text-lg md:text-xl font-bold tracking-wide"
             style={{
               fontFamily: 'var(--font-cinzel), serif',
               position: 'relative',
+              // Gloss : reflet blanc en haut du bouton (recette du style « Enregistrer »).
               background: interpreting
-                ? 'linear-gradient(135deg, #6b6b6b 0%, #4a4a4a 55%, #6b6b6b 100%)'
-                : 'linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)',
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 38%, rgba(255,255,255,0) 60%), linear-gradient(135deg, #6b6b6b 0%, #4a4a4a 55%, #6b6b6b 100%)'
+                : 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)',
               color: interpreting ? '#cfcfcf' : '#2a1808',
               border: interpreting ? '2px solid #888' : '2px solid #F3C969',
               boxShadow: interpreting
-                ? 'none'
-                : '0 0 16px rgba(218,165,32,0.45), inset 0 0 10px rgba(255,240,200,0.25)',
+                ? 'inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -3px 7px rgba(0,0,0,0.35)'
+                : '0 0 16px rgba(218,165,32,0.45), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(90,50,0,0.35)',
               cursor: interpreting ? 'not-allowed' : 'pointer',
               opacity: interpreting ? 0.6 : 1,
             }}
@@ -846,13 +868,44 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
 // --- Main Page ---
 function YiQingPage() {
   const lang = useLang();
-  const [question, setQuestion] = useState('');
-  const [questionAsked, setQuestionAsked] = useState(false);
-  const [qOpen, setQOpen] = useState(false);
+  // Intention choisie (domaine — sous-thème). Le tirage n'apparaît qu'après.
+  const [question, setQuestion] = useState<string | null>(null);
+  // Relecture discrète : la pastille se déplie au tap.
+  const [peek, setPeek] = useState(false);
 
-  const handleSubmitQuestion = () => {
-    if (question.trim()) setQuestionAsked(true);
-  };
+  // Bloc titre — même markup dans les deux étapes, position différente :
+  // à la suite du sélecteur (étape intention, façon /nornes2) ou superposé
+  // en haut de l'écran pendant le tirage (la boîte est centrée en absolu).
+  const titleBlock = (
+    <div className="text-center" style={{ padding: '0 16px', pointerEvents: 'none' }}>
+      <h1
+        className="title-glow"
+        style={{
+          fontFamily: 'var(--font-cinzel-deco), serif',
+          color: '#C6A8E6',
+          letterSpacing: '0.2em',
+          textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
+          fontSize: 'clamp(1.6rem, 6vw, 4.5rem)',
+          textTransform: 'uppercase',
+          marginBottom: '0.25rem',
+        }}
+      >
+        {lang === 'en' ? 'The I Ching' : 'Le Yi Jing'}
+      </h1>
+      <p
+        style={{
+          fontFamily: 'var(--font-cinzel), serif',
+          color: '#E0CFF0',
+          textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
+          letterSpacing: '0.05em',
+          fontStyle: 'italic',
+          fontSize: 'clamp(0.7rem, 2vw, 1rem)',
+        }}
+      >
+        {lang === 'en' ? 'Simplified — guided by your intention' : 'Simplifié — guidé par votre intention'}
+      </p>
+    </div>
+  );
 
   return (
     <div
@@ -879,104 +932,78 @@ function YiQingPage() {
         <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'none' }} />
       </div>
 
-      {/* YI QING RIG */}
-      <YiQingRig questionAsked={questionAsked} question={question} />
-
-      {/* MODALE QUESTION — visible avant le tirage (même pattern que /yi-jing-question) */}
-      {!questionAsked && (
-        <motion.div
-          className="fixed inset-0 z-40 flex items-center justify-center p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
+      {/* ÉTAPE 1 — Intention (domaine + sous-thème), puis ÉTAPE 2 — le tirage
+          des achillées démarre immédiatement après la confirmation. */}
+      {question === null ? (
+        // Façon /nornes2 : titre puis encart, à la suite dans le flux, page
+        // scrollable — plus rien ne se superpose.
+        <div
+          className="absolute inset-0 z-20 overflow-y-auto"
+          style={{ touchAction: 'pan-y' }}
         >
-          <div className="w-full max-w-md bg-black/70 backdrop-blur-md rounded-2xl p-5 border border-yellow-700/30 shadow-2xl">
-            <p
-              className="text-center text-yellow-300/80 text-sm mb-3"
-              style={{ fontFamily: 'var(--font-cinzel), serif' }}
-            >
-              {lang === 'en' ? 'Ask your question' : 'Formulez votre question'}
-            </p>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmitQuestion();
-                }
+          <div className="mx-auto max-w-2xl px-3 pt-16 sm:pt-20 pb-24">
+            {titleBlock}
+            <motion.div
+              className="mt-6 rounded-2xl"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              style={{
+                boxShadow: `0 0 0 1px ${YI_LACQUER.gold}44, 0 0 30px rgba(0,0,0,0.6)`,
               }}
-              placeholder={lang === 'en' ? 'e.g. Should I accept this career opportunity?' : 'Ex: Dois-je accepter cette opportunité professionnelle ?'}
-              className="w-full bg-black/50 text-yellow-100 placeholder-yellow-700/50 rounded-lg p-3 text-sm border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none"
-              rows={3}
-              style={{ fontFamily: 'serif' }}
-              autoFocus
-            />
-            <motion.button
-              onClick={handleSubmitQuestion}
-              disabled={!question.trim()}
-              className="w-full mt-3 mystic-btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              whileHover={question.trim() ? { scale: 1.03 } : {}}
-              whileTap={question.trim() ? { scale: 0.97 } : {}}
             >
-              {lang === 'en' ? <>Validate and draw<br />a yarrow stalk</> : 'Valider et tirer une baguette'}
-            </motion.button>
+              <YiThemeSelector onConfirm={setQuestion} />
+            </motion.div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      ) : (
+        <>
+          {/* YI QING RIG — même mécanique que /yi-jing-simple */}
+          <YiQingRig question={question} />
 
-      {/* Question posée — tiroir discret en BAS d'écran (n'interfère plus avec la
-          barre de progression du tirage). Partiellement visible, étirable au tap. */}
-      {questionAsked && (
-        <motion.div
-          className="absolute left-0 z-30 w-full px-4"
-          style={{ bottom: 14 }}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <button
-            type="button"
-            onClick={() => setQOpen((v) => !v)}
-            aria-expanded={qOpen}
-            className="inline-flex max-w-full items-center gap-2.5 rounded-xl border border-yellow-700/25 bg-black/55 backdrop-blur-sm px-4 py-2.5 text-left shadow-[0_2px_14px_rgba(0,0,0,0.5)] active:bg-black/70 transition-colors"
-          >
-            <span
-              className="shrink-0 text-yellow-500/70 text-[10px] uppercase tracking-[0.18em]"
-              style={{ fontFamily: 'var(--font-cinzel), serif' }}
+          {/* Relecture DISCRÈTE de l'intention : pastille en bas à gauche
+              (jamais sur le titre, centré en haut, ni sur la boîte, centrée).
+              Un tap déplie le libellé complet ; un second la referme. */}
+          <div className="fixed bottom-3 left-3 z-40 max-w-[62vw]">
+            <motion.button
+              type="button"
+              onClick={() => setPeek((p) => !p)}
+              aria-expanded={peek}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-left"
+              style={{
+                background: 'rgba(12,7,22,0.55)',
+                border: `1px solid ${YI_LACQUER.gold}3a`,
+                backdropFilter: 'blur(3px)',
+              }}
             >
-              {lang === 'en' ? 'Your question' : 'Votre question'}
-            </span>
-            {!qOpen && (
-              <span className="min-w-0 max-w-[46vw] truncate text-yellow-200/75 italic text-xs" style={{ fontFamily: 'serif' }}>
-                « {question} »
+              <span className="text-[8px]" style={{ color: `${YI_LACQUER.gold}cc` }}>◆</span>
+              <span
+                className="truncate text-[10px] italic leading-none"
+                style={{ fontFamily: 'var(--font-cinzel), serif', color: `${YI_LACQUER.lilacDim}cc` }}
+              >
+                {peek ? 'Intention' : question}
               </span>
+            </motion.button>
+            {peek && (
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-1.5 rounded-xl px-3 py-2 text-[11px] italic leading-snug"
+                style={{
+                  fontFamily: 'var(--font-cinzel), serif',
+                  color: YI_LACQUER.lilac,
+                  background: 'rgba(12,7,22,0.78)',
+                  border: `1px solid ${YI_LACQUER.gold}33`,
+                }}
+              >
+                {question}
+              </motion.p>
             )}
-            <svg
-              viewBox="0 0 16 16"
-              className={`shrink-0 transition-transform duration-300 ${qOpen ? 'rotate-180' : ''}`}
-              style={{ width: 14, height: 14 }}
-              fill="none"
-              stroke="#F3C969"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 6l5 5 5-5" />
-            </svg>
-          </button>
-          {qOpen && (
-            <div
-              className="mt-1.5 w-full max-h-[38dvh] overflow-y-auto rounded-xl border border-yellow-700/30 bg-black/70 backdrop-blur px-4 py-3"
-              style={{ WebkitOverflowScrolling: 'touch' }}
-            >
-              <p className="text-yellow-100/90 italic text-sm leading-relaxed" style={{ fontFamily: 'serif' }}>
-                « {question} »
-              </p>
-            </div>
-          )}
-        </motion.div>
+          </div>
+        </>
       )}
 
       {/* Google Material Symbols */}
@@ -985,46 +1012,22 @@ function YiQingPage() {
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=swipe"
       />
 
-      {/* TITLE */}
-      <div
-        style={{
-          position: "absolute",
-          top: TITLE_TOP,
-          left: 0,
-          right: 0,
-          zIndex: 30,
-          textAlign: 'center',
-          padding: '0 16px',
-          pointerEvents: 'none',
-        }}
-      >
-        <h1
-          className="title-glow"
+      {/* TITLE — superposé en haut de l'écran uniquement PENDANT le tirage
+      (l'étape intention l'affiche dans le flux, à la suite du sélecteur). */}
+      {question !== null && (
+        <div
           style={{
-            fontFamily: 'var(--font-cinzel-deco), serif',
-            color: '#C6A8E6',
-            letterSpacing: '0.2em',
-            textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
-            fontSize: 'clamp(1.6rem, 6vw, 4.5rem)',
-            textTransform: 'uppercase',
-            marginBottom: '0.25rem',
+            position: "absolute",
+            top: TITLE_TOP,
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            pointerEvents: 'none',
           }}
         >
-          {lang === 'en' ? 'The I Ching' : 'Le Yi Jing'}
-        </h1>
-        <p
-          style={{
-            fontFamily: 'var(--font-cinzel), serif',
-            color: '#E0CFF0',
-            textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
-            letterSpacing: '0.05em',
-            fontStyle: 'italic',
-            fontSize: 'clamp(0.7rem, 2vw, 1rem)',
-          }}
-        >
-          {lang === 'en' ? 'The wisdom of the hexagrams' : 'La sagesse des hexagrammes'}
-        </p>
-      </div>
+          {titleBlock}
+        </div>
+      )}
     </div>
   );
 }

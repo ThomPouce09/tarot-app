@@ -68,6 +68,18 @@ const CONFIG: Record<string, {
     videoNoLoop: true,
     noLoopNames: ['analyse-yi-jing1.mp4', 'analyse-yi-jing2.mp4'],
   },
+  'yi-jing-simplifie': {
+    messages: {
+      fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre intention…'],
+      en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your intention…'],
+    },
+    backgroundType: 'video',
+    backgroundUrls: [],
+    animation: 'fade',
+    minDurationMs: 3500,
+    videoNoLoop: true,
+    noLoopNames: ['analyse-yi-jing1.mp4', 'analyse-yi-jing2.mp4'],
+  },
   'yi-jing-question': {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre question…'],

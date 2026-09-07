@@ -16,9 +16,26 @@ import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
 const YI_TUTORIALS: TutorialSlide[] = [
   {
+    iconImg: '/images/yi-jing-icon.png',
+    title: 'Yi Jing simplifié',
+    titleEn: 'Simplified I Ching',
+    desc: 'Le tirage des baguettes d\u2019achill\u00e9e : choisissez un domaine et une intention, puis secouez la boîte.',
+    descEn: 'The yarrow stalk draw: choose a domain and an intention, then shake the box.',
+    steps: [
+      'Choisissez votre domaine',
+      'Pr\u00e9cisez votre intention',
+      'Tirez la baguette \u00e9lue',
+    ],
+    stepsEn: [
+      'Pick your domain',
+      'Set your intention',
+      'Draw the chosen stalk',
+    ],
+  },
+  {
     iconImg: '/images/yi-jing-simple.png',
-    title: 'Yi Jing Simple',
-    titleEn: 'Simple I Ching',
+    title: 'Yi Jing précis',
+    titleEn: 'Precise I Ching',
     desc: 'Un tirage rapide pour obtenir une réponse claire en un seul hexagramme.',
     descEn: 'A quick reading for a clear answer from a single hexagram.',
     steps: [
@@ -171,6 +188,81 @@ export default function YiJingHubPage() {
 
       {/* GRILLE : 2 colonnes sur smartphone */}
       <div className="relative z-30 grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
+        {/* TUILE — YI JING (base : baguettes d'achillée) */}
+        <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
+          <motion.div
+            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            style={{
+              boxShadow:
+                "0 0 20px rgba(160,130,200,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(180,140,220,0.35)",
+            }}
+            whileHover={{ scale: 1.04, y: -3 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="relative p-3 flex flex-col items-center justify-center h-full"
+              style={{
+                background:
+                  "linear-gradient(135deg, #1a1230 0%, #0a0618 50%, #1a1230 100%)",
+              }}
+            >
+              <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.yijing.base')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(180,140,204,0.10)', border: '1px solid rgba(180,140,204,0.33)',
+                    color: '#E0CFF0', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(180,140,204,0.4), 0 0 0 4px rgba(180,140,204,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0CFF0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+              <img
+                src="/images/yi-jing-icon.png"
+                alt="Yi Jing"
+                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 0 8px rgba(180,140,200,0.6))" }}
+              />
+              <h2
+                className="text-base font-bold text-center leading-tight mb-1 mt-1"
+                style={{
+                  fontFamily: "var(--font-cinzel-deco), serif",
+                  color: "#E0CFF0",
+                  textShadow: "0 0 8px rgba(180,140,200,0.5)",
+                }}
+              >
+                {t('hubs.yijing.base')}
+              </h2>
+              <p
+                className="text-[11px] text-center leading-tight"
+                style={{
+                  fontFamily: "var(--font-cinzel), serif",
+                  color: "rgba(200,180,230,0.7)",
+                }}
+              >
+                {t('hubs.yijing.basesub')}
+              </p>
+            </div>
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, rgba(180,140,220,0.18) 0%, transparent 70%)",
+              }}
+            />
+          </motion.div>
+        </GatedTile>
+
         {/* TUILE — YI JING SIMPLE */}
         <GatedTile href="/yi-jing-simple" className="block" allowed={tiles?.['yi-jing-simple']?.allowed} reason={tiles?.['yi-jing-simple']?.reason} onBlocked={openGate}>
           <motion.div
@@ -193,7 +285,7 @@ export default function YiJingHubPage() {
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.simple')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
@@ -268,7 +360,7 @@ export default function YiJingHubPage() {
               <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.day')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
@@ -344,7 +436,7 @@ export default function YiJingHubPage() {
                 <div className="absolute inset-1.5 border border-purple-300/40 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.question')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
