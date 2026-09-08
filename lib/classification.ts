@@ -16,14 +16,15 @@ export interface TirageClass {
 // ── Base (1 par univers, validé par l'utilisateur) ──────────────
 // Le reste d'un univers est "avancé".
 const BASE_TYPES: Record<Universe, string> = {
-  tarot: 'tarot-3-cartes',
+  tarot: 'tarot-3-cartes-simplifie', // « 3 Cartes Simplifié » (intention thème/sous-thème)
+  // tarot-3-cartes = tirage « précis » (question libre) → avancé/grand.
   yijing: 'yi-jing-simplifie', // « Yi Jing » — tirage des baguettes d'achillée (base)
   des: 'des-affinage',
   runes: 'runes-nornes2', // « Le fil des Nornes (simplifié) » (à l'aveugle)
 };
 
 const UNIVERSE_TYPES: Record<Universe, string[]> = {
-  tarot: ['tarot-3-cartes', 'tarot-5-cartes', 'tarot-5-c-manuelle'],
+  tarot: ['tarot-3-cartes', 'tarot-3-cartes-simplifie', 'tarot-5-cartes', 'tarot-5-c-manuelle'],
   yijing: ['yi-jing-simplifie', 'yi-jing-du-jour', 'yi-jing-simple', 'yi-jing-question', 'yi-qing'],
   des: ['des-affinage', 'des-choix', 'des-obstacle-solution'],
   runes: ['runes-mjolnir', 'runes-nornes', 'runes-nornes2', 'runes-yggdrasil'],

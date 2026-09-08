@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
+import SpaceTitle from '@/components/space-title';
 
 export default function SecurityPage() {
   const router = useRouter();
@@ -90,13 +91,7 @@ export default function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
-          <img src="/images/nav-security.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          {t('security.title')}
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">{t('security.subtitle')}</p>
-      </header>
+      <SpaceTitle img="/images/nav-security.png" title={t('security.title')} subtitle={t('security.subtitle')} />
 
       {msg && (
         <p role="status" aria-live="polite" className={`text-sm px-3 py-2 rounded-lg border ${msg.type === 'ok' ? 'text-amber-200 bg-amber-900/20 border-amber-700/30' : 'text-red-300 bg-red-900/20 border-red-700/30'}`}>

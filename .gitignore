@@ -72,3 +72,7 @@ google-services.json
 
 # Liste auto-générée des fonds (regénérée au build/dev)
 lib/generated/
+
+# Android build artifacts
+*.apk
+apk_artifact.zip

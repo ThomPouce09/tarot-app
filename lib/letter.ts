@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { collectiveHexNumber } from '@/lib/yi-daily';
 
 // ── Génération de la "Lettre mystique" hebdo (aperçu / envoi) ─────────────
 // Calcule les stats réelles de la semaine à partir des readings d'un user,
@@ -46,19 +47,14 @@ function bestStreak(counts: Map<string, number>): number {
   return best;
 }
 
-// Tirage du jour : hexagramme dérivé du jour de l'année (déterministe), + nom/synthèse depuis la DB.
+// Tirage du jour : hexagramme collectif dérivé du jour de l'année (déterministe,
+// même source que /api/yi-jing-du-jour), + nom/synthèse via le modèle Prisma.
 function hexOfDay(): Promise<{ numero: number; name: string | null; glyph: string | null; desc: string | null }> {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-  const numero = (dayOfYear % 64) + 1;
-  return prisma.$queryRawUnsafe(
-    `SELECT numero, element as name, caractere as glyph, synthese FROM "hexagrams" WHERE numero = $1 LIMIT 1`,
-    numero
-  ).then((rows: unknown) => {
-    const h = (Array.isArray(rows) ? rows : [])[0] as Record<string, any> | undefined;
-    return { numero, name: h?.name || null, glyph: h?.glyph || null, desc: h?.synthese || null };
-  }).catch(() => ({ numero, name: null, glyph: null, desc: null }));
+  const numero = collectiveHexNumber();
+  return prisma.hexagram
+    .findUnique({ where: { numero } })
+    .then((h) => ({ numero, name: h?.element || null, glyph: h?.caractere || null, desc: h?.synthese || null }))
+    .catch(() => ({ numero, name: null, glyph: null, desc: null }));
 }
 
 export interface LetterData {

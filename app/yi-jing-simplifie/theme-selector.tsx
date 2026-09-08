@@ -5,7 +5,7 @@
 // choisit un DOMAINE (4 tuiles, chacune placée sous la garde d'un des quatre
 // Animaux symboliques du ciel chinois — direction + saison) puis UN sous-thème.
 // La question composée (« Domaine — intention ») est transmise au tirage des
-// achillées, à l'IA et à l'historique. Habillage laque noire/violette + or fin,
+// achillées, à l'IA et à l'historique. Habillage laque noire/rouge + or fin,
 // cohérent avec la vidéo de fond de /yi-jing-simple. Icônes SVG inline
 // uniquement (règle projet : pas d'emoji).
 
@@ -27,16 +27,16 @@ export interface YiDomain {
 /* ———————————————————— Palette laque / or (charte Yi Jing) ——————————————————— */
 
 export const YI_LACQUER = {
-  panelDeep: '#0b0616',
-  panelMid: '#160b26',
-  panelTop: '#241338',
-  tileIdleA: 'rgba(46,26,74,0.35)',
-  tileIdleB: 'rgba(12,7,22,0.9)',
-  tileSelA: 'rgba(84,48,132,0.45)',
+  panelDeep: '#0d0609',
+  panelMid: '#140a0e',
+  panelTop: '#241014',
+  tileIdleA: 'rgba(92,15,22,0.35)',
+  tileIdleB: 'rgba(10,5,7,0.9)',
+  tileSelA: 'rgba(142,28,34,0.45)',
   gold: '#F3C969',
   goldSoft: '#E8B84B',
-  lilac: '#E0CFF0',
-  lilacDim: '#b9a8d6',
+  lilac: '#F5EAD6',
+  lilacDim: '#c9b28a',
 };
 
 /* —————————————————— Icônes (traits dorés, style gravure) —————————————————— */
@@ -211,7 +211,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
       style={{
         background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 60%, ${YI_LACQUER.panelDeep} 100%)`,
         border: `1.5px solid ${YI_LACQUER.gold}55`,
-        boxShadow: '0 0 40px rgba(0,0,0,0.55), inset 0 0 40px rgba(84,48,132,0.18)',
+        boxShadow: '0 0 40px rgba(0,0,0,0.55), inset 0 0 40px rgba(142,28,34,0.16)',
       }}
     >
       {/* En-tête gravé */}
@@ -291,7 +291,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
                         type="button"
                         onClick={() => setSubIdx(i)}
                         className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
-                        style={{ background: sel ? 'rgba(84,48,132,0.35)' : 'transparent' }}
+                        style={{ background: sel ? 'rgba(142,28,34,0.35)' : 'transparent' }}
                       >
                         <span className="mt-[3px] text-[8px]" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}55` }}>◆</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? YI_LACQUER.gold : YI_LACQUER.lilac }}>
@@ -324,7 +324,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
             cursor: ready ? 'pointer' : 'default',
           }}
         >
-          {lang === 'en' ? 'Consult the yarrow stalks' : 'Interroger les achillées'}
+          {lang === 'en' ? 'Consult the Yi Jing' : 'Interroger le Yi Jing'}
         </button>
         {!ready && (
           <p className="mt-2 text-[10px] italic" style={{ color: `${YI_LACQUER.lilacDim}88` }}>

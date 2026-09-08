@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { calcAge } from '@/lib/dates';
 
 interface Interpretation {
   situation?: string;
@@ -26,6 +27,7 @@ interface CardInfo {
 // Types reconnus
 const VALID_TYPES = [
   'tarot-3-cartes',
+  'tarot-3-cartes-simplifie',
   'tarot-5-cartes',
   'tarot-5-c-manuelle',
   'yi-jing-simplifie',
@@ -209,6 +211,7 @@ export async function POST(request: NextRequest) {
 
   const expectedCardCount = {
     'tarot-3-cartes': 3,
+    'tarot-3-cartes-simplifie': 3,
     'tarot-5-cartes': 5,
     'tarot-5-c-manuelle': 5,
     'yi-jing-simplifie': 0, // Yi Jing n'utilise pas de cartes sélectionnées
@@ -222,6 +225,47 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // ── Contexte transmis à l'oracle : question, thème/sous-thème, profil ──
+  // « 3 Cartes Simplifié » envoie « Arcane-guide — intention » : on sépare le
+  // thème du sous-thème pour les nommer explicitement dans le prompt. Le
+  // tirage « précis » envoie une question libre. Le profil (date de naissance,
+  // âge, sexe) est injecté discrètement : l'IA l'exploite sans jamais le citer.
+  const ctx: string[] = [];
+  const q = (question || '').trim();
+  const dIdx = q.indexOf(' — ');
+  if (dIdx > 0) {
+    const head = q.slice(0, dIdx);
+    const sub = q.slice(dIdx + 3);
+    ctx.push(language === 'en'
+      ? `Chosen theme: "${head}". Sub-theme / intention: "${sub}".`
+      : `Thème choisi : « ${head} ». Sous-thème / intention : « ${sub} ».`);
+  } else if (q) {
+    ctx.push(language === 'en'
+      ? 'The consultant freely worded this personal question.'
+      : 'Le consultant a formulé librement cette question personnelle.');
+  }
+  try {
+    if (userId && typeof userId === 'string' && userId.trim()) {
+      const prof = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { dateOfBirth: true, gender: true },
+      });
+      const dob = prof?.dateOfBirth ? prof.dateOfBirth.toISOString().slice(0, 10) : null;
+      if (dob) {
+        const age = calcAge(dob);
+        const g = (prof?.gender || '').toLowerCase();
+        const gFr = g === 'female' ? ', femme' : g === 'male' ? ', homme' : '';
+        const gEn = g === 'female' ? ', female' : g === 'male' ? ', male' : '';
+        ctx.push(language === 'en'
+          ? `Confidential profile: born on ${dob}${age !== null ? ` (${age} years old)` : ''}${gEn}. Use this only to tune the tone, stakes and examples — NEVER quote the birth date, age or sex explicitly.`
+          : `Profil confidentiel : né le ${dob.split('-').reverse().join('/')}${age !== null ? ` (${age} ans)` : ''}${gFr}. Exploite-le uniquement pour accorder le ton, les enjeux et les exemples — ne cite JAMAIS la date de naissance, l'âge ou le sexe.`);
+      }
+    }
+  } catch {}
+  const contextLine = ctx.length
+    ? (language === 'en' ? `\nContext: ${ctx.join(' ')}\n` : `\nContexte : ${ctx.join(' ')}\n`)
+    : '';
 
   // --- Atelier de prompt ---
   let prompt = '';
@@ -242,7 +286,7 @@ export async function POST(request: NextRequest) {
     const positions = language === 'en' ? positionsEn : positionsFr;
 
     prompt = `Tu es un voyant, un tireur de bonne aventure d'une profonde bonté, qui reçoit cette personne comme un être cher venu chercher du réconfort et des réponses. Tu te mets à son service, corps et âme, avec toute la chaleur humaine, la présence et l'empathie d'un véritable mentor qui l'écoute vraiment.
-L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"
+L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"${contextLine}
 Cartes tirées, analysées strictement selon leur axe temporel (1 = Présent, 2 = Passé, 3 = Avenir) :
 ${cartes.map((id: number, i: number) => `${i+1}. ${cardNames[i]} — ${positions[i]}`).join('\n')}
 Consigne d'âme :
@@ -260,7 +304,7 @@ Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
   } else {
     // Yi Jing
     prompt = `Tu es un Maître du Yi Jing. Réponds à la question suivante :
-Question : "${question || 'Montre-moi la voie'}"
+Question : "${question || 'Montre-moi la voie'}"${contextLine}
 
 Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT en JSON :
 {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT } from '@/lib/i18n';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
+import SpaceTitle from '@/components/space-title';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 
@@ -41,6 +42,7 @@ function classifyType(t: string): keyof typeof TYPE_META {
 // --- Mapping fin (par type stocke) -> libellé précis + groupe ---
 const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des'; label: string }> = {
   'tarot-3-cartes':      { group: 'tarot',  label: 'Tarot 3 cartes' },
+  'tarot-3-cartes-simplifie': { group: 'tarot', label: 'Tarot 3 cartes (simplifié)' },
   'tarot-5-cartes':      { group: 'tarot',  label: 'Tarot 5 cartes' },
   'tarot-5-c-manuelle':  { group: 'tarot',  label: 'Tarot 5 cartes (✋)' },
   'tarot-10-cartes':     { group: 'tarot',  label: 'Tarot 10 cartes' },
@@ -544,15 +546,7 @@ export default function ReadingsPage() {
 
       <div className="max-w-2xl mx-auto pb-24">
         {/* Bandeau du titre : un seul dégradé continu qui remonte sous la têtière et fond dans le ciel cosmique */}
-        <div className="mb-5 px-4 pb-10 -mx-4 sm:-mx-6 lg:-mx-10 -mt-8 md:-mt-12 pt-12 md:pt-16" style={{ background: 'linear-gradient(180deg, rgba(8,5,20,0.92) 0%, rgba(14,8,30,0.80) 45%, rgba(30,16,58,0.45) 78%, rgba(30,16,58,0) 100%)' }}>
-          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}>
-            <img src="/images/nav-historique.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-            {t('history.title')}
-          </h1>
-          <p className="text-center text-xs" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.6)' }}>
-            {t('history.subtitle')}
-          </p>
-        </div>
+        <SpaceTitle img="/images/nav-historique.png" title={t('history.title')} subtitle={t('history.subtitle')} />
 
         {fetchError && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 mb-4">

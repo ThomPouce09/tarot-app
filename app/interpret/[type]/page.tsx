@@ -12,6 +12,7 @@ import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResu
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import EchoBox from '@/components/echo-box';
 import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
+import { parseTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
 
 interface Interpretation {
   situation?: string;
@@ -59,6 +60,9 @@ function InterpretationInner() {
   // Domaine & intention choisis au sélecteur (question « Domaine — intention »)
   // → bandeau d'en-tête de la page d'interprétation.
   const yiTheme = parseYiQuestion(searchParams.get('question'));
+  // Arcane-guide & intention choisis au sélecteur de « 3 Cartes Simplifié »
+  // (question « Arcane — intention ») → bandeau bois/bordeaux & or en tête.
+  const tarotTheme = parseTarotQuestion(searchParams.get('question'));
   // Question libre posée à l'oracle (Yi Jing précis) → affichage sublime en tête.
   const rawQuestion = (searchParams.get('question') || '').trim();
   const GUARDIAN_ICONS: Record<string, (c: string) => JSX.Element> = {
@@ -305,6 +309,27 @@ function InterpretationInner() {
           </div>
         )}
 
+        {/* Question posée à l'oracle — « 3 Cartes · Précis » : même apparition
+            sublime en tête, aux couleurs du Tarot (bois, bordeaux & or). Le
+            « 3 Cartes Simplifié » affiche lui le bandeau Arcane-guide. */}
+        {type === 'tarot-3-cartes' && !tarotTheme && rawQuestion && (
+          <div className="yi-question-card w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 bg-black/45 backdrop-blur-sm shadow-[0_0_28px_rgba(74,25,49,0.45)]">
+            <p className="pt-4 text-center text-[#DAA520]/70 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: titleFont }}>
+              {lang === 'en' ? 'The question asked' : 'La question posée'}
+            </p>
+            <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-[#DAA520]/60 to-transparent" />
+            <p
+              className="yi-q-text px-6 pb-2 text-center text-lg sm:text-xl leading-relaxed italic"
+              style={{ fontFamily: 'var(--font-cinzel), Georgia, serif', color: '#FFD700' }}
+            >
+              « {rawQuestion} »
+            </p>
+            <p className="pb-4 pt-2 text-center text-[#E2B8AC]/50 text-[11px] italic">
+              {lang === 'en' ? 'The arcana unfold around your question…' : 'Les arcanes se déploient autour de votre question…'}
+            </p>
+          </div>
+        )}
+
         {/* Domaine & intention — bandeau laque & or repris du sélecteur */}
         {yiTheme && (() => {
           const { domain, sub } = yiTheme;
@@ -338,6 +363,42 @@ function InterpretationInner() {
                   {sub}
                 </p>
                 <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{domain.realm[lang]}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Arcane-guide & intention — bandeau boudoir tarotique (marron bois, bordeaux & or),
+            repris du sélecteur de « 3 Cartes Simplifié ». */}
+        {tarotTheme && (() => {
+          const { theme, sub } = tarotTheme;
+          return (
+            <div
+              className="w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 shadow-[0_0_26px_rgba(74,25,49,0.45)]"
+              style={{ background: `linear-gradient(160deg, ${TAROT_NIGHT.panelTop} 0%, ${TAROT_NIGHT.panelMid} 55%, ${TAROT_NIGHT.panelDeep} 100%)` }}
+            >
+              <div className="flex items-center gap-4 px-5 py-4">
+                <span className="shrink-0 grid place-items-center w-12 h-12 rounded-full border border-[#DAA520]/25 bg-black/30 drop-shadow-[0_0_10px_rgba(218,165,32,0.3)]">
+                  {theme.icon(TAROT_NIGHT.gold)}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-0.5">
+                    {lang === 'en' ? 'Guide-arcana' : 'Arcane-guide'}
+                  </p>
+                  <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: TAROT_NIGHT.gold }}>
+                    {theme.label[lang]}
+                  </p>
+                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{theme.sigil[lang]}</p>
+                </div>
+              </div>
+              <div className="mx-5 h-px bg-gradient-to-r from-transparent via-[#DAA520]/45 to-transparent" />
+              <div className="px-5 py-3.5">
+                <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-1">
+                  {lang === 'en' ? 'Intention' : 'Intention'}
+                </p>
+                <p className="text-sm leading-snug" style={{ color: TAROT_NIGHT.rose }}>
+                  {sub}
+                </p>
               </div>
             </div>
           );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { hexForOffset } from '@/lib/yi-daily';
 import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
@@ -49,6 +50,17 @@ export async function GET(request: NextRequest) {
   let sent = 0, failed = 0;
   const results: Record<string, 'sent' | 'fail'> = {};
 
+  // Aperçu du conseil de demain : tirage du jour collectif (vue par défaut de la page).
+  const tomorrowNum = hexForOffset(1, now);
+  const tomorrowHexas = await prisma.hexagram.findMany({
+    where: { numero: tomorrowNum },
+    select: { numero: true, caractere: true, element: true, conseil: true },
+  });
+  const adviceByNum = new Map<number, { numero: number; caractere: string; element: string | null; conseil: string | null }>(
+    tomorrowHexas.map((h) => [h.numero, h]),
+  );
+  const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
   // ── Échos échus (étape 7) : prémonctions arrivées à échéance, jamais notifiées.
   // Une notif FCM par écho → l'utilisateur brise le sceau et rend son verdict.
   const dueEchoes = await prisma.echo.findMany({
@@ -81,11 +93,15 @@ export async function GET(request: NextRequest) {
   }
 
   for (const u of users) {
+    const tmr = adviceByNum.get(tomorrowNum);
+    const body = tmr
+      ? `${u.firstName || 'Cher·ère consultante'}, demain se lève sous ${tmr.caractere} ${tmr.element || ''} — ${clip(tmr.conseil || '', 90)}`
+      : `${u.firstName || 'Cher·ère consultante'}, un tirage du jour vous révèlera sa lumière.`;
     const message = {
       token: u.fcmToken!,
       notification: {
         title: '✨ L\'Oracle vous attend',
-        body: `${u.firstName || 'Cher·ère consultante'}, un tirage du jour vous révèlera sa lumière.`,
+        body,
       },
       data: { url: '/yi-jing-du-jour' },
       android: { priority: 'high' as const },

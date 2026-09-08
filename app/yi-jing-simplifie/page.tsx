@@ -882,9 +882,9 @@ function YiQingPage() {
         className="title-glow"
         style={{
           fontFamily: 'var(--font-cinzel-deco), serif',
-          color: '#C6A8E6',
+          color: '#F3C969',
           letterSpacing: '0.2em',
-          textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
+          textShadow: '0 0 40px rgba(180,40,45,0.7), 0 0 80px rgba(92,15,22,0.4)',
           fontSize: 'clamp(1.6rem, 6vw, 4.5rem)',
           textTransform: 'uppercase',
           marginBottom: '0.25rem',
@@ -895,8 +895,8 @@ function YiQingPage() {
       <p
         style={{
           fontFamily: 'var(--font-cinzel), serif',
-          color: '#E0CFF0',
-          textShadow: '0 0 10px rgba(180,140,200,0.6), 0 1px 4px rgba(0,0,0,0.9)',
+          color: '#F5EAD6',
+          textShadow: '0 0 10px rgba(180,40,45,0.6), 0 1px 4px rgba(0,0,0,0.9)',
           letterSpacing: '0.05em',
           fontStyle: 'italic',
           fontSize: 'clamp(0.7rem, 2vw, 1rem)',

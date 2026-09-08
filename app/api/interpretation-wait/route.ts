@@ -118,6 +118,25 @@ const CONFIG: Record<string, {
     minDurationMs: 3500,
     videoNoLoop: true,
   },
+  'tarot-3-cartes-simplifie': {
+    messages: {
+      fr: [
+        'L’arcane guide posé sur la table, les cartes s’agitent…',
+        'Le tarot médite votre intention…',
+        'Les arcanes majeurs se penchent sur votre question…',
+      ],
+      en: [
+        'The guide-arcana rests on the table — the cards stir…',
+        'The tarot ponders your intention…',
+        'The major arcana lean close to your question…',
+      ],
+    },
+    backgroundType: 'video',
+    backgroundUrls: [],
+    animation: 'fade',
+    minDurationMs: 3500,
+    videoNoLoop: true,
+  },
   'tarot-5-cartes': {
     messages: {
       fr: ['La croix se dessine…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],

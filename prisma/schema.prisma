@@ -220,3 +220,45 @@ model PauseRepasConsumption {
   usedAt DateTime @default(now())
   @@unique([email, date])
 }
+
+// ─── Hexagrammes du Yi Jing (64) ────────────────────────────
+// Recréée DANS le schéma Prisma (la table SQL manuelle 'hexagrams' avait été
+// perdue lors d'un reset Neon → /yi-jing-du-jour et /api/hexagram étaient 500).
+// @@map conserve les noms de tables/colonnes d'origine : le SQL brut existant
+// (lib/letter.ts, jointures hexagrams_en) continue de fonctionner.
+model Hexagram {
+  id        Int      @id @default(autoincrement())
+  numero    Int      @unique
+  dateDebut String   @map("date_debut") // 'DD/MM' (période traditionnelle)
+  dateFin   String   @map("date_fin")
+  caractere String // idéogramme CJK (乾, 坤…)
+  pinyin    String
+  element   String // nom court (Le Créateur, La Réceptivité…)
+  strategie String
+  attitude  String
+  conseil   String
+  synthese  String
+  lignes    String // JSON string[] : 6 lignes, index 0 = haut
+  @@map("hexagrams")
+}
+
+// Noms canoniques EN (Wilhelm/Baynes) + synthèse EN, table soeur existante.
+model HexagramEn {
+  numero      Int    @id
+  nameEn      String? @map("name_en")
+  syntheseEn  String? @map("synthese_en")
+  @@map("hexagrams_en")
+}
+
+// ─── Hexagramme du Jour : vues quotidiennes (collection + streak) ──
+// Une ligne par compte et par jour local. Sert à la collection des 64,
+// au compteur de série et au « hier → aujourd'hui ».
+model DailyDrawView {
+  id      String   @id @default(cuid())
+  email   String
+  date    String   // YYYY-MM-DD (jour local du device)
+  numero  Int
+  viewedAt DateTime @default(now())
+  @@unique([email, date])
+  @@map("daily_draw_views")
+}
