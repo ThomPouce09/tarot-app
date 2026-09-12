@@ -76,3 +76,6 @@ lib/generated/
 # Android build artifacts
 *.apk
 apk_artifact.zip
+
+# scripts/outils Hermes locaux
+.hermes/

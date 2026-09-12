@@ -717,7 +717,7 @@ function FlyingStone({
 /* Domino d'os : boîte 3D canonique aux bonnes dimensions.             */
 /* Côtés : DEPTH × H. Haut/bas : W × DEPTH. Front/back : W × H.        */
 /* ------------------------------------------------------------------ */
-function RuneStone({
+export function RuneStone({
   symbol,
   reversed,
   name,

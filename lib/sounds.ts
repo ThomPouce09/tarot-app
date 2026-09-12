@@ -262,3 +262,17 @@ export function stopSound(key: string) {
     // élément non jouable — on ignore
   }
 }
+
+/** Arrête TOUS les sons en cours (pause + rembobine). Utilisé quand on quitte
+ *  un contexte (ex. fermeture du tutoriel) pour ne laisser aucune piste jouer. */
+export function stopAllSounds() {
+  if (typeof window === 'undefined') return;
+  unlocked.forEach((snd) => {
+    try {
+      snd.pause();
+      snd.currentTime = 0;
+    } catch {
+      // élément non jouable — on ignore
+    }
+  });
+}

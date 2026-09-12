@@ -258,6 +258,22 @@ export default function PreferencesPage() {
         </div>
       </div>
 
+      {/* Visiter — rejouer le tutoriel de première visite */}
+      <div className="mystic-panel p-5">
+        <button
+          onClick={() => {
+            try { localStorage.removeItem('tarot_seen_tour'); } catch {}
+            // Rechargement COMPLET : le tour est monté dans layout.tsx et ne
+            // se remonterait pas sur une navigation client (router.push).
+            window.location.assign('/');
+          }}
+          className="mystic-btn w-full text-sm"
+        >
+          ✦ {t('prefs.replayTour')}
+        </button>
+        <p className="mt-1.5 text-center text-[11px] text-gray-500">{t('prefs.replayTourHint')}</p>
+      </div>
+
       {/* Reset */}
       <div className="mystic-panel p-5">
         {confirmReset ? (

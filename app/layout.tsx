@@ -4,6 +4,8 @@ import './fonts-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
+import LanguageGate from '@/components/language-gate'
+import OnboardingTour from '@/components/onboarding-tour'
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +77,8 @@ export default function RootLayout({
           {children}
           <ChunkLoadErrorHandler />
           <LoginModal />
+          <LanguageGate />
+          <OnboardingTour />
           {/* Portal root pour affichage garanti au-dessus de tout */}
           <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
         </LanguageProvider>
