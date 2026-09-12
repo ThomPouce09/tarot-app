@@ -12,6 +12,8 @@ import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResu
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
+import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
+import { parseTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
 
 interface Interpretation {
   situation?: string;
@@ -56,6 +58,20 @@ function InterpretationInner() {
     synthese_en?: string;
   } | null>(null);
   const doneRef = useRef<string | null>(null);
+  // Domaine & intention choisis au sélecteur (question « Domaine — intention »)
+  // → bandeau d'en-tête de la page d'interprétation.
+  const yiTheme = parseYiQuestion(searchParams.get('question'));
+  // Arcane-guide & intention choisis au sélecteur de « 3 Cartes Simplifié »
+  // (question « Arcane — intention ») → bandeau bois/bordeaux & or en tête.
+  const tarotTheme = parseTarotQuestion(searchParams.get('question'));
+  // Question libre posée à l'oracle (Yi Jing précis) → affichage sublime en tête.
+  const rawQuestion = (searchParams.get('question') || '').trim();
+  const GUARDIAN_ICONS: Record<string, (c: string) => JSX.Element> = {
+    Qinglong: IconDragon,
+    Zhuque: IconBird,
+    Baihu: IconTiger,
+    Xuanwu: IconWarrior,
+  };
   // Vidéo de chargement Yi Jing : prioritaire, doit jouer en entier avant le relais
   const [videoEnded, setVideoEnded] = useState(false);
   const MIN_VIDEO_MS = 3500;
@@ -243,8 +259,151 @@ function InterpretationInner() {
         <div className="w-full max-w-md flex items-center justify-between mt-4 mb-6">
           <h1 className="text-3xl text-yellow-400" style={{ fontFamily: titleFont }}>
             {isTarot ? t('interpret.titleTarot') : t('interpret.yijingSpoke')}
-        </h1>
-      </div>
+          </h1>
+        </div>
+
+        {/* Question posée à l'oracle — « Yi Jing précis » : apparition sublime en tête
+            (le « Yi Jing simplifié » affiche lui le bandeau Domaine & Intention) */}
+        {type === 'yi-jing-simple' && !yiTheme && rawQuestion && (
+          <div className="yi-question-card w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-yellow-500/30 bg-black/45 backdrop-blur-sm shadow-[0_0_28px_rgba(243,201,105,0.14)]">
+            <p className="pt-4 text-center text-yellow-500/70 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: titleFont }}>
+              {lang === 'en' ? 'The question asked' : 'La question posée'}
+            </p>
+            <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+            <p
+              className="yi-q-text px-6 pb-2 text-center text-lg sm:text-xl leading-relaxed text-yellow-100 italic"
+              style={{ fontFamily: 'var(--font-cinzel), Georgia, serif', color: YI_LACQUER.gold }}
+            >
+              « {rawQuestion} »
+            </p>
+            {/* Baguette élue — rappel discret, petite animation d'entrée */}
+            {(() => {
+              const num = hexagram?.numero ?? parseInt(searchParams.get('baguette') || '', 10);
+              if (isNaN(num)) return null;
+              return (
+                <div className="yi-stalk-chip flex items-center justify-center gap-2 pt-1 pb-1">
+                  <span className="h-px w-6 bg-gradient-to-r from-transparent to-yellow-400/50" />
+                  <span
+                    className="text-yellow-200/60 text-[11px] uppercase tracking-[0.22em]"
+                    style={{ fontFamily: titleFont }}
+                  >
+                    {lang === 'en' ? 'Stalk' : 'Baguette'}
+                  </span>
+                  <span
+                    className="yi-stalk-num text-lg leading-none"
+                    style={{ fontFamily: "'Hoshiko Satsuki', serif", color: YI_LACQUER.gold }}
+                  >
+                    {String(num).padStart(2, '0')}
+                  </span>
+                  {hexagram && (
+                    <span className="text-sm leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", color: YI_LACQUER.lilac, textTransform: 'capitalize' }}>
+                      {lang === 'en' ? (hexagram.name_en || hexagram.frenchName || '') : (hexagram.frenchName || hexagram.name || '')}
+                    </span>
+                  )}
+                  <span className="h-px w-6 bg-gradient-to-l from-transparent to-yellow-400/50" />
+                </div>
+              );
+            })()}
+            <p className="pb-4 pt-2 text-center text-yellow-100/40 text-[11px] italic">
+              {lang === 'en' ? 'The yarrow stalks echo your question…' : 'Les baguettes d’achillée résonnent de votre question…'}
+            </p>
+          </div>
+        )}
+
+        {/* Question posée à l'oracle — « 3 Cartes · Précis » : même apparition
+            sublime en tête, aux couleurs du Tarot (bois, bordeaux & or). Le
+            « 3 Cartes Simplifié » affiche lui le bandeau Arcane-guide. */}
+        {type === 'tarot-3-cartes' && !tarotTheme && rawQuestion && (
+          <div className="yi-question-card w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 bg-black/45 backdrop-blur-sm shadow-[0_0_28px_rgba(74,25,49,0.45)]">
+            <p className="pt-4 text-center text-[#DAA520]/70 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: titleFont }}>
+              {lang === 'en' ? 'The question asked' : 'La question posée'}
+            </p>
+            <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-[#DAA520]/60 to-transparent" />
+            <p
+              className="yi-q-text px-6 pb-2 text-center text-lg sm:text-xl leading-relaxed italic"
+              style={{ fontFamily: 'var(--font-cinzel), Georgia, serif', color: '#FFD700' }}
+            >
+              « {rawQuestion} »
+            </p>
+            <p className="pb-4 pt-2 text-center text-[#E2B8AC]/50 text-[11px] italic">
+              {lang === 'en' ? 'The arcana unfold around your question…' : 'Les arcanes se déploient autour de votre question…'}
+            </p>
+          </div>
+        )}
+
+        {/* Domaine & intention — bandeau laque & or repris du sélecteur */}
+        {yiTheme && (() => {
+          const { domain, sub } = yiTheme;
+          const GuardianIcon = GUARDIAN_ICONS[domain.guardian];
+          return (
+            <div
+              className="w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-yellow-500/30 shadow-[0_0_24px_rgba(243,201,105,0.12)]"
+              style={{ background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 55%, ${YI_LACQUER.panelDeep} 100%)` }}
+            >
+              <div className="flex items-center gap-4 px-5 py-4">
+                {GuardianIcon && (
+                  <span className="shrink-0 grid place-items-center w-12 h-12 rounded-full border border-yellow-500/25 bg-black/30 drop-shadow-[0_0_10px_rgba(243,201,105,0.25)]">
+                    {GuardianIcon(YI_LACQUER.gold)}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="text-yellow-500/70 text-[10px] uppercase tracking-[0.22em] mb-0.5">
+                    {lang === 'en' ? 'Domain' : 'Domaine'}
+                  </p>
+                  <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: YI_LACQUER.gold }}>
+                    {domain.label[lang]}
+                  </p>
+                </div>
+              </div>
+              <div className="mx-5 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+              <div className="px-5 py-3.5">
+                <p className="text-yellow-500/70 text-[10px] uppercase tracking-[0.22em] mb-1">
+                  {lang === 'en' ? 'Intention' : 'Intention'}
+                </p>
+                <p className="text-sm leading-snug" style={{ color: YI_LACQUER.lilac }}>
+                  {sub}
+                </p>
+                <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{domain.realm[lang]}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Arcane-guide & intention — bandeau boudoir tarotique (marron bois, bordeaux & or),
+            repris du sélecteur de « 3 Cartes Simplifié ». */}
+        {tarotTheme && (() => {
+          const { theme, sub } = tarotTheme;
+          return (
+            <div
+              className="w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 shadow-[0_0_26px_rgba(74,25,49,0.45)]"
+              style={{ background: `linear-gradient(160deg, ${TAROT_NIGHT.panelTop} 0%, ${TAROT_NIGHT.panelMid} 55%, ${TAROT_NIGHT.panelDeep} 100%)` }}
+            >
+              <div className="flex items-center gap-4 px-5 py-4">
+                <span className="shrink-0 grid place-items-center w-12 h-12 rounded-full border border-[#DAA520]/25 bg-black/30 drop-shadow-[0_0_10px_rgba(218,165,32,0.3)]">
+                  {theme.icon(TAROT_NIGHT.gold)}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-0.5">
+                    {lang === 'en' ? 'Guide-arcana' : 'Arcane-guide'}
+                  </p>
+                  <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: TAROT_NIGHT.gold }}>
+                    {theme.label[lang]}
+                  </p>
+                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{theme.sigil[lang]}</p>
+                </div>
+              </div>
+              <div className="mx-5 h-px bg-gradient-to-r from-transparent via-[#DAA520]/45 to-transparent" />
+              <div className="px-5 py-3.5">
+                <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-1">
+                  {lang === 'en' ? 'Intention' : 'Intention'}
+                </p>
+                <p className="text-sm leading-snug" style={{ color: TAROT_NIGHT.rose }}>
+                  {sub}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Votre tirage — cartes tirées (miniatures) en haut de page */}
       {isTarot && tarotCards.length > 0 && (
@@ -273,8 +432,8 @@ function InterpretationInner() {
       <div className="w-full max-w-md text-left space-y-5">
           <>
 
-            {/* Récap baguette élue — Yi Jing simple + question */}
-            {(type === 'yi-jing-simple' || type === 'yi-jing-question') && hexagram && (
+            {/* Récap baguette élue — Yi Jing simple + question + tirage des achillées */}
+            {(type === 'yi-jing-simple' || type === 'yi-jing-simplifie' || type === 'yi-jing-question') && hexagram && (
               <div className="p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10 backdrop-blur-sm">
                 <div className="flex items-center gap-5">
                   {hexagram.glyph && (

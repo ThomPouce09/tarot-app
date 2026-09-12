@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useT } from '@/lib/i18n';
+import { useT, useLang } from '@/lib/i18n';
+import SpaceTitle from '@/components/space-title';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
 import { api } from '@/lib/api-client';
@@ -295,12 +296,7 @@ export default function AbonnementPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
-          <img src="/images/nav-abonnement.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          {t('sub.title')}
-        </h1>
-      </header>
+      <SpaceTitle img="/images/nav-abonnement.png" title={t('sub.title')} />
 
       {/* Activation en cours (retour de paiement) */}
       {activating && (

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import SpaceTitle from '@/components/space-title';
 import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
@@ -59,7 +60,7 @@ export default function PreferencesPage() {
 
   // Hydrater depuis le serveur (source de vérité) au montage, si connecté.
   const hydrateFromServer = useCallback((e: string) => {
-    fetch(`/api/prefs?email=${encodeURIComponent(e)}`)
+    api(`/api/prefs?email=${encodeURIComponent(e)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d) return;
@@ -161,13 +162,7 @@ export default function PreferencesPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
-          <img src="/images/nav-preferences.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-          {t('prefs.title')}
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">{t('prefs.subtitle')}</p>
-      </header>
+      <SpaceTitle img="/images/nav-preferences.png" title={t('prefs.title')} subtitle={t('prefs.subtitle')} />
 
       {/* Son & vibrations */}
       <div className="mystic-panel p-5 space-y-3">
@@ -251,6 +246,22 @@ export default function PreferencesPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Visiter — rejouer le tutoriel de première visite */}
+      <div className="mystic-panel p-5">
+        <button
+          onClick={() => {
+            try { localStorage.removeItem('tarot_seen_tour'); } catch {}
+            // Rechargement COMPLET : le tour est monté dans layout.tsx et ne
+            // se remonterait pas sur une navigation client (router.push).
+            window.location.assign('/');
+          }}
+          className="mystic-btn w-full text-sm"
+        >
+          ✦ {t('prefs.replayTour')}
+        </button>
+        <p className="mt-1.5 text-center text-[11px] text-gray-500">{t('prefs.replayTourHint')}</p>
       </div>
 
       {/* Reset */}

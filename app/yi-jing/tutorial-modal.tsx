@@ -2,7 +2,7 @@
 
 // app/yi-jing/tutorial-modal.tsx — Modale tutoriel « Comment ça marche » par
 // tirage (même pattern que /des-divinatoires, /runes, /tarot). Un seul slide :
-// celui de la tuile cliquée. Thème yi-jing (violet #C6A8E6 / #E0CFF0).
+// celui de la tuile cliquée. Thème yi-jing (laque noir/rouge/or).
 //
 // Pattern : overlay z-40, fermeture au clic overlay / Escape / navigation.
 
@@ -21,8 +21,8 @@ export interface TutorialSlide {
   stepsEn: string[];
 }
 
-const PURPLE = '#B48CCC';
-const PURPLE_PALE = '#E0CFF0';
+const ACCENT = '#8E1C22';      // rouge de Chine
+const ACCENT_PALE = '#F3C969'; // or
 
 export function TutorialModal({
   open,
@@ -76,7 +76,7 @@ export function TutorialModal({
           {/* Overlay */}
           <div
             className="absolute inset-0"
-            style={{ background: 'rgba(10, 5, 20, 0.82)', backdropFilter: 'blur(3px)' }}
+            style={{ background: 'rgba(8, 4, 6, 0.82)', backdropFilter: 'blur(3px)' }}
             onClick={onClose}
           />
 
@@ -84,9 +84,9 @@ export function TutorialModal({
           <motion.div
             className="relative w-full max-w-md overflow-hidden rounded-3xl"
             style={{
-              background: 'linear-gradient(160deg, #2a1a44 0%, #120a24 100%)',
-              border: `1.5px solid ${PURPLE}66`,
-              boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(180,140,204,0.12) inset`,
+              background: 'linear-gradient(160deg, #241014 0%, #0d0609 100%)',
+              border: `1.5px solid ${ACCENT}66`,
+              boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(243,201,105,0.12) inset`,
             }}
             initial={{ y: 28, opacity: 0, scale: 0.97 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -99,7 +99,7 @@ export function TutorialModal({
                 className="pointer-events-none absolute inset-x-0 top-0 h-24"
                 style={{
                   background:
-                    'radial-gradient(ellipse at 50% 0%, rgba(180,140,204,0.28) 0%, transparent 70%)',
+                    'radial-gradient(ellipse at 50% 0%, rgba(180,40,45,0.30) 0%, transparent 70%)',
                 }}
               />
               <span className="relative mb-2 block">
@@ -108,15 +108,15 @@ export function TutorialModal({
                   src={s.iconImg}
                   alt=""
                   className="mx-auto h-12 w-12 object-contain"
-                  style={{ filter: 'drop-shadow(0 0 10px rgba(224,207,240,0.5))' }}
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(243,201,105,0.5))' }}
                 />
               </span>
               <h2
                 className="relative text-xl font-bold"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: PURPLE_PALE,
-                  textShadow: `0 0 14px ${PURPLE}66`,
+                  color: ACCENT_PALE,
+                  textShadow: `0 0 14px ${ACCENT}66`,
                 }}
               >
                 {isEn ? s.titleEn : s.title}
@@ -125,7 +125,7 @@ export function TutorialModal({
                 className="relative mt-2 text-xs leading-relaxed sm:text-sm"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(220,200,250,0.85)',
+                  color: 'rgba(245,234,214,0.85)',
                 }}
               >
                 {isEn ? s.descEn : s.desc}
@@ -140,16 +140,16 @@ export function TutorialModal({
                     key={i}
                     className="flex items-start gap-3 rounded-xl px-3 py-2.5"
                     style={{
-                      background: 'rgba(20, 10, 38, 0.55)',
-                      border: `1px solid ${PURPLE}44`,
+                      background: 'rgba(20, 10, 14, 0.6)',
+                      border: `1px solid ${ACCENT}44`,
                     }}
                   >
                     <span
                       className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
                       style={{
-                        background: `${PURPLE}22`,
-                        border: `1px solid ${PURPLE}77`,
-                        color: PURPLE_PALE,
+                        background: `${ACCENT}22`,
+                        border: `1px solid ${ACCENT}77`,
+                        color: ACCENT_PALE,
                         fontFamily: 'var(--font-cinzel), serif',
                       }}
                     >
@@ -159,7 +159,7 @@ export function TutorialModal({
                       className="text-xs leading-relaxed sm:text-[13px]"
                       style={{
                         fontFamily: 'var(--font-cinzel), serif',
-                        color: 'rgba(230,215,250,0.92)',
+                        color: 'rgba(245,234,214,0.92)',
                       }}
                     >
                       {step}
@@ -172,15 +172,15 @@ export function TutorialModal({
             {/* Pied */}
             <div
               className="flex items-center justify-end border-t px-6 py-4"
-              style={{ borderColor: `${PURPLE}33` }}
+              style={{ borderColor: `${ACCENT}33` }}
             >
               <button
                 onClick={onClose}
                 className="flex h-9 items-center rounded-full px-4 text-xs font-bold"
                 style={{
-                  background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_PALE} 100%)`,
-                  color: '#1a0a2a',
-                  border: `1px solid ${PURPLE_PALE}`,
+                  background: `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT_PALE} 100%)`,
+                  color: '#140a0e',
+                  border: `1px solid ${ACCENT_PALE}`,
                   fontFamily: 'var(--font-cinzel), serif',
                 }}
               >

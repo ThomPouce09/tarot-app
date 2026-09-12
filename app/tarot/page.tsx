@@ -19,8 +19,25 @@ import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 const TAROT_TUTORIALS: TutorialSlide[] = [
   {
     iconImg: '/images/tirage-3-cartes.png',
-    title: 'Tirage de 3 cartes',
-    titleEn: '3-Card Reading',
+    title: '3 Cartes Simplifié',
+    titleEn: '3 Cards Simplified',
+    desc: 'Notre tirage de base : choisissez votre arcane-guide et une intention, les cartes répondent en Passé, Présent et Avenir.',
+    descEn: 'Our base reading: choose your guide-arcana and an intention, the cards answer in Past, Present and Future.',
+    steps: [
+      'Choisissez votre arcane-guide',
+      'Sélectionnez votre intention',
+      'Tirez 3 cartes et lisez leur message',
+    ],
+    stepsEn: [
+      'Pick your guide-arcana',
+      'Select your intention',
+      'Draw 3 cards and read their message',
+    ],
+  },
+  {
+    iconImg: '/images/tirage-3-cartes.png',
+    title: '3 Cartes · Précis',
+    titleEn: '3 Cards · Precise',
     desc: 'Un tirage rapide et clair pour obtenir une réponse directe à votre question.',
     descEn: 'A quick, clear reading for a direct answer to your question.',
     steps: [
@@ -177,8 +194,8 @@ export default function TarotHubPage() {
       <div
         className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
       >
-        {/* TUILE — 3 CARTES */}
-        <GatedTile href="/tarot-3-cartes" allowed={tiles?.['tarot-3-cartes']?.allowed} reason={tiles?.['tarot-3-cartes']?.reason} onBlocked={openGate}>
+        {/* TUILE — 3 CARTES SIMPLIFIÉ (tirage de base, accessible Apprenti) */}
+        <GatedTile href="/tarot-3-cartes-simplifie" allowed={tiles?.['tarot-3-cartes-simplifie']?.allowed} reason={tiles?.['tarot-3-cartes-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -201,6 +218,76 @@ export default function TarotHubPage() {
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  title={t('hubs.tarot.tile3s')}
+                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
+                  style={{
+                    position: 'absolute', top: 6, right: 6, left: 'auto',
+                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
+                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
+                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+                <img src="/images/tirage-3-cartes.png" alt="3 Cartes Simplifié" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+              <h2
+                className="text-sm font-bold text-center leading-tight mb-1"
+                style={{
+                  fontFamily: "var(--font-cinzel-deco), serif",
+                  color: "#FFD700",
+                  textShadow: "0 0 8px rgba(255,215,0,0.4)",
+                }}
+              >
+                {t('hubs.tarot.tile3s')}
+              </h2>
+              <p
+                className="text-[9px] text-center leading-tight"
+                style={{
+                  fontFamily: "var(--font-cinzel), serif",
+                  color: "rgba(255,215,0,0.7)",
+                }}
+              >
+                {t('hubs.tarot.tile3ssub')}
+              </p>
+            </div>
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, rgba(218,165,32,0.18) 0%, transparent 70%)",
+              }}
+            />
+          </motion.div>
+        </GatedTile>
+
+        {/* TUILE — 3 CARTES · PRÉCIS (question libre → avancé) */}
+        <GatedTile href="/tarot-3-cartes" allowed={tiles?.['tarot-3-cartes']?.allowed} reason={tiles?.['tarot-3-cartes']?.reason} onBlocked={openGate}>
+          <motion.div
+            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            style={{
+              boxShadow:
+                "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(218,165,32,0.3)",
+            }}
+            whileHover={{ scale: 1.04, y: -3 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="relative w-full h-full p-2 flex flex-col items-center justify-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, #5a4420 0%, #34240c 50%, #5a4420 100%)",
+              }}
+            >
+              <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
+                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tile3')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
@@ -216,7 +303,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-                <img src="/images/tirage-3-cartes.png" alt="Tirage 3 cartes" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                <img src="/images/tirage-3-cartes.png" alt="3 Cartes Précis" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -231,7 +318,7 @@ export default function TarotHubPage() {
                 className="text-[9px] text-center leading-tight"
                 style={{
                   fontFamily: "var(--font-cinzel), serif",
-                  color: "rgba(255,215,0,0.7)",
+                  color: "rgba(255,215,0,0.75)",
                 }}
               >
                 {t('hubs.tarot.tile3sub')}
@@ -241,7 +328,7 @@ export default function TarotHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(218,165,32,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(218,165,32,0.22) 0%, transparent 70%)",
               }}
             />
           </motion.div>
@@ -269,7 +356,7 @@ export default function TarotHubPage() {
               <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tile5')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
@@ -340,7 +427,7 @@ export default function TarotHubPage() {
                 <div className="absolute inset-1.5 border border-amber-500/30 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tileMan')}
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}

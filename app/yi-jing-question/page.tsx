@@ -840,7 +840,7 @@ function YiJingQuestionPage() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-purple-300">Vérification...</p>
+        <p className="text-[#e8b84b]">Vérification...</p>
       </div>
     );
   }
@@ -894,9 +894,9 @@ function YiJingQuestionPage() {
           className="title-glow"
           style={{
             fontFamily: 'var(--font-cinzel-deco), serif',
-            color: '#C6A8E6',
+            color: '#F3C969',
             letterSpacing: '0.2em',
-            textShadow: '0 0 40px rgba(180,140,200,0.7), 0 0 80px rgba(140,100,180,0.4)',
+            textShadow: '0 0 40px rgba(180,40,45,0.7), 0 0 80px rgba(92,15,22,0.4)',
             fontSize: 'clamp(1.4rem, 5vw, 3.5rem)',
             textTransform: 'uppercase',
             marginBottom: '0.25rem',
@@ -939,7 +939,7 @@ function YiJingQuestionPage() {
             <motion.button
               onClick={handleSubmitQuestion}
               disabled={!question.trim()}
-              className="w-full mt-3 mystic-btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-3 yi-btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={question.trim() ? { scale: 1.03 } : {}}
               whileTap={question.trim() ? { scale: 0.97 } : {}}
             >
@@ -960,7 +960,7 @@ function YiJingQuestionPage() {
         >
           <div className="bg-yellow-950/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-700/20 text-center">
             <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">{lang === 'en' ? 'Your question' : 'Votre question'}</p>
-            <p className="text-yellow-200 italic text-sm">"{question}"</p>
+            <p className="text-yellow-200 italic text-sm">&quot;{question}&quot;</p>
           </div>
 
           {/* Barre de progression du tirage : toujours juste sous la question */}

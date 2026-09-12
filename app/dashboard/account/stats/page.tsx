@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEffect, useState, useMemo } from 'react';
 import { useT } from '@/lib/i18n';
+import SpaceTitle from '@/components/space-title';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 
@@ -27,13 +28,15 @@ function classifyType(t: string): Group {
 function subLabel(type: string): string {
   const map: Record<string, string> = {
     'tarot-3-cartes': 'Tarot 3 cartes',
+    'tarot-3-cartes-simplifie': 'Tarot 3 cartes (simplifié)',
     'tarot-5-cartes': 'Tarot 5 cartes',
     'tarot-5-c-manuelle': 'Tarot 5 cartes',
     'tarot-10-cartes': 'Tarot 10 cartes',
     'tirage-ouvert': 'Tirage Ouvert',
     'tirage-amoureux': 'Tirage Amoureux',
     'tarot': 'Tarot',
-    'yi-jing-simple': 'Yi Jing',
+    'yi-jing-simplifie': 'Yi Jing simplifié',
+    'yi-jing-simple': 'Yi Jing précis',
     'yi-jing-question': 'Yi Jing',
     'yi-qing': 'Yi Qing',
     'yi-jing-du-jour': 'Yi Jing du jour',
@@ -352,15 +355,7 @@ export default function StatsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
-            <img src="/images/nav-stats.png" alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
-            {t('stats.title')}
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">{t('stats.subtitle')}</p>
-        </div>
-      </header>
+      <SpaceTitle img="/images/nav-stats.png" title={t('stats.title')} subtitle={t('stats.subtitle')} />
 
       {/* ── Bloc "série" (streak) : mise en avant de l'activité ── */}
       <div className="mystic-panel p-5">

@@ -83,3 +83,11 @@ lib/generated/
 
 # Keystore debug restauré depuis le secret CI (jamais commité)
 android/app/debug.keystore
+
+# Android build artifacts
+*.apk
+apk_artifact.zip
+
+# scripts/outils Hermes locaux
+.hermes/
+

@@ -296,8 +296,8 @@ export default function HomePage() {
             className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                '0 0 22px rgba(160,130,200,0.45), 0 4px 12px rgba(0,0,0,0.5)',
-              border: '2px solid rgba(180,140,220,0.4)',
+                '0 0 26px rgba(194,47,54,0.55), 0 4px 12px rgba(0,0,0,0.5)',
+              border: '2px solid rgba(243,201,105,0.45)',
             }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -305,31 +305,31 @@ export default function HomePage() {
             <div
               className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                background: 'linear-gradient(135deg, #1a1230 0%, #0a0618 50%, #1a1230 100%)',
+                background: 'linear-gradient(135deg, #241014 0%, #0d0609 50%, #241014 100%)',
               }}
             >
-              <div className="absolute inset-1.5 border border-purple-400/30 rounded-lg pointer-events-none" />
+              <div className="absolute inset-1.5 rounded-lg pointer-events-none" style={{ border: '1px solid rgba(243,201,105,0.3)' }} />
               <img
                 src="/images/yi-jing-icon.png"
                 alt="Yi Jing"
                 className="w-9 h-9 mb-2 object-contain"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(180,140,200,0.6))' }}
+                style={{ filter: 'drop-shadow(0 0 10px rgba(243,201,105,0.55))' }}
               />
               <h2
                 className="text-xs sm:text-sm font-bold text-center leading-tight"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: '#E0CFF0',
-                  textShadow: '0 0 8px rgba(180,140,200,0.5)',
+                  color: '#F3C969',
+                  textShadow: '0 0 8px rgba(194,47,54,0.55)',
                 }}
               >
-                <ShimmerChars text={t('landing.tile.yijing')} col={yijingShimmer.col} color="#E0CFF0" />
+                <ShimmerChars text={t('landing.tile.yijing')} col={yijingShimmer.col} color="#F3C969" />
               </h2>
               <p
                 className="text-[9px] sm:text-[10px] text-center leading-none mt-0.5"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(200,180,230,0.7)',
+                  color: 'rgba(201,178,138,0.75)',
                 }}
               >
                 {t('landing.tile.yijingSub')}
@@ -337,7 +337,7 @@ export default function HomePage() {
             </div>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at center, rgba(180,140,220,0.2) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, rgba(243,201,105,0.18) 0%, transparent 70%)',
               }}
             />
             {/* Balayage de lueur le long de l'encadrre, droite->gauche (synchro lettres) */}

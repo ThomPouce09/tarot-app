@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useLang, useT } from '@/lib/i18n';
+import SpaceTitle from '@/components/space-title';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import { RuneButton } from '@/app/runes/_shared';
@@ -83,13 +84,7 @@ export default function GrimoirePage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="mystic-title text-2xl sm:text-3xl flex items-center gap-2">
-          <span className="text-2xl" aria-hidden>📖</span>
-          {t('echo.grimoire')}
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">{t('echo.grimoireSub')}</p>
-      </header>
+      <SpaceTitle icon={<span className="text-2xl" aria-hidden>📖</span>} title={t('echo.grimoire')} subtitle={t('echo.grimoireSub')} />
 
       {/* ── Verrou : le Grimoire est la prérogative des Arkanes ── */}
       {loaded && !isArkane ? (

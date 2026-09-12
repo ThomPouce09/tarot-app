@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import SpaceTitle from '@/components/space-title';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -103,25 +104,22 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-6">
-      {/* En-tête profil */}
-      <div className="mystic-panel p-5 sm:p-7 flex items-center gap-5">
-        <div className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
-          {initial}
-          <span className="avatar-glass" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="mystic-title text-2xl sm:text-3xl leading-tight truncate">
-            {user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : t('account.welcome')}
-          </h1>
-          <p className="text-gray-400 text-sm truncate">{user.email}</p>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            <span className={`badge-mystic ${isConfirmed ? '' : 'muted'}`}>
-              {confirmed === null ? t('account.checking') : isConfirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
-            </span>
-            <span className="badge-mystic muted">{t('account.memberSince')} {memberSince}</span>
-          </div>
-        </div>
-      </div>
+      {/* En-tête profil : bandeau dégradé harmonisé (modèle /readings) */}
+      <SpaceTitle
+        icon={
+          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+            {initial}
+            <span className="avatar-glass" aria-hidden />
+          </span>
+        }
+        title={user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : t('account.welcome')}
+        subtitle={user.email}
+      >
+        <span className={`badge-mystic ${isConfirmed ? '' : 'muted'}`}>
+          {confirmed === null ? t('account.checking') : isConfirmed ? t('account.emailConfirmed') : t('account.emailUnconfirmed')}
+        </span>
+        <span className="badge-mystic muted">{t('account.memberSince')} {memberSince}</span>
+      </SpaceTitle>
 
       {confirmed === false && (
         <div className="mystic-panel p-4 space-y-2 border-amber-700/40 bg-amber-900/15">

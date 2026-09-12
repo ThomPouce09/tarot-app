@@ -393,6 +393,10 @@ export default function TarotApp({
   onInterpret,
   // Question posée (tirage avec question) : pastille cliquable pour la relire.
   question,
+  // libellé discret « thème · sous-thème » affiché en haut À GAUCHE pendant le
+  // tirage (tirages simplifiés guidés par une intention). Jamais centré : le
+  // titre l'est déjà, et la pastille question est à droite → aucun chevauchement.
+  themeLabel,
   // Fond de table personnalisé (remplace TABLE_BG_WITH_VERSION).
   backgroundImage,
   // Vidéo de fond en boucle (remplace backgroundImage si fournie).
@@ -410,6 +414,7 @@ export default function TarotApp({
   majorsOnly?: boolean;
   onInterpret?: (cardIds: number[]) => void;
   question?: string;
+  themeLabel?: string;
   backgroundImage?: string;
   backgroundVideo?: string;
   crossLayout?: { area: string; label: string; icon: string }[];
@@ -884,6 +889,33 @@ export default function TarotApp({
         </h1>
       </motion.div>
 
+      {/* ========== INTENTION (thème · sous-thème) — libellé discret, HAUT-GAUCHE ==========
+          Tirages simplifiés guidés par une intention (ex. /tarot-3-cartes-simplifie).
+          Toujours visible (mobile compris) ; légèrement descendu sous le titre,
+          texte entier sans troncature — il passe au-dessus des cartes (z-40 >
+          z-25) et ne gêne pas le déroulement du tirage. Non cliquable, sobre. */}
+      {themeLabel && (
+        <motion.div
+          className="absolute left-0 z-40 px-4"
+          style={{ top: '15%' }}
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -14 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          <div
+            className="rounded-full border border-[rgba(218,165,32,0.28)] bg-[rgba(20,10,5,0.5)] px-3 py-1.5 backdrop-blur-sm"
+            style={{ fontFamily: 'var(--font-cinzel), serif' }}
+          >
+            <span className="block text-[8.5px] font-bold uppercase tracking-[0.16em] text-[#E8C87A]/80">
+              Intention
+            </span>
+            <span className="block max-w-[58vw] text-[11px] leading-snug text-[#F0E6D3]/90 sm:max-w-none">
+              {themeLabel}
+            </span>
+          </div>
+        </motion.div>
+      )}
+
       {/* ========== QUESTION (tirage avec question) — pastille cliquable ========== */}
       {question && (
         <motion.div
@@ -1293,6 +1325,8 @@ export default function TarotApp({
               params.append('type', spreadType);
               params.append('cartes', ids.join(','));
               if (userId) params.append('userId', userId);
+              // Question posée (tirage « précis ») → bandeau + prompt de l'oracle.
+              if (question) params.append('question', question);
               router.push(`/interpret/${spreadType}?${params.toString()}`);
             }}
             className="relative px-10 py-4 rounded-2xl text-sm font-bold tracking-[0.18em] uppercase overflow-hidden"

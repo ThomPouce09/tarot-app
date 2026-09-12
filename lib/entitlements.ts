@@ -132,6 +132,11 @@ export async function canDo(email: string, type: string, question: string | null
   });
   if (!user) return { allowed: false, reason: 'not-logged', message: 'Connectez-vous pour faire un tirage.' };
 
+  // Le tirage COLLECTIF du jour est offert à tous (ne consomme aucun quota ; la
+  // page ne fait que le consulter). Seule la lecture PERSONNELLE est réservée,
+  // gated côté API (402) — d'où l'autorisation inconditionnelle ici.
+  if (type === 'yi-jing-du-jour') return { allowed: true, reason: 'ok', message: '' };
+
   const cls = classify(type);
   if (!cls) return { allowed: false, reason: 'limit-grand', message: 'Type de tirage reconnu.' };
 

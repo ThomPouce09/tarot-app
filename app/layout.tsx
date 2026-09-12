@@ -5,6 +5,8 @@ import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
 import StatusBarController from '@/components/status-bar-controller'
+import LanguageGate from '@/components/language-gate'
+import OnboardingTour from '@/components/onboarding-tour'
 
 // (static export : pas de force-dynamic)
 
@@ -77,6 +79,8 @@ export default function RootLayout({
           {children}
           <ChunkLoadErrorHandler />
           <LoginModal />
+          <LanguageGate />
+          <OnboardingTour />
           {/* Portal root pour affichage garanti au-dessus de tout */}
           <div id="portal-root" style={{ position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none' }} />
         </LanguageProvider>

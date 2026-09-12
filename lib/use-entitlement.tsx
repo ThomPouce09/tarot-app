@@ -30,7 +30,7 @@ export interface SubscriptionState {
   usage: UsageState | null;
 }
 
-export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe';
+export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only';
 
 export interface GateDecision {
   allowed: boolean;
@@ -122,10 +122,11 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
 
   const isBaseDaily = reason === 'limit-base-daily';
   const isGrand = reason === 'limit-grand';
+  const isPersonalOnly = reason === 'personal-only';
   const notLogged = reason === 'not-logged';
 
-  const title = isBaseDaily ? t('gate.baseDailyTitle') : isGrand ? t('gate.grandLimitTitle') : t('gate.paywallTitle');
-  const text = isBaseDaily ? t('gate.baseDailyText') : isGrand ? t('gate.grandLimitText') : t('gate.paywallText');
+  const title = isBaseDaily ? t('gate.baseDailyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle') : t('gate.paywallTitle');
+  const text = isBaseDaily ? t('gate.baseDailyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText') : t('gate.paywallText');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
