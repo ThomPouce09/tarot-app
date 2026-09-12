@@ -103,8 +103,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `(function(){
   var v=document.getElementById('boot-veil');if(!v)return;
   /* Voile de démarrage réservé à la landing (l'app y entre ici). Ailleurs :
-     page directement visible — sinon on masquerait une navigation interne. */
-  if(location.pathname!=='/'){v.remove();return;}
+     page directement visible — sinon on masquerait une navigation interne.
+     '/index.html' = entrée de la WebView Capacitor (export statique). */
+  if(location.pathname!=='/'&&location.pathname!=='/index.html'){v.remove();return;}
   try{var p=JSON.parse(localStorage.getItem('tarot_prefs')||'{}');var tx=document.getElementById('boot-veil-text');if(p.language==='en'&&tx)tx.textContent='Loading...';}catch(e){}
   function out(){if(!v)return;clearInterval(iv);v.classList.add('app-loader-out');var w=v;v=null;setTimeout(function(){w.remove();},800);}
   /* Relais = le <AppLoader /> React de la landing (hydraté, avec fondu + minuteries).
