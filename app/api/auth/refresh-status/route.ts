@@ -13,9 +13,11 @@ export async function POST(request: NextRequest) {
     }
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { confirmed: true },
+      select: { confirmed: true, deletedAt: true },
     });
-    if (!user) {
+    // Compte inexistant OU en tombeau (supprimé) => « inconnu » : le client
+    // doit purger sa session locale et revenir à la mire de connexion.
+    if (!user || user.deletedAt) {
       return NextResponse.json({ error: 'Compte introuvable' }, { status: 404 });
     }
     return NextResponse.json({ confirmed: user.confirmed });

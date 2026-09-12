@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AccountNav from '@/components/account-nav';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
 
@@ -14,6 +16,29 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     }
     setReady(true);
   }, []);
+
+  // Garde de session : le localStorage est la mémoire du device, pas une preuve.
+  // Un vieux compte (test, supprimé ou reseedé en base) ne doit PAS ouvrir
+  // « Mon espace ». On vérifie l'existence du compte côté serveur : 404 =
+  // compte introuvable -> on purge la session locale -> écran de connexion.
+  useEffect(() => {
+    const email = user?.email;
+    if (!email) return;
+    let alive = true;
+    fetch('/api/auth/refresh-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+      .then(async (r) => {
+        if (r.status === 404 && alive) {
+          try { localStorage.removeItem('tarot_user'); } catch {}
+          setUser(null);
+        }
+      })
+      .catch(() => {}); // réseau KO -> on ne déconnecte pas
+    return () => { alive = false; };
+  }, [user?.email]);
 
   if (!ready) {
     return (
@@ -32,7 +57,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         <div className="cosmos-veil" aria-hidden /><div className="cosmos-nebula3" aria-hidden /><div className="cosmos-stars" aria-hidden /><div className="cosmos-stars2" aria-hidden />
         <span className="text-5xl">🔒</span>
         <p className="mystic-title text-xl">Accès réservé aux initiés</p>
-        <a href="/auth/login" className="mystic-btn">Se connecter</a>
+        <button type="button" onClick={() => router.replace('/login')} className="mystic-btn">Se connecter</button>
       </div>
     );
   }
