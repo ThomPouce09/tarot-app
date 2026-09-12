@@ -50,6 +50,7 @@ interface SubState {
 
 export default function AbonnementPage() {
   const t = useT();
+  const lang = useLang();
   const [current, setCurrent] = useState<PlanId>('apprenti');
   const [status, setStatus] = useState<string | null>(null);
   // Facturation indépendante par abonnement (mois par défaut) : radios propres à chaque carte.
@@ -272,6 +273,10 @@ export default function AbonnementPage() {
   const credits = usage?.rechargeCredits ?? 0;
   const welcomeBaseUsed = (usage?.welcomeBaseUsed ?? []) as Universe[];
   const welcomeGrandUsed = usage?.welcomeGrandUsed ?? false;
+
+  // Tickets-cadeaux des créatures — purgés serveur à expiration (5 j).
+  const giftTickets = usage?.giftTickets ?? 0;
+  const giftExpiry = usage?.giftExpiresAt ? new Date(usage.giftExpiresAt) : null;
   const bonusGrand = usage?.bonusGrand ?? 0;
   const baseUsedToday = usage?.baseUsedToday ?? 0;
   const baseUnlimited = usage?.baseUnlimited ?? false;
@@ -378,6 +383,35 @@ export default function AbonnementPage() {
                 <span>≈ {rechargeGrandLeft} {t('sub.meterGrandShort')}</span>
                 <span>≈ {rechargeBaseLeft} {t('sub.meterBaseShort')}</span>
               </div>
+            </div>
+          )}
+
+          {/* Cadeau des créatures — tirage offert (expire 5 jours après la réclamation).
+              Disparaît seul du panneau quand l'offre expire (purge serveur). */}
+          {giftTickets > 0 && (
+            <div className="rounded-lg border border-amber-400/40 bg-gradient-to-r from-amber-900/30 to-amber-800/10 p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-semibold text-amber-200">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3.5" y="8.2" width="17" height="11.3" rx="2" />
+                    <path d="M3.5 12.4h17" />
+                    <path d="M12 8.2v11.3" />
+                    <path d="M12 8.2c0-2.6 1.6-4.4 3.4-4.4 1.7 0 2.7 1.2 1.6 3-1 .9-2.8 1.2-5 1.4z" />
+                    <path d="M12 8.2c0-2.6-1.6-4.4-3.4-4.4C6.9 3.8 5.9 5 7 6.8c1 .9 2.8 1.2 5 1.4z" />
+                  </svg>
+                  {t('sub.meterGift')}
+                </span>
+                <span className="text-lg font-bold text-amber-100">+{giftTickets}</span>
+              </div>
+              {giftExpiry && (
+                <div className="mt-1 text-xs text-gray-400">
+                  {t('sub.giftExpires')}{' '}
+                  {giftExpiry.toLocaleDateString(
+                    lang === 'en' ? 'en-GB' : 'fr-FR',
+                    { day: '2-digit', month: '2-digit' },
+                  )}
+                </div>
+              )}
             </div>
           )}
 
