@@ -8,6 +8,8 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
+import SpeakerToggle from '@/components/speaker-toggle';
+import FirstVisitHints from '@/components/first-visit-hints';
 import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
@@ -237,6 +239,8 @@ export default function RunesHub() {
     <RuneBackground>
       <RunesRandomBackdrop />
       <YiSlideNav />
+      <SpeakerToggle />
+      <FirstVisitHints flagKey="hints_runes" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <RuneTitle
         title="Runes Scandinaves : Interroger le Futhark"
         subtitle="Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin."
@@ -272,6 +276,7 @@ export default function RunesHub() {
                     ? `How this reading works: ${tile.title}`
                     : `Comment fonctionne ce tirage : ${tile.title}`
                 }
+                data-info-i
                 className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
                   firstVisit ? 'animate-[runesGlow_2s_ease-in-out_3]' : ''
                 }`}

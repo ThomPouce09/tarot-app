@@ -3,7 +3,7 @@
 // components/onboarding-tour.tsx — Tutoriel de première visite
 // « Le hall des Etoiles ». Monté dans app/layout.tsx SOUS la LanguageGate
 // (z-120) : le tour s'ouvre une fois la langue choisie (flag tarot_seen_lang)
-// et jamais si le visiteur l'a déjà vu ou passé (flag tarot_seen_tour).
+// et jamais si le compte l'a déjà vu ou passé (flag 'tour', persisté en base).
 // 11 slides : philosophie des 4 univers, 4 mini-tirages interactifs (gestes
 // réels), visite express du temple et de « Mon espace », mot de la fin.
 // Skip à tout moment ; rejouable depuis Préférences. Sons = ceux des vrais
@@ -16,13 +16,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useLang, useT } from '@/lib/i18n';
 import { installSoundUnlock, stopAllSounds } from '@/lib/sounds';
+import { isTutorialSeen, markTutorialSeen, hydrateTutorials } from '@/lib/tutorials';
 import { GOLD, GOLD_PALE, IVORY, ROSE, WINE, goldPill, darkPill } from './onboarding/fx';
 import TarotDraw from './onboarding/tarot-draw';
 import YiJingDraw from './onboarding/yijing-draw';
 import RuneDraw from './onboarding/rune-draw';
 import DiceDraw from './onboarding/dice-draw';
 
-const TOUR_FLAG = 'tarot_seen_tour';
+const TOUR_FLAG = 'tour';
 const LANG_FLAG = 'tarot_seen_lang';
 
 export default function OnboardingTour() {
@@ -37,26 +38,28 @@ export default function OnboardingTour() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const closedRef = useRef(false);
 
-  // Ouverture : sur '/' uniquement, langue déjà choisie, tour jamais vu.
+  // Ouverture : sur '/' uniquement, langue déjà choisie, tour jamais vu
+  // (drapeau lié au compte, hydraté depuis le serveur — voir lib/tutorials).
   // (poll léger : la gate pose son flag sans remonter l'arbre React.)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      if (localStorage.getItem(TOUR_FLAG)) return;
-    } catch {
-      return;
-    }
-    const check = () => {
-      try {
-        if (localStorage.getItem(LANG_FLAG)) {
-          setReady(true);
-          if (pollRef.current) clearInterval(pollRef.current);
-        }
-      } catch {}
+    let stop = false;
+    const start = () => {
+      if (stop || isTutorialSeen(TOUR_FLAG)) return;
+      const check = () => {
+        try {
+          if (localStorage.getItem(LANG_FLAG)) {
+            setReady(true);
+            if (pollRef.current) clearInterval(pollRef.current);
+          }
+        } catch {}
+      };
+      check();
+      pollRef.current = setInterval(check, 400);
     };
-    check();
-    pollRef.current = setInterval(check, 400);
+    hydrateTutorials().then(start);
     return () => {
+      stop = true;
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
@@ -69,9 +72,7 @@ export default function OnboardingTour() {
   }, [ready, pathname, open]);
 
   const close = useCallback(() => {
-    try {
-      localStorage.setItem(TOUR_FLAG, '1');
-    } catch {}
+    markTutorialSeen(TOUR_FLAG); // compte (base) + cache local
     closedRef.current = true;
     setOpen(false);
     stopAllSounds(); // aucune piste ne survit à la sortie du tour (exigence user)

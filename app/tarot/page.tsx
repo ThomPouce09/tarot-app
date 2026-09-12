@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
+import SpeakerToggle from '@/components/speaker-toggle';
+import FirstVisitHints from '@/components/first-visit-hints';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -159,6 +161,8 @@ export default function TarotHubPage() {
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
+      <SpeakerToggle />
+      <FirstVisitHints flagKey="hints_tarot" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
       <div
@@ -219,6 +223,7 @@ export default function TarotHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tile3s')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -289,6 +294,7 @@ export default function TarotHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tile3')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -359,6 +365,7 @@ export default function TarotHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tile5')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -430,6 +437,7 @@ export default function TarotHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.tarot.tileMan')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',

@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import { onAccountChanged } from '@/lib/tutorials';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
+        onAccountChanged(); // drapeaux tutoriels du compte (ne resservent pas)
         router.push('/dashboard/account');
       } else {
         setFailedAttempts(prev => prev + 1);

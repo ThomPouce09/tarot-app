@@ -9,20 +9,36 @@ import { useLang, useT } from '@/lib/i18n';
 import { DEFAULT_BACKGROUND, LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
 // APK : tous les appels /api/* passent par l'helper (base absolue du backend).
 import { api } from '@/lib/api-client';
+import AppLoader from '@/components/app-loader';
 import Firefly from '@/components/firefly';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
 import { ShimmerChars } from '@/components/shimmer-chars';
 import PauseRepas from '@/components/pause-repas';
+import SpeakerToggle from '@/components/speaker-toggle';
+import FirstVisitHints from '@/components/first-visit-hints';
 
 // useLayoutEffect côté client (s'exécute AVANT le rendu peint), useEffect côté
 // serveur (SSR) — évite les warnings, et surtout les flashs d'état après hydration.
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
+// Voile de démarrage : affiché UNIQUEMENT au vrai démarrage de l'app (premier
+// montage de la landing après rechargement). Un retour depuis un oracle
+// (navigation client) ne doit pas le faire réapparaître.
+let landingColdStartSeen = false;
+
 export default function HomePage() {
   const router = useRouter();
   const t = useT();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Démarrage à froid détecté avant la première peinture (pas de mismatch SSR).
+  const [coldStart, setColdStart] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (!landingColdStartSeen) {
+      landingColdStartSeen = true;
+      setColdStart(true);
+    }
+  }, []);
   // Fond de départ : premier de la liste (fallback), remplacé dès le montage.
   const [background, setBackground] = useState<string>(LANDING_BACKGROUNDS[0]);
   const [bgReady, setBgReady] = useState(false); // évite le flash "mauvais fond" au refresh
@@ -180,8 +196,11 @@ export default function HomePage() {
       )}
 
       {/* MAIN TITLE */}
+      {/* pointer-events-none : ce bloc s'étend sur toute la largeur et avalait
+          les clics sur la bande supérieure (enceinte flottante z-55 non
+          cliquable). Le CTA est remis en pointer-events-auto. */}
       <div
-        className="absolute top-[3%] sm:top-[3%] md:top-[4%] inset-x-0 text-center px-4"
+        className="pointer-events-none absolute top-[3%] sm:top-[3%] md:top-[4%] inset-x-0 text-center px-4"
         style={{ zIndex: 70 }}
       >
         <h1
@@ -212,7 +231,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={handleLogin}
-          className="relative z-[99998] mx-auto mt-2 px-5 py-1.5 rounded-full font-semibold transition-all hover:scale-[1.04] active:scale-[0.97]"
+          className="pointer-events-auto relative z-[99998] mx-auto mt-2 px-5 py-1.5 rounded-full font-semibold transition-all hover:scale-[1.04] active:scale-[0.97]"
           style={{
             position: 'relative',
             zIndex: 99998,
@@ -505,6 +524,13 @@ export default function HomePage() {
 
     <PauseRepas />
     <Firefly page="landing" />
+    <SpeakerToggle top={10} right={8} z={75} />
+    <FirstVisitHints flagKey="hints_landing" hints={[{ selector: '[data-cta-account]', textKey: 'hint.landingAccount' }]} />
+    {/* Voile « Chargement … » — ne vit qu'au démarrage à froid ; se retire
+        quand le fond est résolu ET (image ou 1re frame vidéo décodée). */}
+    {coldStart && (
+      <AppLoader ready={bgReady && (!isVideoBackground(background) || videoReady)} />
+    )}
     </div>
   );
 }// force vercel redeploy

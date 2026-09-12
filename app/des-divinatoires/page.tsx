@@ -5,6 +5,8 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
+import SpeakerToggle from '@/components/speaker-toggle';
+import FirstVisitHints from '@/components/first-visit-hints';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
@@ -274,6 +276,8 @@ export default function DesDivinatoiresHub() {
   return (
     <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
+      <SpeakerToggle />
+      <FirstVisitHints flagKey="hints_des" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <DiceTitle
         title="Les Dés du zodiaque"
         subtitle="Trois dés à douze faces — la Planète (qui/quoi), le Signe (comment) et la Maison (où) — pour éclairer vos questions avec précision."
@@ -325,6 +329,7 @@ export default function DesDivinatoiresHub() {
                     ? `How this reading works: ${tile.title}`
                     : `Comment fonctionne ce tirage : ${tile.title}`
                 }
+                data-info-i
                 className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
                   firstVisit ? 'animate-[ddGlow_2s_ease-in-out_3]' : ''
                 }`}

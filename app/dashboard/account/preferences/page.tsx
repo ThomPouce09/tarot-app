@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLang, useSetLang, useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import SpaceTitle from '@/components/space-title';
-import { setSoundPrefs, unlockAllSounds } from '@/lib/sounds';
+import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib/sounds';
+import { resetAllTutorials } from '@/lib/tutorials';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
 
@@ -16,7 +17,6 @@ type Prefs = {
   language: 'fr' | 'en';
   soundEffects: boolean;
   voices: boolean;
-  haptics: boolean;
 };
 
 const DEFAULT_PREFS: Prefs = {
@@ -27,7 +27,6 @@ const DEFAULT_PREFS: Prefs = {
   language: 'fr',
   soundEffects: true,
   voices: true,
-  haptics: true,
 };
 
 export default function PreferencesPage() {
@@ -73,7 +72,7 @@ export default function PreferencesPage() {
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
-          setSoundPrefs(next.soundEffects, next.voices, next.haptics);
+          setSoundPrefs(next.soundEffects, next.voices);
           return next;
         });
       })
@@ -104,12 +103,13 @@ export default function PreferencesPage() {
       return next;
     });
     setSaved(true);
-    // Sons + haptique : réapplique la préférence immédiatement.
-    if (patch.soundEffects !== undefined || patch.voices !== undefined || patch.haptics !== undefined) {
+    // Sons : réapplique la préférence immédiatement, en coupant les pistes en cours.
+    if (patch.soundEffects !== undefined || patch.voices !== undefined) {
       const se = patch.soundEffects ?? prefs.soundEffects;
       const vo = patch.voices ?? prefs.voices;
-      const ha = patch.haptics ?? prefs.haptics;
-      setSoundPrefs(se, vo, ha);
+      setSoundPrefs(se, vo);
+      if (!vo) stopVoices();
+      if (!se) stopAllSounds(); // les effets incluent tout le reste
       if (se) unlockAllSounds();
     }
     // Rappel quotidien → demande de permission push (Capacitor).
@@ -151,7 +151,7 @@ export default function PreferencesPage() {
     setPrefs((p) => {
       const next: Prefs = { ...DEFAULT_PREFS, language: p.language };
       localStorage.setItem('tarot_prefs', JSON.stringify(next));
-      setSoundPrefs(next.soundEffects, next.voices, next.haptics);
+      setSoundPrefs(next.soundEffects, next.voices);
       syncServer(next);
       return next;
     });
@@ -164,12 +164,11 @@ export default function PreferencesPage() {
     <div className="space-y-6">
       <SpaceTitle img="/images/nav-preferences.png" title={t('prefs.title')} subtitle={t('prefs.subtitle')} />
 
-      {/* Son & vibrations */}
+      {/* Son */}
       <div className="mystic-panel p-5 space-y-3">
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.sound')}</h2>
         <Toggle label={t('prefs.soundEffects')} checked={prefs.soundEffects} onChange={(v) => update({ soundEffects: v })} />
         <Toggle label={t('prefs.voices')} checked={prefs.voices} onChange={(v) => update({ voices: v })} />
-        <Toggle label={t('prefs.haptics')} checked={prefs.haptics} onChange={(v) => update({ haptics: v })} hint={t('prefs.hapticsHint')} />
       </div>
 
       {/* Fond d'écran de l'accueil — rangée compacte ; seuls les fonds du
@@ -251,8 +250,10 @@ export default function PreferencesPage() {
       {/* Visiter — rejouer le tutoriel de première visite */}
       <div className="mystic-panel p-5">
         <button
-          onClick={() => {
-            try { localStorage.removeItem('tarot_seen_tour'); } catch {}
+          onClick={async () => {
+            // Le clear serveur doit être CONFIRMÉ avant le rechargement, sinon
+            // la navigation annule le fetch et l'hydratation remet les flags.
+            await resetAllTutorials(); // compte (base) + cache local
             // Rechargement COMPLET : le tour est monté dans layout.tsx et ne
             // se remonterait pas sur une navigation client (router.push).
             window.location.assign('/');

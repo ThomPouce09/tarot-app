@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import { onAccountChanged } from '@/lib/tutorials';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
 
@@ -38,6 +39,7 @@ export function LoginModal() {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
+        onAccountChanged(); // drapeaux tutoriels du compte (ne resservent pas)
         setOpen(false);
         router.push('/dashboard/account');
       } else {

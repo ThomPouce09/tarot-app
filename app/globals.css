@@ -566,8 +566,94 @@ textarea,
 @keyframes liftUp { to { transform: translateX(-50%) translateY(-26px) scale(1.75) rotate(-2deg); } }
 @keyframes hintBlink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+/* Bulle d'état sonore (enceinte flottante) — bas de l'écran, éphémère et discrète. */
+.speaker-toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(26, 14, 10, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  animation: speakerToastIn 0.25s ease-out;
+}
+@keyframes speakerToastIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 0.85; transform: translate(-50%, 0); }
+}
 /* Pulse léger du bouton "Enregistrer et tirer vos cartes" dès que la question
    est écrite (modale /tarot-5-c-manuelle) */
+
+/* Voile de démarrage « Chargement … / Loading... » — couvre toute l'app tant
+   que la landing n'a pas résolu et décodé son fond, puis fondu de sortie.
+   Au-dessus de tout (gate langue z-[120], portal z-[99999]) pendant ce court
+   instant ; pointer-events: all bloque les taps résiduels sous le voile. */
+/* #boot-veil = même voile, version HTML pur rendue par le SSR dans layout.tsx.
+   Peint dès la réponse réseau, AVANT le JS : élimine le flash de la page visible
+   pendant l'hydratation. Un script inline le retire dès que le composant
+   <AppLoader /> de la landing est dans le DOM (relais + fondu + minuteries). */
+#boot-veil,
+.app-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 35%, #1a0f26 0%, #0a0604 70%);
+  transition: opacity 0.7s ease, visibility 0.7s ease;
+}
+.app-loader-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.app-loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.app-loader-star {
+  animation: loaderSpin 9s linear infinite, loaderFade 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 14px rgba(218, 165, 32, 0.55));
+}
+.app-loader-text {
+  font-family: var(--font-cinzel), serif;
+  font-size: 15px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #DAA520;
+  text-shadow: 0 0 12px rgba(218, 165, 32, 0.4);
+}
+.app-loader-dots {
+  display: flex;
+  gap: 8px;
+}
+.app-loader-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(218, 165, 32, 0.85);
+  animation: loaderDot 1.2s ease-in-out infinite;
+}
+.app-loader-dots span:nth-child(2) { animation-delay: 0.18s; }
+.app-loader-dots span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes loaderSpin { to { transform: rotate(360deg); } }
+@keyframes loaderFade { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+@keyframes loaderDot {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
 @keyframes questionPulse {
   0%, 100% { box-shadow: 0 0 0 rgba(218,165,32,0); }
   50% { box-shadow: 0 0 26px rgba(218,165,32,0.5); }
@@ -614,6 +700,17 @@ textarea,
 @keyframes yijGlow {
   0%, 100% { box-shadow: 0 0 10px rgba(180,140,204,0.35), 0 0 0 3px rgba(180,140,204,0.18); }
   50% { box-shadow: 0 0 22px rgba(180,140,204,0.85), 0 0 0 6px rgba(180,140,204,0.35); }
+}
+
+/* Anneau doré pulsant des mini-tutots de 1re visite (FirstVisitHints) */
+.hint-ring {
+  border: 2px solid rgba(218,165,32,0.9);
+  box-shadow: 0 0 12px rgba(218,165,32,0.55), inset 0 0 8px rgba(218,165,32,0.3);
+  animation: hintRing 1.6s ease-in-out infinite;
+}
+@keyframes hintRing {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 /* Luciole : rester SOUS les contrôles UI (CTA landing z-index 70).

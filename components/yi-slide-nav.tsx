@@ -31,6 +31,7 @@ export default function YiSlideNav() {
         onClick={() => { sfx('scroll1', 0.5); setOpen(true); }}
         aria-label="Ouvrir la navigation"
         aria-expanded={open}
+        data-nav-menu
         className="fixed right-1 -top-2 z-50 flex items-center"
         initial={false}
         animate={{ opacity: open ? 0 : 1 }}

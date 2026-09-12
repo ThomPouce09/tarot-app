@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import YiSlideNav from '@/components/yi-slide-nav';
 import CardFace from './card-face';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
-import { playSound, vibrate as haptic } from '@/lib/sounds';
+import { playSound } from '@/lib/sounds';
 
 /* ============================================================
  *  FUSION  /tarot-3-cartes (décor)  +  /tarot-test (pioche)
@@ -510,7 +510,6 @@ export default function TarotApp({
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // haptic() importé de lib/sounds (respecte la préférence « Vibrations »).
   /* ---- Viewport resize ---- */
   useEffect(() => {
     const onR = () => setVw(window.innerWidth);
@@ -531,7 +530,6 @@ export default function TarotApp({
     const cardEl = stageRef.current && stageRef.current.querySelector(`[data-deck-index="${deckIndex}"]`);
     const slotEl = slotRefs.current[slot];
     const card = deck[deckIndex];
-    haptic(30);
     // Son de carte sélectionnée : l'un des 2 sons au hasard à chaque fois
     // (tap utilisateur => lecture autorisée). playSound respecte la
     // préférence « Effets sonores » de /preferences.
@@ -556,7 +554,6 @@ export default function TarotApp({
           flyingIdx.current = null;
           setFlying(null);
           setLitSlot(slot);
-          haptic([20, 40, 20]);
           window.setTimeout(() => setLitSlot(null), 800);
         }, 150);
       }, 900);
@@ -722,7 +719,6 @@ export default function TarotApp({
     pinchStartDist.current = Math.hypot(x1 - x2, y1 - y2);
     pinchStartAmount.current = zoomRef.current.amount;
     zoomRef.current.center = idxAt((x1 + x2) / 2);
-    haptic(10);
     // Le geste est compris : on retire le tuto de pincement immédiatement.
     hidePinchHint();
   };
