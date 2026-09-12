@@ -56,6 +56,7 @@ export default function LanguageGate() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35 }}
           className="fixed inset-0 z-[120] flex items-center justify-center px-5"
+          data-lang-gate
           style={{ background: 'rgba(30, 15, 8, 0.62)', backdropFilter: 'blur(4px)' }}
         >
           {/* Panneau — même écrin que les modales tutoriels : bois → bordeaux, liseré or */}

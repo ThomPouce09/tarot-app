@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
+import SpeakerToggle from '@/components/speaker-toggle';
+import FirstVisitHints from '@/components/first-visit-hints';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -157,6 +159,8 @@ export default function YiJingHubPage() {
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
+      <SpeakerToggle />
+      <FirstVisitHints flagKey="hints_yijing" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
       <div className="absolute top-[8%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
@@ -213,6 +217,7 @@ export default function YiJingHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.base')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -288,6 +293,7 @@ export default function YiJingHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.simple')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -363,6 +369,7 @@ export default function YiJingHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.day')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',
@@ -439,6 +446,7 @@ export default function YiJingHubPage() {
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.question')}
+                  data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
                     position: 'absolute', top: 6, right: 6, left: 'auto',

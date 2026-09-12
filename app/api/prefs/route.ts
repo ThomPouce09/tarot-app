@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     dailyReminder: user.dailyReminder,
     dailyReminderHour: user.dailyReminderHour,
     backgrounds: user.backgrounds,
+    seenTutorials: user.seenTutorials,
     lastLetterSentAt: user.lastLetterSentAt ? user.lastLetterSentAt.toISOString() : null,
   });
 }
@@ -43,6 +44,15 @@ export async function POST(request: NextRequest) {
     }
     if (typeof body.fcmToken === 'string' && body.fcmToken.trim()) data.fcmToken = body.fcmToken.trim();
     if (body.fcmToken === null) data.fcmToken = null; // retirer le token (déconnexion)
+
+    // Tutoriels vus : union avec l'existant (marquer « vu » ne retire jamais rien)
+    // ou remise à zéro totale via { seenTutorialsClear: true } (« Revoir le tutoriel »).
+    if (body.seenTutorialsClear === true) {
+      data.seenTutorials = [];
+    } else if (Array.isArray(body.seenTutorials)) {
+      const flags = (body.seenTutorials as unknown[]).filter((x): x is string => typeof x === 'string');
+      data.seenTutorials = Array.from(new Set([...user.seenTutorials, ...flags])).slice(0, 30);
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'Rien à mettre à jour' }, { status: 400 });

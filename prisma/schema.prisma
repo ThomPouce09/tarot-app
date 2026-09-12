@@ -39,6 +39,10 @@ model User {
   // Vide = tous les fonds en mode aléatoire (défaut).
   backgrounds       String[]
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
+  // Tutoriels vus (lié au compte → ne se ressert pas après déconnexion/reconnexion
+  // ni sur un autre appareil). Flags : 'tour', 'login_tour', 'hints_landing',
+  // 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des'.
+  seenTutorials     String[]  @default([])
 }
 
 model Subscription {

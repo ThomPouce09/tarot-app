@@ -17,8 +17,21 @@ export const DICT = {
   'landing.tile.runesSub': { fr: 'Interroger le Futhark', en: 'Consult the Futhark' },
   'landing.tile.des': { fr: 'Les dés du zodiaque', en: 'Zodiac Dice' },
   'landing.tile.desSub': { fr: "L'astrologie par les Dés", en: 'Astrology by the Dice' },
+  // ─── Enceinte flottante + mini-tutots 1ère visite ───
+  'speaker.all': { fr: 'Voix et sons du jeu activés — toucher pour couper les voix', en: 'Voices and game sounds on — tap to mute voices' },
+  'speaker.effects': { fr: 'Sons du jeu uniquement — toucher pour tout couper', en: 'Game sounds only — tap to mute all' },
+  'speaker.muted': { fr: 'Son coupé — toucher pour tout réactiver', en: 'Sound off — tap to restore everything' },
+  'speaker.toast.all': { fr: 'Voix et effets sonores activés', en: 'Voices and sound effects on' },
+  'speaker.toast.effects': { fr: 'Voix coupées — effets sonores activés', en: 'Voices off — sound effects on' },
+  'speaker.toast.muted': { fr: 'Voix et effets sonores désactivés', en: 'Voices and sound effects off' },
+  'hint.ok': { fr: 'Compris', en: 'Got it' },
+  'hint.landingAccount': { fr: "Commencez par entrer dans « Mon espace » pour vous identifier, puis choisissez votre oracle.", en: 'Start by entering “My space” to sign in, then choose your oracle.' },
+  'hint.hubMenu': { fr: 'Le menu est ici : retour à l\'accueil, historique et votre espace.', en: 'The menu is here: home, history and your space.' },
+  'hint.hubInfo': { fr: "Le petit « i » sur chaque tuile explique le tirage proposé, étape par étape.", en: "The little “i” on each tile explains that reading, step by step." },
   'landing.runes.building': { fr: 'En cours de construction', en: 'Under construction' },
   'landing.runes.close': { fr: 'Fermer', en: 'Close' },
+  // ─── Voile de démarrage ───
+  'loader.text': { fr: 'Chargement ...', en: 'Loading...' },
 
   // ─── Login modal ───
   'login.title': { fr: 'Connexion ✨', en: 'Sign in ✨' },
@@ -96,8 +109,6 @@ export const DICT = {
   'prefs.sound': { fr: 'Son', en: 'Sound' },
   'prefs.soundEffects': { fr: 'Effets sonores', en: 'Sound effects' },
   'prefs.voices': { fr: 'Voix', en: 'Voices' },
-  'prefs.haptics': { fr: 'Vibrations', en: 'Haptics' },
-  'prefs.hapticsHint': { fr: 'Retour tactile sur les actions', en: 'Tactile feedback on actions' },
   'prefs.theme': { fr: 'Ambiance visuelle', en: 'Visual mood' },
   'prefs.theme.sombre': { fr: 'Sombre', en: 'Dark' },
   'prefs.theme.ambre': { fr: 'Ambre', en: 'Amber' },
@@ -615,6 +626,6 @@ export const DICT = {
     fr: 'Les arcanes, elles, ne le sont jamais. Bonne route sous les étoiles — la visite se rejoue depuis Préférences si un souvenir vous échappe.',
     en: 'The arcs, however, never end. Safe travels beneath the stars — the tour replays from Preferences if a memory slips.',
   },
-  'prefs.replayTour': { fr: 'Revoir la visite', en: 'Replay the guided tour' },
-  'prefs.replayTourHint': { fr: 'Rejouer « Le hall des Etoiles »', en: 'Replay “The Hall of Stars”' },
+  'prefs.replayTour': { fr: 'Revoir le tutoriel', en: 'Replay the tutorial' },
+  'prefs.replayTourHint': { fr: 'Relance tous les tutoriels du jeu', en: 'Replays every tutorial in the game' },
 } as const;

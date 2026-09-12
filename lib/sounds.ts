@@ -100,11 +100,15 @@ export function soundByKey(key: string): SoundEntry | undefined {
 /* ----------------------------------------------------------------------- */
 
 /** Préférences son en cache (lues au premier usage, mises à jour par la
- *  page /preferences via setSoundPrefs). */
-let soundPrefsCache: { soundEffects: boolean; voices: boolean; haptics: boolean } | null = null;
+ *  page /preferences ou l'enceinte flottante via setSoundPrefs). */
+let soundPrefsCache: { soundEffects: boolean; voices: boolean } | null = null;
 
-function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean; haptics: boolean } {
-  const def = { soundEffects: true, voices: true, haptics: true };
+/** Événement window dispatché à chaque changement des préférences son —
+ *  écouté par SpeakerToggle pour rester synchronisé. */
+export const SOUND_PREFS_EVENT = 'soundprefs-changed';
+
+function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean } {
+  const def = { soundEffects: true, voices: true };
   if (typeof window === 'undefined') return def;
   try {
     const raw = localStorage.getItem('tarot_prefs');
@@ -113,7 +117,6 @@ function readPrefsFromStorage(): { soundEffects: boolean; voices: boolean; hapti
     return {
       soundEffects: typeof p.soundEffects === 'boolean' ? p.soundEffects : true,
       voices: typeof p.voices === 'boolean' ? p.voices : true,
-      haptics: typeof p.haptics === 'boolean' ? p.haptics : true,
     };
   } catch {
     return def;
@@ -126,17 +129,17 @@ export function getSoundPrefs() {
   return soundPrefsCache;
 }
 
-/** Met à jour les préférences son — appelé par la page /preferences. */
-export function setSoundPrefs(soundEffects: boolean, voices: boolean, haptics = getSoundPrefs().haptics) {
-  soundPrefsCache = { soundEffects, voices, haptics };
+/** Met à jour les préférences son — appelé par la page /preferences ou SpeakerToggle. */
+export function setSoundPrefs(soundEffects: boolean, voices: boolean) {
+  soundPrefsCache = { soundEffects, voices };
   if (typeof window === 'undefined') return;
   try {
     const raw = localStorage.getItem('tarot_prefs');
     const p = raw ? JSON.parse(raw) : {};
     p.soundEffects = soundEffects;
     p.voices = voices;
-    p.haptics = haptics;
     localStorage.setItem('tarot_prefs', JSON.stringify(p));
+    window.dispatchEvent(new Event(SOUND_PREFS_EVENT));
   } catch {
     // stockage indisponible — le cache suffit pour la session
   }
@@ -147,24 +150,9 @@ export function isEffectsEnabled() {
   return getSoundPrefs().soundEffects;
 }
 
-/** Voix activées ? (préférence stockée pour les futurs contenus parlés) */
+/** Voix activées ? (jingles « voix » des pages, contrôlés par la préférence Voix) */
 export function isVoicesEnabled() {
   return getSoundPrefs().voices;
-}
-
-/** Haptique (vibration) activée ? */
-export function isHapticsEnabled() {
-  return getSoundPrefs().haptics;
-}
-
-/** Vibrate courte (ms) si l'appareil le supporte et que la préférence est active. */
-export function vibrate(pattern: number | number[] = 30) {
-  if (typeof navigator === 'undefined' || !isHapticsEnabled()) return;
-  try {
-    if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
-  } catch {
-    // non supporté — ignore
-  }
 }
 
 /* ----------------------------------------------------------------------- */
@@ -213,8 +201,6 @@ export function playSound(key: string, volume = 0.8) {
   // Voix (jingles de page) suivent la préférence « Voix » ; le reste, « Effets ».
   if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
   try {
-    // Retour haptique discret sur les effets sonores (pas sur les jingles de page).
-    if (!entry.voice) vibrate(entry.duration && entry.duration < 2 ? 20 : 40);
     const existing = unlocked.get(key);
     const snd = existing || new Audio(entry.file);
     if (!existing) unlocked.set(key, snd);
@@ -260,6 +246,23 @@ export function stopSound(key: string) {
     snd.currentTime = 0;
   } catch {
     // élément non jouable — on ignore
+  }
+}
+
+/** Arrête les VOIX (jingles de page) en cours — utilisé par l'enceinte
+ *  quand la préférence Voix passe à off (les effets, eux, continuent). */
+export function stopVoices() {
+  if (typeof window === 'undefined') return;
+  for (const s of SOUNDS) {
+    if (!s.voice) continue;
+    const snd = unlocked.get(s.key);
+    if (!snd) continue;
+    try {
+      snd.pause();
+      snd.currentTime = 0;
+    } catch {
+      // élément non jouable — on ignore
+    }
   }
 }
 

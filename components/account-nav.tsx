@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { useEntitlement } from '@/lib/use-entitlement';
+import { isTutorialSeen, markTutorialSeen, hydrateTutorials } from '@/lib/tutorials';
 
 const LINKS = [
   { href: '/dashboard/account/security', img: '/images/nav-security.png', key: 'nav.security' },
@@ -24,20 +25,23 @@ export default function AccountNav({ user }: { user: any }) {
   const links = LINKS.filter((l) => !l.arkaneOnly || sub?.level === 'arkane');
   const initial = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '') || user?.email?.[0] || '?').toUpperCase();
 
-  // Visite guidée (une fois après une nouvelle connexion) : bulles à bouton « OK »,
+  // Visite guidée (une fois par COMPTE, persistée en base) : bulles à bouton « OK »,
   // l'une après l'autre. 0 = aucune, 1 = marque → accueil, 2 = avatar → Mon compte.
   const [tourStep, setTourStep] = useState<0 | 1 | 2>(0);
   useEffect(() => {
-    try { if (!localStorage.getItem('tarot_tour_done')) setTourStep(1); } catch {}
+    let stop = false;
+    hydrateTutorials().then(() => {
+      if (!stop && !isTutorialSeen('login_tour')) setTourStep(1);
+    });
+    return () => { stop = true; };
   }, []);
   const okTour = () => {
     if (tourStep === 1) setTourStep(2);
-    else if (tourStep === 2) { setTourStep(0); try { localStorage.setItem('tarot_tour_done', '1'); } catch {} }
+    else if (tourStep === 2) { setTourStep(0); markTutorialSeen('login_tour'); }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
-    try { localStorage.removeItem('tarot_tour_done'); } catch {}
     router.push('/');
   };
 
