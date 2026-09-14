@@ -63,7 +63,10 @@ export default function SpeakerToggle({ top = 38, right = 7, z = 55 }: { top?: n
     if (next === 'effects') stopVoices();
     else if (next === 'muted') stopAllSounds();
     else unlockAllSounds();
-    if (next !== 'muted') playSound('scroll1', 0.35); // acquittement bref (effets actifs)
+    // Acquittement « micro » : le clic qui COUPE les voix (all→effects) et
+    // celui qui les REPLACE (muted→all) jouent mute-unmute. « Tout couper »
+    // (→muted) reste silencieux, par cohérence avec l'état muet.
+    if (next === 'effects' || next === 'all') playSound('mute-unmute', 0.8);
     // Bulle : texte du NOUVEL état.
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(next === 'all' ? t('speaker.toast.all') : next === 'effects' ? t('speaker.toast.effects') : t('speaker.toast.muted'));
