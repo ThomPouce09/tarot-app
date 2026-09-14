@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { YI_LACQUER } from '../yi-jing-simplifie/theme-selector';
 import HEX from '@/lib/yj-hexagrams.json';
+import { api } from '@/lib/api-client';
 
 type HexRow = { c: string; b: string };
 const BY_BITS: Record<string, number> = {};
@@ -129,14 +130,14 @@ export default function PrototypeYiJingDouble() {
     setLoading(true); setError(false); setReading(null);
     try {
       const [a, b] = await Promise.all([
-        fetch(`/api/hexagram/${hexPresent}`).then((r) => r.json()),
-        fetch(`/api/hexagram/${hexFutur}`).then((r) => r.json()),
+        api(`/api/hexagram/${hexPresent}`).then((r) => r.json()),
+        api(`/api/hexagram/${hexFutur}`).then((r) => r.json()),
       ]);
       const nomA = a.hexagram?.name || `#${hexPresent}`;
       const nomB = b.hexagram?.name || `#${hexFutur}`;
       const syA = a.hexagram?.synthese || '';
       const syB = b.hexagram?.synthese || '';
-      const res = await fetch('/api/prototype-interpret', {
+      const res = await api('/api/prototype-interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

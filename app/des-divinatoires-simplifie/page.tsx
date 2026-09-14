@@ -38,6 +38,7 @@ import { useT, useLang } from '@/lib/i18n';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
+import { api } from '@/lib/api-client';
 
 /* « Relancer » — pilule dorée gloss 3D (recette du bouton « Enregistrer », teinte or). */
 function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
@@ -234,7 +235,7 @@ function SimplifiePage() {
     dbLastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
-    fetch('/api/astro-interpretation-db', {
+    api('/api/astro-interpretation-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ planet, sign, house: `Maison ${houseNum}` }),
@@ -264,7 +265,7 @@ function SimplifiePage() {
     oracleLastSeqRef.current = seq;
     setOracleErrored(false);
     setOracleFlashLoading(true);
-    fetch('/api/astro-dice-oracle-flash', {
+    api('/api/astro-dice-oracle-flash', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -309,7 +310,7 @@ function SimplifiePage() {
     setAnalysisSections(null);
     setAnalysisSynthese('');
     try {
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { ELDER_FUTHARK, type Rune } from '@/components/rune-stones/runes';
 import { RUNE_THEME } from '../runes/_shared';
+import { api } from '@/lib/api-client';
 
 const GOLD = RUNE_THEME.goldPale;
 const SAGE = RUNE_THEME.sage;
@@ -178,7 +179,7 @@ export default function PrototypeNeufNuits() {
       return `${t.day}. ${rune.name} ${rune.symbol} (${AEATTS[t.aeatt].fr}) — ${rune.upright}`;
     }).join('\n');
     try {
-      const res = await fetch('/api/prototype-interpret', {
+      const res = await api('/api/prototype-interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

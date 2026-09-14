@@ -20,6 +20,7 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
+import { api } from '@/lib/api-client';
 
 const GOLD = '#DAA520';
 const GOLD_PALE = '#F0C75E';
@@ -68,7 +69,7 @@ function SemainePage() {
     const e = emailLocal();
     if (!e) { setWheel(null); return; }
     try {
-      const r = await fetch(`/api/tarot-semaine?email=${encodeURIComponent(e)}`);
+      const r = await api(`/api/tarot-semaine?email=${encodeURIComponent(e)}`);
       const d = await r.json();
       setWheel(d.wheel ?? null);
     } catch { setWheel(null); }
@@ -82,7 +83,7 @@ function SemainePage() {
     setBusy(true);
     try {
       // 1) débit des droits (serveur : canDo + consume, cost 2).
-      const dec = await fetch('/api/entitlement', {
+      const dec = await api('/api/entitlement', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e, type: 'tarot-semaine', question: null }),
       }).then((r) => r.json());
@@ -92,7 +93,7 @@ function SemainePage() {
       for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
       const cards = pool.slice(0, 7);
       // 3) pose en base.
-      const res = await fetch('/api/tarot-semaine', {
+      const res = await api('/api/tarot-semaine', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e, action: 'cast', cards }),
       });
@@ -107,7 +108,7 @@ function SemainePage() {
   const reveal = async (day: number) => {
     if (!wheel || day !== wheel.nowDay) return;
     const e = emailLocal();
-    const res = await fetch('/api/tarot-semaine', {
+    const res = await api('/api/tarot-semaine', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: e, action: 'reveal', day }),
     });
@@ -120,7 +121,7 @@ function SemainePage() {
   const askWeave = useCallback(async () => {
     setWeaving(true); setWeaveErr(false);
     try {
-      const res = await fetch('/api/tarot-semaine', {
+      const res = await api('/api/tarot-semaine', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailLocal(), action: 'weave' }),
       });
@@ -139,7 +140,7 @@ function SemainePage() {
     if (!wheel) return;
     setSealedBusy(true);
     try {
-      const res = await fetch('/api/tarot-semaine', {
+      const res = await api('/api/tarot-semaine', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailLocal(), action: 'seal' }),
       });
@@ -155,7 +156,7 @@ function SemainePage() {
     if (!wheel?.echo) return;
     setSealedBusy(true);
     try {
-      const res = await fetch('/api/tarot-semaine', {
+      const res = await api('/api/tarot-semaine', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailLocal(), action: 'verdict', echoId: wheel.echo.id, pct: verdictPct, bestCardIndex: bestCard }),
       });
