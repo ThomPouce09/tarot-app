@@ -1,9 +1,8 @@
 /**
  * Cascade d'appels IA partagée pour toutes les interprétations (Tarot, Yi Jing).
  *
- * Ordre de fallback :
- *   1. DeepSeek     : deepseek-v4-flash (rapide, ~1-5s)
- *   2. b.ai         : qwen3.8-flash (secours)
+ * Fournisseur unique :
+ *   b.ai — qwen3.8-flash (DeepSeek retiré : solde épuisé côté API).
  *
  * Chaque fournisseur est testé indépendamment ; dès qu'une réponse OK est obtenue,
  * on la renvoie. Si toutes les clés sont absentes ou tous les appels échouent,
@@ -19,13 +18,7 @@ export interface OracleProvider {
 
 // --- Configuration des fournisseurs (clés via variables d'env, jamais en dur) ---
 const PROVIDERS: OracleProvider[] = [
-  {
-    name: 'DeepSeek',
-    baseUrl: 'https://api.deepseek.com/v1/chat/completions',
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    models: ['deepseek-v4-flash'],
-  },
-  {
+    {
     name: 'b.ai',
     baseUrl: 'https://api.b.ai/v1/chat/completions',
     apiKey: process.env.B_AI_API_KEY,
@@ -39,6 +32,11 @@ const COOLDOWN_MS = 30_000;
 // Timeout réduit à 20s : les modèles flash répondent en ~1-5s, inutile d'attendre 75s
 // alors qu'OpenRouter est souvent en échec.
 const REQUEST_TIMEOUT_MS = 20_000;
+// Délai dédié aux analyses LONGUES (json/10 phrases) : trop court, le modèle
+// gratuit (b.ai qwen) est aborté en pleine rédaction → « Les étoiles se voilent ».
+// qwen3.8-flash (fournisseur unique désormais) met ~27-50 s sur le JSON long
+// des analyses → 60 s pour éviter l'abort en pleine rédaction.
+export const LONG_REQUEST_TIMEOUT_MS = 60_000;
 const breaker: Record<string, { failures: number; blockedUntil: number }> = {};
 
 function isBlocked(name: string): boolean {
@@ -77,7 +75,7 @@ const SYSTEM_PROMPT =
  */
 export async function callOracle(
   prompt: string,
-  opts: { maxTokens?: number; temperature?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; timeoutMs?: number } = {}
 ): Promise<string | null> {
   // 4000 tokens max : les modèles reasoning (DeepSeek, etc.) consomment une
   // partie du budget en raisonnement avant de livrer l'interprétation. Avec
@@ -85,6 +83,10 @@ export async function callOracle(
   // la place pour le raisonnement + le JSON complet (~2500-3500 caractères).
   const maxTokens = opts.maxTokens ?? 4000;
   const temperature = opts.temperature ?? 0.72;
+  // Timeout par requête : 20s par défaut (flash), mais les analyses longues
+  // (10 phrases en JSON, Dés Simplifié) dépassent ce délai sur les modèles
+  // gratuits → appeler avec un timeoutMs plus généreux.
+  const timeoutMs = opts.timeoutMs ?? REQUEST_TIMEOUT_MS;
 
   for (const provider of PROVIDERS) {
     if (!provider.apiKey) {
@@ -100,7 +102,7 @@ export async function callOracle(
       try {
         console.log(`[llm] Tentative ${provider.name} / ${model}`);
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
         let res: Response;
         try {
           const apiKey = provider.apiKey;

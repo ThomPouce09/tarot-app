@@ -1,9 +1,9 @@
 'use client';
 
 // app/dashboard/account/echoes/page.tsx
-// Le Grimoire des Échos — registre de toutes les prémonctions scellées
+// Les Augures des Etoiles — registre de toutes les prémonctions scellées
 // (tarot, Yi Jing, runes, dés). Réservé aux Arkanes (étape 10) ; les autres
-// niveaux voient un vérouillage doux vers l'abonnement. Les échos échus
+// niveaux voient un vérouillage doux vers l'abonnement. Les augures échus
 // peuvent être brisés et jugés ici même (verdict oui / en partie / non).
 
 import { useCallback, useEffect, useState } from 'react';
@@ -36,7 +36,7 @@ function fmtDate(iso: string, lang: 'fr' | 'en'): string {
   });
 }
 
-export default function GrimoirePage() {
+export default function AuguresPage() {
   const t = useT();
   const lang = useLang();
   const { sub, loaded } = useEntitlement();
@@ -83,32 +83,32 @@ export default function GrimoirePage() {
 
   return (
     <div className="space-y-6">
-      <SpaceTitle icon={<span className="text-2xl" aria-hidden>📖</span>} title={t('echo.grimoire')} subtitle={t('echo.grimoireSub')} />
+      <SpaceTitle img="/images/nav-grimoire.png" title={t('echo.augures')} subtitle={t('echo.auguresSub')} />
 
-      {/* ── Verrou : le Grimoire est la prérogative des Arkanes ── */}
+      {/* ── Verrou : les Augures sont la prérogative des Arkanes ── */}
       {loaded && !isArkane ? (
         <div className="mystic-panel p-8 text-center">
           <div className="mx-auto mb-4 w-20 h-20 rounded-full border border-amber-400/40 bg-gradient-to-b from-amber-500/20 to-black/40 flex items-center justify-center shadow-[0_0_28px_rgba(217,164,6,0.3)]">
             <span className="text-4xl" aria-hidden>🔒</span>
           </div>
           <p className="text-amber-100/90 text-[15px] leading-relaxed max-w-md mx-auto">
-            {t('echo.grimoireLocked')}
+            {t('echo.auguresLocked')}
           </p>
           <div className="mt-6">
             <Link href="/dashboard/account/abonnement">
-              <RuneButton variant="save">{t('echo.grimoireCta')}</RuneButton>
+              <RuneButton variant="save">{t('echo.auguresCta')}</RuneButton>
             </Link>
           </div>
         </div>
       ) : (
         <>
-          {/* ── Échos en attente ── */}
+          {/* ── Augures en attente ── */}
           <div className="mystic-panel p-5">
-            <h2 className="mystic-subtitle text-sm mb-4">🕐 {t('echo.grimoirePending')}</h2>
+            <h2 className="mystic-subtitle text-sm mb-4">🕐 {t('echo.auguresPending')}</h2>
             {echoes === null ? (
               <p className="text-gray-500 text-sm italic">{t('echo.sealing')}</p>
             ) : pending.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">{t('echo.grimoireEmpty')}</p>
+              <p className="text-gray-500 text-sm italic">{t('echo.auguresEmpty')}</p>
             ) : (
               <div className="space-y-3">
                 {pending.map((e) => {
@@ -173,10 +173,10 @@ export default function GrimoirePage() {
             )}
           </div>
 
-          {/* ── Échos clos ── */}
+          {/* ── Augures clos ── */}
           {closed.length > 0 && (
             <div className="mystic-panel p-5">
-              <h2 className="mystic-subtitle text-sm mb-4">✶ {t('echo.grimoireClosed')}</h2>
+              <h2 className="mystic-subtitle text-sm mb-4">✶ {t('echo.auguresClosed')}</h2>
               <div className="space-y-3">
                 {closed.map((e) => (
                   <div key={e.id} className="rounded-xl border border-amber-400/20 bg-black/30 p-4">

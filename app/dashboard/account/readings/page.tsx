@@ -19,7 +19,7 @@ interface Reading {
   cards: any[];
   interpretation?: string | null;
   createdAt: string;
-  /** Écho scellé né de cette lecture (badge horloge). */
+  /** Augure scellé né de cette lecture (badge horloge). */
   echo?: { id: string; dueAt: string; verdict: string | null } | null;
 }
 
@@ -61,6 +61,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'des-choix':           { group: 'des',    label: 'Le Tirage du Choix' },
   'des-obstacle-solution': { group: 'des',  label: 'Obstacle & Solution' },
   'des-affinage':        { group: 'des',    label: 'Tirage par Affinage' },
+  'des-simplifie':       { group: 'des',    label: 'Dés Simplifié' },
   'tarot':               { group: 'tarot',  label: 'Tarot' },
   'yi-jing':             { group: 'yijing', label: 'Yi Jing' },
   'yijing':              { group: 'yijing', label: 'Yi Jing' },
@@ -93,7 +94,7 @@ const ClockIcon = (p: { size?: number; className?: string; style?: React.CSSProp
   <Svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></Svg>
 );
 
-// --- Point écho : un sceau est né de cette lecture (compact, sans texte) ---
+// --- Point augure : un sceau est né de cette lecture (compact, sans texte) ---
 // Trois états : en attente (horloge teal), à vérifier (horloge dorée pulsante), clos (✶).
 function EchoDot({ echo, t }: { echo: NonNullable<Reading['echo']>; t: (k: string) => string }) {
   if (echo.verdict) {
@@ -420,7 +421,7 @@ export default function ReadingsPage() {
 
     // Echo
     if (r.echo) {
-      lines.push(`🕯️ Écho — ${new Date(r.echo.dueAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} :`);
+      lines.push(`🕯️ Augure — ${new Date(r.echo.dueAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} :`);
       lines.push(r.echo.verdict ? r.echo.verdict.trim() : 'Scellé, en attente de s’ouvrir.');
       lines.push('');
     }

@@ -1,5 +1,5 @@
 // app/api/echo/route.ts
-// Échos : POST = sceller (IA + gating Initié/Arkane), GET = liste d'un compte,
+// Augures : POST = sceller (IA + gating Initié/Arkane), GET = liste d'un compte,
 // PUT = verdict de vérification (oui | partiel | non).
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'summary trop court' }, { status: 400 });
   }
 
-  // Anti-doublon : un écho existe déjà pour cette lecture → on le renvoie.
+  // Anti-doublon : un augure existe déjà pour cette lecture → on le renvoie.
   const readingId = body.readingId ? String(body.readingId) : null;
   if (readingId) {
     const existing = await prisma.echo.findUnique({ where: { readingId } });
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   if (result.echo) return NextResponse.json({ echo: result.echo });
   const err = result.error as { reason?: string; message?: string };
-  return NextResponse.json({ error: err.message || 'Écho impossible', reason: err.reason }, { status: err.reason === 'tier' || err.reason === 'cap' ? 403 : 502 });
+  return NextResponse.json({ error: err.message || 'Augure impossible', reason: err.reason }, { status: err.reason === 'tier' || err.reason === 'cap' ? 403 : 502 });
 }
 
 export async function GET(request: NextRequest) {
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'user introuvable' }, { status: 404 });
 
   const existing = await prisma.echo.findFirst({ where: { id: echoId, userId: user.id } });
-  if (!existing) return NextResponse.json({ error: 'écho introuvable' }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: 'augure introuvable' }, { status: 404 });
 
   const updated = await prisma.echo.update({
     where: { id: echoId },

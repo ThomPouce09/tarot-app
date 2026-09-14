@@ -806,3 +806,85 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .ts-cast-glow, .ts-cast-glow.ts-cast-ready { animation: none; }
 }
+
+/* ══════════════ OracleWaitAnimation (attente IA · Dés Simplifié) ══════════════
+   Overlay centré à l'écran pendant la 1ʳᵉ réflexion de l'oracle. Styles repris
+   de la planche validée preview-wait-anim-v2.html : nébuleuse, constellation,
+   astrolabe (rotation de 8 s). Palette or/bleu nuit des Dés du Zodiaque. */
+
+.ow-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:rgba(2,4,12,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  animation:owFade .45s ease-out both}
+@keyframes owFade{from{opacity:0}to{opacity:1}}
+.ow-card{position:relative;overflow:hidden;border-radius:18px;padding:30px 34px 18px;
+  background:radial-gradient(ellipse at 50% -10%, rgba(30,48,110,.85) 0%, #050a1c 70%);
+  border:1.5px solid rgba(212,175,55,.38);
+  box-shadow:0 0 44px rgba(212,175,55,.10), inset 0 0 46px rgba(10,20,48,.9)}
+.ow-card::before{content:"";position:absolute;inset:-40%;pointer-events:none;
+  background:radial-gradient(circle at 50% 30%, rgba(212,175,55,.07) 0%, transparent 55%);
+  animation:owVeil 6s ease-in-out infinite}
+@keyframes owVeil{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+.ow-stage{display:flex;align-items:center;justify-content:center;min-height:130px;
+  animation:owFade .6s ease-out both}
+.ow-label{display:block;text-align:center;font-size:12px;font-style:italic;opacity:.75;margin-top:14px;
+  font-family:var(--font-cinzel),serif;color:#DCE6F5;letter-spacing:.05em}
+
+/* A · Nébuleuse */
+.ow-neb{position:relative;width:150px;height:150px}
+.ow-core{position:absolute;inset:0;margin:auto;width:14px;height:14px;border-radius:50%;
+  background:radial-gradient(circle,#FFF6D8 0%,#E8C66A 40%,#D4AF37 70%,transparent 75%);
+  box-shadow:0 0 26px 10px rgba(212,175,55,.35),0 0 70px 30px rgba(212,175,55,.12);
+  animation:owPulse 3.4s ease-in-out infinite}
+.ow-dust{position:absolute;inset:0;margin:auto;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle, rgba(212,175,55,.10) 0%, rgba(212,175,55,.03) 45%, transparent 70%);
+  animation:owPulse 5s ease-in-out infinite .8s}
+@keyframes owPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.ow-ring{position:absolute;inset:0;border-radius:50%}
+.ow-r1{animation:owSpin 14s linear infinite}
+.ow-r2{inset:18px;animation:owSpin 10s linear infinite reverse}
+.ow-r3{inset:38px;animation:owSpin 7s linear infinite}
+@keyframes owSpin{to{transform:rotate(360deg)}}
+.ow-dot{position:absolute;width:3.4px;height:3.4px;border-radius:50%;background:#E8C66A;
+  box-shadow:0 0 8px 2px rgba(232,198,106,.55);top:50%;left:50%;transform-origin:0 0;
+  animation:owTw 2.4s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes owTw{0%,100%{opacity:.2;transform:translate(var(--x),var(--y)) scale(.7)}
+  50%{opacity:1;transform:translate(var(--x),var(--y)) scale(1.15)}}
+.ow-sweep{position:absolute;inset:-2px;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(212,175,55,.16), transparent 30%, transparent 100%);
+  -webkit-mask:radial-gradient(circle, transparent 30%, #000 33%, #000 68%, transparent 70%);
+  mask:radial-gradient(circle, transparent 30%, #000 33%, #000 68%, transparent 70%);
+  animation:owSpin 6.5s linear infinite}
+
+/* B · Constellation */
+.ow-cons .ow-edge{stroke:rgba(212,175,55,.8);stroke-width:1;fill:none;
+  stroke-dasharray:100;stroke-dashoffset:100;animation:owDraw 6s linear infinite}
+@keyframes owDraw{0%{stroke-dashoffset:100}35%{stroke-dashoffset:0}88%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+.ow-star{fill:#FFF6D8;animation:owStarIn 6s ease-in-out infinite;transform-origin:center;transform-box:fill-box}
+.ow-halo{fill:rgba(212,175,55,.18);animation:owStarIn 6s ease-in-out infinite;transform-origin:center;transform-box:fill-box}
+@keyframes owStarIn{0%,4%{opacity:.25;transform:scale(.6)}14%{opacity:1;transform:scale(1.25)}22%,85%{opacity:1;transform:scale(1)}100%{opacity:.25}}
+
+/* C · Astrolabe */
+.ow-astro{position:relative;width:190px;height:130px}
+.ow-frame{position:absolute;inset:0;margin:auto;width:120px;height:120px;border-radius:50%;
+  border:1.5px solid rgba(212,175,55,.5);
+  box-shadow:0 0 30px rgba(212,175,55,.15), inset 0 0 20px rgba(212,175,55,.08)}
+.ow-zodiac{position:absolute;inset:6px;border-radius:50%;animation:owSpin 40s linear infinite}
+.ow-zodiac span{position:absolute;top:50%;left:50%;font-size:12px;color:#D4AF37;opacity:.85;
+  transform:rotate(var(--a)) translateY(-48px) rotate(calc(-1 * var(--a)));
+  text-shadow:0 0 8px rgba(212,175,55,.5)}
+.ow-ticks{position:absolute;inset:16px;border-radius:50%;animation:owSpin 24s linear infinite reverse}
+.ow-ticks i{position:absolute;top:50%;left:50%;width:1.2px;height:7px;background:rgba(220,230,245,.4);
+  transform:rotate(var(--a)) translateY(-38px);transform-origin:0 0}
+.ow-needle{position:absolute;top:10px;left:50%;width:2px;height:50px;margin-left:-1px;
+  background:linear-gradient(180deg,#E8C66A,rgba(212,175,55,.1));border-radius:2px;
+  transform-origin:50% 50px;animation:owSweep 4s cubic-bezier(.45,.05,.55,.95) infinite;
+  box-shadow:0 0 12px rgba(232,198,106,.6)}
+.ow-needle::after{content:"";position:absolute;top:-5px;left:-3px;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle,#FFF6D8,#D4AF37);box-shadow:0 0 14px 4px rgba(212,175,55,.5)}
+@keyframes owSweep{0%{transform:rotate(0)}45%{transform:rotate(190deg)}55%{transform:rotate(200deg)}100%{transform:rotate(360deg)}}
+.ow-center{position:absolute;inset:0;margin:auto;width:8px;height:8px;border-radius:50%;
+  background:#E8C66A;box-shadow:0 0 12px 4px rgba(232,198,106,.5)}
+
+@media (prefers-reduced-motion: reduce){
+  .ow-core,.ow-dust,.ow-ring,.ow-sweep,.ow-edge,.ow-star,.ow-halo,.ow-zodiac,.ow-ticks,.ow-needle{animation:none}
+}

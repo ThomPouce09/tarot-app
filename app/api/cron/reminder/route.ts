@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
   );
   const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
-  // ── Échos échus (étape 7) : prémonctions arrivées à échéance, jamais notifiées.
-  // Une notif FCM par écho → l'utilisateur brise le sceau et rend son verdict.
+  // ── Augures échus (étape 7) : prémonctions arrivées à échéance, jamais notifiées.
+  // Une notif FCM par augure → l'utilisateur brise le sceau et rend son verdict.
   const dueEchoes = await prisma.echo.findMany({
     where: { verdict: null, notified: false, dueAt: { lte: now } },
     select: { id: true, domain: true, dueAt: true, notified: true,
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       await messaging.send({
         token,
         notification: {
-          title: '🕐 Votre écho a atteint son heure',
+          title: '🕐 Votre augure a atteint son heure',
           body: `${e.user.firstName || 'Cher·ère consultante'}, l'oracle a scellé une prémonction pour vous — venez briser le sceau et dire si elle s'est accomplie.`,
         },
         data: { url: '/dashboard/account/echoes' },

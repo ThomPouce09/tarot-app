@@ -1,8 +1,8 @@
 // lib/echo.ts
-// Mécanique des « Échos » : l'oracle scelle une prémonction datée à la fin
+// Mécanique des « Augures » : l'oracle scelle une prémonction datée à la fin
 // d'une lecture (4 univers : tarot, Yi Jing, runes, dés). L'utilisateur la
 // rouvre à l'échéance (14-45 j) et rend son verdict : oui / partiel / non.
-// Gating : Initié = 1 écho actif maximum, Arkane = illimité + Grimoire.
+// Gating : Initié = 1 augure actif maximum, Arkane = illimité + Augures.
 
 import { prisma } from './prisma';
 import { callOracle, extractJsonObject } from './llm';
@@ -14,7 +14,7 @@ export const ECHO_DOMAINS: EchoDomain[] = ['tarot', 'yi-jing', 'runes', 'des'];
 export const ECHO_MIN_DAYS = 14;
 export const ECHO_MAX_DAYS = 45;
 
-/** Domaine d'un écho à partir du type de tirage sauvegardé. */
+/** Domaine d'un augure à partir du type de tirage sauvegardé. */
 export function echoDomainForType(type: string): EchoDomain | null {
   const t = (type || '').toLowerCase();
   if (t.startsWith('tarot')) return 'tarot';
@@ -43,13 +43,13 @@ Contexte de la lecture :
 Question du consultant : « ${question || 'Chemins et avenir'} »
 Synthèse de la lecture : « ${summary.slice(0, 900)} »
 
-Écris UN seul écho : une prémonction précise, concrète et VÉRIFIABLE dans le temps
+Écris UN seul augure : une prémonction précise, concrète et VÉRIFIABLE dans le temps
 (événement, rencontre, nouvelle, retournement — pas une généralité vague ni un conseil).
 Ton : solennel, bienveillant, poétique mais factuel. Une seule phrase fluide de 140 à 260
 caractères en français, sans promettre de date précise dans le texte.
-Écris le MÊME écho en anglais (textEn), fidèle et naturel.
+Écris le MÊME augure en anglais (textEn), fidèle et naturel.
 Choisis dueInDays : un entier entre ${ECHO_MIN_DAYS} et ${ECHO_MAX_DAYS} — le moment où
-l'écho pourra être vérifié (plus l'horizon de la lecture est long, plus dueInDays est grand).
+l'augure pourra être vérifié (plus l'horizon de la lecture est long, plus dueInDays est grand).
 
 Réponds UNIQUEMENT avec cet objet JSON valide, sans texte avant ni après :
 {
@@ -86,12 +86,12 @@ export interface EchoGating {
   message?: string;
 }
 
-/** Initié : 1 écho actif max (non clos). Arkane : illimité. Autres niveaux : refusé. */
+/** Initié : 1 augure actif max (non clos). Arkane : illimité. Autres niveaux : refusé. */
 export async function canCreateEcho(email: string): Promise<EchoGating> {
   const rights = await getRights(email);
   if (!rights) return { allowed: false, reason: 'no_user', message: 'Compte introuvable.' };
   if (rights.level !== 'initie' && rights.level !== 'arkane') {
-    return { allowed: false, reason: 'tier', message: 'Les Échos sont réservés aux Initiés et aux Arkanes.' };
+    return { allowed: false, reason: 'tier', message: 'Les Augures sont réservés aux Initiés et aux Arkanes.' };
   }
   if (rights.level === 'initie') {
     const user = await prisma.user.findUnique({
@@ -104,7 +104,7 @@ export async function canCreateEcho(email: string): Promise<EchoGating> {
       return {
         allowed: false,
         reason: 'cap',
-        message: 'Un seul écho actif pour les Initiés — vérifiez-le avant d\'en sceller un nouveau.',
+        message: 'Un seul augure actif pour les Initiés — vérifiez-le avant d\'en sceller un nouveau.',
       };
     }
   }
@@ -141,7 +141,7 @@ export function serializeEcho(e: {
 }
 
 /**
- * Scelle un écho pour un utilisateur : gating → prompt IA → validation →
+ * Scelle un augure pour un utilisateur : gating → prompt IA → validation →
  * relance UNIQUE → création en base. Retourne l'écho ou l'erreur (jamais jeté).
  */
 export async function generateAndSaveEcho(opts: {

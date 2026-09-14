@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { faces, activeKinds, question, option, originalFaces } = body;
+  const { faces, activeKinds, question, option, originalFaces, length } = body;
   if (!faces || typeof faces !== 'object') {
     return NextResponse.json({ error: 'faces requis' }, { status: 400 });
   }
@@ -81,10 +81,14 @@ Réponds UNIQUEMENT avec du texte libre, pas de JSON, pas de markdown, pas de fo
   } else {
     // ── Tirage initial ──
     const tirageStr = formatTirage(faces, kinds);
+    // Longueur : « standard » (Dés Simplifié) = 4-5 phrases ; défaut = 1-2 (affinage).
+    const consigne = length === 'standard'
+      ? "En te laissant guider par le mystère de ces énergies, donne-moi une réponse suggestive et ouverte (en même temps orientée et évasive) en 4 à 5 phrases : une première image du tirage, ce qu'il dit de la situation, puis une pistes de lecture concrète."
+      : "En te laissant guider par le mystère de ces énergies, donne-moi une réponse suggestive et ouverte (en même temps orientée et évasive) en 1 à 2 phrases maximum.";
 
     prompt = `Agis comme un oracle intuitif. Voici mon tirage de dés astrologiques : ${tirageStr}.${q}
 
-En te laissant guider par le mystère de ces énergies, donne-moi une réponse suggestive et ouverte (en même temps orientée et évasive) en 1 à 2 phrases maximum.
+${consigne}
 
 Réponds UNIQUEMENT avec du texte libre, pas de JSON, pas de markdown, pas de formatage.`;
   }

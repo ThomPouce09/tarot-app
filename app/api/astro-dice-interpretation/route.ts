@@ -9,7 +9,7 @@
 // STATIQUE (meanings.ts, 100% client) + la carte DB combinée, avant le LLM.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { callOracle } from '@/lib/llm';
+import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
 import { type DieKind } from '@/components/astro-dice/glyphs';
 
 type Mode = 'global' | 'zoom-action' | 'zoom-domaine' | 'choix' | 'obstacle-solution';
@@ -75,7 +75,7 @@ function buildPrompt(
     const hasQuestion = question && question.trim().length > 0;
     return `Agis en tant qu'astrologue expert et analyste intuitif. Ton approche combine rigueur symbolique et clarté pragmatique, sans jargon superflu.
 
-Je vais te soumettre une question ainsi que le résultat d'un tirage de 3 dés astrologiques (Planète, Signe, Maison). Ton objectif est d'analyser les énergies sous-jacentes de ce tirage pour y répondre avec précision et profondeur.
+Je vais te soumettre une question ainsi que le résultat d'un tirage de 3 dés astrologiques (Planète, Signe, Maison). Ton objectif est d'analyser les énergies sous-jacentes de ce tirage pour y répondre avec précision et profondeur. Vise UNE DIZAINE DE PHRASES AU TOTAL, en reprenant la signification précise de chaque dé (Planète, Signe, Maison) pour l'appliquer à la situation.
 
 ### Données du tirage :
 ${hasQuestion ? `- Question posée : ${question}` : '- Aucune question spécifique — donne une lecture générale des énergies.'}
@@ -252,6 +252,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `mode invalide : ${mode}` }, { status: 400 });
   }
 
+  // ── Verrou Initié/Arkane (Dés Simplifié : « Analyser en profondeur ») ──
+  // Activé par le flag requireInitie : les autres appels (affinage, choix,
+  // obstacle) restent libres comme avant. Réponse 403 { reason: 'tier' }.
+  if (body.requireInitie === true) {
+    const email = String(body.email || '').trim().toLowerCase();
+    if (!email) {
+      return NextResponse.json({ error: 'Connexion requise.', reason: 'not-logged', gated: true }, { status: 401 });
+    }
+    try {
+      const { getRights } = await import('@/lib/entitlements');
+      const rights = await getRights(email);
+      if (!rights || rights.level === 'apprenti') {
+        return NextResponse.json({
+          error: "L'analyse en profondeur est réservée aux Initiés et aux Arkanes.",
+          reason: 'tier', gated: true,
+        }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Vérification des droits indisponible.', reason: 'tier', gated: true }, { status: 403 });
+    }
+  }
+
   // ── Mode comparaison de choix ──
   if (m === 'choix') {
     if (!facesA || !facesB || typeof facesA !== 'object' || typeof facesB !== 'object') {
@@ -312,7 +334,9 @@ export async function POST(request: NextRequest) {
   }
 
   const prompt = buildPrompt(faces, kinds, m, dbInterpretation, question);
-  const content = (await callOracle(prompt)) || '';
+  // Analyse longue (json ~10 phrases) : délai élargi, sinon abort sur les
+  // modèles gratuits → « Les étoiles se voilent » et bouton de relance.
+  const content = (await callOracle(prompt, m === 'global' ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json({

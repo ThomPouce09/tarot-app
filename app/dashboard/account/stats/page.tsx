@@ -48,6 +48,7 @@ function subLabel(type: string): string {
     'des-choix': 'Choix',
     'des-obstacle-solution': 'Obstacle',
     'des-affinage': 'Affinage',
+    'des-simplifie': 'Simplifié',
   };
   return map[type] || (type || 'Tirage');
 }
@@ -282,7 +283,7 @@ export default function StatsPage() {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [readings, setReadings] = useState<any[]>([]);
-  // Échos clos → « Ferveur de l'oracle » (précision des prémonctions, étape 9)
+  // Augures clos → « Ferveur de l'oracle » (précision des prémonctions, étape 9)
   const [echoes, setEchoes] = useState<any[]>([]);
 
   if (typeof window !== 'undefined' && !ready) {
@@ -335,7 +336,7 @@ export default function StatsPage() {
     return { groups, counts, total, streak, best, activeDays, questions, dayMap, byMonth, maxMonth, recent };
   }, [readings, lang]);
 
-  // ── Ferveur de l'oracle : précision des échos clos (oui = 1, partiel = 0.5) ──
+  // ── Ferveur de l'oracle : précision des augures clos (oui = 1, partiel = 0.5) ──
   const fervor = useMemo(() => {
     const closed = echoes.filter((e: any) => e.verdict);
     if (!closed.length) return null;
@@ -377,7 +378,7 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* ── Ferveur de l'oracle : précision des échos vérifiés (étape 9) ── */}
+      {/* ── Ferveur de l'oracle : précision des augures vérifiés (étape 9) ── */}
       <div className="mystic-panel p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="mystic-subtitle text-sm">🕐 {t('stats.fervor')}</h2>
