@@ -10,7 +10,7 @@
 // finissent par se RETOURNER : l'hexagramme présent accouche en direct
 // de son hexagramme futur. L'oracle lit la PAIRE (situation → évolution)
 // et annonce une échéance → l'augure sera scellée.
-// Données : lib/generated/yj-hexagrams.json (table complète 64 numéros,
+// Données : lib/yj-hexagrams.json (table complète 64 numéros — source statique,
 // bits base→sommet) + /api/hexagram/[numero] (textes roi Wen réels).
 // ═══════════════════════════════════════════════════════════════════
 
@@ -18,7 +18,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { YI_LACQUER } from '../yi-jing-simplifie/theme-selector';
-import HEX from '@/lib/generated/yj-hexagrams.json';
+import HEX from '@/lib/yj-hexagrams.json';
 
 type HexRow = { c: string; b: string };
 const BY_BITS: Record<string, number> = {};
