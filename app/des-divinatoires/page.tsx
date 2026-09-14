@@ -130,6 +130,9 @@ function ZodiacFrieze({ position }: { position: 'top' | 'bottom' }) {
 
 interface Tile {
   href: string;
+  /** Clé de tirage (gating / classification). Déduite du nom de sous-répertoire
+   *  si absente — obligatoire pour les pages hors sous-répertoire. */
+  type?: string;
   title: string;
   desc: string;
   descEn: string;
@@ -138,6 +141,15 @@ interface Tile {
 }
 
 const TILES: Tile[] = [
+  {
+    href: '/des-divinatoires-simplifie',
+    type: 'des-simplifie',
+    title: 'Dés Simplifié',
+    desc: 'Choisissez un Élément et une intention : les trois dés répondent à l’essentiel',
+    descEn: 'Pick an Element and an intention: the three dice answer the essentials',
+    icon: '✦',
+    bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.steel} 100%)`,
+  },
   {
     href: '/des-divinatoires/affinage',
     title: "Tirage par Affinage",
@@ -168,6 +180,25 @@ const TILES: Tile[] = [
 // Chaque slide correspond à une tuile (même ordre que TILES). Le srcoll du
 // tuto est indexé par tuile : cliquer sur le ⓘ d'une tuile ouvre SON slide.
 const TUTORIALS: TutorialSlide[] = [
+  {
+    icon: '✦',
+    title: 'Dés Simplifié',
+    titleEn: 'Dice Simplified',
+    desc: 'Choisissez un Élément et une intention : les trois dés répondent à l’essentiel.',
+    descEn: 'Pick an Element and an intention: the three dice answer the essentials.',
+    steps: [
+      'Choisissez un Élément (Feu, Terre, Air, Eau)',
+      'Choisissez une intention dans la liste',
+      'Secouez le gobelet et jetez les trois dés',
+      'Lisez l’analyse ancrée sur votre intention',
+    ],
+    stepsEn: [
+      'Choose an Element (Fire, Earth, Air, Water)',
+      'Pick an intention from the list',
+      'Shake the cup and cast the three dice',
+      'Read the analysis anchored to your intention',
+    ],
+  },
   {
     icon: '🔍',
     title: 'Tirage par Affinage',
@@ -286,7 +317,7 @@ export default function DesDivinatoiresHub() {
       <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
         {TILES.map((tile, i) => {
           // Déduit le type de tirage depuis la route : /des-divinatoires/affinage → des-affinage.
-          const desType = 'des-' + tile.href.split('/').pop();
+          const desType = tile.type ?? ('des-' + tile.href.split('/').pop());
           return (
           <GatedTile key={tile.href} href={tile.href} className="block" allowed={tiles?.[desType]?.allowed} reason={tiles?.[desType]?.reason} onBlocked={openGate}>
             <motion.div

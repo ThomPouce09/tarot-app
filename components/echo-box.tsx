@@ -1,10 +1,10 @@
 'use client';
 
 // components/echo-box.tsx
-// L'Écho scellé : encadré mystérieux apparu sous l'interprétation d'une lecture
+// L'Augure scellé : encadré mystérieux apparu sous l'interprétation d'une lecture
 // (4 univers). Le texte reste scellé jusqu'à l'échéance (14-45 j) ; à partir de
 // là, l'utilisateur le brise et rend son verdict (oui / partiel / non).
-// Gating : Initié = 1 écho actif max, Arkane = illimité (le serveur tranche).
+// Gating : Initié = 1 augure actif max, Arkane = illimité (le serveur tranche).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,7 +56,7 @@ export default function EchoBox({
   question?: string | null;
   /** Synthèse de la lecture (resume/conseil) : carburant du prompt IA. */
   summary: string;
-  /** Écho déjà scellé pour cette lecture (chargé depuis /api/echo). */
+  /** Augure déjà scellé pour cette lecture (chargé depuis /api/echo). */
   echo?: EchoData | null;
   onEcho?: (e: EchoData | null) => void;
 }) {
@@ -88,7 +88,7 @@ export default function EchoBox({
     [onEcho],
   );
 
-  // ── Sceau posé : sceller l'écho via l'IA ──────────────────────────
+  // ── Sceau posé : sceller l'augure via l'IA ──────────────────────────
   const seal = useCallback(async () => {
     const email = readEmail();
     if (!email) return;

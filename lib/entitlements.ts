@@ -18,6 +18,7 @@
 import { prisma } from './prisma';
 import { classify, type Universe } from './classification';
 import { PLAN_CAPACITY, RECHARGE_CREDITS, CREDITS_BASE, CREDITS_GRAND, type SubscriptionPlanId } from './plans';
+import { giftStillValid, giftExpiresAt } from './gift';
 
 // Recharge cosmique : pool de crédits exact (défini dans plans.ts, client-safe).
 // Ré-exportés pour les appels serveur.
@@ -35,6 +36,8 @@ export interface Rights {
   welcomeGrandUsed: boolean;
   bonusGrand: number;
   rechargeCredits: number;
+  giftTickets: number; // tickets « cadeau des créatures » (1 = 1 tirage offert)
+  giftExpiresAt: Date | null; // expiration du ticket (réclamation + 5 jours)
   streakDays: number;
 }
 
@@ -89,6 +92,12 @@ async function loadUsage(userId: string) {
   const patch: Record<string, unknown> = {};
   if (existing.dateKey !== tk) { patch.dateKey = tk; patch.baseUsedToday = 0; patch.grandUsedToday = 0; }
   if (existing.monthKey !== mk) { patch.monthKey = mk; patch.grandUsedMonth = 0; }
+  // Cadeau des créatures : un tirage offert NON utilisé expire 5 jours après
+  // sa réclamation → purge automatique (le panneau « Consommation restante »
+  // et les droits ne montrent alors plus le ticket).
+  if ((existing.giftTickets ?? 0) > 0 && !giftStillValid(existing.giftLastAt ?? null, existing.giftTickets ?? 0)) {
+    patch.giftTickets = 0;
+  }
   if (Object.keys(patch).length) {
     return prisma.usage.update({ where: { userId }, data: patch });
   }
@@ -120,6 +129,8 @@ export async function getRights(email: string): Promise<Rights | null> {
     welcomeGrandUsed: u.welcomeGrandUsed,
     bonusGrand: u.bonusGrand,
     rechargeCredits: u.rechargeCredits,
+    giftTickets: u.giftTickets,
+    giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets),
     streakDays: u.streakDays,
   };
 }
@@ -155,8 +166,11 @@ export async function canDo(email: string, type: string, question: string | null
     if (!rights.welcomeBaseUsed.includes(cls.universe)) {
       return { allowed: true, reason: 'welcome-base-ok', message: '' };
     }
-    // Apprenti : 1 base/jour gratuit. Au-delà → 7 crédits de recharge.
+    // Apprenti : 1 base/jour gratuit. Au-delà → ticket cadeau, puis 7 crédits.
     if (rights.baseUsedToday >= 1) {
+      if (rights.giftTickets > 0) {
+        return { allowed: true, reason: 'ok', message: '' };
+      }
       if (rights.rechargeCredits >= CREDITS_BASE) {
         return { allowed: true, reason: 'ok', message: '' };
       }
@@ -170,23 +184,30 @@ export async function canDo(email: string, type: string, question: string | null
   if (rights.level === 'arkane' && subActive) {
     return { allowed: true, reason: 'ok', message: '' };
   }
-  // 1er grand du pack bienvenue (au choix).
-  if (!rights.welcomeGrandUsed) {
-    return { allowed: true, reason: 'welcome-grand-ok', message: '' };
+  // Coût en grands : 2 pour la roue des Arcanes de la Semaine (office du
+  // dimanche), 1 ailleurs. Les ressources se cumulent dans l'ordre de
+  // priorité habituel (welcome → tickets cadeau → bonus streak → crédits → quota).
+  const cost = grandCostOf(type);
+  let avail = 0;
+  if (!rights.welcomeGrandUsed) avail += 1;
+  avail += rights.giftTickets + rights.bonusGrand;
+  avail += Math.floor(rights.rechargeCredits / CREDITS_GRAND);
+  if (rights.grandMonthly !== null) avail += Math.max(0, rights.grandMonthly - rights.grandUsedMonth);
+  if (avail >= cost) {
+    return { allowed: true, reason: rights.welcomeGrandUsed ? 'ok' : cost === 1 ? 'welcome-grand-ok' : 'ok', message: '' };
   }
-  // Bonus streak cumulable.
-  if (rights.bonusGrand > 0) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  // Recharge cosmique : 15 crédits.
-  if (rights.rechargeCredits >= CREDITS_GRAND) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  // Quota mensuel Initié.
-  if (rights.grandMonthly !== null && rights.grandUsedMonth < rights.grandMonthly) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  return { allowed: false, reason: 'limit-grand', message: 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.' };
+  return {
+    allowed: false,
+    reason: 'limit-grand',
+    message: cost > 1
+      ? 'La roue des Arcanes de la Semaine demande deux grands tirages. Abonnez-vous pour en débloquer.'
+      : 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.',
+  };
+}
+
+/** Nombre de grands tirages consommés par ce type (2 pour la roue hebdomadaire). */
+export function grandCostOf(type: string): number {
+  return type === 'tarot-semaine' ? 2 : 1;
 }
 
 // ── Consomme un tirage (met à jour le streak + décrémente) ──────
@@ -226,6 +247,9 @@ export async function consume(email: string, type: string, question: string | nu
       } else if (u.baseUsedToday < 1) {
         // Apprenti : 1 base/jour gratuit.
         patch.baseUsedToday = u.baseUsedToday + 1;
+      } else if (u.giftTickets > 0) {
+        // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
+        patch.giftTickets = u.giftTickets - 1;
       } else {
         // Au-delà du gratuit/jour → consomme 7 crédits de recharge.
         patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
@@ -233,17 +257,23 @@ export async function consume(email: string, type: string, question: string | nu
     }
     // (initie/arkane actif : base illimitée, aucun compteur)
   } else {
-    // Grand : épuise d'abord les droits one-shot, puis les crédits, puis le quota mensuel.
-    if (!u.welcomeGrandUsed) {
+    // Grand : épuise d'abord les droits one-shot, puis les tickets cadeau,
+    // puis les crédits, puis le quota mensuel — coût = grandCostOf(type)
+    // (2 pour la roue des Arcanes de la Semaine).
+    let left = grandCostOf(type);
+    if (left >= 1 && !u.welcomeGrandUsed) {
       patch.welcomeGrandUsed = true;
-    } else if (u.bonusGrand > 0) {
-      patch.bonusGrand = u.bonusGrand - 1;
-    } else if (u.rechargeCredits >= CREDITS_GRAND) {
-      patch.rechargeCredits = u.rechargeCredits - CREDITS_GRAND;
-    } else {
-      patch.grandUsedMonth = u.grandUsedMonth + 1;
+      left -= 1;
     }
-    patch.grandUsedToday = u.grandUsedToday + 1;
+    const spendGift = Math.min(left, u.giftTickets);
+    if (spendGift > 0) { patch.giftTickets = u.giftTickets - spendGift; left -= spendGift; }
+    const spendBonus = Math.min(left, u.bonusGrand);
+    if (spendBonus > 0) { patch.bonusGrand = u.bonusGrand - spendBonus; left -= spendBonus; }
+    const maxCreditPays = Math.floor(u.rechargeCredits / CREDITS_GRAND);
+    const spendCredits = Math.min(left, maxCreditPays);
+    if (spendCredits > 0) { patch.rechargeCredits = u.rechargeCredits - spendCredits * CREDITS_GRAND; left -= spendCredits; }
+    if (left > 0) patch.grandUsedMonth = u.grandUsedMonth + left;
+    patch.grandUsedToday = u.grandUsedToday + grandCostOf(type);
   }
 
   await prisma.usage.update({ where: { userId: user.id }, data: patch });

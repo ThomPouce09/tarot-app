@@ -22,14 +22,18 @@ export default function SpaceTitle({
       style={{ background: 'linear-gradient(180deg, rgba(8,5,20,0.92) 0%, rgba(14,8,30,0.80) 45%, rgba(30,16,58,0.45) 78%, rgba(30,16,58,0) 100%)' }}
     >
       <h1
-        className="text-2xl sm:text-3xl font-bold text-center mb-1 flex items-center justify-center gap-2"
-        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)' }}
+        className="font-bold text-center mb-1 flex flex-nowrap items-center justify-center gap-2"
+        style={{
+          // Taille fluide : l'icône + le titre tiennent toujours sur UNE ligne
+          // (aucun wrap, même sur petits écrans).
+          fontSize: 'clamp(1.2rem, 5.5vw + 2px, 2.05rem)',
+          fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520', textShadow: '0 0 18px rgba(218,165,32,0.5)',
+        }}
       >
         {img && (
-          <img src={img} alt="" className="h-9 w-9 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(245,180,80,0.4))' }} />
+          <img src={img} alt="" className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 object-contain" style={{ filter: 'drop-shadow(0 0 7px rgba(245,180,80,0.45))' }} />
         )}
-        {icon}
-        {title}
+        <span className="whitespace-nowrap">{icon}{title}</span>
       </h1>
       {subtitle && (
         <p className="text-center text-xs" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(255,215,0,0.6)' }}>
