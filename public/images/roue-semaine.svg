@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <!-- Arcanes de la Semaine : roue dorée à 7 arcanes (icône de tuile) -->
+  <g fill="none" stroke="#DAA520" stroke-width="3">
+    <circle cx="80" cy="80" r="58" stroke-opacity="0.85"/>
+    <circle cx="80" cy="80" r="34" stroke-opacity="0.45"/>
+  </g>
+  <!-- 7 cartes-disques sur le cercle (jours planétaires) -->
+  <g>
+    <!-- ☉ dimanche — Soleil (carte du haut, pleine) -->
+    <g transform="translate(80 22)">
+      <rect x="-9" y="-12" width="18" height="24" rx="3" fill="#DAA520" stroke="#F0C75E" stroke-width="1.4"/>
+      <circle cx="0" cy="0" r="4.5" fill="#1A0D14"/>
+    </g>
+    <!-- ☽ lundi -->
+    <g transform="rotate(51.43 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <path d="M2.5 -3.5 A5 5 0 1 0 2.5 3.5 A4 4 0 1 1 2.5 -3.5 Z" fill="#F0C75E" transform="translate(-1,0)"/>
+      </g>
+    </g>
+    <!-- ♂ mardi -->
+    <g transform="rotate(102.86 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <circle cx="0" cy="-2" r="3.6" fill="none" stroke="#F0C75E" stroke-width="1.6"/>
+        <path d="M2.8 0.6 L6.5 4 M4.5 4.2 H6.6 V2" stroke="#F0C75E" stroke-width="1.5" fill="none"/>
+      </g>
+    </g>
+    <!-- ☿ mercredi -->
+    <g transform="rotate(154.29 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <circle cx="0" cy="1" r="3.4" fill="none" stroke="#F0C75E" stroke-width="1.5"/>
+        <path d="M0 -2.4 V-6 M-2.6 -6 H2.6" stroke="#F0C75E" stroke-width="1.4" fill="none"/>
+        <path d="M-3 5.4 A3 3 0 0 0 3 5.4" stroke="#F0C75E" stroke-width="1.4" fill="none"/>
+      </g>
+    </g>
+    <!-- ♃ jeudi -->
+    <g transform="rotate(205.71 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <path d="M-3.4 -6 V6 M3.4 -6 V6 M-3.4 0 H3.4" stroke="#F0C75E" stroke-width="1.5" fill="none"/>
+      </g>
+    </g>
+    <!-- ♀ vendredi -->
+    <g transform="rotate(257.14 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <circle cx="0" cy="-2" r="3.6" fill="none" stroke="#F0C75E" stroke-width="1.5"/>
+        <path d="M0 1.6 V6 M-2.6 4.4 H2.6" stroke="#F0C75E" stroke-width="1.5" fill="none"/>
+      </g>
+    </g>
+    <!-- ♄ samedi -->
+    <g transform="rotate(308.57 80 80)">
+      <g transform="translate(80 22)">
+        <rect x="-8" y="-11" width="16" height="22" rx="3" fill="#4A1931" stroke="#DAA520" stroke-width="1.4"/>
+        <path d="M-3.4 -6 V6 M3.4 -6 V6 M-3.4 0 H3.4" stroke="#F0C75E" stroke-width="1.5" fill="none"/>
+        <path d="M-3.4 -6 A4 4 0 0 1 3.4 -6" stroke="#F0C75E" stroke-width="1.4" fill="none"/>
+      </g>
+    </g>
+  </g>
+  <!-- centre : fil rouge -->
+  <path d="M66 80 C72 72 76 88 80 80 C84 72 88 88 94 80" fill="none" stroke="#C0392B" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="80" cy="80" r="2.4" fill="#F0C75E"/>
+</svg>

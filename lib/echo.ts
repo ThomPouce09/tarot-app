@@ -119,6 +119,8 @@ export interface SerializedEcho {
   domain: string;
   dueAt: string; // ISO
   verdict: string | null;
+  verdictPct?: number | null;      // notation fine 0-100 (roue hebdo)
+  bestCardIndex?: number | null;   // jour le mieux accompli (roue hebdo)
   verdictAt: string | null;
   createdAt: string;
 }
@@ -126,6 +128,7 @@ export interface SerializedEcho {
 export function serializeEcho(e: {
   id: string; readingId: string | null; textFr: string; textEn: string | null;
   domain: string; dueAt: Date; verdict: string | null; verdictAt: Date | null; createdAt: Date;
+  verdictPct?: number | null; bestCardIndex?: number | null;
 }): SerializedEcho {
   return {
     id: e.id,
@@ -135,6 +138,8 @@ export function serializeEcho(e: {
     domain: e.domain,
     dueAt: e.dueAt.toISOString(),
     verdict: e.verdict,
+    verdictPct: e.verdictPct ?? null,
+    bestCardIndex: e.bestCardIndex ?? null,
     verdictAt: e.verdictAt ? e.verdictAt.toISOString() : null,
     createdAt: e.createdAt.toISOString(),
   };

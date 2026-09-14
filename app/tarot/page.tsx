@@ -54,20 +54,22 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
     ],
   },
   {
-    iconImg: '/images/croix-5-cartes.png',
-    title: 'La Croix de 5 cartes',
-    titleEn: 'The 5-Card Cross',
-    desc: 'Une lecture structurée en croix pour explorer situation, épreuve, passé et avenir.',
-    descEn: 'A structured cross reading exploring situation, challenge, past and future.',
+    iconImg: '/images/roue-semaine.svg',
+    title: 'Les Arcanes de la Semaine',
+    titleEn: 'Arcana of the Week',
+    desc: 'Sept arcanes majeurs, un par jour : votre semaine se déplie jour après jour, puis le fil rouge se scelle en augure.',
+    descEn: 'Seven major arcana, one per day: your week unfolds day by day, then the red thread seals as an augury.',
     steps: [
-      'Formulez votre question',
-      'Disposez les 5 cartes en croix',
-      'Lisez chaque position pour la synthèse',
+      'Posez la roue (un seul geste, deux grands tirages)',
+      'Chaque jour, ouvrez la carte qui luit — les jours passés se révèlent seuls',
+      'À la fin de la semaine, tissez le fil rouge et scellez-le en augure',
+      'Notez votre semaine en pourcentage — la Ferveur s’en souvient',
     ],
     stepsEn: [
-      'Ask your question',
-      'Lay out the 5 cards in a cross',
-      'Read each position for the synthesis',
+      'Cast the wheel (one gesture, two advanced readings)',
+      'Each day, open the glowing card — past days reveal themselves',
+      'At week’s end, weave the red thread and seal it as an augury',
+      'Score your week in percent — the Fervor remembers',
     ],
   },
   {
@@ -341,7 +343,7 @@ export default function TarotHubPage() {
         </GatedTile>
 
         {/* TUILE — 5 CARTES (CROIX) */}
-        <GatedTile href="/tarot-5-cartes" allowed={tiles?.['tarot-5-cartes']?.allowed} reason={tiles?.['tarot-5-cartes']?.reason} onBlocked={openGate}>
+        <GatedTile href="/tarot-semaine" allowed={tiles?.['tarot-semaine']?.allowed} reason={tiles?.['tarot-semaine']?.reason} onBlocked={openGate}>
           <motion.div
             className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
@@ -380,7 +382,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-              <img src="/images/croix-5-cartes.png" alt="5 cartes en croix" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+              <img src="/images/roue-semaine.svg" alt="Roue des sept arcanes" className="w-16 h-16 mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{

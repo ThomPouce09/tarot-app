@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
-import { useT } from '@/lib/i18n';
+import { useT, useLang } from '@/lib/i18n';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 import SpaceTitle from '@/components/space-title';
 
@@ -20,7 +20,7 @@ interface Reading {
   interpretation?: string | null;
   createdAt: string;
   /** Augure scellé né de cette lecture (badge horloge). */
-  echo?: { id: string; dueAt: string; verdict: string | null } | null;
+  echo?: { id: string; dueAt: string; verdict: string | null; verdictPct?: number | null; bestCardIndex?: number | null } | null;
 }
 
 // --- Mapping type de tirage -> icône/style (réutilise les tuiles de la landing) ---
@@ -62,6 +62,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'des-obstacle-solution': { group: 'des',  label: 'Obstacle & Solution' },
   'des-affinage':        { group: 'des',    label: 'Tirage par Affinage' },
   'des-simplifie':       { group: 'des',    label: 'Dés Simplifié' },
+  'tarot-semaine':       { group: 'tarot',  label: 'Arcanes de la Semaine' },
   'tarot':               { group: 'tarot',  label: 'Tarot' },
   'yi-jing':             { group: 'yijing', label: 'Yi Jing' },
   'yijing':              { group: 'yijing', label: 'Yi Jing' },
@@ -120,6 +121,15 @@ function ReadingThumb({ group, card, idx }: { group: string; card: any; idx: num
   if (group === 'tarot') {
     const id = typeof card === 'number' ? card : (card?.id ?? card?.name?.id);
     const rev = typeof card === 'object' && card?.reversed;
+    // id < 0 : jour non révélé (roue hebdo) → dos de carte, pas de spoiler.
+    if (Number(id) < 0) {
+      return (
+        <span key={idx} className={base} style={{ ...st, overflow: 'hidden', border: '1px solid rgba(218,165,32,0.35)', background: '#1a0a2e' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/card-back.png" alt="" className="w-full h-full object-cover" loading="lazy" />
+        </span>
+      );
+    }
     return (
       <span key={idx} className={base} style={{ ...st, overflow: 'hidden', border: '1px solid rgba(218,165,32,0.35)', transform: rev ? 'rotate(180deg)' : undefined, background: '#1a0a2e' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -702,6 +712,8 @@ export default function ReadingsPage() {
                                   <RuneView r={r} query={search} />
                                 ) : m.group === 'des' ? (
                                   <AstroView r={r} query={search} />
+                                ) : r.type === 'tarot-semaine' ? (
+                                  <WheelView r={r} />
                                 ) : (
                                   <TarotView r={r} interpretation={r.interpretation || ''} query={search} />
                                 )}
@@ -847,6 +859,57 @@ function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?
         <div className="bg-gray-800/40 rounded-lg p-3">
           <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={r.interpretation || ''} query={query} /></p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Roue des Arcanes de la Semaine : lecture dépliée (7 cartes + fil rouge) ──
+function WheelView({ r }: { r: Reading }) {
+  const lang = useLang();
+  let st: { castAt?: string; cards?: number[]; revealed?: number[]; filRouge?: { fr: string; en: string } } | null = null;
+  try { st = JSON.parse(r.interpretation || 'null'); } catch { st = null; }
+  if (!st || !Array.isArray(st.cards) || st.cards.length !== 7) {
+    return <p className="text-gray-500 text-xs italic mt-3">—</p>;
+  }
+  const DAY_MS = 86400000;
+  const castWd = new Date(st.castAt || r.createdAt).getDay();
+  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const echo = r.echo;
+  const best = echo?.bestCardIndex;
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex items-end justify-center gap-1.5 sm:gap-2.5">
+        {st.cards.map((id: number, d: number) => (
+          <div key={d} className="flex flex-col items-center gap-1">
+            <div className="relative h-16 w-11 overflow-hidden rounded-md border sm:h-20 sm:w-14"
+              style={{ borderColor: best === d ? '#F0C75E' : 'rgba(218,165,32,0.35)', boxShadow: best === d ? '0 0 12px rgba(240,199,94,0.7)' : 'none' }}>
+              {id >= 0 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/cards/arcana/${id}.jpg`} alt={TAROT_CARDS[id]?.name || ''} className="h-full w-full object-cover" />
+              ) : (
+                // Jour à venir : dos de carte (l'API ne livre que les jours révélés).
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/images/card-back.png" alt="" className="h-full w-full object-cover opacity-80" />
+              )}
+              {best === d && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px]" style={{ color: '#F0C75E' }}>✦</span>}
+            </div>
+            <span className="text-[8px] uppercase tracking-wide text-amber-200/50">{days[(castWd + d) % 7]}</span>
+          </div>
+        ))}
+      </div>
+      {st.filRouge && (
+        <p className="text-center text-sm italic leading-relaxed text-amber-100/90" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+          « {lang === 'en' ? st.filRouge.en : st.filRouge.fr} »
+        </p>
+      )}
+      {echo?.verdict && (
+        <p className="text-center text-[11px]" style={{ color: '#F0C75E' }}>
+          {lang === 'en' ? 'Week kept at' : 'Semaine tenue à'} {echo.verdictPct ?? (echo.verdict === 'oui' ? 100 : echo.verdict === 'partiel' ? 50 : 0)}%
+          {best !== null && best !== undefined && best >= 0 && st.cards[best] !== undefined && (
+            <> · {lang === 'en' ? 'best card' : 'carte tenue'} : {TAROT_CARDS[st.cards[best]]?.name}</>
+          )}
+        </p>
       )}
     </div>
   );

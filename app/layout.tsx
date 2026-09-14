@@ -103,9 +103,12 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `(function(){
   var v=document.getElementById('boot-veil');if(!v)return;
   /* Voile de démarrage réservé à la landing (l'app y entre ici). Ailleurs :
-     page directement visible — sinon on masquerait une navigation interne.
+     on LE CACHE sans le retirer du DOM — le retirer avant l'hydratation
+     ferait croire à React à un mismatch d'hydratation, qui ré-insérerait le
+     nœud (voile réapparu PAR-DESSUS la page chargée). display:none dès le
+     parse = jamais peint, et l'arbre React reste identique.
      '/index.html' = entrée de la WebView Capacitor (export statique). */
-  if(location.pathname!=='/'&&location.pathname!=='/index.html'){v.remove();return;}
+  if(location.pathname!=='/'&&location.pathname!=='/index.html'){v.style.display='none';return;}
   try{var p=JSON.parse(localStorage.getItem('tarot_prefs')||'{}');var tx=document.getElementById('boot-veil-text');if(p.language==='en'&&tx)tx.textContent='Loading...';}catch(e){}
   function out(){if(!v)return;clearInterval(iv);v.classList.add('app-loader-out');var w=v;v=null;setTimeout(function(){w.remove();},800);}
   /* Relais = le <AppLoader /> React de la landing (hydraté, avec fondu + minuteries).

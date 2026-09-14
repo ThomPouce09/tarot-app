@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { TAROT_CARDS } from '@/lib/tarot-data';
+import { sanitizeWheelInterpretation } from '@/lib/tarot-semaine';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,20 +41,35 @@ export async function GET(request: Request) {
       const userReadings = await prisma.reading.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
-        include: { echo: { select: { id: true, dueAt: true, verdict: true } } },
+        include: { echo: { select: { id: true, dueAt: true, verdict: true, verdictPct: true, bestCardIndex: true } } },
       });
 
       // Format response safely
-      const readings = userReadings.map((r: any) => ({
-        id: String(r.id ?? ''),
-        type: r.type ?? null,
-        question: r.question ?? null,
-        spread: r.spread ?? null,
-        cards: Array.isArray(r.cards) ? r.cards : (typeof r.cards === 'string' ? JSON.parse(r.cards || '[]') : []),
-        interpretation: typeof r.interpretation === 'string' ? r.interpretation : (r.interpretation ? JSON.stringify(r.interpretation) : null),
-        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
-        echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict } : null,
-      }));
+      const readings = userReadings.map((r: any) => {
+        let cards = Array.isArray(r.cards) ? r.cards : (typeof r.cards === 'string' ? JSON.parse(r.cards || '[]') : []);
+        let interpretation = typeof r.interpretation === 'string' ? r.interpretation : (r.interpretation ? JSON.stringify(r.interpretation) : null);
+        // Roue hebdo : jamais révéler l'avenir ni le fil rouge avant l'heure —
+        // ni par l'interprétation, ni par la colonne `cards` (vignettes).
+        if (r.type === 'tarot-semaine') {
+          interpretation = sanitizeWheelInterpretation(interpretation, !!r.echo);
+          try {
+            const st = JSON.parse(interpretation || '{}');
+            const rev = new Set<number>(st.revealed || []);
+            cards = (st.cards || []).map((id: number, d: number) =>
+              rev.has(d) && id >= 0 ? { id, name: TAROT_CARDS[id]?.name } : { id: -1 });
+          } catch { /* état illisible : rester sur la colonne brute */ }
+        }
+        return {
+          id: String(r.id ?? ''),
+          type: r.type ?? null,
+          question: r.question ?? null,
+          spread: r.spread ?? null,
+          cards,
+          interpretation,
+          createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
+          echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict, verdictPct: r.echo.verdictPct ?? null, bestCardIndex: r.echo.bestCardIndex ?? null } : null,
+        };
+      });
 
       return NextResponse.json({ readings });
     } catch (readError) {

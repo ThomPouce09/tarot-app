@@ -26,7 +26,7 @@ const BASE_TYPES: Record<Universe, string> = {
 };
 
 const UNIVERSE_TYPES: Record<Universe, string[]> = {
-  tarot: ['tarot-3-cartes', 'tarot-3-cartes-simplifie', 'tarot-5-cartes', 'tarot-5-c-manuelle'],
+  tarot: ['tarot-3-cartes', 'tarot-3-cartes-simplifie', 'tarot-5-cartes', 'tarot-5-c-manuelle', 'tarot-semaine'],
   yijing: ['yi-jing-simplifie', 'yi-jing-du-jour', 'yi-jing-simple', 'yi-jing-question', 'yi-qing'],
   des: ['des-simplifie', 'des-affinage', 'des-choix', 'des-obstacle-solution'],
   runes: ['runes-mjolnir', 'runes-nornes', 'runes-nornes2', 'runes-yggdrasil'],

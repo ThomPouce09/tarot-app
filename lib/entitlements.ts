@@ -184,27 +184,30 @@ export async function canDo(email: string, type: string, question: string | null
   if (rights.level === 'arkane' && subActive) {
     return { allowed: true, reason: 'ok', message: '' };
   }
-  // 1er grand du pack bienvenue (au choix).
-  if (!rights.welcomeGrandUsed) {
-    return { allowed: true, reason: 'welcome-grand-ok', message: '' };
+  // Coût en grands : 2 pour la roue des Arcanes de la Semaine (office du
+  // dimanche), 1 ailleurs. Les ressources se cumulent dans l'ordre de
+  // priorité habituel (welcome → tickets cadeau → bonus streak → crédits → quota).
+  const cost = grandCostOf(type);
+  let avail = 0;
+  if (!rights.welcomeGrandUsed) avail += 1;
+  avail += rights.giftTickets + rights.bonusGrand;
+  avail += Math.floor(rights.rechargeCredits / CREDITS_GRAND);
+  if (rights.grandMonthly !== null) avail += Math.max(0, rights.grandMonthly - rights.grandUsedMonth);
+  if (avail >= cost) {
+    return { allowed: true, reason: rights.welcomeGrandUsed ? 'ok' : cost === 1 ? 'welcome-grand-ok' : 'ok', message: '' };
   }
-  // Ticket cadeau (créatures) : couvre ce tirage avant bonus/crédits.
-  if (rights.giftTickets > 0) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  // Bonus streak cumulable.
-  if (rights.bonusGrand > 0) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  // Recharge cosmique : 15 crédits.
-  if (rights.rechargeCredits >= CREDITS_GRAND) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  // Quota mensuel Initié.
-  if (rights.grandMonthly !== null && rights.grandUsedMonth < rights.grandMonthly) {
-    return { allowed: true, reason: 'ok', message: '' };
-  }
-  return { allowed: false, reason: 'limit-grand', message: 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.' };
+  return {
+    allowed: false,
+    reason: 'limit-grand',
+    message: cost > 1
+      ? 'La roue des Arcanes de la Semaine demande deux grands tirages. Abonnez-vous pour en débloquer.'
+      : 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.',
+  };
+}
+
+/** Nombre de grands tirages consommés par ce type (2 pour la roue hebdomadaire). */
+export function grandCostOf(type: string): number {
+  return type === 'tarot-semaine' ? 2 : 1;
 }
 
 // ── Consomme un tirage (met à jour le streak + décrémente) ──────
@@ -255,20 +258,22 @@ export async function consume(email: string, type: string, question: string | nu
     // (initie/arkane actif : base illimitée, aucun compteur)
   } else {
     // Grand : épuise d'abord les droits one-shot, puis les tickets cadeau,
-    // puis les crédits, puis le quota mensuel.
-    if (!u.welcomeGrandUsed) {
+    // puis les crédits, puis le quota mensuel — coût = grandCostOf(type)
+    // (2 pour la roue des Arcanes de la Semaine).
+    let left = grandCostOf(type);
+    if (left >= 1 && !u.welcomeGrandUsed) {
       patch.welcomeGrandUsed = true;
-    } else if (u.giftTickets > 0) {
-      // Cadeau des créatures : un ticket couvre ce tirage.
-      patch.giftTickets = u.giftTickets - 1;
-    } else if (u.bonusGrand > 0) {
-      patch.bonusGrand = u.bonusGrand - 1;
-    } else if (u.rechargeCredits >= CREDITS_GRAND) {
-      patch.rechargeCredits = u.rechargeCredits - CREDITS_GRAND;
-    } else {
-      patch.grandUsedMonth = u.grandUsedMonth + 1;
+      left -= 1;
     }
-    patch.grandUsedToday = u.grandUsedToday + 1;
+    const spendGift = Math.min(left, u.giftTickets);
+    if (spendGift > 0) { patch.giftTickets = u.giftTickets - spendGift; left -= spendGift; }
+    const spendBonus = Math.min(left, u.bonusGrand);
+    if (spendBonus > 0) { patch.bonusGrand = u.bonusGrand - spendBonus; left -= spendBonus; }
+    const maxCreditPays = Math.floor(u.rechargeCredits / CREDITS_GRAND);
+    const spendCredits = Math.min(left, maxCreditPays);
+    if (spendCredits > 0) { patch.rechargeCredits = u.rechargeCredits - spendCredits * CREDITS_GRAND; left -= spendCredits; }
+    if (left > 0) patch.grandUsedMonth = u.grandUsedMonth + left;
+    patch.grandUsedToday = u.grandUsedToday + grandCostOf(type);
   }
 
   await prisma.usage.update({ where: { userId: user.id }, data: patch });

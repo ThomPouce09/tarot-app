@@ -49,6 +49,7 @@ function subLabel(type: string): string {
     'des-obstacle-solution': 'Obstacle',
     'des-affinage': 'Affinage',
     'des-simplifie': 'Simplifié',
+    'tarot-semaine': 'Arcanes de la Semaine',
   };
   return map[type] || (type || 'Tirage');
 }
@@ -336,12 +337,14 @@ export default function StatsPage() {
     return { groups, counts, total, streak, best, activeDays, questions, dayMap, byMonth, maxMonth, recent };
   }, [readings, lang]);
 
-  // ── Ferveur de l'oracle : précision des augures clos (oui = 1, partiel = 0.5) ──
+  // ── Ferveur de l'oracle : précision des augures clos. Notation fine
+  // (verdictPct 0-100, roue hebdo) si présente, sinon échelle oui/partiel/non.
   const fervor = useMemo(() => {
     const closed = echoes.filter((e: any) => e.verdict);
     if (!closed.length) return null;
     const score = closed.reduce((s: number, e: any) =>
-      s + (e.verdict === 'oui' ? 1 : e.verdict === 'partiel' ? 0.5 : 0), 0);
+      s + (typeof e.verdictPct === 'number' ? e.verdictPct / 100
+        : e.verdict === 'oui' ? 1 : e.verdict === 'partiel' ? 0.5 : 0), 0);
     return { closed: closed.length, pct: Math.round((score / closed.length) * 100) };
   }, [echoes]);
 

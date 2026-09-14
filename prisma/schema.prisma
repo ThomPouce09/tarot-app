@@ -131,6 +131,8 @@ model Echo {
   domain    String    // 'tarot' | 'yi-jing' | 'runes' | 'des'
   dueAt     DateTime  // échéance de vérification
   verdict   String?   // 'oui' | 'partiel' | 'non' — null = encore scellé/non clos
+  verdictPct    Int?    // notation fine 0-100 (Arcanes de la Semaine ; pas à pas de 25)
+  bestCardIndex Int?    // index 0-6 de la carte la mieux accomplie (roue hebdo, facultatif)
   verdictAt DateTime?
   notified  Boolean   @default(false) // push d'échéance envoyé (cron)
   createdAt DateTime  @default(now())
