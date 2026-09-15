@@ -137,6 +137,8 @@ interface Tile {
   desc: string;
   descEn: string;
   icon: string;
+  /** Image d'icône (remplace l'emoji si fournie) — style tuiles du hub /tarot. */
+  iconImg?: string;
   bg: string;
 }
 
@@ -145,9 +147,10 @@ const TILES: Tile[] = [
     href: '/des-divinatoires-simplifie',
     type: 'des-simplifie',
     title: 'Dés Simplifié',
-    desc: 'Choisissez un Élément et une intention : les trois dés répondent à l’essentiel',
-    descEn: 'Pick an Element and an intention: the three dice answer the essentials',
+    desc: 'Un élément, une intention : les 3 dés vous aiguillent',
+    descEn: 'One element, one intention: the 3 dice guide you',
     icon: '✦',
+    iconImg: '/images/des-simplifie.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.steel} 100%)`,
   },
   {
@@ -156,22 +159,25 @@ const TILES: Tile[] = [
     desc: 'Préciser une nuance ou ajuster votre posture sans refaire tout le tirage',
     descEn: 'Refine a nuance or adjust your stance without redoing the whole reading',
     icon: '🔍',
+    iconImg: '/images/des-affinage.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
   },
   {
     href: '/des-divinatoires/choix',
     title: 'Le tirage du choix',
-    desc: "Une aide à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
-    descEn: "A decision aid: compare the energy of two options when you're torn between two paths.",
+    desc: 'Aide à la décision : 2 chemins, 2 énergies, à vous de choisir',
+    descEn: 'Decision aid: 2 paths, 2 energies — the choice is yours',
     icon: '⚖️',
+    iconImg: '/images/des-choix.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.brickDark} 100%)`,
   },
   {
     href: '/des-divinatoires/obstacle-solution',
     title: 'Obstacle & Solution',
-    desc: "Une méthode en deux lancers pour comprendre l'origine d'un blocage et obtenir un conseil précis pour le débloquer.",
-    descEn: 'A two-throw method to understand the source of a block and get precise advice to overcome it.',
+    desc: '2 lancers pour comprendre un blocage et obtenir conseil pour sa solution',
+    descEn: '2 throws to understand a block and get advice for its solution',
     icon: '🗝️',
+    iconImg: '/images/des-solution.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.steel} 0%, ${DICE_THEME.brickDeep} 100%)`,
   },
 ];
@@ -311,7 +317,7 @@ export default function DesDivinatoiresHub() {
       <FirstVisitHints flagKey="hints_des" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <DiceTitle
         title="Les Dés du zodiaque"
-        subtitle="Trois dés à douze faces — la Planète (qui/quoi), le Signe (comment) et la Maison (où) — pour éclairer vos questions avec précision."
+        subtitle="Trois dés, trois clés : Planète, signe et vision pour décoder votre situation."
       />
 
       <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
@@ -388,9 +394,13 @@ export default function DesDivinatoiresHub() {
               {mounted && <ZodiacFrieze position="top" />}
               {mounted && <ZodiacFrieze position="bottom" />}
 
-              <span className="relative mb-3 text-4xl transition-transform duration-500 group-hover:scale-110">
-                {tile.icon}
-              </span>
+              {tile.iconImg ? (
+                <img src={tile.iconImg} alt="" className="relative mb-3 w-12 h-auto object-contain transition-transform duration-500 group-hover:scale-110" />
+              ) : (
+                <span className="relative mb-3 text-4xl transition-transform duration-500 group-hover:scale-110">
+                  {tile.icon}
+                </span>
+              )}
               <h2
                 className="relative mb-2 text-lg font-bold"
                 style={{
