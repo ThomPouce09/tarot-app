@@ -33,6 +33,12 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Ne PAS laisser le défaut ('packages: tools') : le paquet obsolète
+          # 'tools' a été RETIRÉ de cmdline-tools 16.0 (runners GitHub, sept.
+          # 2026) → "Failed to find package 'tools'" (run #78). On épingle ce
+          # que Gradle/AGP exigent pour compileSdk 36.
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Restore debug keystore (signature stable)
         # SANS ceci, AGP auto-génère un keystore debug DIFFERENT sur chaque
