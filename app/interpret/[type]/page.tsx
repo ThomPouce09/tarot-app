@@ -224,13 +224,16 @@ function InterpretationInner() {
         }))
     : [];
 
-  // Sections d'analyse (Tarot 3 cartes : Passé/Présent/Avenir ; sinon situation/défis/...)
-  const isTarot3 = isTarot && type === 'tarot-3-cartes';
+  // Sections d'analyse — le serveur renvoie passe/present/avenir/resume pour
+  // TOUS les tirages tarot (3 cartes, 3 simplifié, 5 cartes, 5-C manuel) :
+  // la variante « simplifie » doit les afficher aussi, sinon seules des clés
+  // Yi Jing vides rendent la page amputée (juste le résumé).
+  const isTarot3 = isTarot;
   const sections: { label: string; value?: string | number; Icon?: React.ComponentType<{ className?: string }> }[] = isTarot3
     ? [
-        { label: 'Passé', value: interpretation.passe },
-        { label: 'Présent', value: interpretation.present },
-        { label: 'Avenir', value: interpretation.avenir },
+        { label: t('history.pos.past'), value: interpretation.passe },
+        { label: t('history.pos.present'), value: interpretation.present },
+        { label: t('history.pos.future'), value: interpretation.avenir },
       ]
     : [
         { label: t('interpret.situation'), value: interpretation.situation, Icon: IconSituation },
