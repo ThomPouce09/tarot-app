@@ -79,3 +79,5 @@ apk_artifact.zip
 
 # scripts/outils Hermes locaux
 .hermes/
+
+.vercel
