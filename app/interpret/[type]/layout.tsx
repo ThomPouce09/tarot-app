@@ -5,7 +5,8 @@
 export function generateStaticParams() {
   const hexagrams = Array.from({ length: 64 }, (_, i) => `hexagram-${i + 1}`);
   const others = [
-    'yi-jing-simple', 'yi-jing-question', 'tarot-3-cartes', 'tarot-5-cartes',
+    'yi-jing-simple', 'yi-jing-simplifie', 'yi-jing-question', 'tarot-3-cartes',
+    'tarot-3-cartes-simplifie', 'tarot-5-cartes',
     'tarot-5-c-manuelle', 'runes', 'des-choix',
     'obstacle-solution', 'affinage', 'yi-jing-du-jour',
   ];
