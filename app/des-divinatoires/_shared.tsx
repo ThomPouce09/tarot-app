@@ -126,12 +126,11 @@ export function DiceTitle({
           style={{
             fontFamily: 'var(--font-cinzel), serif',
             fontWeight: 700,
-            color: '#FF69B4', // rose bonbon — sous-titre
-            opacity: 0.97,
-            // Bordure extérieure très fine sur les lettres (fuchsia) + ombre portée sombre.
-            WebkitTextStroke: '0.5px #FF00FF',
+            // Bleu foncé, entouré de jaune PÂLE (contour via ombres
+            // directionnelles, sans fond).
+            color: '#1E3A8A',
             textShadow:
-              '0 1px 3px rgba(70,5,40,0.55), 0 3px 10px rgba(60,8,35,0.5)',
+              '0.6px 0 0 rgba(255,244,190,0.95), -0.6px 0 0 rgba(255,244,190,0.95), 0 0.6px 0 rgba(255,244,190,0.95), 0 -0.6px 0 rgba(255,244,190,0.95), 0 0 7px rgba(255,240,175,0.6)',
           }}
         >
           {subtitle}
