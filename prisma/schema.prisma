@@ -38,6 +38,10 @@ model User {
   // Fonds d'écran de la landing sélectionnés par l'utilisateur (chemins publics).
   // Vide = tous les fonds en mode aléatoire (défaut).
   backgrounds       String[]
+  // Musique d'accueil : interrupteur + piste ('vibrations' | 'promenades').
+  // 'promenades' n'est jouable que pour Initié/Arkane (contrôle aussi côté UI).
+  musicOn           Boolean  @default(true)
+  musicTrack        String   @default("classique")
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
   // Tutoriels vus (lié au compte → ne se ressert pas après déconnexion/reconnexion
   // ni sur un autre appareil). Flags : 'tour', 'login_tour', 'hints_landing',

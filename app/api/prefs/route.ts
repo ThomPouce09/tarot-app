@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     dailyReminder: user.dailyReminder,
     dailyReminderHour: user.dailyReminderHour,
     backgrounds: user.backgrounds,
+    musicOn: user.musicOn,
+    musicTrack: user.musicTrack,
     seenTutorials: user.seenTutorials,
     lastLetterSentAt: user.lastLetterSentAt ? user.lastLetterSentAt.toISOString() : null,
   });
@@ -42,6 +44,11 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(body.backgrounds)) {
       data.backgrounds = body.backgrounds.filter((b: unknown): b is string => typeof b === 'string').slice(0, 20);
     }
+    // Musique d'accueil (interrupteur + piste). Normalise les anciens ids.
+    if (typeof body.musicOn === 'boolean') data.musicOn = body.musicOn;
+    const LEGACY: Record<string, string> = { classique: 'vibrations', premium: 'promenades' };
+    const mt = LEGACY[body.musicTrack] ?? body.musicTrack;
+    if (mt === 'vibrations' || mt === 'promenades') data.musicTrack = mt;
     if (typeof body.fcmToken === 'string' && body.fcmToken.trim()) data.fcmToken = body.fcmToken.trim();
     if (body.fcmToken === null) data.fcmToken = null; // retirer le token (déconnexion)
 

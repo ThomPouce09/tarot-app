@@ -14,6 +14,21 @@
 
 export type BackgroundLevel = 'apprenti' | 'initie' | 'arkane';
 
+// ── Fonds de l'univers Yi Jing (hub /yi-jing) — mêmes paliers que l'accueil ──
+// Apprenti : 2 · Initié : 3 · Arkane : les 4. Déposés dans public/backgrounds/
+// depuis longtemps mais jamais câblés : le hub affichait landing-bg.jpg.
+export const YI_JING_BACKGROUNDS: string[] = [
+  '/backgrounds/yi-jing-bg.jpg',
+  '/backgrounds/yi-jing-bg0.mp4',
+  '/backgrounds/yi-jing-bg1.mp4',
+  '/backgrounds/yi-jing-bg2.mp4',
+];
+export const YI_JING_BACKGROUND_POOLS: Record<BackgroundLevel, string[]> = {
+  apprenti: YI_JING_BACKGROUNDS.slice(0, 2),
+  initie: YI_JING_BACKGROUNDS.slice(0, 3),
+  arkane: YI_JING_BACKGROUNDS,
+};
+
 // Fond d'écran par défaut de l'accueil (clair, positif).
 export const DEFAULT_BACKGROUND = '/backgrounds/landing-bg4.mp4';
 

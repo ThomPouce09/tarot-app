@@ -29,6 +29,10 @@ export interface SoundEntry {
   /** true = « voix » (jingles nommés d'après une page) : contrôlé par la
    *  préférence Voix ; false/absent = effet sonore : préférence Effets. */
   voice?: boolean;
+  /** true = musique d'ambiance (canal INDÉPENDANT des voix/effets — c'est
+   *  l'interrupteur « Musique » des Préférences qui la régit, vérifié par
+   *  l'appelant). stopVoices/stopAllSounds ne touchent jamais ces pistes. */
+  music?: boolean;
 }
 
 export const SOUNDS: SoundEntry[] = [
@@ -66,6 +70,8 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
+  { key: 'music-vibrations', file: '/audio/music-vibrations.mp3', category: 'ambient', label: 'Vibrations (musique d’accueil)', duration: 175, usage: 'Boucle d’ambiance de la page d’accueil — tous les comptes', voice: true, music: true },
+  { key: 'music-promenades', file: '/audio/music-promenades.mp3', category: 'ambient', label: 'Promenades (musique premium)', duration: 174, usage: 'Boucle d’ambiance réservée Initié/Arkane', voice: true, music: true },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
   { key: 'creatures2', file: '/audio/creatures2.mp3', category: 'ambient', label: 'Créature 2', duration: 1.00, usage: 'Tap sur la luciole — variant 2' },
   { key: 'creatures3', file: '/audio/creatures3.mp3', category: 'ambient', label: 'Créature 3', duration: 1.10, usage: 'Tap sur la luciole — variant 3' },
@@ -167,8 +173,16 @@ const unlocked = new Map<string, HTMLAudioElement>();
  *  Appeler au montage : window.addEventListener('pointerdown', unlockAll, { once:true }). */
 export function unlockAllSounds() {
   for (const s of SOUNDS) {
-    // Chaque son suit sa préférence : voix (jingles de page) vs effets.
+    // Chaque son suit sa préférence : voix (jingles de page + musique) vs effets.
     if (s.voice ? !isVoicesEnabled() : !isEffectsEnabled()) continue;
+    // Musique : respect aussi son interrupteur maître « Musique » (lib/music) —
+    // éteinte = même le pré-déverrouillage muet est annulé.
+    if (s.music) {
+      try {
+        const p = JSON.parse(localStorage.getItem('tarot_prefs') || '{}');
+        if (p.musicOn === false) continue;
+      } catch { /*_prefs illisibles → on déverrouille quand même */ }
+    }
     try {
       if (unlocked.has(s.key)) continue;
       const a = new Audio(s.file);
@@ -199,7 +213,9 @@ export function playSound(key: string, volume = 0.8) {
     if (typeof console !== 'undefined') console.warn(`[sounds] clé inconnue: ${key}`);
     return;
   }
-  // Voix (jingles de page) suivent la préférence « Voix » ; le reste, « Effets ».
+  // Voix (jingles de page + musique) suivent la préférence « Voix » ; le reste,
+  // « Effets ». La musique obéit AUSSI à son interrupteur maître « Musique »
+  // (lib/music), vérifié par l'appelant avant playLoop().
   if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
   try {
     const existing = unlocked.get(key);
@@ -230,6 +246,36 @@ export function installSoundUnlock() {
   window.addEventListener('keydown', handler, { once: true });
 }
 
+/** Joue un son en BOUCLE (musique d'ambiance). Même contrat que playSound :
+ *  respect la préférence (voix/effets), élément pré-déverrouillé réutilisé.
+ *  Si le browser rejette le play() (politique autoplay sans geste valide), on
+ *  re-tente silencieusement au geste suivant — un seul slot de re-tentative. */
+let retrySlot: { key: string; volume: number } | null = null;
+const retryGesture = () => { if (retrySlot) playLoop(retrySlot.key, retrySlot.volume); };
+export function playLoop(key: string, volume = 0.5): void {
+  const entry = BY_KEY[key];
+  if (!entry) return;
+  if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
+  try {
+    let snd = unlocked.get(key);
+    if (!snd) { snd = new Audio(entry.file); unlocked.set(key, snd); }
+    snd.loop = true;
+    snd.volume = volume;
+    snd.play().then(() => {
+      retrySlot = null;
+      window.removeEventListener('pointerdown', retryGesture);
+      window.removeEventListener('touchstart', retryGesture);
+    }).catch(() => {
+      // Rejeté (pas encore de geste valide) → re-tente à chaque geste.
+      retrySlot = { key, volume };
+      window.removeEventListener('pointerdown', retryGesture);
+      window.removeEventListener('touchstart', retryGesture);
+      window.addEventListener('pointerdown', retryGesture);
+      window.addEventListener('touchstart', retryGesture);
+    });
+  } catch { /* rien */ }
+}
+
 /** Joue un son choisi aléatoirement parmi plusieurs clés (variantes). */
 export function playRandom(...keys: string[]) {
   if (keys.length === 0) return;
@@ -241,6 +287,13 @@ export function playRandom(...keys: string[]) {
  *  l'utilisateur quitte la page (navigation, fermeture, arrière-plan). */
 export function stopSound(key: string) {
   const snd = unlocked.get(key);
+  // Purge aussi une re-tentative de boucle en attente (sinon le prochain
+  // geste relancerait un qu'on vient d'éteindre — arrêt = arrêt DÉFINITIF).
+  if (retrySlot?.key === key) {
+    retrySlot = null;
+    window.removeEventListener('pointerdown', retryGesture);
+    window.removeEventListener('touchstart', retryGesture);
+  }
   if (!snd) return;
   try {
     snd.pause();
@@ -250,12 +303,46 @@ export function stopSound(key: string) {
   }
 }
 
+/** Pause SANS rembobiner (reprise possible où elle s'est arrêtée) — pour le
+ *  player « Musique » des préférences. */
+export function pauseSound(key: string) {
+  try { unlocked.get(key)?.pause(); } catch { /* ignore */ }
+}
+
+/** Reprend un son en pause (ou le démarre) sans rembobiner. */
+export function resumeSound(key: string, volume?: number) {
+  const snd = unlocked.get(key);
+  if (!snd) return false;
+  if (typeof volume === 'number') snd.volume = volume;
+  snd.play().catch(() => { /* geste requis — le player retentera au clic */ });
+  return true;
+}
+
+/** Le son est-il en train de jouer ? (pour l'affichage ▶/⏸ du player) */
+export function isSoundPlaying(key: string): boolean {
+  const snd = unlocked.get(key);
+  return !!snd && !snd.paused;
+}
+
+/** Ajuste le volume d'un son déjà enregistré (fondu du player). */
+export function setSoundVolume(key: string, volume: number) {
+  const snd = unlocked.get(key);
+  if (snd) snd.volume = volume;
+}
+
+/** Position de lecture d'un son (pour la progression du player musique). */
+export function soundProgress(key: string): { playing: boolean; time: number; dur: number } {
+  const snd = unlocked.get(key);
+  if (!snd) return { playing: false, time: 0, dur: 0 };
+  return { playing: !snd.paused, time: snd.currentTime || 0, dur: snd.duration || 0 };
+}
+
 /** Arrête les VOIX (jingles de page) en cours — utilisé par l'enceinte
  *  quand la préférence Voix passe à off (les effets, eux, continuent). */
 export function stopVoices() {
   if (typeof window === 'undefined') return;
   for (const s of SOUNDS) {
-    if (!s.voice) continue;
+    if (!s.voice) continue; // la musique (voice+music) est coupée avec les voix
     const snd = unlocked.get(s.key);
     if (!snd) continue;
     try {
