@@ -5,6 +5,8 @@ import { useLang, useSetLang, useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import SpaceTitle from '@/components/space-title';
 import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib/sounds';
+import MusicPlayer from '@/components/music-player';
+import { getMusicPrefs, type MusicTrackId } from '@/lib/music';
 import { resetAllTutorials } from '@/lib/tutorials';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
@@ -17,6 +19,8 @@ type Prefs = {
   language: 'fr' | 'en';
   soundEffects: boolean;
   voices: boolean;
+  musicOn: boolean;
+  musicTrack: MusicTrackId;
 };
 
 const DEFAULT_PREFS: Prefs = {
@@ -27,6 +31,8 @@ const DEFAULT_PREFS: Prefs = {
   language: 'fr',
   soundEffects: true,
   voices: true,
+  musicOn: true,
+  musicTrack: 'vibrations',
 };
 
 export default function PreferencesPage() {
@@ -70,9 +76,13 @@ export default function PreferencesPage() {
             dailyReminderHour: d.dailyReminderHour ?? p.dailyReminderHour,
             emailNews: d.emailNews ?? p.emailNews,
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
+            musicOn: typeof d.musicOn === 'boolean' ? d.musicOn : p.musicOn,
+            musicTrack: d.musicTrack === "promenades" || d.musicTrack === "premium" ? "promenades" : "vibrations",
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
           setSoundPrefs(next.soundEffects, next.voices);
+          // Le player musique lit tarot_prefs → on le resynchronise.
+          window.dispatchEvent(new Event('musicprefs-changed'));
           return next;
         });
       })
@@ -91,9 +101,26 @@ export default function PreferencesPage() {
     api('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack }),
     }).catch(() => {});
   };
+
+  // Le player Musique écrit ses réglages via lib/music (hors du state local) :
+  // on les renvoie aussi au serveur à chaque changement, et on resynchronise
+  // l'état local pour que les futurs syncServer ne les écrasent pas.
+  useEffect(() => {
+    const sync = () => {
+      const m = getMusicPrefs();
+      setPrefs((p) => ({ ...p, musicOn: m.on, musicTrack: m.track }));
+      if (!email) return;
+      api('/api/prefs', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, musicOn: m.on, musicTrack: m.track }),
+      }).catch(() => {});
+    };
+    window.addEventListener('musicprefs-changed', sync);
+    return () => window.removeEventListener('musicprefs-changed', sync);
+  }, [email]);
 
   const update = (patch: Partial<Prefs>) => {
     setPrefs((p) => {
@@ -169,6 +196,18 @@ export default function PreferencesPage() {
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.sound')}</h2>
         <Toggle label={t('prefs.soundEffects')} checked={prefs.soundEffects} onChange={(v) => update({ soundEffects: v })} />
         <Toggle label={t('prefs.voices')} checked={prefs.voices} onChange={(v) => update({ voices: v })} />
+      </div>
+
+      {/* Musique de l'accueil — player dédié (piste, play/pause, volume, on/off). */}
+      <div className="mystic-panel p-5 space-y-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="mystic-subtitle text-sm">{t('prefs.music')}</h2>
+          {level === 'apprenti' && (
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(218,165,32,0.6)' }}>{t('music.premium.teaser')}</span>
+          )}
+        </div>
+        <p className="text-gray-400 text-xs leading-relaxed">{t('prefs.musicHint')}</p>
+        <MusicPlayer level={level} />
       </div>
 
       {/* Fond d'écran de l'accueil — rangée compacte ; seuls les fonds du

@@ -17,6 +17,8 @@ import { ShimmerChars } from '@/components/shimmer-chars';
 import PauseRepas from '@/components/pause-repas';
 import SpeakerToggle from '@/components/speaker-toggle';
 import FirstVisitHints from '@/components/first-visit-hints';
+import { SOUND_PREFS_EVENT, stopSound } from '@/lib/sounds';
+import { MUSIC_PREFS_EVENT, MUSIC_TRACKS, applyMusicPrefs } from '@/lib/music';
 
 // useLayoutEffect côté client (s'exécute AVANT le rendu peint), useEffect côté
 // serveur (SSR) — évite les warnings, et surtout les flashs d'état après hydration.
@@ -38,6 +40,34 @@ export default function HomePage() {
       landingColdStartSeen = true;
       setColdStart(true);
     }
+  }, []);
+  // Musique d'accueil en boucle (lib/music) — règles : maître « Musique » off →
+  // jamais ; on + voix actives → la piste sélectionnée (défaut Vibrations) joue
+  // dès l'arrivée sur l'accueil (le browser exige un geste → armé au premier
+  // toucher, retry automatique). L'enceinte (voix off) la coupe avec les voix ;
+  // réactiver les voix la remet.
+  useEffect(() => {
+    const start = () => applyMusicPrefs();
+    const onVisibility = () => {
+      if (document.hidden) for (const tk of MUSIC_TRACKS) stopSound(tk.key);
+      else start();
+    };
+    window.addEventListener('pointerdown', start, { once: true });
+    window.addEventListener('keydown', start, { once: true });
+    window.addEventListener('touchstart', start, { once: true });
+    window.addEventListener(SOUND_PREFS_EVENT, start);
+    window.addEventListener(MUSIC_PREFS_EVENT, start);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      for (const tk of MUSIC_TRACKS) stopSound(tk.key);
+      window.removeEventListener('pointerdown', start);
+      window.removeEventListener('keydown', start);
+      window.removeEventListener('touchstart', start);
+      window.removeEventListener(SOUND_PREFS_EVENT, start);
+      window.removeEventListener(MUSIC_PREFS_EVENT, start);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Fond de départ : premier de la liste (fallback), remplacé dès le montage.
   const [background, setBackground] = useState<string>(LANDING_BACKGROUNDS[0]);

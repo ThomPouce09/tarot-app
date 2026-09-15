@@ -6,6 +6,9 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
+import { useUniverseBackground } from '@/lib/use-universe-background';
+import UniverseBgPicker from '@/components/universe-bg-picker';
+import { YI_JING_BACKGROUND_POOLS } from '@/lib/backgrounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import SpeakerToggle from '@/components/speaker-toggle';
 import FirstVisitHints from '@/components/first-visit-hints';
@@ -96,6 +99,9 @@ export default function YiJingHubPage() {
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
   const auth = useRequireVerified();
+  // Fond de l'univers : rotation aléatoire restreinte au forfait + sélection
+  // de la modale UniverseBgPicker (aperçu immédiat, recharge à la fermeture).
+  const bg = useUniverseBackground(YI_JING_BACKGROUND_POOLS);
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -141,14 +147,29 @@ export default function YiJingHubPage() {
   if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <div className="relative w-full min-h-screen overflow-y-auto flex items-center justify-center">
-      {/* BACKGROUND */}
-      <Image
-        src="/backgrounds/landing-bg.jpg"
-        alt="background mystique"
-        fill
-        priority
-        style={{ objectFit: "cover" }}
-      />
+      {/* BACKGROUND — rotation aléatoire parmi les fonds de l'univers (pool du
+          forfait ∩ sélection de la modale). Même structure que la landing : une
+          vidéo en z négatif passerait DERRIÈRE le fond opaque du body → noir. */}
+      <div className="absolute inset-0 z-0">
+        {bg.isVideo ? (
+          <video
+            src={bg.background}
+            autoPlay muted loop playsInline preload="auto"
+            onLoadedData={() => bg.setVideoReady(true)}
+            onCanPlay={() => bg.setVideoReady(true)}
+            onPlaying={() => bg.setVideoReady(true)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${bg.videoReady ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ) : (
+          <Image
+            src={bg.background || '/backgrounds/yi-jing-bg.jpg'}
+            alt="background mystique"
+            fill
+            priority
+            style={{ objectFit: "cover" }}
+          />
+        )}
+      </div>
       <div
         className="absolute inset-0"
         style={{
@@ -160,6 +181,11 @@ export default function YiJingHubPage() {
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
       <SpeakerToggle />
+      {/* Modale de sélection des fonds — bouton discret à gauche de l'enceinte. */}
+      {bg.ready && (
+        <UniverseBgPicker pools={YI_JING_BACKGROUND_POOLS} level={bg.level} current={bg.background}
+          onPreview={(b) => bg.preview(b)} onReselect={() => bg.reselect()} />
+      )}
       <FirstVisitHints flagKey="hints_yijing" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
