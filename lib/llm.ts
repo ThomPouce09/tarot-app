@@ -14,6 +14,9 @@ export interface OracleProvider {
   baseUrl: string;
   apiKey?: string;
   models: string[];
+  /** Modèles « reasoning » : chaîne de pensée qui explose le temps de réponse
+   *  sur les gros JSON (>150 s vs ~12 s désactivée). On passe enable_thinking. */
+  noThinking?: boolean;
 }
 
 // --- Configuration des fournisseurs (clés via variables d'env, jamais en dur) ---
@@ -22,8 +25,11 @@ const PROVIDERS: OracleProvider[] = [
     name: 'b.ai',
     baseUrl: 'https://api.b.ai/v1/chat/completions',
     apiKey: process.env.B_AI_API_KEY,
-    // Modèle gratuit de l'agrégateur (reasoning séparé dans reasoning_content).
+    // Modèle gratuit de l'agrégateur. Raisonneur par défaut → on coupe la
+    // chaîne de pensée (enable_thinking:false) : les JSON tarot/yi-jing
+    // reviennent complets en ~12 s au lieu d'exploser les timeouts.
     models: ['qwen3.8-flash'],
+    noThinking: true,
   },
 ];
 
@@ -122,6 +128,7 @@ export async function callOracle(
               ],
               temperature,
               max_tokens: maxTokens,
+              ...(provider.noThinking ? { enable_thinking: false } : {}),
             }),
             signal: controller.signal,
           });
