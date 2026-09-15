@@ -29,9 +29,11 @@ const PROVIDERS: OracleProvider[] = [
 
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 30_000;
-// Timeout réduit à 20s : les modèles flash répondent en ~1-5s, inutile d'attendre 75s
-// alors qu'OpenRouter est souvent en échec.
-const REQUEST_TIMEOUT_MS = 20_000;
+// Timeout par défaut : 60 s. Le fournisseur unique (qwen3.8-flash, reasoning)
+// met 27-50 s sur les gros JSON (4 champs de 550-750 caractères) : à 20 s il
+// était aborté en pleine rédaction → retombée systématique sur le générateur
+// offline. Les réponses courtes, elles, partent bien en ~3 s.
+const REQUEST_TIMEOUT_MS = 60_000;
 // Délai dédié aux analyses LONGUES (json/10 phrases) : trop court, le modèle
 // gratuit (b.ai qwen) est aborté en pleine rédaction → « Les étoiles se voilent ».
 // qwen3.8-flash (fournisseur unique désormais) met ~27-50 s sur le JSON long
