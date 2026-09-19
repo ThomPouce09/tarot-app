@@ -64,6 +64,11 @@
   box-sizing: border-box;
 }
 
+/* Pas de surbrillance bleue Android/WebView au tap (liens, images cliquables). */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body {
   margin: 0;
   padding: 0;
