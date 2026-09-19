@@ -95,15 +95,23 @@ export default function QuestionModal({
                 ? 'e.g. What do I need to understand about this relationship?'
                 : 'Ex : Que dois-je comprendre de cette relation ?'
             }
-            className="mt-4 w-full resize-none rounded-xl border border-[#DAA520]/25 bg-black/45 p-3.5 text-sm text-[#FFF3E0] placeholder-[#DAA520]/30 italic transition-colors focus:border-[#DAA520]/60 focus:outline-none focus:shadow-[0_0_18px_rgba(218,165,32,0.18)]"
-            style={{ fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+            className="mt-4 w-full resize-none rounded-xl border border-[#DAA520]/40 p-3.5 text-[15px] leading-relaxed text-[#FFF6E8] italic placeholder-[#DAA520]/55 transition-colors focus:border-[#DAA520]/70 focus:outline-none focus:shadow-[0_0_18px_rgba(218,165,32,0.25)]"
+            style={{
+              // Fond opaque bordeaux profond (le bg translucide rendait le
+              // champ blanc sur Android/WebView) + palette sombre forcée.
+              fontFamily: 'var(--font-cormorant), Georgia, serif',
+              background: 'linear-gradient(160deg, #170a12 0%, #1d0d16 100%)',
+              colorScheme: 'dark',
+              caretColor: '#FFD700',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.65)',
+            }}
           />
 
           <motion.button
             type="button"
             onClick={handle}
             disabled={!value.trim()}
-            className="mystic-btn mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40"
+            className="tarot-btn mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40"
             whileHover={value.trim() ? { scale: 1.03 } : {}}
             whileTap={value.trim() ? { scale: 0.97 } : {}}
           >

@@ -1328,12 +1328,12 @@ export default function TarotApp({
             className="relative px-10 py-4 rounded-2xl text-sm font-bold tracking-[0.18em] uppercase overflow-hidden"
             style={{
               fontFamily: 'var(--font-cinzel), serif',
-              background: 'linear-gradient(to right, #4a1a10 0%, #5e1a2b 50%, #7a1e2e 100%)',
-              color: '#FFF3C4',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+              color: '#241505',
               border: '1.5px solid rgba(255,225,150,0.85)',
-              textShadow: '0 0 10px rgba(255,225,150,0.9), 0 1px 2px rgba(0,0,0,0.5)',
+              textShadow: '0 1px 0 rgba(255,245,208,0.55)',
               animation: 'btnGlow 2.4s ease-in-out infinite',
-              boxShadow: '0 0 18px rgba(196,120,255,0.55), 0 0 38px rgba(218,165,32,0.45), inset 0 0 16px rgba(255,240,210,0.4)',
+              boxShadow: '0 0 18px rgba(218,165,32,0.55), 0 4px 14px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(122,74,4,0.45)',
             }}
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.95 }}

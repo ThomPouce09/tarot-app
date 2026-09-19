@@ -170,13 +170,13 @@ function TarotUpgradePage() {
               onFocus={handleVideoStart}
               rows={3}
               placeholder="Quel chemin choisir dans ma vie amoureuse ?"
-              className="mb-4 w-full resize-none rounded-xl border border-[rgba(218,165,32,0.28)] bg-[rgba(36,24,16,0.6)] p-5 text-lg text-[#F0E6D3] outline-none transition-all duration-300 placeholder:text-[#C9B58A]/60 focus:border-[#DAA520] focus:shadow-[0_0_22px_rgba(218,165,32,0.18)] focus:bg-[rgba(40,27,17,0.7)]"
-              style={{ fontFamily: 'var(--font-cormorant), serif' }}
+              className="mb-4 w-full resize-none rounded-xl border border-[rgba(218,165,32,0.28)] p-5 text-lg text-[#F0E6D3] outline-none transition-all duration-300 placeholder:text-[#C9B58A]/60 focus:border-[#DAA520] focus:shadow-[0_0_22px_rgba(218,165,32,0.18)]"
+              style={{ fontFamily: 'var(--font-cormorant), serif', background: 'linear-gradient(160deg, #241811 0%, #1d0d16 100%)', colorScheme: 'dark', caretColor: '#FFD700' }}
             />
             <button
               onClick={handleQuestionSubmit}
               disabled={!questionText.trim()}
-              className={`mystic-btn flex w-full items-center justify-center gap-2.5 py-4 text-base font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
+              className={`tarot-btn flex w-full items-center justify-center gap-2.5 py-4 text-base font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
             >
               Enregistrer et tirer vos cartes
             </button>
