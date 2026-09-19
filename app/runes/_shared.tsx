@@ -958,6 +958,7 @@ export function RuneAnalysis({
               className="aspect-video w-full rounded-2xl object-cover shadow-[0_0_40px_rgba(218,165,32,0.25)]"
               style={{ border: `1px solid ${RUNE_THEME.goldPale}44` }}
               src={videoUrl}
+              poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='black'/%3E%3C/svg%3E"
               autoPlay
               muted
               loop
