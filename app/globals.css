@@ -75,6 +75,7 @@
 *:focus:not(:focus-visible) {
   outline: none;
 }
+theirs
 
 html, body {
   margin: 0;
