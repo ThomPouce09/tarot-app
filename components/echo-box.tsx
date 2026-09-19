@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang, useT } from '@/lib/i18n';
+import { useLang, useT, contentLang } from '@/lib/i18n';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
@@ -190,7 +190,7 @@ export default function EchoBox({
                 </svg>
               </div>
               <p className="text-amber-100/90 text-[15px] leading-relaxed">
-                {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, lang))}
+                {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, contentLang(lang)))}
               </p>
               <p className="mt-1 text-xs text-gray-400">{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
             </motion.div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
-import { useLang, useT } from '@/lib/i18n';
+import { useLang, useT, contentLang } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
@@ -211,7 +211,7 @@ function InterpretationInner() {
   // Titres d'interprétation : Allura (script féerique) pour le Tarot,
   // Hoshiko Satsuki (calligraphie) pour le Yi Jing.
   const titleFont = isTarot ? "'Allura', cursive" : "'Hoshiko Satsuki', serif";
-  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
+  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, contentLang(lang)) : { superior: null, inferior: null };
   // Cartes tirées (Tarot) : id + nom + position, pour le récap visuel en haut de page
   const tarotCards = isTarot
     ? (searchParams.get('cartes') || '')
@@ -354,7 +354,7 @@ function InterpretationInner() {
                     {lang === 'en' ? 'Domain' : 'Domaine'}
                   </p>
                   <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: YI_LACQUER.gold }}>
-                    {domain.label[lang]}
+                    {domain.label[contentLang(lang)]}
                   </p>
                 </div>
               </div>
@@ -366,7 +366,7 @@ function InterpretationInner() {
                 <p className="text-sm leading-snug" style={{ color: YI_LACQUER.lilac }}>
                   {sub}
                 </p>
-                <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{domain.realm[lang]}</p>
+                <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{domain.realm[contentLang(lang)]}</p>
               </div>
             </div>
           );
@@ -390,9 +390,9 @@ function InterpretationInner() {
                     {lang === 'en' ? 'Guide-arcana' : 'Arcane-guide'}
                   </p>
                   <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: TAROT_NIGHT.gold }}>
-                    {theme.label[lang]}
+                    {theme.label[contentLang(lang)]}
                   </p>
-                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{theme.sigil[lang]}</p>
+                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{theme.sigil[contentLang(lang)]}</p>
                 </div>
               </div>
               <div className="mx-5 h-px bg-gradient-to-r from-transparent via-[#DAA520]/45 to-transparent" />

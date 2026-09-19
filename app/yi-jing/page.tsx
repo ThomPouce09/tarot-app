@@ -22,6 +22,23 @@ import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 const YI_TUTORIALS: TutorialSlide[] = [
   {
     iconImg: '/images/yi-jing-icon.png',
+    title: 'Le Double Hexagramme',
+    titleEn: 'The Double Hexagram',
+    desc: 'Le rituel des trois pièces (zhi gua) : six jets construisent ton hexagramme ; les lignes mutantes se retournent sous tes yeux et le présent enfante son futur.',
+    descEn: 'The three-coin ritual (zhi gua): six casts build your hexagram; the moving lines flip before your eyes and the present gives birth to its future.',
+    steps: [
+      'Saisis les trois pièces d’un geste : brasse-les dans le bol, puis jette-les six fois vers le haut',
+      'Les lignes mutantes ondulent en rouge puis se retournent — le second hexagramme naît en face du premier',
+      'L’oracle lit la paire et annonce une échéance ; scelle l’augure et reviens juger le retournement',
+    ],
+    stepsEn: [
+      'Take the three coins: rattle them in the bowl, then cast them upward — six times',
+      'The moving lines ripple red, then flip — the second hexagram is born opposite the first',
+      'The oracle reads the pair and names a date; seal the augury and come back to judge the turn',
+    ],
+  },
+  {
+    iconImg: '/images/yi-jing-icon.png',
     title: 'Yi Jing simplifié',
     titleEn: 'Simplified I Ching',
     desc: 'Le tirage des baguettes d\u2019achill\u00e9e : choisissez un domaine et une intention, puis secouez la boîte.',
@@ -69,23 +86,6 @@ const YI_TUTORIALS: TutorialSlide[] = [
       'Take stock of your day',
       'Draw today’s hexagram',
       'Apply its counsel',
-    ],
-  },
-  {
-    iconImg: '/images/yi-jing-question.png',
-    title: 'Yi Jing avec Question',
-    titleEn: 'I Ching with Question',
-    desc: 'Un tirage complet avec vos baguettes et un hexagramme éclairant.',
-    descEn: 'A full reading with your sticks and an illuminating hexagram.',
-    steps: [
-      'Écrivez votre question',
-      'Tirez les baguettes ou l’hexagramme',
-      'Lisez l’interprétation détaillée',
-    ],
-    stepsEn: [
-      'Write your question',
-      'Draw the sticks or hexagram',
-      'Read the detailed interpretation',
     ],
   },
 ];
@@ -189,7 +189,7 @@ export default function YiJingHubPage() {
       <FirstVisitHints flagKey="hints_yijing" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
-      <div className="absolute top-[8%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
+      <div className="absolute top-[8%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
           style={{
@@ -203,10 +203,11 @@ export default function YiJingHubPage() {
           {t('hubs.yijing.title') || 'Le Yi Jing'}
         </h1>
         <p
-          className="text-sm sm:text-base md:text-lg font-medium italic"
+          className="mx-auto max-w-[340px] text-sm sm:text-base md:text-lg font-medium italic leading-snug sm:max-w-md"
           style={{
             fontFamily: "var(--font-cinzel), serif",
             color: "#F5EAD6",
+            textWrap: "balance",
             textShadow:
               "0 0 10px rgba(180,40,45,0.6), 0 1px 4px rgba(0,0,0,0.9)",
             letterSpacing: "0.05em",
@@ -240,7 +241,7 @@ export default function YiJingHubPage() {
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.base')}
                   data-info-i
@@ -267,7 +268,7 @@ export default function YiJingHubPage() {
               <h2
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
-                  fontFamily: "var(--font-cinzel-deco), serif",
+                  fontFamily: "'Hoshiko Satsuki', serif",
                   color: "#F5EAD6",
                   textShadow: "0 0 8px rgba(180,40,45,0.5)",
                 }}
@@ -316,7 +317,7 @@ export default function YiJingHubPage() {
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.simple')}
                   data-info-i
@@ -343,7 +344,7 @@ export default function YiJingHubPage() {
               <h2
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
-                  fontFamily: "var(--font-cinzel-deco), serif",
+                  fontFamily: "'Hoshiko Satsuki', serif",
                   color: "#F5EAD6",
                   textShadow: "0 0 8px rgba(180,40,45,0.5)",
                 }}
@@ -392,7 +393,7 @@ export default function YiJingHubPage() {
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
                   title={t('hubs.yijing.day')}
                   data-info-i
@@ -419,7 +420,7 @@ export default function YiJingHubPage() {
               <h2
                 className="text-base font-bold text-center leading-tight mb-1"
                 style={{
-                  fontFamily: "var(--font-cinzel-deco), serif",
+                  fontFamily: "'Hoshiko Satsuki', serif",
                   color: "#F5EAD6",
                   textShadow: "0 0 8px rgba(180,40,45,0.5)",
                 }}
@@ -446,32 +447,31 @@ export default function YiJingHubPage() {
           </motion.div>
         </GatedTile>
 
-        {/* TUILE — YI JING AVEC QUESTION */}
-        {isLoggedIn ? (
-          <GatedTile href="/yi-jing-question" className="block" allowed={tiles?.['yi-jing-question']?.allowed} reason={tiles?.['yi-jing-question']?.reason} onBlocked={openGate}>
-            <motion.div
-              className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+        {/* TUILE — LE DOUBLE HEXAGRAMME (zhi gua) */}
+        <GatedTile href="/yi-jing-double" className="block" allowed={tiles?.['yi-jing-double']?.allowed} reason={tiles?.['yi-jing-double']?.reason} onBlocked={openGate}>
+          <motion.div
+            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            style={{
+              boxShadow:
+                "0 0 20px rgba(180,40,45,0.4), 0 4px 12px rgba(0,0,0,0.5)",
+              border: "2px solid rgba(180,40,45,0.35)",
+            }}
+            whileHover={{ scale: 1.04, y: -3 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div
+              className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
-                boxShadow:
-                  "0 0 24px rgba(180,40,45,0.45), 0 4px 14px rgba(0,0,0,0.55)",
-                border: "2px solid rgba(243,201,105,0.5)",
+                background:
+                  "linear-gradient(135deg, #140a0e 0%, #1a0a10 50%, #241014 100%)",
               }}
-              whileHover={{ scale: 1.04, y: -3 }}
-              whileTap={{ scale: 0.98 }}
             >
-              <div
-                className="relative p-3 flex flex-col items-center justify-center h-full"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #241014 0%, #0d0609 50%, #241014 100%)",
-                }}
-              >
-                <div className="absolute inset-1.5 border border-[#f3c969]/35 rounded-lg pointer-events-none" />
+              <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
                   aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
-                  title={t('hubs.yijing.question')}
+                  title={t('hubs.yijing.double')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
                   style={{
@@ -487,88 +487,40 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-                <img
-                  src="/images/yi-jing-question.png"
-                  alt="Yi Jing avec Question"
-                  className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                  style={{ filter: "drop-shadow(0 0 8px rgba(243,201,105,0.6))" }}
-                />
-                <h2
-                  className="text-base font-bold text-center leading-tight mb-1"
-                  style={{
-                    fontFamily: "var(--font-cinzel-deco), serif",
-                    color: "#F0E0FF",
-                    textShadow: "0 0 8px rgba(243,201,105,0.5)",
-                  }}
-                >
-                  {t('hubs.yijing.question')}
-                  </h2>
-                <p
-                  className="text-[11px] text-center leading-tight"
-                  style={{
-                    fontFamily: "var(--font-cinzel), serif",
-                    color: "rgba(220,200,250,0.75)",
-                  }}
-                >
-                  {t('hubs.yijing.questionsub')}
-                </p>
+              <div className="flex items-center gap-1.5 mt-0 mb-5">
+                <span className="text-2xl leading-none" style={{ color: '#F3C969', textShadow: '0 0 12px rgba(243,201,105,0.6)' }} aria-hidden>䷊</span>
+                <span className="text-sm leading-none" style={{ color: '#FF6B5E', textShadow: '0 0 10px rgba(255,107,94,0.55)' }} aria-hidden>➔</span>
+                <span className="text-2xl leading-none" style={{ color: '#FF6B5E', textShadow: '0 0 12px rgba(255,107,94,0.6)' }} aria-hidden>䷅</span>
               </div>
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              <h2
+                className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
-                  background:
-                    "radial-gradient(ellipse at center, rgba(243,201,105,0.22) 0%, transparent 70%)",
-                }}
-              />
-            </motion.div>
-          </GatedTile>
-        ) : (
-          <div className="block opacity-50 cursor-not-allowed" onClick={handleLockedClick}>
-            <motion.div
-              className="group relative h-[170px] rounded-xl overflow-hidden"
-              style={{
-                boxShadow:
-                  "0 0 24px rgba(180,40,45,0.45), 0 4px 14px rgba(0,0,0,0.55)",
-                border: "2px solid rgba(243,201,105,0.2)",
-              }}
-            >
-              <div
-                className="relative p-3 flex flex-col items-center justify-center h-full"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #241014 0%, #0d0609 50%, #241014 100%)",
+                  fontFamily: "'Hoshiko Satsuki', serif",
+                  color: "#F5EAD6",
+                  textShadow: "0 0 8px rgba(243,201,105,0.5)",
                 }}
               >
-                <div className="absolute inset-1.5 border border-[#f3c969]/20 rounded-lg pointer-events-none" />
-                <img
-                  src="/images/yi-jing-question.png"
-                  alt="Yi Jing avec Question"
-                  className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md opacity-50"
-                  style={{ filter: "drop-shadow(0 0 8px rgba(243,201,105,0.6))" }}
-                />
-                <h2
-                  className="text-base font-bold text-center leading-tight mb-1 opacity-50"
-                  style={{
-                    fontFamily: "var(--font-cinzel-deco), serif",
-                    color: "#F0E0FF",
-                    textShadow: "0 0 8px rgba(243,201,105,0.5)",
-                  }}
-                >
-                  {t('hubs.yijing.question')}
-                  </h2>
-                <p
-                  className="text-[11px] text-center leading-tight opacity-50"
-                  style={{
-                    fontFamily: "var(--font-cinzel), serif",
-                    color: "rgba(220,200,250,0.75)",
-                  }}
-                >
-                  🔒 Connectez-vous
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        )}
+                {t('hubs.yijing.double')}
+              </h2>
+              <p
+                className="text-[11px] text-center leading-tight"
+                style={{
+                  fontFamily: "var(--font-cinzel), serif",
+                  color: "rgba(245,234,214,0.7)",
+                }}
+              >
+                {t('hubs.yijing.doubleSub')}
+              </p>
+            </div>
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, rgba(180,40,45,0.18) 0%, transparent 70%)",
+              }}
+            />
+          </motion.div>
+        </GatedTile>
       </div>
 
       {/* Login prompt message */}

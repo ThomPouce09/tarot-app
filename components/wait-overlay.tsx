@@ -44,7 +44,16 @@ const YIJING_OPTIMISTIC: WaitConfig = {
   minDurationMs: 3500,
 };
 
+const YIJING_DOUBLE_OPTIMISTIC: WaitConfig = {
+  messages: ['L’oracle consulte les hexagrammes…', 'Les trois pièces résonnent encore…', 'Le Yi Jing médite votre tirage…'],
+  backgroundType: 'video',
+  backgroundUrls: ['/images/analyse-yi-jing-h1.mp4'],
+  animation: 'fade',
+  minDurationMs: 3500,
+};
+
 function optimisticConfig(type: string): WaitConfig | null {
+  if (type === 'yi-jing-double') return YIJING_DOUBLE_OPTIMISTIC;
   if (type.startsWith('tarot')) return TAROT_OPTIMISTIC;
   if (type.startsWith('yi-jing') || type === 'yi-qing') return YIJING_OPTIMISTIC;
   return null;
@@ -95,8 +104,11 @@ function VideoBackground({
   urls,
   noLoopUrls = [],
   exiting,
+  fit169 = false,
 }: {
   urls: string[];
+  /** true → la vidéo tient dans un cadre 16:9 centré (bandes noires), pas de recadrage. */
+  fit169?: boolean;
   /** URLs à jouer UNE seule fois (sans boucle). Les autres bouclent 2-4 fois. */
   noLoopUrls?: string[];
   exiting: boolean;
@@ -139,7 +151,7 @@ function VideoBackground({
     <>
       <video
         key={url}
-        className="absolute inset-0 w-full h-full object-cover bg-black"
+        className={`absolute inset-0 w-full h-full ${fit169 ? 'object-contain' : 'object-cover'} bg-black`}
         style={{
           opacity: fading || exiting ? 0 : 1,
           transition: `opacity ${FADE_MS}ms ease`,
@@ -172,8 +184,11 @@ export default function WaitOverlay({
   type,
   ready = false,
   onVideoEnded,
+  fit169 = false,
 }: {
   type: string;
+  /** Rend les vidéos d'attente en 16:9 centré (bandes noires) plutôt qu'en plein écran recadré. */
+  fit169?: boolean;
   /** true quand l'interprétation est arrivée → on peut sortir (après 2 cycles
    *  de vidéos minimum, sauf si ready est déjà là). */
   ready?: boolean;
@@ -274,6 +289,7 @@ export default function WaitOverlay({
           urls={c.backgroundUrls}
           noLoopUrls={c.noLoopUrls}
           exiting={exiting}
+          fit169={fit169}
         />
       ) : c.backgroundType === 'image' && c.backgroundUrls.length > 0 ? (
         <ImageBackground urls={c.backgroundUrls} />

@@ -11,6 +11,8 @@ import SpaceTitle from '@/components/space-title';
 
 const DES_CHOIX_KINDS = ['planet', 'sign', 'house'];
 
+import HEX_J from '@/lib/yj-hexagrams.json';
+
 interface Reading {
   id: string;
   userId?: string;
@@ -21,7 +23,7 @@ interface Reading {
   interpretation?: string | null;
   createdAt: string;
   /** Augure scellé né de cette lecture (badge horloge). */
-  echo?: { id: string; dueAt: string; verdict: string | null; verdictPct?: number | null; bestCardIndex?: number | null } | null;
+  echo?: { id: string; dueAt: string; verdict: string | null; verdictPct?: number | null; bestCardIndex?: number | null; textFr?: string | null; textEn?: string | null } | null;
 }
 
 // --- Mapping type de tirage -> icône/style (réutilise les tuiles de la landing) ---
@@ -50,6 +52,7 @@ const SUBTYPE_META: Record<string, { group: 'tarot' | 'yijing' | 'rune' | 'des';
   'tirage-ouvert':       { group: 'tarot',  label: 'Tirage Ouvert' },
   'tirage-amoureux':     { group: 'tarot',  label: 'Tirage Amoureux' },
   'yi-jing-simplifie':    { group: 'yijing', label: 'Yi Jing simplifié' },
+  'yi-jing-double':       { group: 'yijing', label: 'Le Double Hexagramme' },
   'yi-jing-simple':      { group: 'yijing', label: 'Yi Jing précis' },
   'yi-jing-question':    { group: 'yijing', label: 'Yi Jing (question)' },
   'yi-qing':             { group: 'yijing', label: 'Yi Qing' },
@@ -169,6 +172,7 @@ function ReadingThumbs({ r }: { r: Reading }) {
     const open = cards.map((c: any, i: number) => (((typeof c === 'number' ? c : c?.id) ?? -1) >= 0 ? i : -1)).filter((i: number) => i >= 0);
     shown = [cards[open.length ? open[open.length - 1] : 0]];
   }
+  if (r.type === 'yi-jing-double') shown = cards.slice(0, 2).map((c: any) => ({ symbol: c?.glyph || '' }));
   if (shown.length === 0) return null;
   return (
     <span className="flex items-center gap-1 shrink-0 -mr-1">
@@ -712,7 +716,9 @@ export default function ReadingsPage() {
 
                             {openReading === r.id && (
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
-                                {m.group === 'yijing' ? (
+                                {r.type === 'yi-jing-double' ? (
+                                  <DoubleHexView r={r} />
+                                ) : m.group === 'yijing' ? (
                                   <YiJingView r={r} interp={yiQing} query={search} />
                                 ) : m.group === 'rune' ? (
                                   <RuneView r={r} query={search} />
@@ -827,6 +833,107 @@ function EmptyState() {
   );
 }
 
+// ── Le Double Hexagramme (zhi gua) : vue « présent → futur » ──────────
+function DoubleHexView({ r }: { r: Reading }) {
+  const lang = useLang();
+  const en = lang === 'en';
+  const GOLD = '#F3C969';
+  const IVORY = '#F5EAD6';
+  let st: {
+    castAt?: string; lignes?: number[]; mutants?: number[];
+    hexPresent?: number; hexFutur?: number;
+    names?: { pFr: string; pEn: string; fFr: string; fEn: string };
+    read?: { sections: { key: string; fr: string; en: string }[]; dueInDays: number } | null;
+  } | null = null;
+  try { st = JSON.parse(r.interpretation || 'null'); } catch { st = null; }
+  if (!st || !Array.isArray(st.lignes) || !st.hexPresent) {
+    return <p className="text-gray-500 text-xs italic mt-3">—</p>;
+  }
+  const hexRow = (n: number) => (HEX_J as unknown as Record<string, { c: string; b: string }>)[String(n)] || null;
+  const gp = st.hexPresent ? hexRow(st.hexPresent) : null;
+  const gf = st.hexFutur ? hexRow(st.hexFutur) : null;
+  const mutSet = new Set(st.mutants || []);
+  const Column = ({ numero, future }: { numero?: number; future?: boolean }) => {
+    const row = numero ? hexRow(numero) : null;
+    if (!row) return null;
+    return (
+      <div className="flex flex-col-reverse items-center gap-1.5">
+        {row.b.split('').map((bit, i) => {
+          const yang = bit === '1';
+          const hit = future && mutSet.has(i);
+          return (
+            <div key={i} className="w-24">
+              {yang ? (
+                <div className="h-[6px] rounded-sm" style={{ background: hit ? '#FF6B5E' : GOLD }} />
+              ) : (
+                <div className="flex justify-between">
+                  <div className="h-[6px] w-[38%] rounded-sm" style={{ background: hit ? '#FF6B5E' : GOLD }} />
+                  <div className="h-[6px] w-[38%] rounded-sm" style={{ background: hit ? '#FF6B5E' : GOLD }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+  const SEC_LABELS: Record<string, { fr: string; en: string }> = {
+    situation: { fr: 'La situation', en: 'The situation' },
+    bascule: { fr: 'Le point de bascule', en: 'The hinge' },
+    direction: { fr: 'La direction', en: 'Where it turns' },
+    conseil: { fr: 'Le conseil', en: 'The counsel' },
+  };
+  return (
+    <div className="mt-4 space-y-4">
+      {r.question && (
+        <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{en ? 'Your question' : 'Votre question'}</p>
+          <p className="text-amber-200 italic text-sm">&laquo; {r.question} &raquo;</p>
+        </div>
+      )}
+      <div className="flex items-start justify-center gap-8 rounded-2xl p-4" style={{ background: 'rgba(10,5,7,0.6)', border: `1px solid ${GOLD}33` }}>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}aa` }}>{en ? 'Present' : 'Présent'}</p>
+          <p className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: GOLD }}>#{st.hexPresent} {gp?.c}</p>
+          <p className="text-[10px] italic text-center max-w-[130px]" style={{ color: IVORY }}>{st.names ? (en ? st.names.pEn : st.names.pFr) : ''}</p>
+          <Column numero={st.hexPresent} />
+        </div>
+        <p className="self-center text-lg" style={{ color: `${GOLD}cc` }}>➔</p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: '#FF6B5Ecc' }}>{en ? 'Becoming' : 'En devenir'}</p>
+          <p className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: GOLD }}>#{st.hexFutur} {gf?.c}</p>
+          <p className="text-[10px] italic text-center max-w-[130px]" style={{ color: IVORY }}>{st.names ? (en ? st.names.fEn : st.names.fFr) : ''}</p>
+          <Column numero={st.hexFutur} future />
+        </div>
+      </div>
+      <p className="text-center text-[10px]" style={{ color: `${GOLD}99` }}>
+        {mutSet.size
+          ? (en ? `moving lines: ${[...mutSet].map((i) => i + 1).join('·')}` : `lignes mutantes : ${[...mutSet].map((i) => i + 1).join('·')} ✦`)
+          : (en ? 'no moving line — stable situation' : 'aucune ligne mutante — situation stable')}
+      </p>
+      {st.read?.sections?.map((s) => (
+        <div key={s.key} className="rounded-xl p-3" style={{ background: 'rgba(142,28,34,0.10)', border: '1px solid rgba(243,201,105,0.15)' }}>
+          <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: `${GOLD}bb` }}>{en ? SEC_LABELS[s.key]?.en : SEC_LABELS[s.key]?.fr}</p>
+          <p className="mt-1 text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {en ? s.en : s.fr} »</p>
+        </div>
+      ))}
+      {r.echo && (
+        <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(243,201,105,0.06)', border: `1px solid ${GOLD}44` }}>
+          <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{en ? 'Sealed augury' : 'Augure scellé'}</p>
+          <p className="mt-1 text-xs italic" style={{ color: IVORY }}>
+            {en && (r.echo as any).textEn ? (r.echo as any).textEn : (r.echo as any).textFr || ''}
+          </p>
+          <p className="mt-1 text-[11px]" style={{ color: r.echo.verdict ? GOLD : '#FF6B5E' }}>
+            {r.echo.verdict
+              ? `✓ ${r.echo.verdictPct ?? (r.echo.verdict === 'oui' ? 100 : r.echo.verdict === 'partiel' ? 50 : 0)}%`
+              : `${en ? 'due' : 'échéance'} ${new Date(r.echo.dueAt).toLocaleDateString(en ? 'en-GB' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?: string }) {
   const t = useT();
   const isSimpleFormat = r.type === 'yi-jing-simple' || r.type === 'yi-jing-simplifie' || (interp && interp.situation);
@@ -937,7 +1044,7 @@ function WheelView({ r }: { r: Reading }) {
             {lang === 'en' ? 'The card’s light —' : 'L’éclat du jour —'} {DAY_FULL[(castWd + active) % 7][lang as 'fr' | 'en']} · {TAROT_CARDS[st.cards[active]]?.[lang === 'en' ? 'nameEn' : 'name']}
           </p>
           {selInsight
-            ? <p className="mt-1.5 text-[13px] italic leading-relaxed text-amber-100/95" style={{ fontFamily: 'var(--font-cinzel), serif' }}>« {selInsight[lang]} »</p>
+            ? <p className="mt-1.5 text-[13px] italic leading-relaxed text-amber-100/95" style={{ fontFamily: 'var(--font-cinzel), serif' }}>« {selInsight[lang === 'en' ? 'en' : 'fr']} »</p>
             : <p className="mt-1.5 text-[11px] italic text-amber-100/50">{lang === 'en' ? 'Not yet lit.' : 'Pas encore éclairé.'}</p>}
         </div>
       )}

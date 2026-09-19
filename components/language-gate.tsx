@@ -137,6 +137,36 @@ export default function LanguageGate() {
               >
                 {picked === 'en' ? '✓ ' : ''}English
               </button>
+
+              {/* Español */}
+              <button
+                type="button"
+                onClick={() => choose('es')}
+                className="w-full rounded-[0.6rem] border py-3 text-[15px] font-semibold transition-colors duration-200"
+                style={{
+                  background: picked === 'es' ? `linear-gradient(135deg, #F0C75E, #B8860B)` : 'rgba(24,10,4,0.35)',
+                  borderColor: `${GOLD}66`,
+                  color: picked === 'es' ? '#34121F' : IVORY,
+                }}
+                aria-pressed={picked === 'es'}
+              >
+                {picked === 'es' ? '✓ ' : ''}Español
+              </button>
+
+              {/* 中文 */}
+              <button
+                type="button"
+                onClick={() => choose('zh')}
+                className="w-full rounded-[0.6rem] border py-3 text-[15px] font-semibold transition-colors duration-200"
+                style={{
+                  background: picked === 'zh' ? `linear-gradient(135deg, #F0C75E, #B8860B)` : 'rgba(24,10,4,0.35)',
+                  borderColor: `${GOLD}66`,
+                  color: picked === 'zh' ? '#34121F' : IVORY,
+                }}
+                aria-pressed={picked === 'zh'}
+              >
+                {picked === 'zh' ? '✓ ' : ''}中文
+              </button>
             </div>
 
             <p className="relative mt-5 text-[11px] leading-snug" style={{ color: `${ROSE}99` }}>

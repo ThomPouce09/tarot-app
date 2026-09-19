@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { api } from '@/lib/api-client';
@@ -173,7 +173,7 @@ function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: 'fr' | 'en' })
         border: `1.5px solid ${L.or}66`,
         boxShadow: `0 18px 50px rgba(0,0,0,0.6), 0 0 40px ${L.rougeGlow}, inset 0 0 30px rgba(0,0,0,0.35)`,
       }}
-      aria-label={T.open[lang]}
+      aria-label={T.open[contentLang(lang)]}
     >
       <div className="absolute inset-3 rounded-xl" style={{ border: `1px solid ${L.or}33` }} />
       <svg viewBox="0 0 260 300" className="relative mt-4" width={260} height={300} aria-hidden>
@@ -265,7 +265,7 @@ function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: 'fr' | 'en' })
           易經
         </span>
         <span className="font-[family-name:var(--font-cinzel-deco)] text-[13px] tracking-[0.25em]" style={{ color: L.orSoft }}>
-          {breaking ? (lang === 'fr' ? 'Le sceau se brise…' : 'The seal breaks…') : T.sealed[lang]}
+          {breaking ? (lang === 'fr' ? 'Le sceau se brise…' : 'The seal breaks…') : T.sealed[contentLang(lang)]}
         </span>
       </div>
       <motion.div
@@ -323,7 +323,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(243,201,105,0.75)';
   ctx.font = '34px serif';
-  ctx.fillText(T.eyebrow[lang].replace('·', '·'), W / 2, 150);
+  ctx.fillText(T.eyebrow[contentLang(lang)].replace('·', '·'), W / 2, 150);
   ctx.fillStyle = '#f5ead6';
   ctx.font = 'italic 40px Georgia, serif';
   ctx.fillText(dateLabel, W / 2, 215);
@@ -378,7 +378,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   // pied
   ctx.font = '28px serif';
   ctx.fillStyle = 'rgba(243,201,105,0.55)';
-  ctx.fillText(data.personal ? T.personalBadge[lang] : T.collectiveBadge[lang], W / 2, H - 90);
+  ctx.fillText(data.personal ? T.personalBadge[contentLang(lang)] : T.collectiveBadge[contentLang(lang)], W / 2, H - 90);
 
   const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
   if (!blob) throw new Error('toBlob');
@@ -387,7 +387,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare && nav.canShare({ files: [new File([blob], fname, { type: 'image/png' })] })) {
     try {
-      await nav.share({ files: [new File([blob], fname, { type: 'image/png' })], title: T.title[lang] });
+      await nav.share({ files: [new File([blob], fname, { type: 'image/png' })], title: T.title[contentLang(lang)] });
       URL.revokeObjectURL(url);
       return 'shared';
     } catch {
@@ -405,7 +405,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
 // ─── Page ───────────────────────────────────────────────────────────────────
 function YiJingDuJourPage() {
   const lang = useLang();
-  const t = (k: keyof typeof T) => T[k][lang] as string;
+  const t = (k: keyof typeof T) => T[k][contentLang(lang)] as string;
   const { email, sub, loaded, openGate, gateReason, closeGate } = useEntitlement();
 
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -547,7 +547,7 @@ function YiJingDuJourPage() {
 
           {!loading && !error && data && hex && !opened && (
             <div className="flex flex-col items-center gap-5 pt-8">
-              <SealedCard onOpen={() => { seenSeal.current = true; setOpened(true); }} lang={lang} />
+              <SealedCard onOpen={() => { seenSeal.current = true; setOpened(true); }} lang={contentLang(lang)} />
               <p className="text-center text-xs italic" style={{ color: `${L.ivoire}77` }}>{t('sealedHint')}</p>
               {data.viewedToday && (
                 <p className="text-center text-[10px]" style={{ color: L.orDim }}>{t('consultAgain')}</p>
@@ -611,7 +611,7 @@ function YiJingDuJourPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[9px] tracking-[0.3em]" style={{ color: L.orDim }}>{t('mutating').toUpperCase()}</p>
                         <p className="mt-1 text-[12.5px]" style={{ color: L.ivoire }}>
-                          {data.mutating.map((l) => T.lineNames[lang][l]).join(lang === 'fr' ? ', ' : ', ')}
+                          {data.mutating.map((l) => T.lineNames[contentLang(lang)][l]).join(lang === 'fr' ? ', ' : ', ')}
                         </p>
                       </div>
                       {data.transformed && (
@@ -689,7 +689,7 @@ function YiJingDuJourPage() {
                   disabled={sharing}
                   onClick={() => {
                     setSharing(true);
-                    exportCardPng(data, lang, dateLabel)
+                    exportCardPng(data, contentLang(lang), dateLabel)
                       .catch(() => undefined)
                       .finally(() => setSharing(false));
                   }}

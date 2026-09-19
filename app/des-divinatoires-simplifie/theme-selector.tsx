@@ -11,7 +11,7 @@
 
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 import { DICE_THEME } from '../des-divinatoires/_shared';
 
 export interface L {
@@ -143,7 +143,7 @@ export const DICE_THEMES: DiceTheme[] = [
 
 /** Composante « Élément — intention » comprise par parseDiceQuestion. */
 export function composeDiceQuestion(theme: DiceTheme, sub: L, lang: 'fr' | 'en'): string {
-  return `${theme.label[lang]} — ${sub[lang]}`;
+  return `${theme.label[contentLang(lang)]} — ${sub[contentLang(lang)]}`;
 }
 
 /** Reconstruit { theme, sub } depuis la question composée
@@ -178,7 +178,7 @@ export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string)
 
   const cast = () => {
     if (!theme || subIdx === null) return;
-    onConfirm(`${theme.label[lang]} — ${theme.subs[subIdx][lang]}`);
+    onConfirm(`${theme.label[contentLang(lang)]} — ${theme.subs[subIdx][contentLang(lang)]}`);
   };
 
   return (
@@ -228,13 +228,13 @@ export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string)
                 className="mt-1 font-[family-name:var(--font-cinzel-deco)] text-sm tracking-wide"
                 style={{ color: sel ? DICE_THEME.ocreLight : `${DICE_THEME.ocre}dd` }}
               >
-                {d.label[lang]}
+                {d.label[contentLang(lang)]}
               </span>
               <span
                 className="mt-0.5 text-center text-[10px] italic leading-snug"
                 style={{ color: `${DICE_THEME.ocre}99` }}
               >
-                {d.sigil[lang]}
+                {d.sigil[contentLang(lang)]}
               </span>
             </button>
           );
@@ -281,7 +281,7 @@ export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string)
                       <span style={{ color: sel ? DICE_THEME.gold : `${DICE_THEME.gold}77` }} className="mr-2">
                         ✦
                       </span>
-                      {s[lang]}
+                      {s[contentLang(lang)]}
                     </button>
                   );
                 })}

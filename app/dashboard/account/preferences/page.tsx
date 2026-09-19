@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLang, useSetLang, useT } from '@/lib/i18n';
+import { useLang, useSetLang, useT, type Lang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import SpaceTitle from '@/components/space-title';
 import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib/sounds';
@@ -16,7 +16,7 @@ type Prefs = {
   dailyReminderHour: number;
   emailNews: boolean;
   backgrounds: string[];
-  language: 'fr' | 'en';
+  language: 'fr' | 'en' | 'es' | 'zh';
   soundEffects: boolean;
   voices: boolean;
   musicOn: boolean;
@@ -274,16 +274,33 @@ export default function PreferencesPage() {
       {/* Langue */}
       <div className="mystic-panel p-5">
         <h2 className="mystic-subtitle text-sm mb-3">{t('prefs.language')}</h2>
-        <div className="flex gap-3">
+        <select
+          value={lang}
+          onChange={(e) => setLang(e.target.value as Lang)}
+          aria-label={t('prefs.language')}
+          className="w-full rounded-lg px-4 py-3 text-sm font-medium outline-none transition-all cursor-pointer focus:ring-2 focus:ring-amber-400/70"
+          style={{
+            color: '#F5EAD6',
+            border: '1px solid rgba(218,165,32,0.4)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(240,199,94,0.08)',
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23DAA520' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"), linear-gradient(135deg, rgba(90,58,30,0.6), rgba(74,25,49,0.6))`,
+            backgroundRepeat: 'no-repeat, no-repeat',
+            backgroundPosition: 'right 14px center, center',
+          }}
+        >
           {([
             { key: 'fr', label: 'Français' },
             { key: 'en', label: 'English' },
+            { key: 'es', label: 'Español' },
+            { key: 'zh', label: '中文' },
           ] as const).map((l) => (
-            <button key={l.key} onClick={() => setLang(l.key)} className={`mystic-btn-ghost flex-1 ${lang === l.key ? '!bg-gradient-to-b !from-violet-500 !to-violet-700 !text-white border-violet-500 ring-2 ring-violet-400/70' : 'opacity-60 hover:opacity-100'}`}>
-              {lang === l.key ? `✓ ${l.label}` : l.label}
-            </button>
+            <option key={l.key} value={l.key} style={{ background: '#1d0d14', color: '#F5EAD6' }}>
+              {l.label}{lang === l.key ? '  ✓' : ''}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* Visiter — rejouer le tutoriel de première visite */}

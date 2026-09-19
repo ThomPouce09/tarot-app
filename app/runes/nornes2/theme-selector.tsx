@@ -10,7 +10,7 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLang, useT } from '@/lib/i18n';
+import { useLang, useT, contentLang } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 
 type L = { fr: string; en: string };
@@ -167,7 +167,7 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
   const weave = () => {
     if (!domain || subIdx === null) return;
     // Question générique : « Domaine — intention », rien de plus.
-    onConfirm(`${domain.label[lang]} — ${domain.subs[subIdx][lang]}`);
+    onConfirm(`${domain.label[contentLang(lang)]} — ${domain.subs[subIdx][contentLang(lang)]}`);
   };
 
   return (
@@ -212,10 +212,10 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
                 {d.icon(sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}cc` }}>
-                {d.label[lang]}
+                {d.label[contentLang(lang)]}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? RUNE_THEME.sagePale : `${RUNE_THEME.sage}99` }}>
-                {d.deity} · {d.realm[lang]}
+                {d.deity} · {d.realm[contentLang(lang)]}
               </span>
               {sel && (
                 <span className="absolute right-2 top-2 text-[10px]" style={{ color: RUNE_THEME.goldPale }}>◆</span>
@@ -258,7 +258,7 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
                       >
                         <span className="mt-[3px] text-[8px]" style={{ color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}55` }}>◆</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? RUNE_THEME.goldPale : RUNE_THEME.stone }}>
-                          {s[lang]}
+                          {s[contentLang(lang)]}
                         </span>
                       </button>
                     </li>
