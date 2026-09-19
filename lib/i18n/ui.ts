@@ -344,7 +344,7 @@ export const DICT = {
   // ── Augures (prophéties datées, 4 univers) ──
   'echo.title': { fr: "L'Augure scellé", en: 'The Sealed Augury' },
   'echo.tease': {
-    fr: "Une prémonction peut naître de cette lecture. Scellée aujourd'hui, elle se révèlera dans quelques semaines — et vous direz si l'oracle a vu juste.",
+    fr: "Une augure (prémonition) peut naître de cette lecture. Scellée aujourd'hui, elle se révèlera dans quelques semaines — et vous direz si l'oracle a vu juste.",
     en: 'A foretelling can be born from this reading. Sealed today, it will reveal itself in a few weeks — and you will tell whether the oracle saw true.',
   },
   'echo.seal': { fr: "Sceller l'augure", en: 'Seal the augury' },

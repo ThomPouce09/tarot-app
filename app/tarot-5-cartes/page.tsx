@@ -156,14 +156,15 @@ function Tarot5CartesPage() {
                 }
               }}
               placeholder="Ex: Quel chemin choisir ?"
-              className="w-full bg-black/50 text-yellow-100 placeholder-yellow-700/50 rounded-lg p-2 text-xs border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none"
+              className="w-full rounded-lg p-2 text-xs border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none text-[#FFF6E8] placeholder-yellow-700/50"
+              style={{ background: 'linear-gradient(160deg, #170a12 0%, #1d0d16 100%)', colorScheme: 'dark', caretColor: '#FFD700' }}
               rows={2}
               autoFocus
             />
             <motion.button
               onClick={handleSubmit}
               disabled={!question.trim()}
-              className="w-full mt-2 mystic-btn text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-2 tarot-btn text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -236,7 +237,7 @@ function Tarot5CartesPage() {
         >
           <motion.button
             onClick={handleInterpretation}
-            className="mystic-btn px-6 py-3 text-sm font-bold tracking-wide"
+            className="tarot-btn px-6 py-3 text-sm font-bold tracking-wide"
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >

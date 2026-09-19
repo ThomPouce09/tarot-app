@@ -208,18 +208,31 @@ function BlinkingSubtitle({ text }: { text: string }) {
    variant='save' : reprise exacte du design « Enregistrer » (pilule teal
    glossée + halo) que l'utilisateur apprécie — utilisé pour « Compris »,
    « Tisser une nouvelle voie » et la relance de l'analyse IA. */
+/* Teintes « save » par univers — même pilule glossy, couleur locale. */
+const SAVE_THEME: Record<string, { base: string; glow: string; text: string }> = {
+  runes: { base: '#005f6a', glow: 'rgba(0,95,106,0.5)', text: '#fff' },           // teal (défaut)
+  tarot: { base: 'linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+           glow: 'rgba(212,175,55,0.55)', text: '#241505' },                       // jaune pâle glossy
+  'yi-jing': { base: '#8e1c22', glow: 'rgba(180,40,45,0.5)', text: '#fff' },       // rouge laque
+  des: { base: '#2a7fb8', glow: 'rgba(135,206,235,0.5)', text: '#fff' },           // bleu céleste AstroDice
+};
+
 export function RuneButton({
   children,
   onClick,
   disabled,
   variant = 'primary',
+  saveTint = 'runes',
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   variant?: 'primary' | 'gold' | 'save';
+  /** Univers d'affichage pour le bouton « save » (couleur locale). */
+  saveTint?: 'runes' | 'tarot' | 'yi-jing' | 'des';
 }) {
   if (variant === 'save') {
+    const tint = SAVE_THEME[saveTint] || SAVE_THEME.runes;
     return (
       <motion.button
         type="button"
@@ -233,12 +246,12 @@ export function RuneButton({
           // (même recette que le bouton « Enregistrer » de ask-question).
           background: `
             linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
-            #005f6a`,
-          color: '#fff',
+            ${tint.base}`,
+          color: tint.text,
           fontFamily: 'var(--font-cinzel), serif',
           boxShadow: disabled
             ? 'none'
-            : '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
+            : `0 0 16px ${tint.glow}, inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)`,
           letterSpacing: '0.04em',
         }}
       >

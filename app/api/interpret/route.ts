@@ -279,20 +279,20 @@ export async function POST(request: NextRequest) {
     });
     const positionsFr = type === 'tarot-5-c-manuelle'
       ? ['Sommet (Situation)', 'Orient (Forces)', 'Synthèse (Issue)', 'Occident (Défis)', 'Base (Soutien)']
-      : ['Présent', 'Passé', 'Avenir'];
+      : ['Passé', 'Présent', 'Avenir'];
     const positionsEn = type === 'tarot-5-c-manuelle'
       ? ['Top (Situation)', 'East (Strengths)', 'Synthesis (Outcome)', 'West (Challenges)', 'Base (Support)']
-      : ['Present', 'Past', 'Future'];
+      : ['Past', 'Present', 'Future'];
     const positions = language === 'en' ? positionsEn : positionsFr;
 
     prompt = `Tu es un voyant, un tireur de bonne aventure d'une profonde bonté, qui reçoit cette personne comme un être cher venu chercher du réconfort et des réponses. Tu te mets à son service, corps et âme, avec toute la chaleur humaine, la présence et l'empathie d'un véritable mentor qui l'écoute vraiment.
 L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"${contextLine}
-Cartes tirées, analysées strictement selon leur axe temporel (1 = Présent, 2 = Passé, 3 = Avenir) :
+Cartes tirées, analysées strictement selon leur axe temporel (1 = Passé, 2 = Présent, 3 = Avenir) :
 ${cartes.map((id: number, i: number) => `${i+1}. ${cardNames[i]} — ${positions[i]}`).join('\n')}
 Consigne d'âme :
 - Place-toi tout entier dans la peau de cette personne. Ressens ce qu'elle ressent, ses doutes, ses blessures silencieuses et ses espoirs. Parle-lui comme on parle à quelqu'un qu'on aime : avec le "tu", la tendresse, la vérité douce et la proximité d'un être humain, jamais comme une machine.
 - Sois pleinement humain et chaleureux : rassure, accompagne, touche le cœur. Évite tout ton froid ou académique.
-- À l'échelle MICROSCOPIQUE : pour chaque période (Présent, Passé, Avenir), décris précisément et avec délicatesse ce que la carte représente pour elle/lui, étape par étape, comme si tu lui prenais la main pour le lui montrer.
+- À l'échelle MICROSCOPIQUE : pour chaque période (Passé, Présent, Avenir), décris précisément et avec délicatesse ce que la carte représente pour elle/lui, étape par étape, comme si tu lui prenais la main pour le lui montrer.
 - À l'échelle MACROSCOPIQUE : dans "resume", offre une synthèse globale et bienveillante de ce que ce tirage signifie pour sa vie tout entière, au-delà des périodes — un message de lumière qu'elle/il pourra garder.
 Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 {

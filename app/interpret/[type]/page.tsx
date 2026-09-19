@@ -220,7 +220,7 @@ function InterpretationInner() {
         .map((id, i) => ({
           id,
           name: TAROT_CARDS.find((c) => c.id === id)?.name || `Carte ${id}`,
-          position: i === 0 ? 'Présent' : i === 1 ? 'Passé' : 'Avenir',
+          position: i === 0 ? 'Passé' : i === 1 ? 'Présent' : 'Avenir',
         }))
     : [];
 
@@ -274,7 +274,7 @@ function InterpretationInner() {
             <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
             <p
               className="yi-q-text px-6 pb-2 text-center text-lg sm:text-xl leading-relaxed text-yellow-100 italic"
-              style={{ fontFamily: 'var(--font-cinzel), Georgia, serif', color: YI_LACQUER.gold }}
+              style={{ fontFamily: 'var(--font-cormorant), Georgia, serif', color: YI_LACQUER.gold }}
             >
               « {rawQuestion} »
             </p>
@@ -323,7 +323,7 @@ function InterpretationInner() {
             <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-[#DAA520]/60 to-transparent" />
             <p
               className="yi-q-text px-6 pb-2 text-center text-lg sm:text-xl leading-relaxed italic"
-              style={{ fontFamily: 'var(--font-cinzel), Georgia, serif', color: '#FFD700' }}
+              style={{ fontFamily: 'var(--font-cormorant), Georgia, serif', color: '#FFD700' }}
             >
               « {rawQuestion} »
             </p>

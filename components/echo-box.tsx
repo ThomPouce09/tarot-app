@@ -172,7 +172,7 @@ export default function EchoBox({
           {!current && (
             <motion.div key="seal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
               <p className="text-gray-200 italic text-[15px] leading-relaxed mb-4">{t('echo.tease')}</p>
-              <RuneButton variant="save" onClick={seal} disabled={sealing}>
+              <RuneButton variant="save" saveTint={domain} onClick={seal} disabled={sealing}>
                 {sealing ? t('echo.sealing') : t('echo.seal')}
               </RuneButton>
               {sealError && <p className="mt-3 text-sm text-red-300/90">{sealError}</p>}
@@ -201,7 +201,7 @@ export default function EchoBox({
               {!broken && !current.verdict && (
                 <div className="text-center">
                   <p className="text-amber-100/90 text-[15px] leading-relaxed mb-4">{t('echo.dueNow')}</p>
-                  <RuneButton variant="save" onClick={() => setBroken(true)}>
+                  <RuneButton variant="save" saveTint={domain} onClick={() => setBroken(true)}>
                     {t('echo.break')}
                   </RuneButton>
                 </div>

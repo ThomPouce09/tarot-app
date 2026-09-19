@@ -285,8 +285,8 @@ function SemainePage() {
                 <div className="mt-4 text-center">
                   {weaveErr && <p className="mb-2 text-xs italic" style={{ color: '#E2B8AC' }}>{lang === 'en' ? 'The oracle fell silent.' : 'L’oracle s’est tu.'}</p>}
                   <button onClick={askWeave} className="rounded-full px-6 py-2 text-[11px] font-bold uppercase tracking-widest" style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #005f6a',
-                    color: '#fff', boxShadow: '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+                    color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)', boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
                     {lang === 'en' ? 'Light the week' : 'Éclairer la semaine'}
                   </button>
                 </div>
@@ -322,8 +322,8 @@ function SemainePage() {
                         <>
                           {weaveErr && <p className="mb-2 text-xs italic" style={{ color: '#E2B8AC' }}>{lang === 'en' ? 'The oracle fell silent.' : 'L’oracle s’est tu.'}</p>}
                           <button onClick={askWeave} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest" style={{
-                            background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #005f6a',
-                            color: '#fff', boxShadow: '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
+                            background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+                            color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)', boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
                             {lang === 'en' ? 'Weave the thread' : 'Tisser le fil rouge'}
                           </button>
                         </>
@@ -334,8 +334,8 @@ function SemainePage() {
                   {wheel.filRouge && !wheel.echo && (
                     <div className="mt-4 text-center">
                       <button onClick={seal} disabled={sealedBusy} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50" style={{
-                        background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #005f6a',
-                        color: '#fff', boxShadow: '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+                        color: '#241505', boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
                         {lang === 'en' ? 'Seal it as an augury' : 'Le sceller en augure'}
                       </button>
                       <p className="mt-1.5 text-[10px]" style={{ color: `${IVORY}88` }}>
@@ -394,8 +394,8 @@ function SemainePage() {
                         {lang === 'en' ? 'A new wheel can be cast whenever you’re ready.' : 'Une nouvelle roue peut être posée quand tu es prêt.'}
                       </p>
                       <button onClick={cast} disabled={busy} className="mt-2 rounded-full px-6 py-2 text-[11px] font-bold uppercase tracking-widest" style={{
-                        background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #4A1931',
-                        color: GOLD_PALE, border: '1.5px solid rgba(218,165,32,0.7)' }}>
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+                        color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)', boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
                         {lang === 'en' ? 'Cast the next wheel' : 'Poser la roue suivante'}
                       </button>
                     </div>

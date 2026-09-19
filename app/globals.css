@@ -333,6 +333,20 @@ html, body {
 }
 .mystic-btn-ghost:hover { background: rgba(31, 41, 55, 0.8); }
 .mystic-btn-ghost:focus-visible { outline: 2px solid #DAA520; outline-offset: 2px; }
+.tarot-btn {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%);
+  color: #241505;
+  font-weight: 600;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1rem;
+  border: 1.5px solid rgba(232,198,106,0.6);
+  transition: filter .2s, box-shadow .2s;
+  box-shadow: 0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(122,74,4,0.45);
+}
+.tarot-btn:hover { filter: brightness(1.08); box-shadow: 0 6px 22px rgba(212,175,55,0.6), inset 0 -3px 8px rgba(122,74,4,0.5); }
+.tarot-btn:focus-visible { outline: 2px solid #DAA520; outline-offset: 2px; }
 .mystic-btn-danger {
   background: rgba(127, 29, 29, 0.45);
   border: 1px solid rgba(185, 28, 28, 0.5);
