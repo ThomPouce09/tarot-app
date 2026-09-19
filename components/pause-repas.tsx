@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 
 // ---------------------------------------------------------------------------
 // PAUSE REPAS — barman interactif sur la landing page.
@@ -198,7 +198,7 @@ export default function PauseRepas() {
       .then((d) => { if (mounted && typeof d?.text === 'string') setDailyMessage(d.text); })
       .catch(() => {});
     return () => { mounted = false; };
-  }, [lang]);
+  }, [contentLang(lang)]);
 
   const clearBarmanTimer = useCallback(() => {
     if (barmanTimer.current) clearTimeout(barmanTimer.current);
@@ -335,7 +335,7 @@ export default function PauseRepas() {
                         width: 'min(280px, 72vw)',
                       }}
                     >
-                      {BARMAN_GREETING[lang]}
+                      {BARMAN_GREETING[contentLang(lang)]}
                       {/* pointe vers la bouche */}
                       <span
                         className="absolute"

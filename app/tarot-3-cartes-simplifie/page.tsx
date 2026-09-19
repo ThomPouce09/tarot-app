@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 import TarotApp from '../components/tarot-app';
 import { TarotThemeSelector, parseTarotQuestion, TAROT_NIGHT } from './theme-selector';
@@ -28,7 +28,7 @@ function SimplifiePage() {
   // Intention choisie (« Arcane — intention »). Le tirage n'apparaît qu'après.
   const [question, setQuestion] = useState<string | null>(null);
   const theme = parseTarotQuestion(question);
-  const themeLabel = theme ? `${theme.theme.label[lang]} · ${theme.sub}` : undefined;
+  const themeLabel = theme ? `${theme.theme.label[contentLang(lang)]} · ${theme.sub}` : undefined;
 
   /* ── ÉTAPE 1 — l'intention (flux scrollable, rien ne se superpose) ── */
   if (question === null) {

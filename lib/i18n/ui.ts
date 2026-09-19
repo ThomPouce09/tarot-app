@@ -172,7 +172,7 @@ export const DICT = {
   'hubs.loginPrompt': { fr: '🔒 Connectez-vous pour accéder à cette fonction', en: '🔒 Sign in to access this feature' },
   'hubs.tarot.footer': { fr: '✦ Les étoiles vous guident ✦', en: '✦ The stars guide you ✦' },
   'hubs.yijing.title': { fr: 'Le Yi Jing', en: 'The I Ching' },
-  'hubs.yijing.subtitle': { fr: 'Choisissez votre consultation', en: 'Choose your consultation' },
+  'hubs.yijing.subtitle': { fr: 'Pose ta question, laisse l\'hexagramme répondre', en: 'Ask your question, let the hexagram answer' },
   'hubs.yijing.base': { fr: 'Yi Jing simplifié', en: 'Simplified I Ching' },
   'hubs.yijing.basesub': { fr: 'Domaine & intention', en: 'Domain & intention' },
   'hubs.yijing.simple': { fr: 'Yi Jing précis', en: 'Precise I Ching' },
@@ -181,6 +181,8 @@ export const DICT = {
   'hubs.yijing.daysub': { fr: "L'influence du moment", en: "The influence of the moment" },
   'hubs.yijing.question': { fr: 'Yi Jing avec Question', en: 'I Ching with Question' },
   'hubs.yijing.questionsub': { fr: 'Question & baguettes', en: 'Question & sticks' },
+  'hubs.yijing.double': { fr: 'Le Double Hexagramme', en: 'The Double Hexagram' },
+  'hubs.yijing.doubleSub': { fr: 'L’instant présent et sa mutation', en: 'The present moment and its transformation' },
   'hubs.yijing.footer': { fr: '☯ Les hexagrammes murmurent ☯', en: '☯ The hexagrams whisper ☯' },
 
   // ─── Security ───

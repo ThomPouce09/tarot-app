@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       const userReadings = await prisma.reading.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
-        include: { echo: { select: { id: true, dueAt: true, verdict: true, verdictPct: true, bestCardIndex: true } } },
+        include: { echo: { select: { id: true, dueAt: true, verdict: true, verdictPct: true, bestCardIndex: true, textFr: true, textEn: true } } },
       });
 
       // Format response safely
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
           cards,
           interpretation,
           createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
-          echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict, verdictPct: r.echo.verdictPct ?? null, bestCardIndex: r.echo.bestCardIndex ?? null } : null,
+          echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict, verdictPct: r.echo.verdictPct ?? null, bestCardIndex: r.echo.bestCardIndex ?? null, textFr: r.echo.textFr ?? null, textEn: r.echo.textEn ?? null } : null,
         };
       });
 

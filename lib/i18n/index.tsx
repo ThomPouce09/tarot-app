@@ -3,7 +3,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { initPush } from '@/lib/push';
 
-export type Lang = 'fr' | 'en';
+export type Lang = 'fr' | 'en' | 'es' | 'zh';
+const VALID_LANGS: Lang[] = ['fr', 'en', 'es', 'zh'];
+
+// Les chaînes UI binaires ({fr, en}) vivent encore en ContentLang : tant que
+// es/zh ne sont pas traduits (lib/i18n/ui.ts en cours de remplissage), ils
+// retombent sur fr. À éliminer quand les entrées es/zh existent partout.
+export type ContentLang = 'fr' | 'en';
+export const contentLang = (l: Lang): ContentLang => (l === 'en' ? 'en' : 'fr');
 
 // Dictionnaire UI : clé sémantique stable -> { fr, en }
 // Ajouter/modifier un libellé = une seule entrée ici. Fallback fr automatique.
@@ -26,14 +33,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem('tarot_prefs');
       if (raw) {
         const prefs = JSON.parse(raw);
-        if (prefs.language === 'en' || prefs.language === 'fr') {
-          setLangState(prefs.language);
+        if (VALID_LANGS.includes(prefs.language)) {
+          setLangState(prefs.language as Lang);
           return;
         }
       }
       // Pas de préférence explicite -> langue de l'appareil
       const nav = navigator.language?.slice(0, 2).toLowerCase();
       if (nav === 'en') setLangState('en');
+      else if (nav === 'es') setLangState('es');
+      else if (nav === 'zh') setLangState('zh');
       // sinon reste 'fr' par défaut
     } catch {}
   }, []);
@@ -44,7 +53,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       if (e.key === 'tarot_prefs' && e.newValue) {
         try {
           const prefs = JSON.parse(e.newValue);
-          if (prefs.language === 'en' || prefs.language === 'fr') setLangState(prefs.language);
+          if (prefs.language === 'en' || prefs.language === 'fr') setLangState(prefs.language as Lang);
         } catch {}
       }
     };
@@ -81,11 +90,11 @@ export function useSetLang(): (l: Lang) => void {
 export function useT() {
   const lang = useLang();
   return (key: string): string => {
-    const entry = (DICT as Record<string, { fr: string; en: string }>)[key];
+    const entry = (DICT as Record<string, Partial<Record<Lang, string>>>)[key];
     if (!entry) {
       if (process.env.NODE_ENV !== 'production') console.warn('[i18n] missing key:', key);
       return key;
     }
-    return entry[lang] ?? entry.fr;
+    return entry[lang] ?? entry.fr ?? key;
   };
 }

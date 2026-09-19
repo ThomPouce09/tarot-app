@@ -61,6 +61,13 @@ export const SOUNDS: SoundEntry[] = [
 
   // ── Yi Jing ────────────────────────────────────────────────────────────
   { key: 'stick-draw', file: '/audio/stick-draw.mp3', category: 'yi-jing', label: 'Tirage de bâton', duration: 0.80, usage: 'Bâton Yi Jing tiré' },
+  { key: 'coin-shake', file: '/audio/coin-shake.mp3', category: 'yi-jing', label: 'Pièces brassées', duration: 4.25, usage: 'Double Hexagramme — secousse des pièces dans le bol' },
+  { key: 'coin-table', file: '/audio/coin-table.mp3', category: 'yi-jing', label: 'Pièces versées sur la table', duration: 2.09, usage: 'Double Hexagramme — jet des pièces (versement)' },
+  { key: 'sticks-pile', file: '/audio/sticks-pile.mp3', category: 'yi-jing', label: 'Pile de tiges 1', duration: 1.45, usage: 'Double — dressage des 6 traits (6 sons de bambous)' },
+  { key: 'sticks-pile2', file: '/audio/sticks-pile2.mp3', category: 'yi-jing', label: 'Pile de tiges 2', duration: 2.00, usage: 'Double — dressage des 6 traits' },
+  { key: 'sticks-pile3', file: '/audio/sticks-pile3.mp3', category: 'yi-jing', label: 'Pile de tiges 3', duration: 3.00, usage: 'Double — dressage des 6 traits' },
+  { key: 'sticks-pile4', file: '/audio/sticks-pile4.mp3', category: 'yi-jing', label: 'Pile de tiges 4', duration: 2.20, usage: 'Double — dressage des 6 traits' },
+  { key: 'sticks-pile5', file: '/audio/sticks-pile5.mp3', category: 'yi-jing', label: 'Pile de tiges 5', duration: 1.76, usage: 'Double — dressage des 6 traits' },
   { key: 'spell', file: '/audio/spell.mp3', category: 'yi-jing', label: 'Sort (révélation)', duration: 2.10, usage: 'Révélation / effet magique' },
 
   // ── Ambiance / UI ──────────────────────────────────────────────────────

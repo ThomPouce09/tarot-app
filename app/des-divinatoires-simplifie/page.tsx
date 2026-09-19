@@ -34,7 +34,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, contentLang } from '@/lib/i18n';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
@@ -373,7 +373,7 @@ function SimplifiePage() {
   useEffect(() => () => setOracleWait(false), []);
 
   const showResult = phase === 'firstDone';
-  const intentionLabel = theme ? `${theme.theme.label[lang]} — ${theme.sub}` : question;
+  const intentionLabel = theme ? `${theme.theme.label[contentLang(lang)]} — ${theme.sub}` : question;
 
   /* ── ÉTAPE 1 — l'intention (les 4 Éléments × 5 intentions) ── */
   if (phase === 'intention') {

@@ -40,6 +40,7 @@ function listVideos(prefix: string): string[] {
 function listTarotVideos(): string[] { return listVideos('analyse-tarot'); }
 function listRuneVideos(): string[] { return listVideos('analyse-runes'); }
 function listYiJingVideos(): string[] { return listVideos('analyse-yi-jing'); }
+function listYiJingHVideos(): string[] { return listVideos('analyse-yi-jing-h'); }
 
 // Config d'attente par type de tirage.
 // Pour les tirages tarot / runes / yi-jing : rotation automatique des vidéos
@@ -56,6 +57,17 @@ const CONFIG: Record<string, {
   /** Noms de fichiers (basename) qui doivent se jouer UNE seule fois, sans boucle. */
   noLoopNames?: string[];
 }> = {
+  // ── Le Double Hexagramme : vidéos dédiées analyse-yi-jing-hN.mp4 (dynamiques) ──
+  'yi-jing-double': {
+    messages: {
+      fr: ['L’oracle consulte les hexagrammes…', 'Les trois pièces résonnent encore…', 'Le Yi Jing médite votre tirage…'],
+      en: ['The oracle consults the hexagrams…', 'The three coins still resonate…', 'The I Ching ponders your draw…'],
+    },
+    backgroundType: 'video',
+    backgroundUrls: [],
+    animation: 'fade',
+    minDurationMs: 3500,
+  },
   'yi-jing-simple': {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre tirage…'],
@@ -252,6 +264,7 @@ export async function GET(request: NextRequest) {
   const backgroundUrls =
     type.startsWith('tarot') ? listTarotVideos()
     : type.startsWith('runes') ? listRuneVideos()
+    : type === 'yi-jing-double' ? listYiJingHVideos()
     : (type.startsWith('yi-jing') || type === 'yi-qing') ? listYiJingVideos()
     : cfg.backgroundUrls;
 

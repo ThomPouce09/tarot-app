@@ -11,7 +11,7 @@
 
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 
 export interface L {
   fr: string;
@@ -164,7 +164,7 @@ export const TAROT_THEMES: TarotTheme[] = [
 
 /** Composante « Arcane — intention » comprise par parseTarotQuestion. */
 export function composeTarotQuestion(theme: TarotTheme, sub: L, lang: 'fr' | 'en'): string {
-  return `${theme.label[lang]} — ${sub[lang]}`;
+  return `${theme.label[contentLang(lang)]} — ${sub[contentLang(lang)]}`;
 }
 
 /** Reconstruit { theme, sub } depuis la question composée
@@ -199,7 +199,7 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
 
   const cast = () => {
     if (!theme || subIdx === null) return;
-    onConfirm(`${theme.label[lang]} — ${theme.subs[subIdx][lang]}`);
+    onConfirm(`${theme.label[contentLang(lang)]} — ${theme.subs[subIdx][contentLang(lang)]}`);
   };
 
   return (
@@ -246,10 +246,10 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
                 {d.icon(sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}cc` }}>
-                {d.label[lang]}
+                {d.label[contentLang(lang)]}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? TAROT_NIGHT.rose : `${TAROT_NIGHT.roseDim}99` }}>
-                {lang === 'en' ? `${d.arcane} suit · ` : `Suite ${d.arcane} · `}{d.sigil[lang].split('· ')[1]}
+                {lang === 'en' ? `${d.arcane} suit · ` : `Suite ${d.arcane} · `}{d.sigil[contentLang(lang)].split('· ')[1]}
               </span>
               {sel && (
                 <span className="ts-twinkle absolute right-2 top-2 text-[10px]" style={{ color: TAROT_NIGHT.gold }}>✦</span>
@@ -292,7 +292,7 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
                       >
                         <span className={`mt-[3px] text-[8px]${sel ? ' ts-twinkle' : ''}`} style={{ color: sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}55` }}>✦</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? TAROT_NIGHT.gold : TAROT_NIGHT.rose }}>
-                          {s[lang]}
+                          {s[contentLang(lang)]}
                         </span>
                       </button>
                     </li>

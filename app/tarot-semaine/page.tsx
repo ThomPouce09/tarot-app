@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -303,7 +303,7 @@ function SemainePage() {
                     {lang === 'en' ? 'The card’s light —' : 'L’éclat du jour —'} {DAYS[shown.weekday][lang as 'fr' | 'en']} · {shown[lang === 'en' ? 'nameEn' : 'name']}
                   </p>
                   <p className="mt-2 text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>
-                    « {shown.insight[lang]} »
+                    « {shown.insight[contentLang(lang)]} »
                   </p>
                 </motion.div>
               );
@@ -330,7 +330,7 @@ function SemainePage() {
                       )}
                     </div>
                   )}
-                  {wheel.filRouge && <p className="mt-3 text-center text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {wheel.filRouge[lang]} »</p>}
+                  {wheel.filRouge && <p className="mt-3 text-center text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {wheel.filRouge[contentLang(lang)]} »</p>}
                   {wheel.filRouge && !wheel.echo && (
                     <div className="mt-4 text-center">
                       <button onClick={seal} disabled={sealedBusy} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50" style={{

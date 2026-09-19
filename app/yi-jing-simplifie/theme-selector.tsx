@@ -11,7 +11,7 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, contentLang } from '@/lib/i18n';
 
 type L = { fr: string; en: string };
 
@@ -25,6 +25,17 @@ export interface YiDomain {
 }
 
 /* ———————————————————— Palette laque / or (charte Yi Jing) ——————————————————— */
+
+/* Pilule dorée « verre » 3D — reflet bombé, biseau interne, halo doré. */
+export const YI_GLASS = {
+  background:
+    'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.16) 42%, rgba(255,255,255,0) 56%), linear-gradient(135deg, #F6D98A 0%, #E8B84B 35%, #B8860B 72%, #D9AE3C 100%)',
+  color: '#2a1808',
+  border: '1.5px solid rgba(248,233,176,0.9)',
+  boxShadow:
+    '0 6px 20px rgba(218,165,32,0.5), 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.7), inset 0 -5px 12px rgba(122,74,4,0.5)',
+  textShadow: '0 1px 0 rgba(255,245,208,0.55)',
+};
 
 export const YI_LACQUER = {
   panelDeep: '#0d0609',
@@ -183,7 +194,7 @@ export function parseYiQuestion(question: string | null): { domain: YiDomain; su
   return domain ? { domain, sub: question.slice(sep + 3) } : null;
 }
 
-export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) => void }) {
+export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (question: string) => void; glass?: boolean }) {
   const lang = useLang();
   const [domainId, setDomainId] = useState<string | null>(null);
   const [subIdx, setSubIdx] = useState<number | null>(null);
@@ -202,7 +213,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
 
   const cast = () => {
     if (!domain || subIdx === null) return;
-    onConfirm(`${domain.label[lang]} — ${domain.subs[subIdx][lang]}`);
+    onConfirm(`${domain.label[contentLang(lang)]} — ${domain.subs[subIdx][contentLang(lang)]}`);
   };
 
   return (
@@ -249,10 +260,10 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
                 {d.icon(sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}cc` }}>
-                {d.label[lang]}
+                {d.label[contentLang(lang)]}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? YI_LACQUER.lilac : `${YI_LACQUER.lilacDim}99` }}>
-                {d.guardian} · {d.realm[lang]}
+                {d.guardian} · {d.realm[contentLang(lang)]}
               </span>
               {sel && (
                 <span className="absolute right-2 top-2 text-[10px]" style={{ color: YI_LACQUER.gold }}>◆</span>
@@ -295,7 +306,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
                       >
                         <span className="mt-[3px] text-[8px]" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}55` }}>◆</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? YI_LACQUER.gold : YI_LACQUER.lilac }}>
-                          {s[lang]}
+                          {s[contentLang(lang)]}
                         </span>
                       </button>
                     </li>
@@ -314,7 +325,7 @@ export function YiThemeSelector({ onConfirm }: { onConfirm: (question: string) =
           onClick={cast}
           disabled={!ready}
           className="rounded-full px-8 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-[15px] tracking-wide transition-transform active:scale-[0.97]"
-          style={{
+          style={ready && glass ? { ...YI_GLASS, cursor: 'pointer' } : {
             background: ready
               ? 'linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)'
               : 'linear-gradient(135deg, #4a3a20 0%, #2e2413 55%, #4a3a20 100%)',
