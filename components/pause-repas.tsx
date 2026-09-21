@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playRandom, playSound, soundProgress } from '@/lib/sounds';
+import { api } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, contentLang } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 
 // ---------------------------------------------------------------------------
 // PAUSE REPAS — barman interactif sur la landing page.
@@ -86,10 +87,17 @@ const ZOOM_DURATION = 1.3;
 type Stage = 'barman' | 'plateau' | 'video';
 
 // --- Programmation du barman : fenêtres horaires (heure du device) -----------
+// ⚠️ MODE TEST TEMPORAIRE (2026-09-20) : TEST_BARMAN=true neutralise les
+// fenêtres horaires ET la limite « une fois par jour » → le barman apparaît
+// immédiatement et reapparaît à chaque clic/refresh, pour travailler son
+// apparition. Remettre TEST_BARMAN=false (et les localStorage 'tarot_pr_*'
+// reprendront leur effet) une fois les tests terminés.
+const TEST_BARMAN = false;
 // Fenêtre A : 12:00–12:30 ; fenêtre B : 21:00–21:30 (minutes depuis minuit).
 const WINDOW_A = [12 * 60, 12 * 60 + 30];
 const WINDOW_B = [21 * 60, 21 * 60 + 30];
 const inWindowNow = () => {
+  if (TEST_BARMAN) return true;
   const d = new Date();
   const mins = d.getHours() * 60 + d.getMinutes();
   return (mins >= WINDOW_A[0] && mins <= WINDOW_A[1]) || (mins >= WINDOW_B[0] && mins <= WINDOW_B[1]);
@@ -115,6 +123,10 @@ export default function PauseRepas() {
   const [open, setOpen] = useState(false);
   const [stage, setStage] = useState<Stage>('barman');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const appearedRef = useRef(false);
+  const retryArmedRef = useRef(false); // filet « premier toucher » déjà armé ?
+  // Changer cette clé remonte le bouton → rejoue l'animation CSS d'entrée.
+  const [enterSeq, setEnterSeq] = useState(0);
   const [videoDone, setVideoDone] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const barmanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,6 +142,32 @@ export default function PauseRepas() {
   const [inWindow, setInWindow] = useState(false);
   const [usedToday, setUsedToday] = useState(false);
   const [ready, setReady] = useState(false); // évite le flash du barman déjà utilisé au refresh
+  // Voile de chargement levé ? (1er chargement : AppLoader émet 'app-loaded'
+  // à sa disparition ; ailleurs — SPA, retour, APK chaud — plus de voile.)
+  const [booted, setBooted] = useState(false);
+  useEffect(() => {
+    // Source de vérité : le #boot-veil SSR. À la première hydratation de la
+    // landing, il EST dans le DOM (rendu par layout.tsx) — et <AppLoader/>
+    // React, monté dans le même cycle, ne peut pas encore exister quand les
+    // effets des FILS tournent (ils précèdent ceux du parent). Donc :
+    //  - pas de boot-veil (ré-entrée SPA, voile déjà retiré) → booted direct ;
+    //  - voile présent → on attend SOIT l'événement 'app-loaded' (émis par
+    //    AppLoader à la fin de son fondu), SOIT la disparition du nœud lui-
+    //    même (chemin du script relais : fallback 4,5 s sans AppLoader).
+    // Avant cela, ni bouton, ni animation, ni son : tout se joue VOILE LEVÉ.
+    if (!document.getElementById('boot-veil') && !document.querySelector('.app-loader:not(#boot-veil)')) { setBooted(true); return; }
+    const h = () => { clearInterval(iv); setBooted(true); };
+    window.addEventListener('app-loaded', h);
+    // Le relais retire #boot-veil ~0,8 s APRÈS le montage d'AppLoader : la
+    // disparition du nœud SSR ne suffit PAS — il faut aussi que le voile
+    // React ait fini son fondu (événement 'app-loaded') ou ne soit jamais né.
+    const iv = setInterval(() => {
+      if (document.getElementById('boot-veil')) return;
+      if (document.querySelector('.app-loader:not(#boot-veil)')) return;
+      h();
+    }, 200);
+    return () => { clearInterval(iv); window.removeEventListener('app-loaded', h); };
+  }, []);
   useEffect(() => {
     const check = () => setInWindow(inWindowNow());
     check();
@@ -137,6 +175,7 @@ export default function PauseRepas() {
     return () => clearInterval(id);
   }, []);
   useEffect(() => {
+    if (TEST_BARMAN) { setReady(true); return; } // test : jamais « consommé », re-tirable à volonté
     const email = getEmail();
     const date = localDay();
     const finish = () => setReady(true);
@@ -154,6 +193,7 @@ export default function PauseRepas() {
     }
   }, []);
   const markConsumed = useCallback(() => {
+    if (TEST_BARMAN) return; // test : le barman reste disponible après chaque parcours
     setUsedToday(true);
     const email = getEmail();
     const date = localDay();
@@ -206,12 +246,45 @@ export default function PauseRepas() {
     barmanTimer.current = null;
   }, []);
 
+  // Son d'apparition : joué quand le barman entre à l'écran (fenêtre ouverte,
+  // compte non consommé, modale fermée) — à chaque nouvelle apparition du jour.
+  useEffect(() => {
+    const visible = booted && ready && inWindow && !usedToday && !open;
+    if (!visible) { appearedRef.current = false; return; }
+    const fire = () => playSound('barman-apparition', 0.9);
+    if (!appearedRef.current) {
+      appearedRef.current = true;
+      fire();
+    }
+    // Autoplay sans geste réel (règle mobile/desktop — et DEV StrictMode qui
+    // re-exécute l'effet après le cleanup du 1er) : rien ne joue → au premier
+    // toucher, on rejoue ENSEMBLE l'animation (nouvelle clé de remontage) et
+    // le son, puis on désarme. Le filet est ARMÉ À CHAQUE exécution de l'effet
+    // (le cleanup du 1er passage annule son timer : sinon plus jamais armé).
+    const t = setTimeout(() => {
+      if (soundProgress('barman-apparition').playing || retryArmedRef.current) return;
+      retryArmedRef.current = true;
+      const h = () => {
+        window.removeEventListener('pointerdown', h);
+        window.removeEventListener('touchstart', h);
+        appearedRef.current = true;
+        setEnterSeq((n) => n + 1);
+        fire();
+      };
+      window.addEventListener('pointerdown', h);
+      window.addEventListener('touchstart', h);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [booted, ready, inWindow, usedToday, open]);
+
   const openModal = useCallback(() => {
     clearBarmanTimer();
     setVideoSrc(null);
     setVideoDone(false);
     setStage('barman');
     setOpen(true);
+    // Révélation au clic : un « sort » aléatoire (spell2..spell5).
+    playRandom('spell2', 'spell3', 'spell4', 'spell5');
     // Une fois cliqué → consommé (lié au compte) → caché jusqu'au lendemain.
     markConsumed();
     // Le barman s'agrandit, bulle de dialogue, reste 4 secondes, puis le plateau.
@@ -257,19 +330,26 @@ export default function PauseRepas() {
   return (
     <>
       {/* Barman cliquable — haut-gauche de la landing page (seulement en fenêtre horaire, une fois/jour) */}
-      {!open && ready && inWindow && !usedToday && (
+      {!open && booted && ready && inWindow && !usedToday && (
         <motion.button
+          key={enterSeq}
           type="button"
           aria-label={lang === 'en' ? 'Break time' : 'Pause repas'}
           onClick={openModal}
-          className="fixed left-2.5 top-[4%] z-[80] cursor-pointer select-none outline-none"
+          className="barman-enter fixed left-2.5 top-[4%] z-[80] cursor-pointer select-none outline-none"
           style={{ filter: 'drop-shadow(0 0 8px rgba(218,165,32,0.55))' }}
           whileHover={{ scale: 1.07 }}
           whileTap={{ scale: 0.94 }}
-          animate={{ y: [0, -4, 0] }}
-          transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
         >
-          <img src={BARMAN_SMALL} alt={lang === 'en' ? 'Bartender' : 'Barman'} className="w-14 sm:w-[70px] md:w-20 object-contain" />
+          {/* flottement vertical infini — sur l'enfant (l'entrée en scale est
+              portée par l'animation CSS du parent, sans conflit de transform) */}
+          <motion.span
+            className="block"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut', delay: 1.92 }}
+          >
+            <img src={BARMAN_SMALL} alt={lang === 'en' ? 'Bartender' : 'Barman'} className="w-14 sm:w-[70px] md:w-20 object-contain" />
+          </motion.span>
         </motion.button>
       )}
 
