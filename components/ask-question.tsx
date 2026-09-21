@@ -43,6 +43,8 @@ interface AskQuestionProps {
   autoFocus?: boolean;
   /** Question obligatoire : le bouton de confirmation reste désactivé tant que le champ est vide. */
   required?: boolean;
+  /** Couleur du bouton de confirmation (défaut : teal « Enregistrer »). */
+  confirmColor?: string;
 }
 
 export function AskQuestion({
@@ -57,6 +59,7 @@ export function AskQuestion({
   questionValueRef,
   autoFocus = true,
   required = false,
+  confirmColor,
 }: AskQuestionProps) {
   const t = useT();
   const [question, setQuestion] = useState('');
@@ -97,7 +100,7 @@ export function AskQuestion({
   // « Enregistrer » : pilule teal glossée fixe (même design que RuneButton
   // variant="save") sur toutes les pages ; accentColor ne teint plus que le
   // cadre, le champ et le gros CTA de lancement.
-  const btnBg = '#005f6a';
+  const btnBg = confirmColor || '#005f6a';
   const btnGlow = `${btnBg}80`;
   const launchBg = accentColor && accentColor.startsWith('#') ? darkenHex(accentColor, 0.45) : '#005f6a';
   const launchGlow = `${launchBg}80`;

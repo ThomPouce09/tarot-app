@@ -41,7 +41,7 @@ export const ELDER_FUTHARK: Rune[] = [
   { name: 'Othala', symbol: 'ᛟ', upright: 'Héritage, racines, foyer et transmission.', reversed: 'Rupture, exclusion ou attachement toxique au passé.' },
 ];
 
-export type RuneLayout = 'horizontal' | 'cross' | 'hammer' | 'vertical';
+export type RuneLayout = 'horizontal' | 'cross' | 'hammer' | 'vertical' | 'tree';
 
 /** Tire `count` runes aléatoires (sans remise) parmi les 24 du Futhark. */
 export function drawRunes(count: number): Rune[] {

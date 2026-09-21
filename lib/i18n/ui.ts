@@ -492,7 +492,7 @@ export const DICT = {
   'runes.mjolnir.subtitle': { fr: 'Affronter un obstacle majeur : cinq runes en forme de T pour briser le blocage.', en: 'Face a major obstacle: five runes in a T to shatter the block.' },
   'runes.mjolnir.cta': { fr: 'Invoquer la force de Mjölnir', en: 'Invoke the might of Mjölnir' },
   'runes.yggdrasil.title': { fr: "Les Racines d'Yggdrasil", en: "The Roots of Yggdrasil" },
-  'runes.yggdrasil.subtitle': { fr: "L'Arbre-Monde : un bilan profond, des racines aux branches, pour s'ancrer et grandir.", en: 'The World-Tree: a deep reckoning, from roots to branches, to ground and grow.' },
+  'runes.yggdrasil.subtitle': { fr: "Le bilan de l'Arbre-Monde : cinq runes, des racines à la couronne.", en: 'The World-Tree reckoning: five runes, from roots to crown.' },
   'runes.yggdrasil.cta': { fr: "Observer l'Arbre-Monde", en: 'Behold the World-Tree' },
   'runes.retry': { fr: 'Recommencer un tirage', en: 'Cast again' },
   'runes.conseilOdin': { fr: "Le Conseil d'Odin", en: "Odin's Counsel" },

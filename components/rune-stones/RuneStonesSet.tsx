@@ -24,6 +24,9 @@ export interface RuneStonesSetProps {
   /** Runes pré-tirées (tirage à l'aveugle) : utilisées telles quelles au lieu
    * d'un tirage aléatoire. Doit avoir exactement `count` éléments. */
   preset?: DrawnRune[];
+  /** A chaque rune revelée : nombre de runes au repos (0..count) —
+   *  pilote l allumage zone par zone de l arbre Yggdrasil. */
+  onReveal?: (n: number) => void;
 }
 
 export interface DrawnRune {
@@ -42,7 +45,9 @@ const FLIGHT_DURATION = 1.15;
    le pochon remonte juste assez pour que le compteur « Appuie encore »
    (bottom:-22px) reste visible sous le sac (le conteneur est en overflow:hidden)
    — sans le remonter plus que nécessaire. */
-function pouchYFor(height: number): number {
+function pouchYFor(height: number, layout: RuneLayout = 'horizontal'): number {
+  // /runes/yggdrasil : pochon réduit, descendu SOUS l'arbre (bande 0..84 %).
+  if (layout === 'tree') return Math.min(92.5, ((height - 52) / height) * 100);
   if (height >= 440) return 74;
   return Math.max(58, Math.min(74, ((height - 110) / height) * 100));
 }
@@ -68,6 +73,14 @@ function slotsFor(layout: RuneLayout, count: number): Array<[number, number]> {
     case 'hammer':
       return ([
         [50, 76], [50, 48], [30, 28], [70, 28], [50, 18],
+      ] as Array<[number, number]>).slice(0, count);
+    case 'tree':
+      // Yggdrasil : mêmes ancrages % que YGG_POS (positions.ts) — l'SVG de
+      // l'arbre occupe le même conteneur, les pierres se posent ZONE par ZONE
+      // (racines → tronc → branches → couronne), l'ordre de révélation 0..4
+      // fait monter la sève du bas vers le haut.
+      return ([
+        [28, 65], [73, 65], [50, 42], [76, 22], [50, 11],
       ] as Array<[number, number]>).slice(0, count);
     default:
       return Array.from({ length: count }, (_, i) => [
@@ -183,6 +196,7 @@ export default function RuneStonesSet({
   onRest,
   height = 440,
   preset,
+  onReveal,
 }: RuneStonesSetProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { enable: enableTilt } = useDeviceTilt(tableRef);
@@ -221,9 +235,12 @@ export default function RuneStonesSet({
     installSoundUnlock();
   }, []);
 
+  useEffect(() => { onReveal?.(revealed); }, [revealed, onReveal]);
+
   const order = useMemo(() => revealOrder(layout, count), [layout, count]);
   const slots = useMemo(() => slotsFor(layout, count), [layout, count]);
-  const pouchY = pouchYFor(height);
+  const pouchY = pouchYFor(height, layout);
+  const pouchScale = layout === 'tree' ? 0.66 : 1;
 
   useEffect(() => {
     if (!isRolling) {
@@ -560,8 +577,8 @@ export default function RuneStonesSet({
           left: `${POUCH.x}%`,
           top: `${pouchY}%`,
           transform: 'translate(-50%, -50%)',
-          width: 150,
-          height: 150,
+          width: 150 * pouchScale,
+          height: 150 * pouchScale,
           zIndex: 30,
         }}
       >
@@ -575,7 +592,8 @@ export default function RuneStonesSet({
               transition={{ duration: 0.35 }}
               className="pointer-events-none absolute inset-x-0"
               style={{
-                top: '106%',
+                // sur l'arbre (pochon tout en bas) : l'aide passe AU-DESSUS du sac
+                ...(layout === 'tree' ? { bottom: '103%' } : { top: '106%' }),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -622,6 +640,7 @@ export default function RuneStonesSet({
           onClick={active ? onPouchTap : undefined}
         >
           <Pouch
+            counterAbove={layout === 'tree'}
             active={active}
             pushes={pushes}
             need={need}
@@ -919,12 +938,15 @@ function Pouch({
   need,
   dragActive,
   hideCounter = false,
+  counterAbove = false,
 }: {
   active: boolean;
   pushes: number;
   need: number;
   dragActive: boolean;
   hideCounter?: boolean;
+  /** layout tree : compteur affiché AU-DESSUS du sac (bas de zone occupé). */
+  counterAbove?: boolean;
 }) {
   const remaining = Math.max(need - pushes, 0);
   return (
@@ -961,7 +983,7 @@ function Pouch({
         <div
           style={{
             position: 'absolute',
-            bottom: -22,
+            ...(counterAbove ? { top: -20 } : { bottom: -22 }),
             left: 0,
             right: 0,
             textAlign: 'center',
