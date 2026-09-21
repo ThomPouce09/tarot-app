@@ -31,7 +31,13 @@ export default function AppLoader({ ready }: { ready: boolean }) {
 
   useEffect(() => {
     if (!done) return;
-    const t0 = setTimeout(() => setGone(true), 800); // durée du fondu CSS
+    const t0 = setTimeout(() => {
+      setGone(true);
+      // Signe « page entièrement chargée et visible » : les effets d entrée
+      // (ex. apparition du barman) s y synchronisent au lieu de se jouer
+      // derrière le voile au 1er chargement.
+      window.dispatchEvent(new Event('app-loaded'));
+    }, 800); // durée du fondu CSS
     return () => clearTimeout(t0);
   }, [done]);
 

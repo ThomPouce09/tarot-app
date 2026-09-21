@@ -77,6 +77,11 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
+  { key: 'barman-apparition', file: '/audio/barman-apparition.mp3', category: 'ui', label: 'Apparition du barman', duration: 1.9, usage: 'Pause repas — clic sur le barman (bulle qui ouvre)' },
+  { key: 'spell2', file: '/audio/spell2.mp3', category: 'ui', label: 'Sort (variante 2)', duration: 8.0, usage: 'Révélation magique — message du barman' },
+  { key: 'spell3', file: '/audio/spell3.mp3', category: 'ui', label: 'Sort (variante 3)', duration: 3.1, usage: 'Révélation magique — message du barman' },
+  { key: 'spell4', file: '/audio/spell4.mp3', category: 'ui', label: 'Sort (variante 4)', duration: 8.0, usage: 'Révélation magique — message du barman' },
+  { key: 'spell5', file: '/audio/spell5.mp3', category: 'ui', label: 'Sort (variante 5)', duration: 8.0, usage: 'Révélation magique — message du barman' },
   { key: 'music-vibrations', file: '/audio/music-vibrations.mp3', category: 'ambient', label: 'Vibrations (musique d’accueil)', duration: 175, usage: 'Boucle d’ambiance de la page d’accueil — tous les comptes', voice: true, music: true },
   { key: 'music-promenades', file: '/audio/music-promenades.mp3', category: 'ambient', label: 'Promenades (musique premium)', duration: 174, usage: 'Boucle d’ambiance réservée Initié/Arkane', voice: true, music: true },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
@@ -198,7 +203,12 @@ export function unlockAllSounds() {
         .then(() => {
           a.pause();
           a.currentTime = 0;
-          unlocked.set(s.key, a);
+          // NE JAMAIS écraser un élément déjà enregistré : si playLoop() a créé
+          // son élément entre-temps (le même premier geste déclenche le pré-
+          // déverrouillage ET le démarrage de la musique), écraser la map laisse
+          // un élément ORPHELIN en lecture que plus personne ne peut couper —
+          // c'était le « l'enceinte ne stoppe plus la musique » sur l'APK.
+          if (!unlocked.has(s.key)) unlocked.set(s.key, a);
         })
         .catch(() => {
           // Autoplay encore bloqué — on retentera au déclenchement réel.

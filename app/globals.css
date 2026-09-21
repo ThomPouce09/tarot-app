@@ -549,6 +549,18 @@ html, body {
 @keyframes hintArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
 
 /* Bulle d'état sonore (enceinte flottante) — bas de l'écran, éphémère et discrète. */
+/* Entrée du barman : pousse de 0,18 → taille réelle en 1,92 s pile (durée
+   de barman-apparition.mp3). En CSS pur (pas framer) : se joue à CHAQUE
+   remontage, même sous HMR ; .barman-enter-replay relance via clé React. */
+@keyframes barman-grow {
+  from { opacity: 0; transform: scale(0.18); }
+  to { opacity: 1; transform: scale(1); }
+}
+.barman-enter {
+  transform-origin: bottom left;
+  animation: barman-grow 1.92s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .speaker-toast {
   position: fixed;
   bottom: 18px;
