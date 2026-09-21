@@ -108,6 +108,45 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 Réponds UNIQUEMENT avec l'objet JSON.`;
 }
 
+// Positions canoniques du tirage (le client envoie les libellés dans sa
+// langue ; on ne les réécrit pas, on les transmet telles quelles au modèle).
+const YGG_ORDER = ["Urðr — la Source", "Níðhöggr — le Dragon", "L’Arbre — la Force du jour", "Les Branches — les Voies vivantes", "L’Aigle — la Vision d’en haut"];
+
+function buildYggdrasilPrompt(runes: RuneInput[], question?: string | null, lang?: string): string {
+  const liste = runes
+    .map((r, i) => {
+      const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
+      return `Rune ${i + 1} — ${r.position || YGG_ORDER[i] || `Position ${i + 1}`} : ${r.name} ${r.symbol}\n  Sens réel : ${sens}`;
+    })
+    .join('\n\n');
+  const en = lang === 'en';
+  return `Tu es un devin scandinave, gardien du mythe d'Yggdrasil. Ton : grave, chaleureux, jamais vague. ${en ? 'Écris TOUTE la réponse en ANGLAIS.' : 'Écris toute la réponse en FRANÇAIS.'}
+
+Le tirage « Les Racines d'Yggdrasil » ne répond pas à une question : il dresse le BILAN d'une vie ou d'un projet, vu comme l'Arbre-Monde. Cinq positions, des fondations au sommet :
+• Urðr — la Source (racine qui boit au puits du destin) : ce qui nourrit le consultant SANS QU'IL LE VOIE — fondations, héritage, forces secrètes.
+• Níðhöggr — le Dragon (racine rongée) : ce qui ronge en secret — peur, habitude, usure. POSITION PARTICULIÈRE : une rune INVERSÉE y est bienvenue (le danger est enfin nommé) ; une rune droite là signifie que la racine est saine et le consultant lucide. Traite l'inversion comme une RÉVÉLATION utile, jamais comme un malheur.
+• L'Arbre — la Force du jour (tronc) : la solidité présente, l'énergie qui porte aujourd'hui.
+• Les Branches — les Voies vivantes : les directions réelles qui se déploient, les choix ouverts CETTE SAISON.
+• L'Aigle — la Vision d'en haut (couronne) : ce que seul le sommet voit — la vérité que le consultant ne peut pas voir de lui-même, le message à retenir.
+
+Runes tirées (utilise IMPÉRATIVEMENT ces noms, positions et sens réels — ne les invente pas) :
+${liste}${question ? `
+
+SUJET DU CONSULTANT — ancre la lecture dans ce sujet précis (exemples, synthèse, conseil) :\n« ${question} »` : '\n\nAucune question posée : le consultant demande un bilan d\'ensemble — parle à sa vie, pas à un dossier.'}
+
+Consigne de fond : lis l'arbre comme UN SEUL organisme — les quatre premières positions s'éclairent mutuellement (la Source nourrit le Tronc, le Dragon ronge la Source, etc.). Termine par ce que l'Aigle voit et pas le consultant.
+
+Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
+{
+  "sections": [
+    ${runes.map((r, i) => `{ "position": "${r.position || YGG_ORDER[i]}", "rune": "${r.name} ${r.symbol}", "sens": "sens réel de la rune (avec la mention merkstave si inversée)", "lecture": "1 à 2 phrases ancrées dans la symbolique de CETTE zone de l'arbre." }`).join(',\n    ')}
+  ],
+  "synthese": "1 à 2 phrases : l'état général de l'Arbre-Monde du consultant — est-il en sève, en gel, en feu ?",
+  "conseil_action": "OBLIGATOIRE : 1 phrase d'action concrète et datable issue de la Vision de l'Aigle. Ne JAMAIS omettre cette clé."
+}
+Réponds UNIQUEMENT avec l'objet JSON.`;
+}
+
 export async function POST(request: NextRequest) {
   let body: any = {};
   try {
@@ -135,8 +174,10 @@ export async function POST(request: NextRequest) {
   if (m === 'nornes') {
     const qTopic = typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null;
     prompt = focus === 'odin' ? buildNornesOdinPrompt(runes, qTopic) : buildNornesPrompt(runes, qTopic);
+  } else if (m === 'yggdrasil') {
+    prompt = buildYggdrasilPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, body.lang === 'en' ? 'en' : 'fr');
   }
-  // mjolnir / yggdrasil : ajoutés ensuite
+  // mjolnir : ajouté ensuite
 
   const content = (await callOracle(prompt)) || '';
   if (!content || content.trim().length === 0) {

@@ -348,6 +348,12 @@ export function soundProgress(key: string): { playing: boolean; time: number; du
  *  quand la préférence Voix passe à off (les effets, eux, continuent). */
 export function stopVoices() {
   if (typeof window === 'undefined') return;
+  // Coupure = arrêt définitif : le slot de re-tentative (autoplay bloqué)
+  // ne doit pas relancer la musique au geste suivant.
+  if (retrySlot) {
+    const re = BY_KEY[retrySlot.key];
+    if (re && re.voice) { retrySlot = null; window.removeEventListener('pointerdown', retryGesture); window.removeEventListener('touchstart', retryGesture); }
+  }
   for (const s of SOUNDS) {
     if (!s.voice) continue; // la musique (voice+music) est coupée avec les voix
     const snd = unlocked.get(s.key);
@@ -365,6 +371,7 @@ export function stopVoices() {
  *  un contexte (ex. fermeture du tutoriel) pour ne laisser aucune piste jouer. */
 export function stopAllSounds() {
   if (typeof window === 'undefined') return;
+  if (retrySlot) { retrySlot = null; window.removeEventListener('pointerdown', retryGesture); window.removeEventListener('touchstart', retryGesture); }
   unlocked.forEach((snd) => {
     try {
       snd.pause();

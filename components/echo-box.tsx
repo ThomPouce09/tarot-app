@@ -44,6 +44,7 @@ function sealDate(dueAt: string, lang: 'fr' | 'en'): string {
 
 export default function EchoBox({
   domain,
+  moss = false,
   readingId,
   question,
   summary,
@@ -51,6 +52,8 @@ export default function EchoBox({
   onEcho,
 }: {
   domain: 'tarot' | 'yi-jing' | 'runes' | 'des';
+  /** /runes/yggdrasil : encadré vert forêt + sceau cèdre (harmonie runes). */
+  moss?: boolean;
   readingId?: string | null;
   question?: string | null;
   /** Synthèse de la lecture (resume/conseil) : carburant du prompt IA. */
@@ -151,18 +154,23 @@ export default function EchoBox({
   if (!email) return null;
 
   return (
-    <div className="relative mt-8 rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-950/30 via-black/50 to-black/60 backdrop-blur-sm overflow-hidden">
+    <div
+      className="relative mt-8 rounded-2xl border backdrop-blur-sm overflow-hidden"
+      style={moss
+        ? { borderColor: 'rgba(159,196,173,0.35)', background: 'linear-gradient(180deg, rgba(20,54,31,0.55) 0%, rgba(8,26,16,0.75) 55%, rgba(4,14,9,0.85) 100%)' }
+        : { borderColor: 'rgba(251,191,36,0.4)', background: 'linear-gradient(180deg, rgba(180,83,9,0.16) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.6) 100%)' }}
+    >
       {/* halo doré discret */}
-      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: 'radial-gradient(ellipse at 50% -10%, rgba(217,164,6,0.25), transparent 60%)' }} />
+      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: moss ? 'radial-gradient(ellipse at 50% -10%, rgba(159,196,173,0.22), transparent 60%)' : 'radial-gradient(ellipse at 50% -10%, rgba(217,164,6,0.25), transparent 60%)' }} />
       <div className="relative p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-3">
           {/* horloge ailée (glyphe SVG inline, jamais d'emoji) */}
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-amber-300 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={`w-5 h-5 shrink-0 ${moss ? 'text-[#9fc4ad]' : 'text-amber-300'}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <circle cx="12" cy="12" r="8" />
             <path d="M12 8v4l2.5 2.5" />
             <path d="M4 12C2.5 10.5 1.5 9 1.5 7.5 4 7.5 5.5 8.5 6.5 10M20 12c1.5-1.5 2.5-3 2.5-4.5C20 7.5 18.5 8.5 17.5 10" />
           </svg>
-          <h3 className="text-amber-300 font-serif text-lg tracking-wide" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          <h3 className={`font-serif text-lg tracking-wide ${moss ? 'text-[#e9d9ac]' : 'text-amber-300'}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
             {t('echo.title')}
           </h3>
         </div>
@@ -171,8 +179,8 @@ export default function EchoBox({
           {/* ── État 1 : pas d'écho → proposition de sceller ── */}
           {!current && (
             <motion.div key="seal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
-              <p className="text-gray-200 italic text-[15px] leading-relaxed mb-4">{t('echo.tease')}</p>
-              <RuneButton variant="save" saveTint={domain} onClick={seal} disabled={sealing}>
+              <p className={`italic text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : 'text-gray-200'}`}>{t('echo.tease')}</p>
+              <RuneButton variant="save" saveTint={moss ? 'cedar' : domain} onClick={seal} disabled={sealing}>
                 {sealing ? t('echo.sealing') : t('echo.seal')}
               </RuneButton>
               {sealError && <p className="mt-3 text-sm text-red-300/90">{sealError}</p>}
@@ -182,16 +190,21 @@ export default function EchoBox({
           {/* ── État 2 : scellé, échéance pas encore atteinte ── */}
           {current && !due && !broken && (
             <motion.div key="sealed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
-              <div className="mx-auto mb-3 w-16 h-16 rounded-full border border-amber-400/50 bg-gradient-to-b from-amber-500/25 to-black/40 flex items-center justify-center shadow-[0_0_24px_rgba(217,164,6,0.35)]">
+              <div
+                className={`mx-auto mb-3 w-16 h-16 rounded-full border flex items-center justify-center ${moss ? 'border-[#9fc4ad]/50' : 'border-amber-400/50'}`}
+                style={moss
+                  ? { background: 'linear-gradient(180deg, rgba(63,142,92,0.3), rgba(0,0,0,0.45))', boxShadow: '0 0 24px rgba(63,142,92,0.35)' }
+                  : { background: 'linear-gradient(180deg, rgba(245,158,11,0.25), rgba(0,0,0,0.4))', boxShadow: '0 0 24px rgba(217,164,6,0.35)' }}
+              >
                 {/* sceau : rune + boucle */}
-                <svg viewBox="0 0 24 24" className="w-8 h-8 text-amber-300" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden>
+                <svg viewBox="0 0 24 24" className={moss ? 'w-8 h-8 text-[#e9d9ac]' : 'w-8 h-8 text-amber-300'} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden>
                   <path d="M6 3v18M6 6l12-3M6 12l12-6M6 18l12-6" />
                 </svg>
               </div>
-              <p className="text-amber-100/90 text-[15px] leading-relaxed">
+              <p className={`text-[15px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : 'text-amber-100/90'}`}>
                 {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, contentLang(lang)))}
               </p>
-              <p className="mt-1 text-xs text-gray-400">{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
+              <p className={`mt-1 text-xs ${moss ? 'text-[#9fc4ad]' : 'text-gray-400'}`}>{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
             </motion.div>
           )}
 
@@ -200,8 +213,8 @@ export default function EchoBox({
             <motion.div key="due" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {!broken && !current.verdict && (
                 <div className="text-center">
-                  <p className="text-amber-100/90 text-[15px] leading-relaxed mb-4">{t('echo.dueNow')}</p>
-                  <RuneButton variant="save" saveTint={domain} onClick={() => setBroken(true)}>
+                  <p className={`text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : 'text-amber-100/90'}`}>{t('echo.dueNow')}</p>
+                  <RuneButton variant="save" saveTint={moss ? 'cedar' : domain} onClick={() => setBroken(true)}>
                     {t('echo.break')}
                   </RuneButton>
                 </div>
@@ -212,7 +225,7 @@ export default function EchoBox({
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.9 }}
-                    className="text-amber-100 italic text-[16px] sm:text-[17px] leading-relaxed"
+                    className={`italic text-[16px] sm:text-[17px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : 'text-amber-100'}`}
                     style={{ fontFamily: 'var(--font-cinzel), serif' }}
                   >
                     « {text} »
@@ -223,7 +236,7 @@ export default function EchoBox({
                     </p>
                   ) : (
                     <div className="mt-5">
-                      <p className="text-sm text-gray-300 mb-3">{t('echo.verdictAsk')}</p>
+                      <p className={`text-sm mb-3 ${moss ? 'text-[#cfe3d6]' : 'text-gray-300'}`}>{t('echo.verdictAsk')}</p>
                       <div className="flex flex-wrap items-center justify-center gap-3">
                         {(['oui', 'partiel', 'non'] as const).map((v) => (
                           <button
@@ -231,7 +244,7 @@ export default function EchoBox({
                             type="button"
                             disabled={savingVerdict}
                             onClick={() => verdict(v)}
-                            className="rounded-full px-5 py-2 text-sm font-bold border border-amber-400/50 text-amber-100 bg-black/40 hover:bg-amber-900/40 transition-colors disabled:opacity-50"
+                            className={`rounded-full px-5 py-2 text-sm font-bold border transition-colors disabled:opacity-50 ${moss ? 'border-[#9fc4ad]/50 text-[#e9d9ac] bg-black/40 hover:bg-[#1f5234]/60' : 'border-amber-400/50 text-amber-100 bg-black/40 hover:bg-amber-900/40'}`}
                             style={{ fontFamily: 'var(--font-cinzel), serif' }}
                           >
                             {t(`echo.verdict.${v}`)}

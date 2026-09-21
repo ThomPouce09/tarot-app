@@ -132,18 +132,59 @@ export function RuneTitle({
   subtitle,
   compact,
   blinkSubtitle,
+  fit = false,
 }: {
   title: string;
   subtitle?: string;
   compact?: boolean;
   /** Si vrai, le sous-titre clignote doucement 3 fois puis disparaît. */
   blinkSubtitle?: boolean;
+  /** Titre auto-tenu sur UNE ligne (clamp responsif) — /runes/yggdrasil. */
+  fit?: boolean;
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  // Ajustement à la LARGEUR RÉELLE (skill fit-text-to-container) : sur une
+  // ligne nowrap la largeur est proportionnelle au font-size → on diminue
+  // jusqu'à tenir. Le clamp vw ne marchait pas : Cinzel Decorative est plus
+  // large que l'estimation. Re-mesure après le swap de la police web, et
+  // uniquement quand la largeur du viewport change (barre d'URL mobile).
+  useEffect(() => {
+    if (!fit) return;
+    const el = titleRef.current;
+    if (!el) return;
+    const measure = () => {
+      const avail = (el.parentElement?.clientWidth ?? window.innerWidth) - 32;
+      if (avail <= 0) return;
+      let fs = 30;
+      el.style.fontSize = fs + 'px';
+      const w = el.scrollWidth;
+      if (w > 0) fs = Math.min(44, Math.floor((fs * avail) / w * 10) / 10);
+      el.style.fontSize = fs + 'px';
+      // filet « shrink-only » terminal (jamais agrandir → zéro oscillation)
+      while (el.scrollWidth > avail && fs > 12) { fs -= 1; el.style.fontSize = fs + 'px'; }
+    };
+    let lastW = 0;
+    const onResize = () => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; measure(); } };
+    lastW = window.innerWidth;
+    measure();
+    (document as any).fonts?.load?.('700 30px "Cinzel Decorative"').then(() => window.setTimeout(measure, 60)).catch(() => window.setTimeout(measure, 400));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [fit, title]);
+
   return (
     <div className={`px-4 text-center ${compact ? 'pt-14 pb-1' : 'pt-16 pb-6'}`}>
       <h1
+        ref={titleRef}
         className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-wide"
-        style={{
+        style={fit ? {
+          fontFamily: 'var(--font-cinzel-deco), serif',
+          color: RUNE_THEME.goldPale,
+          textShadow: `0 0 30px ${RUNE_THEME.goldGlow}, 0 2px 6px rgba(0,0,0,0.6)`,
+          letterSpacing: '0.06em',
+          whiteSpace: 'nowrap',
+        } : {
           fontFamily: 'var(--font-cinzel-deco), serif',
           color: RUNE_THEME.goldPale,
           textShadow: `0 0 30px ${RUNE_THEME.goldGlow}, 0 2px 6px rgba(0,0,0,0.6)`,
@@ -215,6 +256,8 @@ const SAVE_THEME: Record<string, { base: string; glow: string; text: string }> =
            glow: 'rgba(212,175,55,0.55)', text: '#241505' },                       // jaune pâle glossy
   'yi-jing': { base: '#8e1c22', glow: 'rgba(180,40,45,0.5)', text: '#fff' },       // rouge laque
   des: { base: '#2a7fb8', glow: 'rgba(135,206,235,0.5)', text: '#fff' },           // bleu céleste AstroDice
+  cedar: { base: 'linear-gradient(180deg, #3f8e5c 0%, #2f6f46 55%, #1d4a2e 100%)',
+           glow: 'rgba(63,142,92,0.55)', text: '#f2fbf3' },                            // vert cèdre 3D (Yggdrasil)
 };
 
 export function RuneButton({
@@ -229,7 +272,7 @@ export function RuneButton({
   disabled?: boolean;
   variant?: 'primary' | 'gold' | 'save';
   /** Univers d'affichage pour le bouton « save » (couleur locale). */
-  saveTint?: 'runes' | 'tarot' | 'yi-jing' | 'des';
+  saveTint?: 'runes' | 'tarot' | 'yi-jing' | 'des' | 'cedar';
 }) {
   if (variant === 'save') {
     const tint = SAVE_THEME[saveTint] || SAVE_THEME.runes;
@@ -610,6 +653,7 @@ export function RuneAnalysis({
   question = null,
   gateType = null,
   echo = null,
+  moss = false,
 }: {
   runes: { rune: Rune; reversed: boolean; position: string }[];
   mode: 'nornes' | 'mjolnir' | 'yggdrasil';
@@ -620,6 +664,8 @@ export function RuneAnalysis({
   /** Écho : id de la lecture sauvegardée + question → affiche l'encadré
       « L'Écho scellé » sous l'analyse (Initié/Arkane). Omis/null = pas d'écho. */
   echo?: { readingId: string | null; question?: string | null } | null;
+  /** /runes/yggdrasil : palette vert cèdre pour les boutons save + l'augure. */
+  moss?: boolean;
   focus?: 'odin';
   buttonLabel?: string;
   /** Rappelé avec le texte complet de l'analyse (synthèse + sections + conseil) dès qu'elle est disponible. */
@@ -763,7 +809,7 @@ export function RuneAnalysis({
   // Précharge conseil-odin.png dès que le conseil est disponible (avant le
   // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
   useEffect(() => {
-    if (!conseil || !isArkane || mode !== 'nornes') return;
+    if (!conseil || !isArkane || (mode !== 'nornes' && mode !== 'yggdrasil')) return;
     const img = new Image();
     img.src = '/images/conseil-odin.png';
   }, [conseil, isArkane, mode]);
@@ -832,7 +878,7 @@ export function RuneAnalysis({
       const res = await api('/api/rune-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runes: payload, mode, focus, userId, type: gateType || runeType, question: question || undefined }),
+        body: JSON.stringify({ runes: payload, mode, focus, userId, lang, type: gateType || runeType, question: question || undefined }),
       });
       if (res.status === 402) {
         const d = await res.json().catch(() => ({}));
@@ -940,7 +986,7 @@ export function RuneAnalysis({
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       {!autoRun && !sections && !loading && !error && (
         <div className="text-center">
-          <RuneButton variant="save" onClick={run}>
+          <RuneButton variant="save" saveTint={moss ? 'cedar' : 'runes'} onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -1015,7 +1061,7 @@ export function RuneAnalysis({
       {error && !loading && (
         <div className="text-center space-y-2">
           <p className="text-amber-400/70 text-xs italic">{error}</p>
-          <RuneButton variant="save" onClick={run}>
+          <RuneButton variant="save" saveTint={moss ? 'cedar' : 'runes'} onClick={run}>
             {buttonLabel}
           </RuneButton>
         </div>
@@ -1092,11 +1138,11 @@ export function RuneAnalysis({
             </div>
           )}
 
-          {/* Conseil d'Odin (tirages nornes : initial ET tissage) : le texte vient
+          {/* Conseil d'Odin (nornes ET yggdrasil) : le texte vient
               du JSON de l'interprétation IA (conseil_action) — isolé puis révélé
               par le bouton dédié. Carte conseil-odin.png (cadre + parchemin),
               texte calé DANS le parchemin. Réservé au forfait ARKANE. */}
-          {conseil && mode === 'nornes' && isArkane && (
+          {conseil && (mode === 'nornes' || mode === 'yggdrasil') && isArkane && (
             <div className="mt-4 text-center">
               {!conseilRevealed ? (
                 <button
@@ -1106,11 +1152,12 @@ export function RuneAnalysis({
                   style={{
                     background: `
                       linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%),
-                      #005f6a`,
+                      ${moss ? '#2f6f46' : '#005f6a'}`,
                     color: '#fff',
                     fontFamily: 'var(--font-cinzel), serif',
-                    boxShadow:
-                      '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
+                    boxShadow: moss
+                      ? '0 0 16px rgba(63,142,92,0.55), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)'
+                      : '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
                   }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -1303,8 +1350,8 @@ export function RuneAnalysis({
             </div>
           )}
 
-          {/* Conseil générique (autres tirages : pas le Conseil d'Odin nornes) — affiché en clair. */}
-          {conseil && mode !== 'nornes' && (
+          {/* Conseil générique (mjolnir : pas de carte Conseil d'Odin) — affiché en clair. */}
+          {conseil && mode !== 'nornes' && mode !== 'yggdrasil' && (
             <div
               className="mt-4 rounded-2xl p-4"
               style={{
@@ -1331,6 +1378,7 @@ export function RuneAnalysis({
           {echo && (synthese || conseil) && (
             <EchoBox
               domain="runes"
+              moss={moss}
               readingId={echo.readingId}
               question={echo.question ?? question}
               summary={[...sections.map((s) => s.lecture), synthese, conseil].filter(Boolean).join('\n')}

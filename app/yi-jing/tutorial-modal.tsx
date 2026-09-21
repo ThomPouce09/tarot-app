@@ -107,7 +107,7 @@ export function TutorialModal({
                 <img
                   src={s.iconImg}
                   alt=""
-                  className="mx-auto h-12 w-12 object-contain"
+                  className="mx-auto block h-12 w-auto max-w-[78%] object-contain"
                   style={{ filter: 'drop-shadow(0 0 10px rgba(243,201,105,0.5))' }}
                 />
               </span>

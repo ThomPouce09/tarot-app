@@ -21,7 +21,7 @@ import { TutorialModal, type TutorialSlide } from './tutorial-modal';
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
 const YI_TUTORIALS: TutorialSlide[] = [
   {
-    iconImg: '/images/yi-jing-icon.png',
+    iconImg: '/images/yi-jing-double.png',
     title: 'Le Double Hexagramme',
     titleEn: 'The Double Hexagram',
     desc: 'Le rituel des trois pièces (zhi gua) : six jets construisent ton hexagramme ; les lignes mutantes se retournent sous tes yeux et le présent enfante son futur.',
@@ -487,11 +487,15 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-              <div className="flex items-center gap-1.5 mt-0 mb-5">
-                <span className="text-2xl leading-none" style={{ color: '#F3C969', textShadow: '0 0 12px rgba(243,201,105,0.6)' }} aria-hidden>䷊</span>
-                <span className="text-sm leading-none" style={{ color: '#FF6B5E', textShadow: '0 0 10px rgba(255,107,94,0.55)' }} aria-hidden>➔</span>
-                <span className="text-2xl leading-none" style={{ color: '#FF6B5E', textShadow: '0 0 12px rgba(255,107,94,0.6)' }} aria-hidden>䷅</span>
-              </div>
+                {/* Icône de tuile — double hexagramme (image fournie) */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/yi-jing-double.png"
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none mb-4 mt-0 h-auto w-[62%] max-w-[210px] select-none"
+                  style={{ filter: 'drop-shadow(0 0 12px rgba(243,201,105,0.35))' }}
+                />
               <h2
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
