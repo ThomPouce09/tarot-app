@@ -52,6 +52,12 @@ export default function HomePage() {
       if (document.hidden) for (const tk of MUSIC_TRACKS) stopSound(tk.key);
       else start();
     };
+    // TENTER la lecture DÈS LE CHARGEMENT (conditions vérifiées dans
+    // applyMusicPrefs : maître Musique ON + enceinte voix ON). Sur l'APK
+    // (WebView Capacitor, autoplay autorisé) ça part tout de suite ; sur
+    // navigateur desktop/mobile la tentative est rejetée par la politique
+    // autoplay et playLoop() garde le slot armé → démarrage au 1er geste.
+    start();
     window.addEventListener('pointerdown', start, { once: true });
     window.addEventListener('keydown', start, { once: true });
     window.addEventListener('touchstart', start, { once: true });
