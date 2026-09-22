@@ -46,8 +46,9 @@ const FLIGHT_DURATION = 1.15;
    (bottom:-22px) reste visible sous le sac (le conteneur est en overflow:hidden)
    — sans le remonter plus que nécessaire. */
 function pouchYFor(height: number, layout: RuneLayout = 'horizontal'): number {
-  // /runes/yggdrasil : pochon réduit, descendu SOUS l'arbre (bande 0..84 %).
-  if (layout === 'tree') return Math.min(92.5, ((height - 52) / height) * 100);
+  // /runes/yggdrasil & /runes/mjolnir : pochon réduit, descendu SOUS le
+  // dessin (l'art est comprimé à 86 % de hauteur — banded basse libre).
+  if (layout === 'tree' || layout === 'hammer') return Math.min(91.5, ((height - 44) / height) * 100);
   if (height >= 440) return 74;
   return Math.max(58, Math.min(74, ((height - 110) / height) * 100));
 }
@@ -71,8 +72,10 @@ function slotsFor(layout: RuneLayout, count: number): Array<[number, number]> {
         [50, 50], [50, 14], [50, 84], [16, 50], [84, 50],
       ] as Array<[number, number]>).slice(0, count);
     case 'hammer':
+      // Le dessin du marteau est comprimé à 86 % (scale 1,0.86) : mêmes
+      // proportions pour les poses, bande ≥ 80 % réservée au pochon.
       return ([
-        [50, 76], [50, 48], [30, 28], [70, 28], [50, 18],
+        [50, 65], [50, 41], [30, 24], [70, 24], [50, 15],
       ] as Array<[number, number]>).slice(0, count);
     case 'tree':
       // Yggdrasil : mêmes ancrages % que YGG_POS (positions.ts) — l'SVG de
@@ -240,7 +243,7 @@ export default function RuneStonesSet({
   const order = useMemo(() => revealOrder(layout, count), [layout, count]);
   const slots = useMemo(() => slotsFor(layout, count), [layout, count]);
   const pouchY = pouchYFor(height, layout);
-  const pouchScale = layout === 'tree' ? 0.66 : 1;
+  const pouchScale = (layout === 'tree' || layout === 'hammer') ? 0.6 : 1;
 
   useEffect(() => {
     if (!isRolling) {
@@ -265,7 +268,12 @@ export default function RuneStonesSet({
     setPushes(0);
     setPhase('drawing');
     restFired.current = false;
-  }, [isRolling, count, preset]);
+    // Effet gyroscopique (parallaxe 3D des pierres + suivi du pochon) : armé
+    // DÈS le début du tirage. Android/APK : fonctionne sans geste. iOS : le
+    // requestPermission échoue silencieusement hors geste et sera re-tenté au
+    // premier tap/drag du pochon (onPouchDown) — aucun blocage possible.
+    void enableTilt();
+  }, [isRolling, count, preset, enableTilt]);
 
   // Une « poussée » : remuage du pochon (tap OU demi-balancement). Quand le
   // seuil de la rune courante est atteint, la rune jaillit doucement.
@@ -593,7 +601,7 @@ export default function RuneStonesSet({
               className="pointer-events-none absolute inset-x-0"
               style={{
                 // sur l'arbre (pochon tout en bas) : l'aide passe AU-DESSUS du sac
-                ...(layout === 'tree' ? { bottom: '103%' } : { top: '106%' }),
+                ...(layout === 'tree' || layout === 'hammer' ? { bottom: '103%' } : { top: '106%' }),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -640,7 +648,7 @@ export default function RuneStonesSet({
           onClick={active ? onPouchTap : undefined}
         >
           <Pouch
-            counterAbove={layout === 'tree'}
+            counterAbove={layout === 'tree' || layout === 'hammer'}
             active={active}
             pushes={pushes}
             need={need}

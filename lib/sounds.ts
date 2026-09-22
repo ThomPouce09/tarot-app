@@ -77,6 +77,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
+  { key: 'tonnerre', file: '/audio/tonnerre.mp3', category: 'ui', label: 'Tonnerre (frappe)', duration: 2.3, usage: 'Mjölnir — éclair de la Frappe' },
   { key: 'barman-apparition', file: '/audio/barman-apparition.mp3', category: 'ui', label: 'Apparition du barman', duration: 1.9, usage: 'Pause repas — clic sur le barman (bulle qui ouvre)' },
   { key: 'spell2', file: '/audio/spell2.mp3', category: 'ui', label: 'Sort (variante 2)', duration: 8.0, usage: 'Révélation magique — message du barman' },
   { key: 'spell3', file: '/audio/spell3.mp3', category: 'ui', label: 'Sort (variante 3)', duration: 3.1, usage: 'Révélation magique — message du barman' },

@@ -12,12 +12,21 @@ import { useLang, useT, contentLang } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 import { RUNE_DOMAINS } from '../nornes2/theme-selector';
 
-export default function YggQuestion({ open, onConfirm }: {
+export default function YggQuestion({ open, onConfirm, copy }: {
   open: boolean;
   onConfirm: (q: string) => void;
+  /** Habillage textuel local (défaut : l'Arbre). Mjölnir passe les siens. */
+  copy?: { title: string; titleEn: string; sub: string; subEn: string; cta: string; ctaEn: string };
 }) {
   const t = useT();
   const lang = useLang();
+  const C = {
+    title: 'À qui s’adresse l’Arbre ?', titleEn: 'Whom does the Tree speak of?',
+    sub: 'Confie ta question — ou choisis un thème pour orienter la lecture si tu préfères rester abstrait.',
+    subEn: 'Entrust your question — or pick a theme to orient the reading if you prefer to stay abstract.',
+    cta: 'Planter la question', ctaEn: 'Plant the question',
+    ...(copy ?? {}),
+  };
   const L = (fr: string, en: string) => (lang === 'en' ? en : fr);
   const [free, setFree] = useState('');
   const [domainId, setDomainId] = useState<string | null>(null);
@@ -56,11 +65,10 @@ export default function YggQuestion({ open, onConfirm }: {
           >
             <p className="text-center text-[11px] tracking-[0.4em]" style={{ color: `${RUNE_THEME.goldPale}99` }}>ᚠ · ᚢ · ᚦ</p>
             <h3 className="mt-1 text-center text-xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}>
-              {L('À qui s’adresse l’Arbre ?', 'Whom does the Tree speak of?')}
+              {lang === 'en' ? C.titleEn : C.title}
             </h3>
             <p className="mx-auto mt-1.5 max-w-sm text-center text-[12px] italic leading-relaxed" style={{ color: RUNE_THEME.sage }}>
-              {L('Confie ta question — ou choisis un thème pour orienter la lecture si tu préfères rester abstrait.',
-                'Entrust your question — or pick a theme to orient the reading if you prefer to stay abstract.')}
+              {lang === 'en' ? C.subEn : C.sub}
             </p>
 
             {/* Chemin 1 : question libre */}
@@ -88,7 +96,7 @@ export default function YggQuestion({ open, onConfirm }: {
                   disabled={!free.trim()}
                   onClick={() => free.trim() && onConfirm(free.trim())}
                 >
-                  {L('Planter la question', 'Plant the question')}
+                  {lang === 'en' ? C.ctaEn : C.cta}
                 </RuneButton>
               </div>
             </div>

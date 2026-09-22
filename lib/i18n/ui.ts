@@ -489,7 +489,7 @@ export const DICT = {
   'runes.nornes2.modalStep2': { fr: 'Secouez le sac (ou tapez dessus) jusqu’à en sortir les 24 runes', en: 'Shake the pouch (or tap it) until all 24 runes are out' },
   'runes.nornes2.modalStep3': { fr: 'Sélectionnez 3 runes face cachée : révélées côte à côte, le Conseil d’Odin vous est tissé', en: 'Pick 3 face-down runes: revealed side by side, Odin’s Counsel is woven for you' },
   'runes.mjolnir.title': { fr: 'Le Marteau de Mjölnir', en: 'The Hammer of Mjölnir' },
-  'runes.mjolnir.subtitle': { fr: 'Affronter un obstacle majeur : cinq runes en forme de T pour briser le blocage.', en: 'Face a major obstacle: five runes in a T to shatter the block.' },
+  'runes.mjolnir.subtitle': { fr: 'Le plan de bataille du forgeron : cinq runes en T, du manche à la crête.', en: 'The forge-master’s battle plan: five runes in a T, from haft to crest.' },
   'runes.mjolnir.cta': { fr: 'Invoquer la force de Mjölnir', en: 'Invoke the might of Mjölnir' },
   'runes.yggdrasil.title': { fr: "Les Racines d'Yggdrasil", en: "The Roots of Yggdrasil" },
   'runes.yggdrasil.subtitle': { fr: "Le bilan de l'Arbre-Monde : cinq runes, des racines à la couronne.", en: 'The World-Tree reckoning: five runes, from roots to crown.' },
