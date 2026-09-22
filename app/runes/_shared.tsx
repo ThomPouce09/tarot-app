@@ -809,7 +809,7 @@ export function RuneAnalysis({
   // Précharge conseil-odin.png dès que le conseil est disponible (avant le
   // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
   useEffect(() => {
-    if (!conseil || !isArkane || (mode !== 'nornes' && mode !== 'yggdrasil')) return;
+    if (!conseil || !isArkane || !['nornes', 'yggdrasil', 'mjolnir'].includes(mode)) return;
     const img = new Image();
     img.src = '/images/conseil-odin.png';
   }, [conseil, isArkane, mode]);
@@ -1142,7 +1142,7 @@ export function RuneAnalysis({
               du JSON de l'interprétation IA (conseil_action) — isolé puis révélé
               par le bouton dédié. Carte conseil-odin.png (cadre + parchemin),
               texte calé DANS le parchemin. Réservé au forfait ARKANE. */}
-          {conseil && (mode === 'nornes' || mode === 'yggdrasil') && isArkane && (
+          {conseil && ['nornes', 'yggdrasil', 'mjolnir'].includes(mode) && isArkane && (
             <div className="mt-4 text-center">
               {!conseilRevealed ? (
                 <button
@@ -1351,7 +1351,7 @@ export function RuneAnalysis({
           )}
 
           {/* Conseil générique (mjolnir : pas de carte Conseil d'Odin) — affiché en clair. */}
-          {conseil && mode !== 'nornes' && mode !== 'yggdrasil' && (
+          {conseil && !['nornes', 'yggdrasil', 'mjolnir'].includes(mode) && (
             <div
               className="mt-4 rounded-2xl p-4"
               style={{

@@ -147,6 +147,43 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 Réponds UNIQUEMENT avec l'objet JSON.`;
 }
 
+// Positions canoniques du Marteau de Mjölnir (le client envoie les libellés
+// dans sa langue ; on ne les réécrit pas, on les transmet telles quelles).
+const MJG_ORDER = ['Base du manche — L’Ancrage', 'Haut du manche — L’Obstacle', 'Tête gauche — La Menace', 'Tête droite — L’Arme', 'Centre de la tête — La Frappe'];
+
+function buildMjolnirPrompt(runes: RuneInput[], question?: string | null, lang?: string): string {
+  const liste = runes
+    .map((r, i) => {
+      const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
+      return `Rune ${i + 1} — ${r.position || MJG_ORDER[i] || `Position ${i + 1}`} : ${r.name} ${r.symbol}\n  Sens réel : ${sens}`;
+    })
+    .join('\n\n');
+  const en = lang === 'en';
+  return `Tu es un forgeron-devin du nord, maître de Mjölnir. Ton : martial, lucide, chaleureux — un coach de bataille, jamais un oiseau de malheur. ${en ? 'Écris TOUTE la réponse en ANGLAIS.' : 'Écris toute la réponse en FRANÇAIS.'}
+
+Le tirage « Le Marteau de Mjölnir » ne console pas : il dresse le PLAN DE BATAILLE contre un obstacle qui résiste. Cinq positions, du sol au coup :
+• Base du manche — l'Ancrage : sur quoi le consultant s'appuie vraiment (soutien, habitude, certitude). Un manche sans ancrage fait rater le coup.
+• Haut du manche — l'Obstacle : la nature EXACTE du blocage, nommée sans complaisance (peur, dépendance, personne, système).
+• Tête gauche — la Menace : ce que le coup doit détruire — ce qu'il faut lâcher ou casser. POSITION PARTICULIÈRE : une rune INVERSÉE y est de bon augure (ce qui devait mourir est déjà mourant) ; une rune droite là signale que la menace est encore pleine de vigueur et qu'il faut la nommer plus franchement. Traite l'inversion comme une BONNE NOUVELLE, jamais comme un malheur.
+• Tête droite — l'Arme : la force, le talent ou l'allié sous-utilisé qui rend le coup possible.
+• Centre de la tête — la Frappe : L'ACTION DÉCISIVE, concrète et datable. Elle ne se lit jamais seule : elle est le verbe des quatre autres positions (avec cet ancrage, contre cet obstacle, en cassant ceci, armé de cela → frapper ainsi).
+
+Runes tirées (utilise IMPÉRATIVEMENT ces noms, positions et sens réels — ne les invente pas) :
+${liste}${question ? `\n\nOBSTACLE DU CONSULTANT — ancre la lecture dans CE blocage précis (exemples, synthèse, frappe) :\n« ${question} »` : '\n\nObstacle non nommé : parle au schéma qui se répète dans la vie du consultant, pas à un dossier abstrait.'}
+
+Consigne de fond : le marteau est UN SEUL GESTE — l'Ancrage tend l'Obstacle, l'Obstacle désigne la Menace, l'Arme rend la Frappe possible. Pas de fatalité : chaque zone se termine sur ce que le consultant peut faire de l'information.
+
+Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
+{
+  "sections": [
+    ${runes.map((r, i) => `{ "position": "${r.position || MJG_ORDER[i]}", "rune": "${r.name} ${r.symbol}", "sens": "sens réel de la rune (avec la mention merkstave si inversée)", "lecture": "1 à 2 phrases ancrées dans la symbolique de CETTE zone du marteau." }`).join(',\n    ')}
+  ],
+  "synthese": "1 à 2 phrases : le verdict du forgeron — le coup est-il prêt à partir, faut-il recaler la prise, ou forger l'arme d'abord ?",
+  "conseil_action": "OBLIGATOIRE : la Frappe — 1 phrase d'action concrète et datable qui relie ancrage, arme et menace. Ne JAMAIS omettre cette clé."
+}
+Réponds UNIQUEMENT avec l'objet JSON.`;
+}
+
 export async function POST(request: NextRequest) {
   let body: any = {};
   try {
@@ -176,8 +213,9 @@ export async function POST(request: NextRequest) {
     prompt = focus === 'odin' ? buildNornesOdinPrompt(runes, qTopic) : buildNornesPrompt(runes, qTopic);
   } else if (m === 'yggdrasil') {
     prompt = buildYggdrasilPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, body.lang === 'en' ? 'en' : 'fr');
+  } else if (m === 'mjolnir') {
+    prompt = buildMjolnirPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, body.lang === 'en' ? 'en' : 'fr');
   }
-  // mjolnir : ajouté ensuite
 
   const content = (await callOracle(prompt)) || '';
   if (!content || content.trim().length === 0) {
