@@ -30,8 +30,10 @@ import {
 } from '../des-divinatoires/_shared';
 import { randomTargetFaces, ALL_KINDS, type TargetFaces } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { HintLegende, legendeSeen, markLegendeSeen } from '@/components/astro-dice/constellation';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
+import { preloadAstroDice } from '@/components/astro-dice/preload';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
 import { useT, useLang, contentLang } from '@/lib/i18n';
@@ -113,8 +115,16 @@ function diceStaticTextFor(f: TargetFaces) {
 type Phase = 'intention' | 'firstRoll' | 'firstDone';
 
 function SimplifiePage() {
+  // Le chunk WebGL du gobelet se télécharge dès l'arrivée sur la page :
+  // quand l'utilisateur atteint l'étape de tirage, plus rien ne « charge ».
+  useEffect(() => { preloadAstroDice(); }, []);
   const t = useT();
   const lang = useLang();
+  // Légende « Planète / Signe / Maison » : 3 bulles affichées une seule fois
+  // (première découverte du vocabulaire), tap pour fermer.
+  const [legendeOn, setLegendeOn] = useState(false);
+  useEffect(() => { setLegendeOn(!legendeSeen()); }, []);
+  const closeLegende = useCallback(() => { setLegendeOn(false); markLegendeSeen(); }, []);
   // Verrou « Analyser en profondeur » : réservé Initié/Arkane (modale paywall).
   const { sub, gateReason, closeGate, openGate } = useEntitlement();
   const canDeep = sub?.level === 'initie' || sub?.level === 'arkane';
@@ -461,6 +471,12 @@ function SimplifiePage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
+              {/* Légende découverte (1re fois) : Planète = énergie, Signe = sa
+                  couleur, Maison = le domaine de vie touché. */}
+              <div className="relative">
+                <HintLegende open={legendeOn && showResult} onClose={closeLegende} />
+              </div>
+
               {/* Carte-résultat : les 3 dés, glyphe + nom */}
               <div
                 className="mx-auto max-w-2xl rounded-3xl p-5 sm:p-6"

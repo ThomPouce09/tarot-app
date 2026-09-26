@@ -13,6 +13,8 @@ import { useEntitlement } from '@/lib/use-entitlement';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import { RuneButton } from '@/app/runes/_shared';
+import { playSound } from '@/lib/sounds';
+import { useFitOneLine } from '@/lib/fit-one-line';
 
 export interface EchoData {
   id: string;
@@ -65,6 +67,10 @@ export default function EchoBox({
 }) {
   const lang = useLang();
   const t = useT();
+  // Le titre « Envie de défier l'Oracle ? » tient sur UNE ligne à toute
+  // largeur (police réduite au besoin, jamais de retour à la ligne).
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  useFitOneLine(titleRef, [t('echo.title'), lang], { base: 18, min: 11, max: 22, inset: 4, font: '700 18px "Cinzel"' });
   const { gateReason, closeGate } = useEntitlement();
   const [current, setCurrent] = useState<EchoData | null>(echo ?? null);
   const [sealing, setSealing] = useState(false);
@@ -95,6 +101,7 @@ export default function EchoBox({
   const seal = useCallback(async () => {
     const email = readEmail();
     if (!email) return;
+    playSound('anvil', 0.85); // le geste : le cachet frappe l'enclume
     setSealing(true);
     setSealError('');
     try {
@@ -105,6 +112,7 @@ export default function EchoBox({
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.echo) {
+        playSound('seal', 0.95); // l'acte : le sceau est posé
         apply(data.echo);
       } else if (data.reason === 'tier' || data.reason === 'cap') {
         // Message i18n côté client (le serveur ne connaît pas la langue).
@@ -159,19 +167,22 @@ export default function EchoBox({
       className="relative mt-8 rounded-2xl border backdrop-blur-sm overflow-hidden"
       style={moss
         ? { borderColor: 'rgba(159,196,173,0.35)', background: 'linear-gradient(180deg, rgba(20,54,31,0.55) 0%, rgba(8,26,16,0.75) 55%, rgba(4,14,9,0.85) 100%)' }
+        : domain === 'des'
+        ? { borderColor: 'rgba(212,175,55,0.45)', background: 'linear-gradient(180deg, rgba(20,36,90,0.6) 0%, rgba(10,20,48,0.78) 55%, rgba(4,6,15,0.88) 100%)' }
         : { borderColor: 'rgba(251,191,36,0.4)', background: 'linear-gradient(180deg, rgba(180,83,9,0.16) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.6) 100%)' }}
     >
       {/* halo doré discret */}
-      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: moss ? 'radial-gradient(ellipse at 50% -10%, rgba(159,196,173,0.22), transparent 60%)' : 'radial-gradient(ellipse at 50% -10%, rgba(217,164,6,0.25), transparent 60%)' }} />
+      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: moss ? 'radial-gradient(ellipse at 50% -10%, rgba(159,196,173,0.22), transparent 60%)' : domain === 'des' ? 'radial-gradient(ellipse at 50% -10%, rgba(212,175,55,0.28), transparent 60%)' : 'radial-gradient(ellipse at 50% -10%, rgba(217,164,6,0.25), transparent 60%)' }} />
       <div className="relative p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-3">
           {/* horloge ailée (glyphe SVG inline, jamais d'emoji) */}
-          <svg viewBox="0 0 24 24" className={`w-5 h-5 shrink-0 ${moss ? 'text-[#9fc4ad]' : 'text-amber-300'}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg viewBox="0 0 24 24" className={`w-5 h-5 shrink-0 ${moss ? 'text-[#9fc4ad]' : domain === 'des' ? 'text-[#E8C66A]' : 'text-amber-300'}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <circle cx="12" cy="12" r="8" />
             <path d="M12 8v4l2.5 2.5" />
             <path d="M4 12C2.5 10.5 1.5 9 1.5 7.5 4 7.5 5.5 8.5 6.5 10M20 12c1.5-1.5 2.5-3 2.5-4.5C20 7.5 18.5 8.5 17.5 10" />
           </svg>
-          <h3 className={`font-serif text-lg tracking-wide ${moss ? 'text-[#e9d9ac]' : 'text-amber-300'}`} style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          <h3 ref={titleRef} className={`font-serif tracking-wide ${moss ? 'text-[#e9d9ac]' : domain === 'des' ? 'text-[#E8C66A]' : 'text-amber-300'}`}
+            style={{ fontFamily: 'var(--font-cinzel-deco), serif', whiteSpace: 'nowrap' }}>
             {t('echo.title')}
           </h3>
         </div>
@@ -180,8 +191,8 @@ export default function EchoBox({
           {/* ── État 1 : pas d'écho → proposition de sceller ── */}
           {!current && (
             <motion.div key="seal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
-              <p className={`italic text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : 'text-gray-200'}`}>{t('echo.tease')}</p>
-              <RuneButton variant="save" saveTint={moss ? 'cedar' : domain} onClick={seal} disabled={sealing}>
+              <p className={`italic text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-gray-200'}`}>{t('echo.tease')}</p>
+              <RuneButton variant="save" saveTint={moss ? 'cedar' : domain === 'des' ? 'astro' : domain} onClick={seal} disabled={sealing}>
                 {sealing ? t('echo.sealing') : t('echo.seal')}
               </RuneButton>
               {sealError && <p className="mt-3 text-sm text-red-300/90">{sealError}</p>}
@@ -191,6 +202,12 @@ export default function EchoBox({
           {/* ── État 2 : scellé, échéance pas encore atteinte ── */}
           {current && !due && !broken && (
             <motion.div key="sealed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
+              {domain === 'des' ? (
+                /* Sceau officiel « L'Oracle des Étoiles » — rosace dorée,
+                   propre aux augures des dés zodiacaux. */
+                <img src="/images/sceau-des-divinatoires.png" alt="Sceau de l'Oracle des Étoiles"
+                  className="mx-auto mb-3 w-16 h-16 object-contain" />
+              ) : (
               <div
                 className={`mx-auto mb-3 w-16 h-16 rounded-full border flex items-center justify-center ${moss ? 'border-[#9fc4ad]/50' : 'border-amber-400/50'}`}
                 style={moss
@@ -202,10 +219,11 @@ export default function EchoBox({
                   <path d="M6 3v18M6 6l12-3M6 12l12-6M6 18l12-6" />
                 </svg>
               </div>
-              <p className={`text-[15px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : 'text-amber-100/90'}`}>
+              )}
+              <p className={`text-[15px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-amber-100/90'}`}>
                 {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, contentLang(lang)))}
               </p>
-              <p className={`mt-1 text-xs ${moss ? 'text-[#9fc4ad]' : 'text-gray-400'}`}>{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
+              <p className={`mt-1 text-xs ${moss ? 'text-[#9fc4ad]' : domain === 'des' ? 'text-[#8FA3C8]' : 'text-gray-400'}`}>{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
             </motion.div>
           )}
 
@@ -214,8 +232,8 @@ export default function EchoBox({
             <motion.div key="due" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {!broken && !current.verdict && (
                 <div className="text-center">
-                  <p className={`text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : 'text-amber-100/90'}`}>{t('echo.dueNow')}</p>
-                  <RuneButton variant="save" saveTint={moss ? 'cedar' : domain} onClick={() => setBroken(true)}>
+                  <p className={`text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-amber-100/90'}`}>{t('echo.dueNow')}</p>
+                  <RuneButton variant="save" saveTint={moss ? 'cedar' : domain === 'des' ? 'astro' : domain} onClick={() => setBroken(true)}>
                     {t('echo.break')}
                   </RuneButton>
                 </div>
@@ -226,7 +244,7 @@ export default function EchoBox({
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.9 }}
-                    className={`italic text-[16px] sm:text-[17px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : 'text-amber-100'}`}
+                    className={`italic text-[16px] sm:text-[17px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : domain === 'des' ? 'text-[#E8C66A]' : 'text-amber-100'}`}
                     style={{ fontFamily: 'var(--font-cinzel), serif' }}
                   >
                     « {text} »
@@ -237,7 +255,7 @@ export default function EchoBox({
                     </p>
                   ) : (
                     <div className="mt-5">
-                      <p className={`text-sm mb-3 ${moss ? 'text-[#cfe3d6]' : 'text-gray-300'}`}>{t('echo.verdictAsk')}</p>
+                      <p className={`text-sm mb-3 ${moss ? 'text-[#cfe3d6]' : domain === 'des' ? 'text-[#8FA3C8]' : 'text-gray-300'}`}>{t('echo.verdictAsk')}</p>
                       <div className="flex flex-wrap items-center justify-center gap-3">
                         {(['oui', 'partiel', 'non'] as const).map((v) => (
                           <button
@@ -245,7 +263,7 @@ export default function EchoBox({
                             type="button"
                             disabled={savingVerdict}
                             onClick={() => verdict(v)}
-                            className={`rounded-full px-5 py-2 text-sm font-bold border transition-colors disabled:opacity-50 ${moss ? 'border-[#9fc4ad]/50 text-[#e9d9ac] bg-black/40 hover:bg-[#1f5234]/60' : 'border-amber-400/50 text-amber-100 bg-black/40 hover:bg-amber-900/40'}`}
+                            className={`rounded-full px-5 py-2 text-sm font-bold border transition-colors disabled:opacity-50 ${moss ? 'border-[#9fc4ad]/50 text-[#e9d9ac] bg-black/40 hover:bg-[#1f5234]/60' : domain === 'des' ? 'border-[#D4AF37]/50 text-[#E8C66A] bg-black/40 hover:bg-[#14245a]/60' : 'border-amber-400/50 text-amber-100 bg-black/40 hover:bg-amber-900/40'}`}
                             style={{ fontFamily: 'var(--font-cinzel), serif' }}
                           >
                             {t(`echo.verdict.${v}`)}

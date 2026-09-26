@@ -25,6 +25,9 @@ import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import EchoBox from '@/components/echo-box';
 import { useT, useLang } from '@/lib/i18n';
+import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
+import { DiceSteps } from '@/components/astro-dice/constellation';
 import AuthGate from '@/components/auth-gate';
 
 const AstroDiceCup = dynamic(
@@ -320,8 +323,12 @@ function DiceAnalysis({
 
 // ── Page principale ──
 function ObstacleSolutionPage() {
+  // Le chunk WebGL du gobelet se télécharge dès l'arrivée sur la page :
+  // quand l'utilisateur atteint l'étape de tirage, plus rien ne « charge ».
+  useEffect(() => { preloadAstroDice(); pickAndPreloadWaitVideo('analyse-des-zodiaque'); }, []);
   const [step, setStep] = useState<Step>('intro');
   const t = useT();
+  const lang = useLang();
 
   // Résultats des dés
   const [faces, setFaces] = useState<TargetFaces>(() =>
@@ -520,6 +527,12 @@ function ObstacleSolutionPage() {
       <YiSlideNav />
       <DiceTitle
         title={t('des.obstacle.title')}
+      />
+
+      {/* Fil d'étapes : Confier › Obstacle › Solution */}
+      <DiceSteps
+        steps={lang === 'en' ? ['Entrust', 'Obstacle', 'Solution'] : ['Confier', 'Obstacle', 'Solution']}
+        current={step === 'intro' ? 0 : step === 'obstacle_roll' || step === 'obstacle_done' ? 1 : 2}
       />
 
       <div className="mx-auto max-w-2xl px-4">

@@ -159,7 +159,12 @@ export function parseDiceQuestion(question: string | null): { theme: DiceTheme; 
 
 /* ————————————————————————— Composant ————————————————————————— */
 
-export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string) => void }) {
+export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
+  onConfirm: (question: string) => void;
+  /** Sur /des-divinatoires/choix : CTA serti or « Enregistrer et lancer les
+   *  dés » (profondeur indigo) au lieu du bouton doré classique. */
+  ctaSculpt?: boolean;
+}) {
   const lang = useLang();
   const [themeId, setThemeId] = useState<string | null>(null);
   const [subIdx, setSubIdx] = useState<number | null>(null);
@@ -303,8 +308,19 @@ export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string)
               type="button"
               onClick={cast}
               disabled={!ready}
-              className="mystic-btn rounded-full px-6 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-sm uppercase tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-              style={{
+              className={`rounded-full px-6 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-sm uppercase tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40${ctaSculpt ? '' : ' mystic-btn'}`}
+              style={ctaSculpt ? {
+                letterSpacing: '0.05em',
+                color: ready ? '#F7ECCE' : '#F7ECCE66',
+                background: ready
+                  ? 'linear-gradient(180deg, #22366f 0%, #14245a 46%, #070d22 100%)'
+                  : 'rgba(10,20,48,0.6)',
+                border: ready ? '1px solid rgba(232,198,106,0.85)' : '1px solid rgba(212,175,55,0.25)',
+                boxShadow: ready
+                  ? '0 0 0 4px rgba(212,175,55,0.12), 0 12px 26px rgba(3,5,12,0.85), 0 0 36px rgba(212,175,55,0.3), inset 0 1px 0 rgba(232,198,106,0.5), inset 0 -14px 26px rgba(0,0,0,0.55)'
+                  : 'inset 0 2px 8px rgba(0,0,0,0.55)',
+                textShadow: ready ? '0 0 12px rgba(232,198,106,0.5), 0 1px 2px rgba(0,0,0,0.9)' : 'none',
+              } : {
                 background: ready
                   ? `linear-gradient(135deg, ${DICE_THEME.gold} 0%, ${DICE_THEME.ocre} 100%)`
                   : `${DICE_THEME.gold}22`,
@@ -312,9 +328,11 @@ export function DiceThemeSelector({ onConfirm }: { onConfirm: (question: string)
                 boxShadow: ready ? `0 0 24px ${DICE_THEME.gold}66` : 'none',
               }}
             >
-              {lang === 'en' ? 'Cast the dice' : 'Lancer les dés'}
+              {ctaSculpt
+                ? (lang === 'en' ? 'Save & cast the dice' : 'Enregistrer et lancer les dés')
+                : (lang === 'en' ? 'Cast the dice' : 'Lancer les dés')}
             </button>
-            {!ready && (
+            {!ready && !ctaSculpt && (
               <p className="mt-2 text-[11px] italic" style={{ color: `${DICE_THEME.ocre}88` }}>
                 {lang === 'en' ? '…then choose an intention' : '…puis choisissez une intention'}
               </p>
