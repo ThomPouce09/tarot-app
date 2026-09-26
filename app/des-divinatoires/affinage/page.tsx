@@ -42,6 +42,8 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
 import { useT } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
@@ -89,9 +91,32 @@ function diceStaticTextFor(f: TargetFaces, kinds: DieKind[]) {
 }
 
 function AffinagePage() {
+  // Le chunk WebGL du gobelet se télécharge dès l'arrivée sur la page :
+  // quand l'utilisateur atteint l'étape de tirage, plus rien ne « charge ».
+  useEffect(() => { preloadAstroDice(); pickAndPreloadWaitVideo('analyse-des-zodiaque'); }, []);
   const [phase, setPhase] = useState<Phase>('initial');
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
+  // Continuité : suggestion = la question du dernier tirage de dés enregistré
+  // (pré-remplit le champ « Garder votre question en mémoire »).
+  const [lastDiceQuestion, setLastDiceQuestion] = useState<string | null>(null);
+  useEffect(() => {
+    let stop = false;
+    try {
+      const email = JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email;
+      if (!email) return;
+      fetch(`/api/readings?userId=${encodeURIComponent(email)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (stop || !d?.readings) return;
+          const last = (d.readings as Array<{ type: string | null; question: string | null }>).find(
+            (x) => (x.type || '').startsWith('des-') && (x.question || '').trim().length > 2);
+          if (last?.question) setLastDiceQuestion(last.question.trim().slice(0, 120));
+        })
+        .catch(() => { /* historique indisponible : rien de grave */ });
+    } catch { /* ignore */ }
+    return () => { stop = true; };
+  }, []);
   const [faces, setFaces] = useState<TargetFaces>(() =>
     typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
   );
@@ -470,6 +495,7 @@ function AffinagePage() {
         {phase === 'initial' && !hasLaunched && (
           <>
             <AskQuestion
+            initial={lastDiceQuestion || undefined}
             onConfirm={(q) => {
               setQuestion(q);
               setHasLaunched(true);

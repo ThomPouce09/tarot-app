@@ -590,7 +590,7 @@ function DoublePage() {
 
             {db.echo && !db.echo.verdict && !echoDue && (
               <div className="mt-4 rounded-2xl p-5 text-center" style={{ background: 'linear-gradient(160deg,#4A2C1A 0%,#2A1408 60%,#180B05 100%)', border: '1.5px solid rgba(218,165,32,0.45)' }}>
-                <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{L('Augure scellé', 'Augury sealed')}</p>
+                <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{L("Envie de défier l'Oracle ?", 'Dare to challenge the Oracle?')}</p>
                 <p className="mt-2 text-sm italic leading-relaxed" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {en && db.echo.textEn ? db.echo.textEn : db.echo.textFr} »</p>
                 <p className="mt-3 text-xs" style={{ color: GOLD_PALE_SAFE }}>
                   {L(`le retournement s’observe dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`, `the turn ripens in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`)}

@@ -17,7 +17,6 @@ import {
   DiceTitle,
   DiceButton,
   OcreCard,
-  ResultLine,
   DICE_THEME,
   PLANET_NAMES,
   SIGN_NAMES,
@@ -31,9 +30,14 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import EchoBox from '@/components/echo-box';
 import { useT, useLang } from '@/lib/i18n';
+import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
+import { DiceSteps, BalancePlateaux, ClickableFaces, strikeTokens } from '@/components/astro-dice/constellation';
 import AuthGate from '@/components/auth-gate';
+import { DiceThemeSelector } from '@/app/des-divinatoires-simplifie/theme-selector';
 
 /** Mini-renderer markdown → React nodes */
 function md(text: string) {
@@ -100,7 +104,6 @@ function diceStaticText(f: TargetFaces) {
 // ──────────────────────────────────────────────
 function DiceAnalysis({
   faces,
-  activeKinds,
   question,
   spread,
   readingId,         // lectureId pour update si analyse profonde générée
@@ -108,7 +111,6 @@ function DiceAnalysis({
   onDeepAnalysisReady,
 }: {
   faces: TargetFaces;
-  activeKinds: DieKind[];
   question?: string | null;
   spread?: string;
   readingId?: string | null;
@@ -122,16 +124,8 @@ function DiceAnalysis({
   const [dbLoading, setDbLoading] = useState(false);
   const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [deepLoading, setDeepLoading] = useState(false);
-  // Vidéo d'attente aléatoire analyse-des-zodiaqueX.mp4 (remplace analyse-combinee.m4v).
-  const [waitVideoSrc, setWaitVideoSrc] = useState<string>('');
   const deepRef = useRef<HTMLDivElement | null>(null);
   const shortInterpRef = useRef<string | null>(null);
-
-  // Choisit une vidéo d'attente au hasard (1..9 ; onError du <video> fera
-  // avancer vers la suivante si le fichier est absent).
-  const pickWaitVideo = useCallback(() => {
-    setWaitVideoSrc(`/images/analyse-des-zodiaque${1 + Math.floor(Math.random() * 9)}.mp4`);
-  }, []);
 
   // Scroll vers l'analyse approfondie dès qu'elle est prête
   useEffect(() => {
@@ -195,7 +189,6 @@ function DiceAnalysis({
     shortLastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
-    pickWaitVideo();
 
     (async () => {
       // 1) Toujours tenter le LLM en premier (gère question=null)
@@ -283,27 +276,8 @@ function DiceAnalysis({
         {t(spread === 'Premier Choix' ? 'des.choix.analysisFirst' : 'des.choix.analysisSecond')}
       </h3>
 
-      {/* Partie statique — les 3 dés */}
-      <div className="space-y-3">
-        {activeKinds.map((k) => {
-          const val = faces[k] as string | number;
-          return (
-            <div
-              key={k}
-              className="flex gap-3 text-sm leading-relaxed"
-              style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-            >
-              <span
-                className="mt-0.5 text-2xl leading-none"
-                style={{ color: DICE_THEME.ocreLight }}
-              >
-                {val}
-              </span>
-              <span style={{ opacity: 0.92 }}>{meaningFor(k, val)}</span>
-            </div>
-          );
-        })}
-      </div>
+      {/* Le tirage n'est PAS répété dans l'encart : la pilule cliquable
+          affichée juste avant porte déjà les 3 faces (+ modale de détail). */}
 
       {/* ── Interprétation courte (DB ou LLM 1-2 phrases) ── */}
       {dbLoading && (
@@ -316,16 +290,12 @@ function DiceAnalysis({
             boxShadow: `inset 0 0 30px ${DICE_THEME.gold}10, 0 0 30px ${DICE_THEME.gold}0c`,
           }}
         >
-          {/* Vidéo d'attente aléatoire en fond — disparaît quand l'analyse est prête */}
-          <video
-            src={waitVideoSrc}
-            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='black'/%3E%3C/svg%3E"
+          {/* Vidéo d'attente aléatoire en fond — disparaît quand l'analyse est
+              prête. AnalysisWaitVideo gère la rotation ET le fallback onError
+              (les fichiers 5..9 n'existent pas : sans lui → écran noir). */}
+          <AnalysisWaitVideo
+            prefix="analyse-des-zodiaque"
             className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
           />
           {/* Voile bas pour la lisibilité du message */}
           <div
@@ -445,16 +415,9 @@ function DiceAnalysis({
           </motion.div>
         )}
 
-        {/* ✶ L'Écho scellé — né du Premier Choix (le Second est fusionné dans
-            la même lecture : un seul écho possible par lecture sauvegardée). */}
-        {spread === 'Premier Choix' && readingId && (deepAnalysis || dbInterpretation) && (
-          <EchoBox
-            domain="des"
-            readingId={readingId}
-            question={question}
-            summary={(deepAnalysis || dbInterpretation || '').slice(0, 1200)}
-          />
-        )}
+        {/* ✶ L'Écho scellé a été déplacé au récapitulatif FINAL : le tirage
+            étant un duo (A + B), le scellement n'intervient qu'après le
+            second choix analysé, et l'IA reçoit les deux lectures. */}
     </div>
   );
 }
@@ -500,7 +463,7 @@ function RecapCard({
           « {question} »
         </p>
       )}
-      <ResultLine faces={faces} />
+      <div className="mb-1"><ClickableFaces faces={faces} /></div>
       {shortInterpretation && (
         <div
           className="mt-3 text-sm leading-relaxed"
@@ -524,12 +487,124 @@ function RecapCard({
   );
 }
 
+/* Carte d'introduction « Le tirage du choix » — remplace l'ancien double
+   bouton (Enregistrer / Lancer direct) : soit Élément + intention (même
+   sélecteur que le tirage simplifié), soit question libre écrite. Le CTA
+   « Enregistrer et lancer les dés » est serti or sur indigo profond. */
+function DiceLaunchCard({ title, placeholder, instruct, draft, setDraft, onLaunch, lockedMode }: {
+  title: string;
+  placeholder: string;
+  instruct: string;
+  draft: string;
+  setDraft: (v: string) => void;
+  onLaunch: (q: string | null, m: 'theme' | 'free') => void;
+  /** Mode imposé (chemin B = chemin A : pas de mixage thème/question). */
+  lockedMode?: 'theme' | 'free' | null;
+}) {
+  const [mode, setMode] = useState<'theme' | 'free'>(lockedMode ?? 'theme');
+  const eff = lockedMode ?? mode;
+  const q = draft.trim();
+  return (
+    <div
+      className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
+      style={{
+        background: 'linear-gradient(160deg, rgba(20,36,90,0.92) 0%, rgba(10,20,48,0.94) 55%, rgba(4,6,15,0.95) 100%)',
+        border: '1.5px solid rgba(212,175,55,0.42)',
+        boxShadow: '0 18px 44px rgba(0,0,0,0.6), inset 0 0 40px rgba(212,175,55,0.07)',
+      }}
+    >
+      <h3
+        className="mb-1 text-center text-lg font-bold"
+        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.ocreLight, textShadow: '0 0 14px rgba(232,198,106,0.4)' }}
+      >
+        {title}
+      </h3>
+      <p
+        className="mx-auto mb-4 max-w-md text-center text-xs italic leading-relaxed"
+        style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F599' }}
+        dangerouslySetInnerHTML={{ __html: instruct }}
+      />
+
+      {/* Onglets : Élément & intention (défaut) / question libre. Verrouillés
+          quand le second choix doit imiter le premier (pas de mixage). */}
+      <div className="mb-4 flex justify-center gap-2">
+        {([
+          ['theme', 'Élément & intention'],
+          ['free', 'Ma question libre'],
+        ] as const).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            disabled={!!lockedMode}
+            onClick={() => !lockedMode && setMode(k)}
+            className="rounded-full px-4 py-1.5 text-xs font-bold transition-all active:scale-[0.97]"
+            style={{
+              fontFamily: 'var(--font-cinzel), serif',
+              letterSpacing: '0.06em',
+              color: eff === k ? DICE_THEME.ocreLight : 'rgba(220,230,245,0.55)',
+              background: eff === k ? 'linear-gradient(180deg, #2a3a6b 0%, #0a1430 100%)' : 'transparent',
+              border: eff === k ? '1px solid rgba(212,175,55,0.75)' : '1px solid rgba(212,175,55,0.25)',
+              boxShadow: eff === k ? '0 0 16px rgba(212,175,55,0.3), inset 0 1px 0 rgba(232,198,106,0.3)' : 'none',
+              opacity: lockedMode && eff !== k ? 0.35 : 1,
+            }}
+          >
+            {eff === k ? '✦ ' : ''}{label}{eff === k ? ' ✦' : ''}{lockedMode ? (lockedMode === k ? ' (repris du 1ᵉʳ choix)' : '') : ''}
+          </button>
+        ))}
+      </div>
+
+      {eff === 'theme' ? (
+        <DiceThemeSelector ctaSculpt onConfirm={(qq) => onLaunch(qq, 'theme')} />
+      ) : (
+        <div>
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={placeholder}
+            className="w-full rounded-xl px-4 py-3 text-center text-sm"
+            style={{
+              background: 'rgba(4,6,15,0.6)',
+              border: '1px solid rgba(212,175,55,0.35)',
+              color: '#DCE6F5',
+              fontFamily: 'var(--font-cormorant), serif',
+              boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.55)',
+            }}
+          />
+          <div className="mt-5 text-center">
+            <button
+              onClick={() => onLaunch(q || null, 'free')}
+              disabled={!q}
+              className="rounded-full px-9 py-3.5 text-base font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+              style={{
+                fontFamily: 'var(--font-cinzel-deco), serif',
+                letterSpacing: '0.05em',
+                color: '#F7ECCE',
+                background: 'linear-gradient(180deg, #22366f 0%, #14245a 46%, #070d22 100%)',
+                border: '1px solid rgba(232,198,106,0.85)',
+                boxShadow: '0 0 0 4px rgba(212,175,55,0.12), 0 12px 26px rgba(3,5,12,0.85), 0 0 36px rgba(212,175,55,0.3), inset 0 1px 0 rgba(232,198,106,0.5), inset 0 -14px 26px rgba(0,0,0,0.55)',
+                textShadow: '0 0 12px rgba(232,198,106,0.5), 0 1px 2px rgba(0,0,0,0.9)',
+              }}
+            >
+              Enregistrer et lancer les dés
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ──────────────────────────────────────────────
 // Page principale
 // ──────────────────────────────────────────────
 function ChoixPage() {
+  // Le chunk WebGL du gobelet se télécharge dès l'arrivée sur la page :
+  // quand l'utilisateur atteint l'étape de tirage, plus rien ne « charge ».
+  useEffect(() => { preloadAstroDice(); pickAndPreloadWaitVideo('analyse-des-zodiaque'); }, []);
   const [step, setStep] = useState<Step>('A_intro');
   const t = useT();
+  const lang = useLang();
 
   const [faces, setFaces] = useState<TargetFaces>(() =>
     typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 } as TargetFaces) : randomTargetFaces()
@@ -541,6 +616,9 @@ function ChoixPage() {
   const [question, setQuestion] = useState<string | null>(null);
   const [questionB, setQuestionB] = useState<string | null>(null); // 2e choix (optionnel)
   const [questionBDraft, setQuestionBDraft] = useState('');        // valeur live du champ Second Choix
+  // Mode choisi pour le chemin A : le chemin B est verrouillé sur le même
+  // (thème+sous-thème OU question libre — jamais de mélange des deux).
+  const [modeA, setModeA] = useState<'theme' | 'free' | null>(null);
   const questionRef = useRef<string | null>(null);                 // snapshot pour le lancer A
   const questionBRef = useRef<string | null>(null);                 // snapshot pour le lancer B
   const [questionDraft, setQuestionDraft] = useState('');          // valeur live du champ Premier Choix
@@ -571,11 +649,12 @@ function ChoixPage() {
 
   // Scroll vers le gobelet + tutoriel dès qu'il est monté (A_roll ou B_roll)
   const scrollToCup = useCallback(() => {
-    // Le gobelet en haut de l'écran → le tutoriel apparaît en dessous
+    // Le gobelet CENTRÉ dans l'écran (les deux tirages) → mieux visible
+    // pendant le lancer ; le tutoriel reste visible en dessous.
     if (cupRef.current) {
-      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else if (cupAreaRef.current) {
-      cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, []);
 
@@ -649,6 +728,7 @@ function ChoixPage() {
     setResultB(null);
     setQuestion(null);
     setQuestionB(null);
+    setModeA(null);
     setReady(false);
     setResetSignal((n) => n + 1);
     setStep('A_intro');
@@ -722,6 +802,12 @@ function ChoixPage() {
       <YiSlideNav />
       <DiceTitle title={t('des.choix.title')} />
 
+      {/* Fil d'étapes : Confier › Chemin A › Chemin B › Comparaison */}
+      <DiceSteps
+        steps={lang === 'en' ? ['Entrust', 'Path A', 'Path B', 'Compare'] : ['Confier', 'Chemin A', 'Chemin B', 'Comparaison']}
+        current={step === 'A_intro' ? 0 : step === 'A_roll' || step === 'A_done' ? 1 : step === 'B_roll' ? 2 : 3}
+      />
+
       <div className="mx-auto max-w-2xl px-4">
         {/* Question sauvegardée affichée en permanence après enregistrement */}
         {question && (
@@ -737,118 +823,24 @@ function ChoixPage() {
           </p>
         )}
 
-        {/* ════════════ ÉTAPE INTRO A — Premier Choix (fusionné) ════════════ */}
+        {/* ════════════ ÉTAPE INTRO A — Premier Choix : thème OU question ════════════ */}
         {step === 'A_intro' && (
           <div className="mt-6">
-            <div
-              className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
-              style={{
-                background: 'linear-gradient(135deg, rgba(9,17,40,0.92) 0%, rgba(6,12,30,0.92) 100%)',
-                border: '1.5px solid rgba(135,206,235,0.55)',
-                boxShadow: 'inset 0 0 30px rgba(135,206,235,0.14)',
+            <DiceLaunchCard
+              title={t('des.choix.first')}
+              placeholder={t('des.choix.askPlaceholder')}
+              instruct={t('des.choix.instructFirst')}
+              draft={questionDraft}
+              setDraft={setQuestionDraft}
+              onLaunch={(qq, m) => {
+                setQuestion(qq);
+                setModeA(m);
+                questionRef.current = qq;
+                chooseA();
+                setShowTutorial(true);
+                setTimeout(scrollToCup, 700);
               }}
-            >
-              {/* Titre */}
-              <h3
-                className="mb-4 text-center text-lg font-bold"
-                style={{
-                  fontFamily: 'var(--font-cinzel-deco), serif',
-                  color: '#87CEEB',
-                  textShadow: '0 0 12px rgba(135,206,235,0.4)',
-                }}
-              >
-                {t('des.choix.first')}
-              </h3>
-
-              {/* Champ texte */}
-              <div className="mb-4 flex items-center gap-2 justify-center flex-wrap">
-                <input
-                  type="text"
-                  value={questionDraft}
-                  onChange={(e) => setQuestionDraft(e.target.value)}
-                  placeholder={t('des.choix.askPlaceholder')}
-                  className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
-                  style={{
-                    background: 'rgba(0,0,0,0.35)',
-                    border: '1px solid rgba(135,206,235,0.4)',
-                    color: '#f0e6d3',
-                    fontFamily: 'var(--font-cormorant), serif',
-                  }}
-                />
-              </div>
-
-              {/* Bouton Enregistrer et lancer les dés */}
-              <div className="text-center mb-5">
-                <button
-                  onClick={() => {
-                    const q = questionDraft.trim() || null;
-                    setQuestion(q);
-                    questionRef.current = q;
-                    chooseA();
-                    setShowTutorial(true);
-                    setTimeout(scrollToCup, 700);
-                  }}
-                  className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
-                  style={{
-                    background: '#005f6a',
-                    color: '#fff',
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-                    border: '1px solid rgba(0,95,106,0.6)',
-                  }}
-                >
-                  Enregistrer et lancer les dés
-                </button>
-              </div>
-
-              {/* Séparateur OU */}
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
-                <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}>
-                  OU
-                </span>
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
-              </div>
-
-              {/* Sous-titre et description */}
-              <p
-                className="text-center text-xs italic mb-2"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}
-              >
-                {t('des.choix.introFirst')}
-              </p>
-              <div
-                className="text-sm sm:text-base leading-relaxed text-center"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
-              >
-                <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructFirst') }} />
-              </div>
-
-              {/* Bouton Lancer sans question */}
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => {
-                    // Sauvegarder le champ au cas où l'utilisateur aurait tapé qch
-                    const q = questionDraft.trim() || null;
-                    setQuestion(q);
-                    questionRef.current = q;
-                    chooseA();
-                    setShowTutorial(true);
-                    setTimeout(scrollToCup, 700);
-                  }}
-                  className="rounded-full px-8 py-3 text-base font-bold transition-all hover:opacity-80"
-                  style={{
-                    background: 'transparent',
-                    color: '#87CEEB',
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    border: '1.5px solid rgba(135,206,235,0.5)',
-                    boxShadow: '0 0 16px rgba(135,206,235,0.2)',
-                  }}
-                >
-                  Lancer les dés zodiacaux
-                </button>
-              </div>
-            </div>
+            />
           </div>
         )}
 
@@ -868,7 +860,6 @@ function ChoixPage() {
                 targetFaces={faces}
                 skin="moon"
                 height={460}
-                activeKinds={ACTIVE_DICE}
                 onRest={handleRest}
                 onReady={() => setReady(true)}
                 resetSignal={resetSignal}
@@ -933,11 +924,10 @@ function ChoixPage() {
               >
                 {t('des.choix.first')}
               </p>
-              <ResultLine faces={resultA} />
+              <div className="mb-1"><ClickableFaces faces={resultA} /></div>
               <div ref={resultAnalysisRef} />
               <DiceAnalysis
                 faces={resultA}
-                activeKinds={ACTIVE_DICE}
                 question={questionRef.current}
                 spread="Premier Choix"
                 readingId={readingAId}
@@ -948,7 +938,7 @@ function ChoixPage() {
           )}
         </AnimatePresence>
 
-        {/* ════════════ TRANSITION A → B — Second Choix (fusionné) ════════════ */}
+        {/* ════════════ TRANSITION A → B — Second Choix : thème OU question ════════════ */}
         <AnimatePresence>
           {step === 'A_done' && (
             <motion.div
@@ -956,114 +946,21 @@ function ChoixPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <div
-                className="mx-auto max-w-2xl rounded-2xl p-5 sm:p-6"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(9,17,40,0.92) 0%, rgba(6,12,30,0.92) 100%)',
-                  border: '1.5px solid rgba(135,206,235,0.5)',
-                  boxShadow: 'inset 0 0 24px rgba(135,206,235,0.12)',
+              <DiceLaunchCard
+                title={t('des.choix.second')}
+                placeholder={t('des.choix.secondPlaceholder')}
+                instruct={t('des.choix.instructSecond')}
+                draft={questionBDraft}
+                setDraft={setQuestionBDraft}
+                lockedMode={modeA}
+                onLaunch={(qq) => {
+                  setQuestionB(qq);
+                  questionBRef.current = qq;
+                  chooseB();
+                  setShowTutorial(true);
+                  setTimeout(scrollToCup, 700);
                 }}
-              >
-                {/* Titre */}
-                <h3
-                  className="mb-4 text-center text-lg font-bold"
-                  style={{
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: '#87CEEB',
-                    textShadow: '0 0 12px rgba(135,206,235,0.4)',
-                  }}
-                >
-                  {t('des.choix.second')}
-                </h3>
-
-                {/* Champ texte */}
-                <div className="mb-4 flex items-center gap-2 justify-center flex-wrap">
-                  <input
-                    type="text"
-                    value={questionBDraft}
-                    onChange={(e) => setQuestionBDraft(e.target.value)}
-                    placeholder={t('des.choix.secondPlaceholder')}
-                    className="rounded-lg px-4 py-2 w-full max-w-sm text-sm"
-                    style={{
-                      background: 'rgba(0,0,0,0.35)',
-                      border: '1px solid rgba(135,206,235,0.4)',
-                      color: '#f0e6d3',
-                      fontFamily: 'var(--font-cormorant), serif',
-                    }}
-                  />
-                </div>
-
-                {/* Bouton Enregistrer et lancer les dés */}
-                <div className="text-center mb-5">
-                  <button
-                    onClick={() => {
-                      const q = questionBDraft.trim() || null;
-                      setQuestionB(q);
-                      questionBRef.current = q;
-                      chooseB();
-                      setShowTutorial(true);
-                      setTimeout(scrollToCup, 700);
-                    }}
-                    className="rounded-full px-8 py-3.5 text-base font-bold transition-all hover:opacity-80"
-                    style={{
-                      background: '#005f6a',
-                      color: '#fff',
-                      fontFamily: 'var(--font-cinzel-deco), serif',
-                      boxShadow: '0 0 24px rgba(0,95,106,0.45)',
-                      border: '1px solid rgba(0,95,106,0.6)',
-                    }}
-                  >
-                    Enregistrer et lancer les dés
-                  </button>
-                </div>
-
-                {/* Séparateur OU */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
-                  <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}>
-                    OU
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(135,206,235,0.3), transparent)' }} />
-                </div>
-
-                {/* Sous-titre et description */}
-                <p
-                  className="text-center text-xs italic mb-2"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: 'rgba(135,206,235,0.6)' }}
-                >
-                  {t('des.choix.introSecond')}
-                </p>
-                <div
-                  className="text-sm sm:text-base leading-relaxed text-center"
-                  style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5' }}
-                >
-                  <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('des.choix.instructSecond') }} />
-                </div>
-
-                {/* Bouton Lancer sans question */}
-                <div className="mt-4 text-center">
-                  <button
-                    onClick={() => {
-                      const q = questionBDraft.trim() || null;
-                      setQuestionB(q);
-                      questionBRef.current = q;
-                      chooseB();
-                      setShowTutorial(true);
-                      setTimeout(scrollToCup, 700);
-                    }}
-                    className="rounded-full px-8 py-3 text-base font-bold transition-all hover:opacity-80"
-                    style={{
-                      background: 'transparent',
-                      color: '#87CEEB',
-                      fontFamily: 'var(--font-cinzel-deco), serif',
-                      border: '1.5px solid rgba(135,206,235,0.5)',
-                      boxShadow: '0 0 16px rgba(135,206,235,0.2)',
-                    }}
-                  >
-                    Lancer les dés zodiacaux
-                  </button>
-                </div>
-              </div>
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1083,11 +980,10 @@ function ChoixPage() {
               >
                 {t('des.choix.second')}
               </p>
-              <ResultLine faces={resultB} />
+              <div className="mb-1"><ClickableFaces faces={resultB} /></div>
               <div ref={resultAnalysisRef} />
               <DiceAnalysis
                 faces={resultB}
-                activeKinds={ACTIVE_DICE}
                 question={questionBRef.current || questionRef.current}
                 spread="Second Choix"
                 readingId={readingBId}
@@ -1128,6 +1024,17 @@ function ChoixPage() {
                 >
                   {t('des.choix.recap')}
                 </h3>
+
+                {/* Le duel des constellations : les deux plateaux se dressent,
+                    un pont de lumière les relie, la balance s'incline. */}
+                {resultA && resultB && (
+                  <BalancePlateaux
+                    tokensA={strikeTokens(resultA)}
+                    tokensB={strikeTokens(resultB)}
+                    labelA={t('des.choix.first')}
+                    labelB={t('des.choix.second')}
+                  />
+                )}
 
                 {/* Grille des 2 options */}
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -1184,6 +1091,23 @@ function ChoixPage() {
                     )}
                   </div>
                 </div>
+
+                {/* ✶ L'Écho scellé — SEULEMENT ici, en fin de parcours : le
+                    sceau n'apparaît qu'après le second choix analysé, et son
+                    prompt reçoit les lectures des DEUX chemins. */}
+                {readingAId && (shortInterpA || deepAnalysisA) && (shortInterpB || deepAnalysisB) && (
+                  <div className="mt-2">
+                    <EchoBox
+                      domain="des"
+                      readingId={readingAId}
+                      question={questionRef.current}
+                      summary={[
+                        `Chemin A — « ${questionRef.current || '—'} » : ${(shortInterpA || '').slice(0, 260)}${deepAnalysisA ? ` [analyse : ${deepAnalysisA.slice(0, 240)}…]` : ''}`,
+                        `Chemin B — « ${questionBRef.current || '—'} » : ${(shortInterpB || '').slice(0, 260)}${deepAnalysisB ? ` [analyse : ${deepAnalysisB.slice(0, 240)}…]` : ''}`,
+                      ].join(' || ')}
+                    />
+                  </div>
+                )}
 
               </div>
             </motion.div>

@@ -3,21 +3,19 @@
 // components/analysis-wait-video.tsx
 //
 // Vidéo d'attente aléatoire pour l'analyse approfondie IA.
-// Au montage, choisit une vidéo parmi /images/<prefix>1.mp4 … <prefix>9.mp4.
-// Les fichiers absents sont automatiquement ignorés (fallback à la vidéo
-// suivante via onError) — il suffit de déposer une nouvelle vidéo dans
-// public/images/ pour qu'elle entre dans la rotation, sans toucher au code.
+// Choisit une vidéo parmi /images/<prefix>1.mp4 … <prefix>9.mp4 en tenant
+// compte des fichiers RÉELLEMENT présents (sonde HEAD mémoïsée par
+// lib/preload-wait-videos). Si la page a préchauffé la liste (pages dés),
+// la première image est affichée immédiatement — plus d'écran noir le temps
+// de tester les fichiers manquants. onError reste le filet (rotation).
 //
-// Préfixes utilisés :
-//   - analyse-longue      : analyse approfondie (défaut, 3 sous-pages dés)
-//   - analyse-des-zodiaque: dés du zodiaque (interprétations IA)
-//
-// Usage (les 3 sous-pages /des-divinatoires) :
+// Usage (les pages /des-divinatoires) :
 //   <AnalysisWaitVideo />
 //   <AnalysisWaitVideo prefix="analyse-des-zodiaque" />
-//   <AnalysisWaitVideo className="…" />  // surcharge de la classe vidéo
+//   <AnalysisWaitVideo className="…"/>  // surcharge de la classe vidéo
 
 import { useEffect, useRef, useState } from 'react';
+import { warmWaitVideos, peekWaitVideo } from '@/lib/preload-wait-videos';
 
 const MAX_VIDEO_INDEX = 9;
 
@@ -32,17 +30,30 @@ export default function AnalysisWaitVideo({
   /** Préfixe du nom de fichier (sans numéro, ex. "analyse-des-zodiaque"). */
   prefix?: string;
 }) {
-  const [src, setSrc] = useState<string>('');
+  // La page a pu préchauffer une vidéo déjà téléchargée → l'utiliser
+  // directement (première frame affichée sans attente).
+  const [src, setSrc] = useState<string>(() => peekWaitVideo(prefix) ?? '');
   const attemptsRef = useRef(0);
 
-  // Choisir un index de départ aléatoire au montage (1..9)
+  // Sans préchauffage : choisir une vidéo EXISTANTE au hasard (liste sonde
+  // mémoïsée ; quasi-instantanée si la page l'a déjà sondée).
   useEffect(() => {
-    const start = 1 + Math.floor(Math.random() * MAX_VIDEO_INDEX);
-    setSrc(`/images/${prefix}${start}.mp4`);
+    if (src || attemptsRef.current > 0) return;
+    let live = true;
+    warmWaitVideos(prefix).then((avail) => {
+      if (!live || attemptsRef.current > 0) return;
+      const n = avail.length
+        ? avail[Math.floor(Math.random() * avail.length)]
+        : 1 + Math.floor(Math.random() * MAX_VIDEO_INDEX);
+      setSrc(`/images/${prefix}${n}.mp4`);
+    });
+    return () => { live = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefix]);
 
   const handleError = () => {
-    // Vidéo absente → essayer la suivante (cycle 1..9), sans boucle infinie
+    // Vidéo absente malgré la sonde (dépôt récent retiré ?) → essayer la
+    // suivante (cycle 1..9), sans boucle infinie.
     attemptsRef.current += 1;
     if (attemptsRef.current > MAX_VIDEO_INDEX) {
       setSrc(''); // aucune vidéo disponible → rien à afficher
@@ -67,6 +78,7 @@ export default function AnalysisWaitVideo({
       muted
       loop
       playsInline
+      preload="auto"
       aria-hidden
       onError={handleError}
     />

@@ -256,6 +256,8 @@ const SAVE_THEME: Record<string, { base: string; glow: string; text: string }> =
            glow: 'rgba(212,175,55,0.55)', text: '#241505' },                       // jaune pâle glossy
   'yi-jing': { base: '#8e1c22', glow: 'rgba(180,40,45,0.5)', text: '#fff' },       // rouge laque
   des: { base: '#2a7fb8', glow: 'rgba(135,206,235,0.5)', text: '#fff' },           // bleu céleste AstroDice
+  astro: { base: 'linear-gradient(180deg, #22366f 0%, #14245a 46%, #070d22 100%)',
+           glow: 'rgba(212,175,55,0.5)', text: '#F7ECCE' },                          // nuit indigo sertie or (Dés)
   cedar: { base: 'linear-gradient(180deg, #3f8e5c 0%, #2f6f46 55%, #1d4a2e 100%)',
            glow: 'rgba(63,142,92,0.55)', text: '#f2fbf3' },                            // vert cèdre 3D (Yggdrasil)
 };
@@ -272,7 +274,7 @@ export function RuneButton({
   disabled?: boolean;
   variant?: 'primary' | 'gold' | 'save';
   /** Univers d'affichage pour le bouton « save » (couleur locale). */
-  saveTint?: 'runes' | 'tarot' | 'yi-jing' | 'des' | 'cedar';
+  saveTint?: 'runes' | 'tarot' | 'yi-jing' | 'des' | 'cedar' | 'astro';
 }) {
   if (variant === 'save') {
     const tint = SAVE_THEME[saveTint] || SAVE_THEME.runes;

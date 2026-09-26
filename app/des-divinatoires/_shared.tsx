@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
 import { api } from '@/lib/api-client';
 
 // Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
@@ -232,17 +233,9 @@ export function OcreCard({
   );
 }
 
-/* Noms lisibles des glyphes (pour l'affichage textuel des résultats) */
-export const PLANET_NAMES: Record<string, string> = {
-  '☉': 'Soleil', '☽': 'Lune', '☿': 'Mercure', '♀': 'Vénus', '♂': 'Mars',
-  '♃': 'Jupiter', '♄': 'Saturne', '♅': 'Uranus', '♆': 'Neptune', '♇': 'Pluton',
-  '☊': 'Nœud Nord', '☋': 'Nœud Sud',
-};
-export const SIGN_NAMES: Record<string, string> = {
-  '♈': 'Bélier', '♉': 'Taureau', '♊': 'Gémeaux', '♋': 'Cancer', '♌': 'Lion',
-  '♍': 'Vierge', '♎': 'Balance', '♏': 'Scorpion', '♐': 'Sagittaire',
-  '♑': 'Capricorne', '♒': 'Verseau', '♓': 'Poissons',
-};
+/* Noms lisibles des glyphes — tables uniques dans names.ts, réexportées ici
+   pour tous les imports existants (`_shared`). */
+export { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
 
 /* Ligne de résultat lisible : "☉ Soleil · ♌ Lion · Maison 5" */
 export function ResultLine({ faces }: { faces: TargetFaces }) {

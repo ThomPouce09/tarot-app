@@ -43,6 +43,8 @@ interface AskQuestionProps {
   autoFocus?: boolean;
   /** Question obligatoire : le bouton de confirmation reste désactivé tant que le champ est vide. */
   required?: boolean;
+  /** Question suggérée (continuité d'un tirage précédent) — pré-remplit le champ. */
+  initial?: string;
   /** Couleur du bouton de confirmation (défaut : teal « Enregistrer »). */
   confirmColor?: string;
 }
@@ -59,11 +61,18 @@ export function AskQuestion({
   questionValueRef,
   autoFocus = true,
   required = false,
+  initial,
   confirmColor,
 }: AskQuestionProps) {
   const t = useT();
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState(initial ?? '');
   const [visible, setVisible] = useState(true);
+  // Pré-remplissage différé (suggestion chargée depuis l'historique) : on ne
+  // l'applique que si le champ est encore vide (pas d'écrasement de la saisie).
+  useEffect(() => {
+    if (initial && !question) setQuestion(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

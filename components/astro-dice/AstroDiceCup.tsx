@@ -36,6 +36,8 @@ import AstroDiceSet from './AstroDiceSet';
 import { randomTargetFaces, type TargetFaces } from './glyphs';
 import type { AstroDiceSetProps } from './AstroDiceSet';
 import { installSoundUnlock, playRandom, playSound } from '@/lib/sounds';
+import { PLANET_NAMES, SIGN_NAMES } from './names';
+import { ConstellationStrike } from './constellation';
 
 /* -------------------------------------------------------------------------- */
 /*  Physique des mini-dés dans le gobelet                                      */
@@ -231,6 +233,11 @@ export default function AstroDiceCup({
   // après le roulement). `revealed` passe à true au 1er lancer et ne redescend
   // jamais → on neutralise hideIdle pour ne plus masquer les dés.
   const [revealed, setRevealed] = useState(false);
+  // ── Frappe « le ciel se déchire » : à l'immobilisation, les 3 glyphes
+  //    filent dans un ciel indigo (noms gravés) — puis l'arène ne revient
+  //    pas : la lecture prend le relais.
+  const [strike, setStrike] = useState<{ t: [string, string][]; n: number } | null>(null);
+  const [arenaGone, setArenaGone] = useState(false);
 
   // ── Sons : déverrouillage au premier geste (autoplay policy). ──
   useEffect(() => {
@@ -266,6 +273,26 @@ export default function AstroDiceCup({
     }
   }, [rolling]);
 
+  // ── Scroll verrouillé PENDANT le lancer uniquement (ni avant, ni après).
+  //    overflow:hidden seul ne bloque PAS le drag tactile sur mobile : on gèle
+  //    le body en position:fixed (mémorisation + restauration de scrollY) —
+  //    technique fiable en navigateur mobile comme en WebView Capacitor.
+  //    Compensation de l'ascenseur vertical (paddingRight = sa largeur) pour
+  //    que la page ne « flotte » pas d'un côté quand la barre disparaît. ──
+  useEffect(() => {
+    if (!rolling) return;
+    const y = window.scrollY;
+    const s = document.body.style;
+    const sw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    const prev = { pos: s.position, top: s.top, left: s.left, right: s.right, width: s.width, pr: s.paddingRight };
+    s.position = 'fixed'; s.top = `-${y}px`; s.left = '0'; s.right = '0'; s.width = '100%';
+    if (sw > 0) s.paddingRight = `${sw}px`;
+    return () => {
+      s.position = prev.pos; s.top = prev.top; s.left = prev.left; s.right = prev.right; s.width = prev.width; s.paddingRight = prev.pr;
+      window.scrollTo(0, y);
+    };
+  }, [rolling]);
+
   // ── Reset complet vers l'état initial (bouton "Nouveau tirage"). ──
   useEffect(() => {
     setPhase('idle');
@@ -273,6 +300,8 @@ export default function AstroDiceCup({
     setShowCupDice(true); // mini-dés visibles dans le gobelet
     setRevealed(false); // dés d'animation à nouveau invisibles
     setRolling(false);
+    setStrike(null);
+    setArenaGone(false);
     animate(x, 0, { type: 'spring', stiffness: 260, damping: 18 });
     animate(y, 0, { type: 'spring', stiffness: 260, damping: 18 });
     animate(rotate, 0, { type: 'spring', stiffness: 260, damping: 18 });
@@ -415,7 +444,15 @@ export default function AstroDiceCup({
   const handleRest = useCallback(
     (faces: TargetFaces) => {
       setRolling(false);
-      onRest?.(faces);
+      setStrike((s) => ({ t: [
+        [String(faces.planet), PLANET_NAMES[String(faces.planet)] ?? String(faces.planet)],
+        [String(faces.sign), SIGN_NAMES[String(faces.sign)] ?? String(faces.sign)],
+        [String(faces.house), `Maison ${faces.house}`],
+      ] as [string, string][], n: (s?.n ?? 0) + 1 }));
+      setArenaGone(true);
+      // Le résultat (scroll + oracle des pages) n'est remonté qu'après la
+      // dissolution du ciel (~6,8 s) : la frappe est vue EN ENTIER.
+      window.setTimeout(() => onRest?.(faces), 6800);
     },
     [onRest],
   );
@@ -462,8 +499,13 @@ export default function AstroDiceCup({
       }}
       className={className}
     >
-      {/* ANIM 1 — arène + dés (fond). On lui passe le spawn pour la chute. */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+      {/* ANIM 1 — arène + dés (fond). Fondue à 0 dès la frappe et pour de
+          bon : le ciel a parlé, plus d'arène ensuite (jusqu'au reset). */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        opacity: strike || arenaGone ? 0 : 1,
+        transition: 'opacity 600ms ease',
+      }}>
         <AstroDiceSet
           isRolling={rolling}
           targetFaces={targetFaces}
@@ -483,10 +525,15 @@ export default function AstroDiceCup({
         />
       </div>
 
+      {/* Frappe « ciel déchiré » : calque au-dessus de l'arène (qui fuit à 0). */}
+      {strike && (
+        <ConstellationStrike key={strike.n} visible tokens={strike.t} onDone={() => setStrike(null)} />
+      )}
+
       {/* ANIM 2 — overlay gobelet transparent au bord bas de l'arène. Non
           interactif : c'est le pad du bas qui capte les gestes ; le gobelet
           réagit visuellement (transform lié aux MotionValue). */}
-      <motion.div style={cupStyle}>
+      <motion.div style={cupStyle} animate={{ opacity: strike ? 0 : 1 }} transition={{ duration: 0.55 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cupImg}
@@ -552,6 +599,8 @@ export default function AstroDiceCup({
           textShadow: '0 1px 3px rgba(0,0,0,0.7)',
           background:
             'linear-gradient(to top, rgba(135,206,235,0.18), rgba(135,206,235,0))',
+          opacity: strike || arenaGone ? 0 : 1,
+          transition: 'opacity 550ms ease',
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
