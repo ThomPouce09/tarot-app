@@ -31,6 +31,7 @@ import { useT, useLang } from '@/lib/i18n';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import { playSound } from '@/lib/sounds';
+import { api } from '@/lib/api-client';
 import { DiceSteps, ClickableFaces } from '@/components/astro-dice/constellation';
 import { DiceLaunchCard } from '@/app/des-divinatoires/launch-card';
 import AuthGate from '@/components/auth-gate';
@@ -140,7 +141,7 @@ function DiceAnalysis({
       const sign = SIGN_NAMES[faces.sign as string];
       const house = `Maison ${faces.house}`;
       if (!planet || !sign) { setDeepAnalysis('Indisponible.'); return; }
-      const res = await fetch('/api/astro-interpretation-obstacle', {
+      const res = await api('/api/astro-interpretation-obstacle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
@@ -173,7 +174,7 @@ function DiceAnalysis({
 
     (async () => {
       try {
-        const res = await fetch('/api/astro-interpretation-obstacle', {
+        const res = await api('/api/astro-interpretation-obstacle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'short', lang }),
@@ -190,7 +191,7 @@ function DiceAnalysis({
       } catch { /* fallback DB */ }
 
       try {
-        const res = await fetch('/api/astro-interpretation-db', {
+        const res = await api('/api/astro-interpretation-db', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house }),
@@ -761,7 +762,7 @@ function ObstacleSolutionPage() {
     setVoiesError(false);
     (async () => {
       try {
-        const res = await fetch('/api/astro-voies', {
+        const res = await api('/api/astro-voies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -809,7 +810,7 @@ function ObstacleSolutionPage() {
     setDestinyLoading(true);
     playSound('spell3', 0.6);
     try {
-      const res = await fetch('/api/astro-voies', {
+      const res = await api('/api/astro-voies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
