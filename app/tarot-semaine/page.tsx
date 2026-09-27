@@ -21,6 +21,7 @@ import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
 import { api } from '@/lib/api-client';
+import { playSound } from '@/lib/sounds';
 
 const GOLD = '#DAA520';
 const GOLD_PALE = '#F0C75E';
@@ -107,6 +108,8 @@ function SemainePage() {
   /* ── Ouvrir le jour courant ── */
   const reveal = async (day: number) => {
     if (!wheel || day !== wheel.nowDay) return;
+    if (wheel.cards[day]?.revealed) return; // déjà retournée : plus de son ni d'appel
+    playSound('flip-day-card', 0.9); // froissement du voile au retournement
     const e = emailLocal();
     const res = await api('/api/tarot-semaine', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

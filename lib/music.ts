@@ -7,7 +7,7 @@
 // ajouter une entrée à MUSIC_TRACKS (+ fichier + clés i18n) suffit — c'est la
 // piste sélectionnée ici qui se lance sur l'accueil, par défaut « Vibrations ».
 
-import { getSoundPrefs, playLoop, setSoundPrefs, setSoundVolume, stopSound, unlockAllSounds } from '@/lib/sounds';
+import { getSoundPrefs, isVoicesEnabled, playLoop, resumeSound, setSoundPrefs, setSoundVolume, soundProgress, stopSound, unlockAllSounds } from '@/lib/sounds';
 
 export type MusicTrackId = 'vibrations' | 'promenades';
 
@@ -65,12 +65,21 @@ export function setMusicVolume(v: number) {
 }
 
 /** Applique la préférence au moteur : une seule piste à la fois ; coupée si
- *  l'interrupteur maître est off (ou les voix coupées — canal partagé). */
+ *  l'interrupteur maître est off (ou les voix coupées — canal partagé).
+ *  CONTINUITÉ TOTALE : si l'élément audio de la piste existe déjà (il survit
+ *  aux navigations SPA), on le reprend là où il en était — JAMAIS de
+ *  rembobinage entre deux pages. Only cold start uses playLoop. */
 export function applyMusicPrefs() {
   const { on, track } = getMusicPrefs();
-  for (const t of MUSIC_TRACKS) if (t.id !== track) stopSound(t.key);
-  if (!on) { stopSound(trackById(track).key); return; }
-  playLoop(trackById(track).key, getMusicVolume());
+  const t = trackById(track);
+  for (const o of MUSIC_TRACKS) if (o.id !== track) stopSound(o.key);
+  if (!on) { stopSound(t.key); return; }
+  if (isVoicesEnabled()) {
+    const s = soundProgress(t.key);
+    if (s.playing) return;                                  // déjà en place → rien toucher
+    if (s.time > 0) { resumeSound(t.key, getMusicVolume()); return; } // en pause (player) → reprise SANS rembobiner
+  }
+  playLoop(t.key, getMusicVolume()); // jamais jouée (ou voix coupées) → démarrage boucle
 }
 
 /** Choisir une piste (le carrousel) : rembobine et repart si la musique est on. */

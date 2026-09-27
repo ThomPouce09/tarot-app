@@ -6,6 +6,8 @@ import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
 import LanguageGate from '@/components/language-gate'
 import OnboardingTour from '@/components/onboarding-tour'
+import MusicAmbience from '@/components/music-ambience'
+import SpeakerAmbience from '@/components/speaker-ambience'
 
 export const dynamic = 'force-dynamic';
 
@@ -122,6 +124,8 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
+          <MusicAmbience />
+          <SpeakerAmbience />
           <LoginModal />
           <LanguageGate />
           <OnboardingTour />

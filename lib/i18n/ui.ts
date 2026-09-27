@@ -76,7 +76,7 @@ export const DICT = {
   'account.quick.subscriptionSub': { fr: 'Forfait & facturation', en: 'Plan & billing' },
   'account.quick.stats': { fr: 'Statistiques', en: 'Statistics' },
   'account.quick.statsSub': { fr: 'Votre activité', en: 'Your activity' },
-  'account.logout': { fr: '🚪 Déconnexion', en: '🚪 Sign out' },
+  'account.logout': { fr: 'Déconnexion', en: 'Sign out' },
 
   // ─── Readings ───
   'readings.empty': { fr: 'Aucun tirage', en: 'No reading yet' },
@@ -194,7 +194,7 @@ export const DICT = {
   'security.forgotPwdSub': { fr: 'Recevoir un lien de réinitialisation par email', en: 'Receive a reset link by email' },
   'security.dangerZone': { fr: 'Zone de danger', en: 'Danger zone' },
   'security.dangerText': { fr: 'La suppression est définitive et efface tous vos tirages.', en: 'Deletion is permanent and erases all your readings.' },
-  'security.deleteAccount': { fr: '🗑️ Supprimer mon compte', en: '🗑️ Delete my account' },
+  'security.deleteAccount': { fr: 'Supprimer mon compte', en: 'Delete my account' },
   'security.pwdTooShort': { fr: 'Le mot de passe doit faire au moins 6 caractères.', en: 'Password must be at least 6 characters.' },
   'security.pwdMismatch': { fr: 'Les mots de passe ne correspondent pas.', en: 'Passwords do not match.' },
   'security.pwdUpdated': { fr: 'Mot de passe mis à jour ✦', en: 'Password updated ✦' },
@@ -547,6 +547,9 @@ export const DICT = {
   'des.obstacle.readObstacle': { fr: 'Lecture de l\'Obstacle', en: 'Reading of the Obstacle' },
   'des.obstacle.readSolution': { fr: 'Lecture de la Solution', en: 'Reading of the Solution' },
   'des.obstacle.retry': { fr: 'Recommencer', en: 'Start over' },
+  'des.obstacle.askFirst': { fr: 'Votre question sur l’obstacle (obligatoire)', en: 'Your question about the obstacle (required)' },
+  'des.obstacle.instructFirst': { fr: 'Concentrez-vous sur <b>ce qui vous bloque</b> (ex: « pourquoi ce projet stagne ? »), puis confirmez — les dés répondront.', en: 'Focus on <b>what is blocking you</b> (e.g. “why is this project stalling?”), then confirm — the dice will answer.' },
+  'des.obstacle.recap': { fr: 'Récapitulatif Obstacle & Solution', en: 'Obstacle & Solution Recap' },
   'des.affinage.title': { fr: 'Tirage par Affinage', en: 'The Refinement Cast' },
   'des.affinage.choose': { fr: 'Choisissez la nuance à préciser :', en: 'Choose the nuance to refine:' },
   'des.affinage.optA': { fr: '🔁 Option A — Le zoom d\'action', en: '🔁 Option A — The action zoom' },

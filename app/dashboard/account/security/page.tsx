@@ -102,18 +102,21 @@ export default function SecurityPage() {
       {mode === 'menu' && (
         <div className="space-y-3">
           <button onClick={() => setMode('change')} className="mystic-panel w-full p-4 flex items-center justify-between hover:border-amber-600/40 transition-colors group">
-            <span className="flex items-center gap-3"><span className="text-2xl">🔑</span><span className="text-left"><span className="block text-amber-200 font-medium">{t('security.changePwd')}</span><span className="block text-gray-500 text-xs">{t('security.changePwdSub')}</span></span></span>
+            <span className="flex items-center gap-3"><img src="/images/key.png" alt="" className="h-7 w-auto object-contain" /><span className="text-left"><span className="block text-amber-200 font-medium">{t('security.changePwd')}</span><span className="block text-gray-500 text-xs">{t('security.changePwdSub')}</span></span></span>
             <span className="text-amber-400/60 group-hover:text-amber-300">→</span>
           </button>
           <button onClick={() => setMode('forgot')} className="mystic-panel w-full p-4 flex items-center justify-between hover:border-amber-600/40 transition-colors group">
-            <span className="flex items-center gap-3"><span className="text-2xl">✉️</span><span className="text-left"><span className="block text-amber-200 font-medium">{t('security.forgotPwd')}</span><span className="block text-gray-500 text-xs">{t('security.forgotPwdSub')}</span></span></span>
+            <span className="flex items-center gap-3"><img src="/images/letter.png" alt="" className="h-7 w-auto object-contain" /><span className="text-left"><span className="block text-amber-200 font-medium">{t('security.forgotPwd')}</span><span className="block text-gray-500 text-xs">{t('security.forgotPwdSub')}</span></span></span>
             <span className="text-amber-400/60 group-hover:text-amber-300">→</span>
           </button>
 
           <div className="mystic-panel p-5 border-red-800/30">
             <h2 className="mystic-subtitle text-sm text-red-300/80 mb-2">{t('security.dangerZone')}</h2>
             <p className="text-gray-400 text-sm mb-3">{t('security.dangerText')}</p>
-            <button onClick={() => setShowDeleteModal(true)} className="mystic-btn-danger w-full">{t('security.deleteAccount')}</button>
+            <button onClick={() => setShowDeleteModal(true)} className="mystic-btn-danger w-full flex items-center justify-center gap-2">
+              <img src="/images/remove-account.png" alt="" className="h-5 w-auto object-contain" />
+              <span>{t('security.deleteAccount')}</span>
+            </button>
           </div>
         </div>
       )}

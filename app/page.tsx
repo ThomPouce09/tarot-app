@@ -15,9 +15,8 @@ import { ShimmerChars } from '@/components/shimmer-chars';
 import PauseRepas from '@/components/pause-repas';
 import SpeakerToggle from '@/components/speaker-toggle';
 import FirstVisitHints from '@/components/first-visit-hints';
-import { SOUND_PREFS_EVENT, stopSound } from '@/lib/sounds';
+import { SOUND_PREFS_EVENT, pauseSound } from '@/lib/sounds';
 import { MUSIC_PREFS_EVENT, MUSIC_TRACKS, applyMusicPrefs } from '@/lib/music';
-
 // useLayoutEffect côté client (s'exécute AVANT le rendu peint), useEffect côté
 // serveur (SSR) — évite les warnings, et surtout les flashs d'état après hydration.
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -47,7 +46,10 @@ export default function HomePage() {
   useEffect(() => {
     const start = () => applyMusicPrefs();
     const onVisibility = () => {
-      if (document.hidden) for (const tk of MUSIC_TRACKS) stopSound(tk.key);
+      // Onglet caché = PAUSE franche (sans rembobiner) ; retour = reprise là où
+      // elle s'est arrêtée — la préférence maître/enceinte re-vérifiée par
+      // applyMusicPrefs().
+      if (document.hidden) for (const tk of MUSIC_TRACKS) pauseSound(tk.key);
       else start();
     };
     // TENTER la lecture DÈS LE CHARGEMENT (conditions vérifiées dans
@@ -63,7 +65,9 @@ export default function HomePage() {
     window.addEventListener(MUSIC_PREFS_EVENT, start);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      for (const tk of MUSIC_TRACKS) stopSound(tk.key);
+      // PAS de stopSound ici : la musique est devenue globale (MusicAmbience
+      // dans le layout racine). Couper au démontage rembobinerait le morceau
+      // à chaque navigation loin de l'accueil.
       window.removeEventListener('pointerdown', start);
       window.removeEventListener('keydown', start);
       window.removeEventListener('touchstart', start);

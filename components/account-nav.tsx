@@ -104,7 +104,7 @@ export default function AccountNav({ user }: { user: any }) {
         </nav>
 
         <button onClick={handleLogout} className="nav-link-mystic mt-2 text-red-400/90 hover:text-red-300">
-          <span className="text-base w-5 text-center">🚪</span>
+          <span className="w-5 flex justify-center"><img src="/images/door-exit.png" alt="" className="h-4 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(248,113,113,0.35))' }} /></span>
           <span>{t('nav.logout')}</span>
         </button>
       </aside>
