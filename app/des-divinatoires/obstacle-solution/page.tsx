@@ -348,7 +348,7 @@ function RecapCard({
 }) {
   return (
     <div
-      className="rounded-2xl p-4"
+      className="min-w-0 overflow-hidden rounded-2xl p-4"
       style={{
         background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
         border: `1.5px solid ${DICE_THEME.gold}44`,
@@ -493,7 +493,7 @@ function VoieCard({ voie, i, onPick, chosen, dimmed, reason }: { voie: { id: str
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: dimmed ? 0.25 : 1, y: 0, scale: chosen ? 1.03 : 1 }}
       transition={{ delay: 0.2 + i * 0.16, duration: 0.5 }}
-      className="group relative overflow-hidden rounded-2xl p-4 text-left transition-shadow"
+      className="group relative min-w-0 overflow-hidden rounded-2xl p-4 text-left transition-shadow"
       style={{
         background: chosen
           ? 'linear-gradient(160deg, rgba(42,58,107,0.95) 0%, rgba(10,20,48,0.95) 100%)'
@@ -557,7 +557,7 @@ function VoieDestinyCard({ loading, disabled, lang, onPick }: {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.9, duration: 0.6 }}
-      className="group relative overflow-hidden rounded-2xl p-4 text-left disabled:opacity-70"
+      className="group relative min-w-0 overflow-hidden rounded-2xl p-4 text-left disabled:opacity-70"
       style={{
         background: 'radial-gradient(ellipse at 80% -10%, rgba(88,48,120,0.55) 0%, rgba(20,10,44,0.9) 45%, rgba(4,6,15,0.95) 100%)',
         border: '1px dashed rgba(200,170,255,0.4)',
