@@ -447,7 +447,7 @@ function RecapCard({
   const t = useT();
   return (
     <div
-      className="rounded-2xl p-4"
+      className="min-w-0 overflow-hidden rounded-2xl p-4"
       style={{
         background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
         border: `1.5px solid ${DICE_THEME.gold}44`,
@@ -896,7 +896,7 @@ function ChoixPage() {
                 {/* Grille des 2 options */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   {/* Option A */}
-                  <div className="space-y-3">
+                  <div className="min-w-0 space-y-3">
                     <RecapCard
                       label={t('des.choix.first')}
                       faces={resultA!}
@@ -923,7 +923,7 @@ function ChoixPage() {
                   </div>
 
                   {/* Option B */}
-                  <div className="space-y-3">
+                  <div className="min-w-0 space-y-3">
                     <RecapCard
                       label={t('des.choix.second')}
                       faces={resultB!}
