@@ -132,7 +132,8 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 mystic-panel p-6 max-w-sm w-[92%] text-center" style={{ borderColor: 'rgba(218,165,32,0.35)' }}>
-        <div className="text-3xl mb-2">🔮</div>
+        {/* Boule de cristal : logo de l'espace oracle (même gabarit que l'ancien emoji text-3xl) */}
+        <img src="/logo-espace.png" alt="" className="mx-auto mb-2 h-[30px] w-auto object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(218,165,32,0.45))' }} />
         <h3 className="mystic-title text-lg mb-2" style={{ color: '#DAA520' }}>{title}</h3>
         <p className="text-gray-300 text-sm leading-relaxed mb-4">{text}</p>
         <div className="flex gap-3">

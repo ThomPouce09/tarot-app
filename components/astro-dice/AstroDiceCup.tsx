@@ -178,6 +178,9 @@ export interface AstroDiceCupProps
   /** Quand true, le pad tactile passe en touchAction:'none' (bloque le scroll
    *  pendant la manipulation du gobelet). */
   lockScroll?: boolean;
+  /** Musique de la frappe « ciel déchiré » + sa durée (variante par tirage :
+   *  /obstacle-solution joue animation-zodiac-obstacle, 4,04 s). */
+  strikeSound?: { key: string; ms: number };
 }
 
 /* Gobelet : taille validée (60px). Positionné au BORD BAS de l'arène, pas au
@@ -219,6 +222,7 @@ export default function AstroDiceCup({
   activeKinds,
   onShake,
   lockScroll,
+  strikeSound = { key: 'animation-zodiac', ms: 3010 },
   verticalShift = 0,
   diceHop,
 }: AstroDiceCupProps) {
@@ -451,10 +455,11 @@ export default function AstroDiceCup({
       ] as [string, string][], n: (s?.n ?? 0) + 1 }));
       setArenaGone(true);
       // Le résultat (scroll + oracle des pages) n'est remonté qu'après la
-      // dissolution du ciel (~6,8 s) : la frappe est vue EN ENTIER.
-      window.setTimeout(() => onRest?.(faces), 6800);
+      // frappe complète : décalage 0,5 s + musique + 2 s de lisibilité +
+      // dissolution (strikeSound.ms + 3,3 s) — la frappe est vue EN ENTIER.
+      window.setTimeout(() => onRest?.(faces), strikeSound.ms + 3300);
     },
-    [onRest],
+    [onRest, strikeSound.ms],
   );
 
   // ── Remise à zéro de l'overlay quand une nouvelle manche commence. ──
@@ -527,7 +532,8 @@ export default function AstroDiceCup({
 
       {/* Frappe « ciel déchiré » : calque au-dessus de l'arène (qui fuit à 0). */}
       {strike && (
-        <ConstellationStrike key={strike.n} visible tokens={strike.t} onDone={() => setStrike(null)} />
+        <ConstellationStrike key={strike.n} visible tokens={strike.t} onDone={() => setStrike(null)}
+          soundKey={strikeSound.key} musicMs={strikeSound.ms} />
       )}
 
       {/* ANIM 2 — overlay gobelet transparent au bord bas de l'arène. Non

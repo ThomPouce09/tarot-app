@@ -112,7 +112,8 @@ export default function EchoBox({
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.echo) {
-        playSound('seal', 0.95); // l'acte : le sceau est posé
+        // l'acte : le sceau est posé (timbre astro propre aux dés zodiacaux)
+        playSound(domain === 'des' ? 'seal-astro' : 'seal', 0.95);
         apply(data.echo);
       } else if (data.reason === 'tier' || data.reason === 'cap') {
         // Message i18n côté client (le serveur ne connaît pas la langue).

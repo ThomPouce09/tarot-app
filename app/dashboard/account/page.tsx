@@ -207,8 +207,11 @@ export default function AccountPage() {
         )}
       </div>
 
-      {/* Déconnexion (mobile) */}
-      <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3">{t('account.logout')}</button>
+      {/* Déconnexion (mobile) — icône porte comme dans la barre latérale */}
+      <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3 flex items-center justify-center gap-2">
+        <img src="/images/door-exit.png" alt="" className="h-5 w-auto object-contain" />
+        <span>{t('account.logout')}</span>
+      </button>
     </div>
   );
 }

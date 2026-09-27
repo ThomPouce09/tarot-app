@@ -52,7 +52,7 @@ export function VerifiedGate({ state }: { state: VerifyState }) {
       <div className="w-full max-w-md mx-4 p-6 rounded-2xl text-center" style={{ border: '1px solid rgba(218,165,32,0.3)', background: 'rgba(26,14,10,0.7)' }}>
         {state === 'loading' ? (
           <>
-            <div className="text-3xl mb-3" aria-hidden>{'🔮'}</div>
+            <img src="/logo-espace.png" alt="" className="mx-auto mb-3 h-[30px] w-auto object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(218,165,32,0.45))' }} />
             <h3 className="text-lg mb-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#DAA520' }}>
               {t('gate.verifyLoading')}
             </h3>

@@ -73,26 +73,37 @@ export function CosmicRing({ animate: go }: { animate: boolean }) {
    zéro par AstroDiceCup pendant la séquence (focus total), puis revient. */
 export function ConstellationStrike({
   visible, tokens, onDone,
+  soundKey = 'animation-zodiac',
+  musicMs = 3010,
 }: {
   visible: boolean;
   /** 3 étoiles [glyphe, nom] dans l'ordre (Planète, Signe, Maison). */
   tokens: [string, string][];
   onDone?: () => void;
+  /** Musique de la frappe (variante par tirage). */
+  soundKey?: string;
+  /** Durée de cette musique en ms — le hold de lecture suit sa fin. */
+  musicMs?: number;
 }) {
-  // la séquence complète dure ~6,6 s : le temps d'un souffle humain.
-  // L'arène ne revient PAS ensuite (elle n'a plus de raison d'être là).
+  // La frappe épouse sa musique (3,0 s / choisis ; 4,0 s / obstacle) :
+  // filantes 0,25→2,3 s, liens d'or 2,25-2,85 s, puis le ciel RESTE EN PLACE
+  // 2 s de plus pour déchiffrer les 3 faces, et se dissout en 0,6 s sur la
+  // toute fin. L'arène ne revient PAS ensuite.
+  const total = musicMs + 3100; // +0,5 s de décalage musique + 2,6 s de fin
   useEffect(() => {
     if (visible && onDone) {
-      const t = window.setTimeout(onDone, 6600);
+      const t = window.setTimeout(onDone, total);
       return () => window.clearTimeout(t);
     }
-  }, [visible, onDone]);
-  // trois impacts sonores — un par filante qui touche le ciel.
+  }, [visible, onDone, total]);
+  // une seule musique — les impacts individuels sont fondus dedans.
+  // Départ décalé de +0,5 s : le premier accent du morceau tombe sur la
+  // première filante (impact à 0,85 s ≈ 0,5 + 0,35 s de montée).
   useEffect(() => {
     if (!visible) return;
-    const ids = [760, 1480, 2200].map((d) => window.setTimeout(() => playSound('rune-hit-1', 0.7), d));
-    return () => ids.forEach((id) => window.clearTimeout(id));
-  }, [visible]);
+    const t = window.setTimeout(() => playSound(soundKey, 0.9), 500);
+    return () => window.clearTimeout(t);
+  }, [visible, soundKey]);
   if (!visible) return null;
   const pts = [[34, 122], [122, 60], [70, 12]];                       // points d'impact
   const from = [[-64, -74], [214, -28], [-34, 218]];                  // départs hors cadre
@@ -113,7 +124,11 @@ export function ConstellationStrike({
         );
       })}
       {/* Fond 100 % transparent : l'arène est déjà fondue à 0 (AstroDiceCup),
-          le fond d'origine de la page reste visible derrière les filantes. */}
+          le fond d'origine de la page reste visible derrière les filantes.
+          Le ciel reste posé ~2 s après la musique (lecture des 3 faces),
+          puis se dissout en fondu sur les derniers instants. */}
+      <motion.g initial={{ opacity: 1 }} animate={{ opacity: [1, 1, 0] }}
+        transition={{ duration: total / 1000, times: [0, (musicMs + 2500) / total, 1] }}>
       {/* liens d'or : la constellation se referme — DERRIÈRE les glyphes/noms,
           raccourcis et fondus aux extrémités pour ne jamais les rayer. */}
       {[[34, 122], [122, 60]].map(([ax, ay], i) => {
@@ -127,7 +142,7 @@ export function ConstellationStrike({
             stroke={`url(#cons-fade-${i})`} strokeWidth="1.3" strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: [0, 1], opacity: [0, 0.9] }}
-            transition={{ duration: 0.9, delay: 3.0 + i * 0.4 }} />
+            transition={{ duration: 0.6, delay: 2.25 + i * 0.3 }} />
         );
       })}
       {tokens.map(([gly, name], i) => {
@@ -157,6 +172,7 @@ export function ConstellationStrike({
           </motion.g>
         );
       })}
+      </motion.g>
     </svg>
   );
 }
