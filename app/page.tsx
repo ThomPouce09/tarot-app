@@ -39,10 +39,10 @@ export default function HomePage() {
     }
   }, []);
   // Musique d'accueil en boucle (lib/music) — règles : maître « Musique » off →
-  // jamais ; on + voix actives → la piste sélectionnée (défaut Vibrations) joue
-  // dès l'arrivée sur l'accueil (le browser exige un geste → armé au premier
-  // toucher, retry automatique). L'enceinte (voix off) la coupe avec les voix ;
-  // réactiver les voix la remet.
+    // jamais ; on + enceinte blanche → la piste sélectionnée (défaut Vibrations)
+    // joue dès l'arrivée sur l'accueil (le browser exige un geste → armé au
+    // premier toucher, retry automatique). L'ENCEINTE (orange/rouge) la coupe ;
+    // le bouton « Voix » des Préférences ne la régit PLUS (canal indépendant).
   useEffect(() => {
     const start = () => applyMusicPrefs();
     const onVisibility = () => {

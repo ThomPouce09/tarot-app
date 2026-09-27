@@ -82,6 +82,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'anvil', file: '/audio/anvil.mp3', category: 'ui', label: 'Impact enclume (clic sceller)', duration: 2.0, usage: 'Augure — clic sur « Sceller » (impact du cachet)' },
   { key: 'seal', file: '/audio/seal.mp3', category: 'ui', label: 'Sceau acté', duration: 3.0, usage: 'Augure — confirmation affichée : le sceau est posé' },
   { key: 'seal-astro', file: '/audio/seal-astro.mp3', category: 'ui', label: 'Sceau acté (dés zodiacaux)', duration: 8.45, usage: 'Augure des dés — confirmation affichée : le sceau astral est posé' },
+  { key: 'seal-astro-click', file: '/audio/seal-astro-click.mp3', category: 'ui', label: 'Clic sceller (dés zodiacaux)', duration: 1.62, usage: 'Augure des dés — clic sur « Sceller l’augure »' },
   { key: 'animation-zodiac', file: '/audio/animation-zodiac.mp3', category: 'dice', label: 'Frappe du zodiaque', duration: 3.01, usage: 'Dés — animation « le ciel se déchire » (les 3 faces)' },
   { key: 'animation-zodiac-obstacle', file: '/audio/animation-zodiac-obstacle.mp3', category: 'dice', label: 'Frappe du zodiaque (Obstacle & Solution)', duration: 4.04, usage: 'Dés — frappe dans /obstacle-solution' },
   { key: 'barman-apparition', file: '/audio/barman-apparition.mp3', category: 'ui', label: 'Apparition du barman', duration: 1.9, usage: 'Pause repas — clic sur le barman (bulle qui ouvre)' },
@@ -91,6 +92,8 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'spell5', file: '/audio/spell5.mp3', category: 'ui', label: 'Sort (variante 5)', duration: 8.0, usage: 'Révélation magique — message du barman' },
   { key: 'music-vibrations', file: '/audio/music-vibrations.mp3', category: 'ambient', label: 'Vibrations (musique d’accueil)', duration: 175, usage: 'Boucle d’ambiance de la page d’accueil — tous les comptes', voice: true, music: true },
   { key: 'music-promenades', file: '/audio/music-promenades.mp3', category: 'ambient', label: 'Promenades (musique premium)', duration: 174, usage: 'Boucle d’ambiance réservée Initié/Arkane', voice: true, music: true },
+  { key: 'music-constellations', file: '/audio/music-constellations.mp3', category: 'ambient', label: 'Constellations (musique premium)', duration: 154, usage: 'Boucle d’ambiance réservée Initié/Arkane', voice: true, music: true },
+  { key: 'music-silverwell', file: '/audio/music-silverwell.mp3', category: 'ambient', label: 'Silver Well (musique Arkane)', duration: 153, usage: 'Boucle d’ambiance réservée Arkane', voice: true, music: true },
   { key: 'creatures1', file: '/audio/creatures1.mp3', category: 'ambient', label: 'Créature 1', duration: 1.20, usage: 'Tap sur la luciole — variant 1' },
   { key: 'creatures2', file: '/audio/creatures2.mp3', category: 'ambient', label: 'Créature 2', duration: 1.00, usage: 'Tap sur la luciole — variant 2' },
   { key: 'creatures3', file: '/audio/creatures3.mp3', category: 'ambient', label: 'Créature 3', duration: 1.10, usage: 'Tap sur la luciole — variant 3' },
@@ -171,14 +174,59 @@ export function setSoundPrefs(soundEffects: boolean, voices: boolean) {
   }
 }
 
-/** Effets sonores activés ? (faux = playSound est muet) */
+/** Effets sonores activés ? (faux = playSound est muet)
+ *  L'enceinte rouge « tout coupé » mute aussi les effets sans toucher à la
+ *  préférence « Effets » elle-même (les interrupteurs Préférences restent
+ *  indépendants de l'enceinte). */
 export function isEffectsEnabled() {
-  return getSoundPrefs().soundEffects;
+  return getSoundPrefs().soundEffects && getSpeakerState() !== 'muted';
 }
 
-/** Voix activées ? (jingles « voix » des pages, contrôlés par la préférence Voix) */
+/** Voix activées ? (jingles « voix » des pages, contrôlés par la préférence Voix ;
+ *  l'enceinte orange/rouge les coupe également SANS modifier la préférence.) */
 export function isVoicesEnabled() {
-  return getSoundPrefs().voices;
+  return getSoundPrefs().voices && getSpeakerState() === 'all';
+}
+
+/* ── État explicite de l'ENCEINTE (blanc/orange/rouge) ───────────────────
+   La musique est régée par le maître « Musique » + l'ENCEINTE (jamais par le
+   bouton « Voix » des Préférences, désormais indépendant) : d'où cet état
+   séparé, écrit par le bouton enceinte seulement. En l'absence de clé
+   (avant la 1ʳᵉ pression), on dérive des anciens drapeaux (compat). */
+export type SpeakerState3 = 'all' | 'effects' | 'muted';
+export function getSpeakerState(): SpeakerState3 {
+  try {
+    const p = JSON.parse(localStorage.getItem('tarot_prefs') || '{}');
+    if (p.speakerState === 'all' || p.speakerState === 'effects' || p.speakerState === 'muted') return p.speakerState;
+  } catch { /* storage indisponible */ }
+  // Pas d'état explicite posé → blanc. On ne dérive PAS de (voix, effets) :
+  // sinon toucher le bouton « Voix » des Préférences ferait bouger l'icône et
+  // l'état de l'enceinte — les canaux sont INDÉPENDANTS par design.
+  return 'all';
+}
+export function setSpeakerState(s: SpeakerState3) {
+  try {
+    const raw = localStorage.getItem('tarot_prefs');
+    const p = raw ? JSON.parse(raw) : {};
+    p.speakerState = s;
+    localStorage.setItem('tarot_prefs', JSON.stringify(p));
+    // Préviens les ambianceurs (landing + MusicAmbience) : applyMusicPrefs
+    // doit immédiatement mettre la musique en pause (orange/rouge) ou la
+    // reprendre là où elle s'était arrêtée (blanc) — action IMMÉDIATE.
+    window.dispatchEvent(new Event(SOUND_PREFS_EVENT));
+  } catch { /* ignore */ }
+}
+/** La musique peut-elle SONNER GLOBALEMENT (maître « Musique » ON + enceinte
+    explicitement non coupée) ? L'état dérivé (Voix) ne compte PAS ici : seul
+    un clic sur l'ENCEINTE écrit `speakerState`. Le player des Préférences
+    s'en affranchit (salle d'écoute, ignoreVoices). */
+export function musicGloballyAllowed(): boolean {
+  try {
+    const p = JSON.parse(localStorage.getItem('tarot_prefs') || '{}');
+    if (p.musicOn === false) return false;
+    if (p.speakerState === 'effects' || p.speakerState === 'muted') return false;
+    return true;
+  } catch { return true; }
 }
 
 /* ----------------------------------------------------------------------- */
@@ -192,15 +240,11 @@ const unlocked = new Map<string, HTMLAudioElement>();
  *  Appeler au montage : window.addEventListener('pointerdown', unlockAll, { once:true }). */
 export function unlockAllSounds() {
   for (const s of SOUNDS) {
-    // Chaque son suit sa préférence : voix (jingles de page + musique) vs effets.
-    if (s.voice ? !isVoicesEnabled() : !isEffectsEnabled()) continue;
-    // Musique : respect aussi son interrupteur maître « Musique » (lib/music) —
-    // éteinte = même le pré-déverrouillage muet est annulé.
+    // Musique : régulée par l'ENCEINTE + son maître (pas le bouton Voix).
     if (s.music) {
-      try {
-        const p = JSON.parse(localStorage.getItem('tarot_prefs') || '{}');
-        if (p.musicOn === false) continue;
-      } catch { /*_prefs illisibles → on déverrouille quand même */ }
+      if (!musicGloballyAllowed()) continue;
+    } else if (s.voice ? !isVoicesEnabled() : !isEffectsEnabled()) {
+      continue;
     }
     try {
       if (unlocked.has(s.key)) continue;
@@ -274,12 +318,14 @@ export function installSoundUnlock() {
  *  respect la préférence (voix/effets), élément pré-déverrouillé réutilisé.
  *  Si le browser rejette le play() (politique autoplay sans geste valide), on
  *  re-tente silencieusement au geste suivant — un seul slot de re-tentative. */
-let retrySlot: { key: string; volume: number } | null = null;
-const retryGesture = () => { if (retrySlot) playLoop(retrySlot.key, retrySlot.volume); };
-export function playLoop(key: string, volume = 0.5): void {
+let retrySlot: { key: string; volume: number; ignoreVoices?: boolean } | null = null;
+const retryGesture = () => { if (retrySlot) playLoop(retrySlot.key, retrySlot.volume, { ignoreVoices: retrySlot.ignoreVoices }); };
+export function playLoop(key: string, volume = 0.5, opts?: { ignoreVoices?: boolean }): void {
   const entry = BY_KEY[key];
   if (!entry) return;
-  if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
+  // ignoreVoices : salle d'écoute du player « Musique » des Préférences — la
+  // piste choisie s'entend même enceinte coupée ; seul le maître Musique régit.
+  if (!opts?.ignoreVoices && (entry.music ? !musicGloballyAllowed() : (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()))) return;
   try {
     let snd = unlocked.get(key);
     if (!snd) { snd = new Audio(entry.file); unlocked.set(key, snd); }
@@ -291,7 +337,7 @@ export function playLoop(key: string, volume = 0.5): void {
       window.removeEventListener('touchstart', retryGesture);
     }).catch(() => {
       // Rejeté (pas encore de geste valide) → re-tente à chaque geste.
-      retrySlot = { key, volume };
+      retrySlot = { key, volume, ignoreVoices: opts?.ignoreVoices };
       window.removeEventListener('pointerdown', retryGesture);
       window.removeEventListener('touchstart', retryGesture);
       window.addEventListener('pointerdown', retryGesture);
@@ -372,7 +418,9 @@ export function stopVoices() {
     if (re && re.voice) { retrySlot = null; window.removeEventListener('pointerdown', retryGesture); window.removeEventListener('touchstart', retryGesture); }
   }
   for (const s of SOUNDS) {
-    if (!s.voice) continue; // la musique (voice+music) est coupée avec les voix
+    if (!s.voice) continue;
+    if (s.music) continue; // la musique n'est PLUS liée au bouton « Voix » :
+    // elle n'obéit qu'à son maître + à l'enceinte (speakerState explicite).
     const snd = unlocked.get(s.key);
     if (!snd) continue;
     try {
@@ -390,6 +438,23 @@ export function stopAllSounds() {
   if (typeof window === 'undefined') return;
   if (retrySlot) { retrySlot = null; window.removeEventListener('pointerdown', retryGesture); window.removeEventListener('touchstart', retryGesture); }
   unlocked.forEach((snd) => {
+    try {
+      snd.pause();
+      snd.currentTime = 0;
+    } catch {
+      // élément non jouable — on ignore
+    }
+  });
+}
+
+/** Comme stopAllSounds mais SANS rembobiner la musique : l'enceinte rouge
+ *  coupe tout, mais au retour en blanc la piste reprend à la seconde où elle
+ *  s'était arrêtée (continuité voulue), pas depuis le début. */
+export function stopAllExceptMusic() {
+  if (typeof window === 'undefined') return;
+  unlocked.forEach((snd, key) => {
+    const e = BY_KEY[key];
+    if (e && e.music) { try { snd.pause(); } catch { /* ignore */ } return; } // pause sèche
     try {
       snd.pause();
       snd.currentTime = 0;

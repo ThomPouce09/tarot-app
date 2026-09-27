@@ -100,7 +100,10 @@ export default function EchoBox({
   const seal = useCallback(async () => {
     const email = readEmail();
     if (!email) return;
-    playSound('anvil', 0.85); // le geste : le cachet frappe l'enclume
+    // Dés zodiacaux : clic = « seal-astro-click », acte = « seal-astro ».
+    // Ailleurs : enclume au clic, sceau à l'acte (comme avant).
+    if (domain === 'des') playSound('seal-astro-click', 0.95);
+    else playSound('anvil', 0.85); // le geste : cachet sur enclume
     setSealing(true);
     setSealError('');
     try {

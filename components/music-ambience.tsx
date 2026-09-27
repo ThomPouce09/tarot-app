@@ -13,7 +13,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { MUSIC_PREFS_EVENT, MUSIC_TRACKS, applyMusicPrefs } from '@/lib/music';
+import { MUSIC_PREFS_EVENT, MUSIC_TRACKS, applyMusicPrefs, isMusicRoomActive } from '@/lib/music';
 import { SOUND_PREFS_EVENT, pauseSound } from '@/lib/sounds';
 
 export default function MusicAmbience() {
@@ -23,6 +23,7 @@ export default function MusicAmbience() {
     if (!pathname || pathname === '/') return; // la landing gère elle-même
     const start = () => applyMusicPrefs();
     const onVisibility = () => {
+      if (isMusicRoomActive()) return; // salle d'écoute : le player gère sa lecture
       // Onglet caché = pause SANS rembobiner ; retour = reprise exacte.
       if (document.hidden) for (const tk of MUSIC_TRACKS) pauseSound(tk.key);
       else start();

@@ -262,6 +262,12 @@ export function BalancePlateaux({
    les explications en dur dans l'encart d'analyse. */
 export function ClickableFaces({ faces }: { faces: TargetFaces }) {
   const [open, setOpen] = useState(false);
+  // La pilule doit tenir sur UNE seule ligne à toute largeur d'écran : même
+  // logique que RuneTitle — on réduit proportionnellement le corps de texte
+  // jusqu'à ce que le scrollWidth rentre dans le parent (badge ⓘ exclus).
+  const pillRef = useRef<HTMLButtonElement>(null);
+  useFitOneLine(pillRef, [`${faces.planet}|${faces.sign}|${faces.house}`],
+    { base: 16, min: 8, max: 16, inset: 0, font: '400 16px "Cinzel"' });
   const rows = [
     ['Planète', String(faces.planet), meaningFor('planet', faces.planet)],
     ['Signe', String(faces.sign), meaningFor('sign', faces.sign)],
@@ -269,8 +275,8 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
   ] as const;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)}
-        className="mx-auto flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full px-4 py-1.5 transition-transform active:scale-[0.97]"
+      <button ref={pillRef} type="button" onClick={() => setOpen(true)}
+        className="mx-auto flex max-w-full items-center justify-center gap-x-2 rounded-full px-4 py-1.5 transition-transform active:scale-[0.97]"
         style={{
           background: 'rgba(20,36,90,0.55)',
           border: '1px dashed rgba(212,175,55,0.65)',
@@ -279,7 +285,7 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
           textDecoration: 'underline dotted rgba(212,175,55,0.5) 1px', textUnderlineOffset: 4,
         }}
         title="Toucher pour la signification des faces">
-        <span className="text-center leading-snug">
+        <span className="whitespace-nowrap text-center leading-snug">
           <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.planet)} {PLANET_NAMES[String(faces.planet)] ?? faces.planet}</span>
           <span style={{ color: DICE_THEME.glyph, opacity: 0.6 }}> · </span>
           <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.sign)} {SIGN_NAMES[String(faces.sign)] ?? faces.sign}</span>
