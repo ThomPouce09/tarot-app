@@ -23,7 +23,7 @@ export function DiceLaunchCard({ title, placeholder, instruct, draft, setDraft, 
   /** Libellé de la note de verrouillage (ex. « 1ᵉʳ choix », « l'Obstacle »). */
   lockNote?: string;
 }) {
-  const [mode, setMode] = useState<'theme' | 'free'>(lockedMode ?? 'theme');
+  const [mode, setMode] = useState<'theme' | 'free'>(lockedMode ?? 'free');
   const eff = lockedMode ?? mode;
   const q = draft.trim();
   return (
@@ -47,7 +47,7 @@ export function DiceLaunchCard({ title, placeholder, instruct, draft, setDraft, 
         dangerouslySetInnerHTML={{ __html: instruct }}
       />
 
-      {/* Onglets : Élément & intention (défaut) / question libre. Verrouillés
+      {/* Onglets : question libre (défaut) / thème & intention. Verrouillés
           quand le second tirage doit imiter le premier (pas de mixage). */}
       <div className="mb-4 flex justify-center gap-2">
         {([

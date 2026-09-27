@@ -35,7 +35,13 @@ import {
 import AstroDiceSet from './AstroDiceSet';
 import { randomTargetFaces, type TargetFaces } from './glyphs';
 import type { AstroDiceSetProps } from './AstroDiceSet';
-import { installSoundUnlock, playRandom, playSound } from '@/lib/sounds';
+import { installSoundUnlock, playRandom, playSound, stopSound } from '@/lib/sounds';
+
+// Sons de secousse horizontale (dont les « gobelets riches » de 5 s) : ils
+// doivent ÊTRE COUPÉS net dès que le gobelet part en cascade verticale, pour
+// que seul le son de déroulé sur la piste continue.
+const SHAKE_KEYS = ['dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1', 'dices-cup-2', 'dices-cup-3'];
+function cutShake() { for (const k of SHAKE_KEYS) stopSound(k); }
 import { PLANET_NAMES, SIGN_NAMES } from './names';
 import { ConstellationStrike } from './constellation';
 
@@ -288,11 +294,12 @@ export default function AstroDiceCup({
     const y = window.scrollY;
     const s = document.body.style;
     const sw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-    const prev = { pos: s.position, top: s.top, left: s.left, right: s.right, width: s.width, pr: s.paddingRight };
+    const prev = { pos: s.position, top: s.top, left: s.left, right: s.right, width: s.width, pr: s.paddingRight, ov: s.overflow };
     s.position = 'fixed'; s.top = `-${y}px`; s.left = '0'; s.right = '0'; s.width = '100%';
+    s.overflow = 'hidden'; // vertical ET horizontal : rien ne bouge pendant le jeté
     if (sw > 0) s.paddingRight = `${sw}px`;
     return () => {
-      s.position = prev.pos; s.top = prev.top; s.left = prev.left; s.right = prev.right; s.width = prev.width; s.paddingRight = prev.pr;
+      s.position = prev.pos; s.top = prev.top; s.left = prev.left; s.right = prev.right; s.width = prev.width; s.paddingRight = prev.pr; s.overflow = prev.ov;
       window.scrollTo(0, y);
     };
   }, [rolling]);
@@ -316,6 +323,8 @@ export default function AstroDiceCup({
   // Même cascade que le push tactile : gobelet2 → 0.4s → gobelet3 + lancer.
   const launch = useCallback(() => {
     if (revealed || rolling) return;
+    cutShake(); // le son de secousse (gobelets riches 5 s) doit mourir ici,
+    // pas en même temps que le jeté : sinon les deux se chevauchent « longuement ».
     setPhase('done');
     setShowCupDice(false);
     setCupImg('/images/gobelet2.png');
@@ -383,6 +392,7 @@ export default function AstroDiceCup({
         if (dy > 36 && Math.abs(dy) >= Math.abs(dx)) {
           shaking.current = false;
           pushStartY.current = null;
+          cutShake(); // SECousse coupée NET → seul le déroulé sur la piste suit
           setPhase('done');
           setShowCupDice(false);
           setCupImg('/images/gobelet2.png');

@@ -7,16 +7,10 @@
 // Position : fixée en haut à droite, SOUS le bouton menu (YiSlideNav : right-1, 32px de haut).
 
 import { useEffect, useRef, useState } from 'react';
-import { getSoundPrefs, setSoundPrefs, unlockAllSounds, playSound, stopVoices, stopAllSounds, SOUND_PREFS_EVENT } from '@/lib/sounds';
+import { setSpeakerState, unlockAllSounds, playSound, stopVoices, stopAllExceptMusic, SOUND_PREFS_EVENT, getSpeakerState } from '@/lib/sounds';
 import { useT } from '@/lib/i18n';
 
 type SpeakerState = 'all' | 'effects' | 'muted';
-
-function stateOf(voices: boolean, effects: boolean): SpeakerState {
-  if (!voices && !effects) return 'muted';   // rouge = tout désactivé
-  if (!voices) return 'effects';             // orange = sons seuls
-  return 'all';                              // blanc = voix actives (avec ou sans effets)
-}
 
 // Ordre des clics : all → effects seules → muet → tout réactivé.
 function nextState(cur: SpeakerState): SpeakerState {
@@ -37,10 +31,9 @@ export default function SpeakerToggle({ top = 38, right = 7, z = 55 }: { top?: n
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Synchronise l'affichage avec les préférences (page Préférences, enceinte, autre onglet).
-  const sync = () => {
-    const p = getSoundPrefs();
-    setState(stateOf(p.voices, p.soundEffects));
-  };
+  // getSpeakerState : état EXPLICITE de l'enceinte (seul un clic ici l'écrit) ;
+  // sans lui, le bouton « Voix » des Préférences ferait bouger l'enceinte.
+  const sync = () => setState(getSpeakerState());
   useEffect(() => {
     sync();
     window.addEventListener(SOUND_PREFS_EVENT, sync);
@@ -53,15 +46,19 @@ export default function SpeakerToggle({ top = 38, right = 7, z = 55 }: { top?: n
   }, []);
 
   const cycle = () => {
-    const next = nextState(state);
-    // Signature : setSoundPrefs(soundEffects, voices) — EFFETS en 1er argument !
-    if (next === 'all') setSoundPrefs(true, true);           // tout réactiver   (blanc)
-    else if (next === 'effects') setSoundPrefs(true, false);  // effets ON, voix OFF (orange)
-    else setSoundPrefs(false, false);                          // tout couper      (rouge)
+    // SOURCE DE VÉRITÉ = le stockage (getSpeakerState), pas le state React :
+    // deux taps rapides sinon liraient un state périmé (batching) et
+    // repartiraient du mauvais maillon du cycle.
+    const next = nextState(getSpeakerState());
+    setSpeakerState(next); // état EXPLICITE de l'enceinte (régit musique/voix/effets)
+    // ⚠️ N'ÉCRIT PLUS (voices, soundEffects) : l'enceinte ne doit jamais
+    // faire bouger les interrupteurs « Voix » / « Effets » des Préférences.
     // Coupe IMMÉDIATEMENT les pistes déjà en cours : sans ça, un jingle de page
     // (jusqu'à 11 s) continue alors que la préférence vient de passer à off.
     if (next === 'effects') stopVoices();
-    else if (next === 'muted') stopAllSounds();
+    else if (next === 'muted') stopAllExceptMusic(); // rouge = tout coupé, mais
+    // la musique est seulement MIS EN PAUSE (pas rembobinée) → au retour blanc
+    // elle reprend où elle s'était arrêtée (continuité).
     else unlockAllSounds();
     // Acquittement « micro » : le clic qui COUPE les voix (all→effects) et
     // celui qui les REPLACE (muted→all) jouent mute-unmute. « Tout couper »

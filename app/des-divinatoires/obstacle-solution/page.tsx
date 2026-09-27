@@ -16,6 +16,10 @@ import {
   DiceBackground,
   DiceTitle,
   DiceButton,
+  OneLineQuestion,
+  DiceTutorial,
+  useDiceCupHeight,
+  scrollToCupFit,
   DICE_THEME,
   PLANET_NAMES,
   SIGN_NAMES,
@@ -357,12 +361,11 @@ function RecapCard({
         {label}
       </p>
       {question && (
-        <p
-          className="mb-3 text-center text-sm italic"
+        <OneLineQuestion
+          className="mb-3 text-sm italic"
           style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-        >
-          « {question} »
-        </p>
+          text={question}
+        />
       )}
       <div className="mb-1"><ClickableFaces faces={faces} /></div>
       {shortInterpretation && (
@@ -650,14 +653,14 @@ function ObstacleSolutionPage() {
   // Bloc d'analyse de la Solution — cible du focus après le 2ᵉ tirage.
   const solutionRef = useRef<HTMLDivElement | null>(null);
   const tutorialRef = useRef<HTMLDivElement | null>(null);
+  // Hauteur d'arène OPTIMISÉE par écran (bandeau + tuto MESURÉS) : le tutoriel
+  // ne déborde jamais du bas de l'écran, même sans scroll possible.
+  const cupH = useDiceCupHeight(tutorialRef, step === 'obstacle_roll' || step === 'solution_roll', cupAreaRef);
 
   const scrollToCup = useCallback(() => {
-    // Gobelet CENTRÉ dans l'écran pendant le lancer (comme /choix).
-    if (cupRef.current) {
-      cupRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else if (cupAreaRef.current) {
-      cupAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    // Gobelet CENTRÉ dans l'écran pendant le lancer (comme /choix) +
+    // correction mesurée : le bas du tuteur ne dépasse jamais l'écran.
+    scrollToCupFit(cupRef.current ?? cupAreaRef.current, tutorialRef.current);
   }, []);
 
   useEffect(() => {
@@ -854,18 +857,18 @@ function ObstacleSolutionPage() {
       />
 
       <div className="mx-auto max-w-2xl px-4">
-        {/* Question sauvegardée affichée en permanence après enregistrement */}
+        {/* Question sauvegardée affichée en permanence après enregistrement
+            (une seule ligne — tap pour la modale qui l'affiche en entier) */}
         {question && (
-          <p
-            className="mx-auto mb-4 max-w-xl text-center text-sm italic leading-relaxed"
+          <OneLineQuestion
+            className="mx-auto mb-4 max-w-xl text-sm italic leading-relaxed"
             style={{
               fontFamily: 'var(--font-cormorant), serif',
               color: DICE_THEME.ocreLight,
               textShadow: '0 0 10px rgba(232,198,106,0.25)',
             }}
-          >
-            « {question} »
-          </p>
+            text={question}
+          />
         )}
 
         {/* ════════════ INTRO — Obstacle : thème OU question (obligatoire) ════════════ */}
@@ -893,7 +896,7 @@ function ObstacleSolutionPage() {
             <div
               ref={cupRef}
               style={{
-                height: 460,
+                height: cupH,
                 opacity: ready ? 1 : 0,
                 transition: 'opacity 450ms ease',
               }}
@@ -902,7 +905,8 @@ function ObstacleSolutionPage() {
                 key={resetSignal}
                 targetFaces={faces}
                 skin="moon"
-                height={460}
+                height={cupH}
+                lockScroll
                 onRest={handleRest}
                 onReady={() => setReady(true)}
                 resetSignal={resetSignal}
@@ -911,51 +915,8 @@ function ObstacleSolutionPage() {
                 strikeSound={{ key: 'animation-zodiac-obstacle', ms: 4040 }}
               />
             </div>
-            {/* Tutoriel */}
-            <div
-              ref={tutorialRef}
-              className="flex flex-col items-center transition-opacity duration-300"
-              style={{
-                marginTop: 6,
-                opacity: showTutorial ? 1 : 0,
-                pointerEvents: showTutorial ? 'auto' : 'none',
-              }}
-            >
-              <style>{`
-                @keyframes swipe-shake-obstacle {
-                  0%, 100% { transform: translateX(0); }
-                  25% { transform: translateX(-16px); }
-                  75% { transform: translateX(16px); }
-                }
-                .swipe-icon-obstacle {
-                  animation: swipe-shake-obstacle 0.6s ease-in-out infinite;
-                  font-size: 28px;
-                  line-height: 1;
-                  color: #87CEEB;
-                  opacity: 0.5;
-                  user-select: none;
-                  -webkit-user-select: none;
-                }
-              `}</style>
-              <svg className="swipe-icon-obstacle" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#87CEEB" d="M9.5 1C8.67 1 8 1.67 8 2.5v7.38l-1.7-.85c-.3-.15-.65-.2-1-.15a1.5 1.5 0 0 0-1.3 1.3c-.15.65.05 1.3.5 1.75l4.35 4.35c.3.3.7.45 1.15.45H18c1.1 0 2-.9 2-2V9.5c0-.65-.45-1.2-1.05-1.4l-5.1-1.85c-.15-.05-.3-.05-.45-.05-.15 0-.3.05-.45.1l-.95.4V2.5C12 1.67 11.33 1 10.5 1h-1Z" opacity="0.6"/>
-                <path fill="#87CEEB" d="m17.5 14.5-2.12-1.06c-.2-.1-.44-.14-.67-.11l-1.83.35.88-3.53a1.25 1.25 0 0 0-.88-1.5c-.65-.18-1.3.2-1.48.85l-1.4 5.6-2.1-1.05.3 1.5 3.5 1.75c.3.15.65.2 1 .15H16c.65 0 1.2-.45 1.4-1.05l.35-1.05c.08-.25.05-.52-.08-.75l-.17-.15Z" opacity="0.4"/>
-              </svg>
-              <p
-                className="text-center leading-tight"
-                style={{
-                  fontFamily: 'var(--font-cinzel), serif',
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  fontSize: '0.5rem',
-                  maxWidth: 120,
-                  lineHeight: 1.2,
-                }}
-              >
-                {lang === 'en'
-                  ? 'Shake the cup, then push up to cast the dice'
-                  : 'Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter'}
-              </p>
-            </div>
+            {/* Tutoriel — rendu partagé (référence /choix) */}
+            <DiceTutorial show={showTutorial} boxRef={tutorialRef} text={t('des.choix.tutorial')} />
           </div>
         )}
 
@@ -1056,12 +1017,11 @@ function ObstacleSolutionPage() {
                 {t('des.obstacle.readSolution')}
               </p>
               {questionB && questionB !== question && (
-                <p
-                  className="mb-2 text-center text-sm italic"
+                <OneLineQuestion
+                  className="mb-2 text-sm italic"
                   style={{ fontFamily: 'var(--font-cormorant), serif', color: DICE_THEME.glyph }}
-                >
-                  « {questionB} »
-                </p>
+                  text={questionB}
+                />
               )}
               <div className="mb-1"><ClickableFaces faces={solution} /></div>
               <DiceAnalysis

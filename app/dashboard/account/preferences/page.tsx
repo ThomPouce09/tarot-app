@@ -54,7 +54,7 @@ export default function PreferencesPage() {
   const [, setUser] = useState<any>(null);
 
   // Forfait effectif → fonds disponibles (Apprenti 2 / Initié 7 / Arkane tous).
-  const { sub } = useEntitlement();
+  const { sub, loaded } = useEntitlement();
   const level: BackgroundLevel = (sub?.level as BackgroundLevel) || 'apprenti';
   const availableBgs = backgroundsForLevel(level);
 
@@ -77,7 +77,7 @@ export default function PreferencesPage() {
             emailNews: d.emailNews ?? p.emailNews,
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
             musicOn: typeof d.musicOn === 'boolean' ? d.musicOn : p.musicOn,
-            musicTrack: d.musicTrack === "promenades" || d.musicTrack === "premium" ? "promenades" : "vibrations",
+            musicTrack: d.musicTrack === "silverwell" ? "silverwell" : d.musicTrack === "constellations" ? "constellations" : (d.musicTrack === "promenades" || d.musicTrack === "premium" ? "promenades" : "vibrations"),
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
           setSoundPrefs(next.soundEffects, next.voices);
@@ -207,7 +207,7 @@ export default function PreferencesPage() {
           )}
         </div>
         <p className="text-gray-400 text-xs leading-relaxed">{t('prefs.musicHint')}</p>
-        <MusicPlayer level={level} />
+        <MusicPlayer level={level} ready={loaded && (!email || !!sub)} />
       </div>
 
       {/* Fond d'écran de l'accueil — rangée compacte ; seuls les fonds du

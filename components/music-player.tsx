@@ -4,8 +4,10 @@
 // Le player « Musique de l'accueil » des Préférences, sous la section Son :
 // carrousel de pistes (extensible — ça ne sature pas l'espace quand on ajoute
 // des morceaux), galette tournante play/pause, progression, volume, et
-// interrupteur maître. La musique est un canal « voix » : l'enceinte la coupe
-// avec les voix, l'interrupteur maître la coupe seul (lib/music).
+// interrupteur maître. CANAL INDEPENDANT du bouton « Voix » : la musique
+// n'obéit qu'à son maître + à l'enceinte (lib/music). Le player est une salle
+// d'écoute : on peut y entendre les pistes même enceinte coupée, sans jamais
+// modifier l'état de l'enceinte ailleurs.
 // Codes couleur de « Mon espace » : violet/mauve (pas de bordeaux ici).
 
 import { useEffect, useState } from 'react';
@@ -15,7 +17,7 @@ import { useT } from '@/lib/i18n';
 import { pauseSound, playLoop, soundProgress } from '@/lib/sounds';
 import {
   MUSIC_PREFS_EVENT, MUSIC_TRACKS, getMusicPrefs, getMusicVolume, setMusicOn,
-  setMusicTrack, setMusicVolume, trackById, type MusicTrack,
+  setMusicRoomActive, setMusicTrack, setMusicVolume, trackById, type MusicTrack,
 } from '@/lib/music';
 
 const VIOLET = '#8B5CF6';
@@ -24,7 +26,7 @@ const IVORY = '#F5EAD6';
 const SUBTLE = 'rgba(245,234,214,0.62)';
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 
-export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 'arkane' }) {
+export default function MusicPlayer({ level, ready = true }: { level: 'apprenti' | 'initie' | 'arkane'; ready?: boolean }) {
   const t = useT();
   const router = useRouter();
   const [sel, setSel] = useState(trackById(getMusicPrefs().track).id);
@@ -34,13 +36,18 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
   const [vol, setVol] = useState(getMusicVolume());
 
   const current: MusicTrack = trackById(sel);
-  const locked = current.premium && level === 'apprenti';
+  // Verrou : premium = Initié/Arkane ; arkaneOnly = Arkane seul.
+  const locked = (!!current.arkaneOnly && level !== 'arkane') || (current.premium && level === 'apprenti');
 
   // L'Apprenti ne reste jamais sur une piste scellée → retour à la base.
+  // ⚠️ wait `ready` : le forfait réel arrive en asynchrone (useEntitlement) ;
+  // sans cette garde, au montage level retombe 'apprenti' et ÉCRASE la piste
+  // mémorisée d'un abonné → « à chaque retour en Préférences, reset Vibrations ».
   useEffect(() => {
+    if (!ready) return;
     if (locked) { setSel('vibrations'); setMusicTrack('vibrations'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locked]);
+  }, [locked, ready]);
 
   // Boucle d'affichage : position/état réels de la piste (barre + galette).
   useEffect(() => {
@@ -51,6 +58,17 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
     }, 500);
     return () => clearInterval(iv);
   }, [current.key, current.dur]);
+
+  // Le player des Préférences est une SALLE D'ÉCOUTE : la piste s'entend ici
+  // même enceinte coupée (prévisualisation), sans jamais modifier l'état de
+  // l'enceinte ailleurs. Cette exception ne suit pas l'utilisateur : en
+  // quittant la page, setMusicRoomActive(false) réapplique la règle globale
+  // (reprise continue si enceinte blanche, silence sinon).
+  useEffect(() => {
+    setMusicRoomActive(true);
+    return () => setMusicRoomActive(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Resynchronise quand la landing/le storage change la préférence.
   useEffect(() => {
@@ -66,9 +84,19 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
   // ── Transport ──────────────────────────────────────────────────────
   const togglePlay = () => {
     if (locked) { router.push('/dashboard/account/abonnement'); return; }
-    if (!enabled) { setMusicOn(true); setPlaying(true); return; } // joue = réarme le maître
+    if (!enabled) {
+      // Allumer ICI = maître ON + écoute immédiate, SANS toucher l'enceinte
+      // ni aux autres canaux : seule la musique est concernée.
+      setMusicOn(true);
+      playLoop(current.key, vol, { ignoreVoices: true });
+      setPlaying(true);
+      return;
+    }
     if (playing) { pauseSound(current.key); setPlaying(false); return; }
-    playLoop(current.key, vol);
+    // Le player des Préférences fait ÉCOUTER la piste choisie même quand
+    // l'enceinte (voix) est coupée ailleurs : seul le maître « Musique »
+    // (enabled) le régit ici. L'état de l'enceinte reste inchangé.
+    playLoop(current.key, vol, { ignoreVoices: true });
     setPlaying(true); // l'intervalle corrigera si le browser a bloqué
   };
 
@@ -83,7 +111,8 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
   const choose = (id: MusicTrack['id']) => {
     if (id === sel) return;
     const tr = trackById(id);
-    if (tr.premium && level === 'apprenti') { router.push('/dashboard/account/abonnement'); return; }
+    const tkLocked = (!!tr.arkaneOnly && level !== 'arkane') || (tr.premium && level === 'apprenti');
+    if (tkLocked) { router.push('/dashboard/account/abonnement'); return; }
     setSel(id);
     setPos({ time: 0, dur: tr.dur });
     setMusicTrack(id);
@@ -105,7 +134,7 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
             {t(`music.track.${current.id}`)}
           </p>
           <p className="truncate text-[10px] mt-0.5" style={{ color: SUBTLE }}>
-            {t(current.premium ? (locked ? 'music.locked' : `music.sub.${current.id}`) : `music.sub.${current.id}`)}
+            {t(current.premium ? (locked ? (current.arkaneOnly ? 'music.locked.arkane' : 'music.locked') : `music.sub.${current.id}`) : `music.sub.${current.id}`)}
           </p>
         </div>
         <button type="button" onClick={() => switchTrack(1)} aria-label={t('music.next')} title={t('music.next')}
@@ -174,7 +203,12 @@ export default function MusicPlayer({ level }: { level: 'apprenti' | 'initie' | 
       <div className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5" style={{ border: `1px solid ${VIOLET}33`, background: 'rgba(139,92,246,0.05)' }}>
         <p className="text-[11px] leading-snug" style={{ color: IVORY }}>{t('music.onLabel')}</p>
         <button type="button" role="switch" aria-checked={enabled}
-          onClick={() => { const nv = !enabled; setEnabled(nv); setMusicOn(nv); }}
+          onClick={() => {
+            // idem : le player est une salle d'écoute — l'allumer ici ne
+            // réarme PAS l'enceinte globale, mais la piste s'entend quand même.
+            const nv = !enabled; setEnabled(nv); setMusicOn(nv);
+            if (nv) playLoop(trackById(getMusicPrefs().track).key, getMusicVolume(), { ignoreVoices: true });
+          }}
           className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
           style={{ background: enabled ? `linear-gradient(180deg, ${VIOLET_PALE}, ${VIOLET})` : 'rgba(255,255,255,0.12)' }}>
           <span className="absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full transition-all"

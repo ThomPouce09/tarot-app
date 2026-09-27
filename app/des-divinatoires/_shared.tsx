@@ -5,14 +5,15 @@
 // Palette provisoire : rouge brique + ocre (à remplacer par tes visuels définitifs).
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useCallback, useState } from 'react';
-import type { ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useCallback, useEffect, useState } from 'react';
+import type { CSSProperties, MutableRefObject, ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
+import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 
 // Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
@@ -101,6 +102,177 @@ export function DiceBackground({
 }
 
 /* Titre de section stylé ocre/doré */
+/* Question posée, FORCÉE sur une seule ligne : troncature « … » si trop
+   longue, et tap pour l'afficher EN ENTIER dans une modale (même esprit que
+   la pilule des faces). Utilisée dans les bandeaux et les cartes récap. */
+export function OneLineQuestion({ text, style, className, quotes = true }: {
+  text: string;
+  style?: CSSProperties;
+  className?: string;
+  /** « … » autour du texte (défaut : oui). */
+  quotes?: boolean;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <p
+        className={`w-full cursor-pointer truncate text-center leading-relaxed ${className ?? ''}`}
+        style={style}
+        onClick={() => setOpen(true)}
+        title={text}
+      >
+        {quotes ? `« ${text} »` : text}
+      </p>
+      <AnimatePresence>
+        {open && (
+          <motion.div className="fixed inset-0 z-[95] flex items-center justify-center p-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}>
+            <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, y: 18, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.96 }} transition={{ duration: 0.3 }} onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md overflow-hidden rounded-2xl border p-6"
+              style={{
+                // Bleu nuit indigo de l'univers des dés (même fond que la
+                // modale des faces) + liseré doré — plus assorti, plus soigné.
+                background: 'linear-gradient(160deg, #14245a 0%, #0a1430 100%)',
+                borderColor: `${DICE_THEME.gold}66`,
+                boxShadow: '0 0 44px rgba(212,175,55,0.18), 0 22px 54px rgba(0,0,0,0.7)',
+              }}>
+              {/* Voile d'étoiles très discret au-dessus du texte */}
+              <div aria-hidden style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.10) 0%, transparent 60%)',
+              }} />
+              <p className="relative mb-3 text-center text-[10px] uppercase tracking-[0.35em]" style={{ color: `${DICE_THEME.gold}aa`, fontFamily: 'var(--font-cinzel-deco), serif' }}>
+                ☾ · ✦ · ☼
+              </p>
+              <p className="relative text-center text-[10px] uppercase tracking-[0.28em]" style={{ color: 'rgba(176,224,255,0.75)', fontFamily: 'var(--font-cinzel), serif' }}>
+                {t('des.qModal.title')}
+              </p>
+              <p className="relative mt-3 text-center text-lg italic leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: DICE_THEME.ocreLight, textShadow: '0 0 14px rgba(232,198,106,0.25)' }}>
+                « {text} »
+              </p>
+              {/* Filet doré de séparation */}
+              <div aria-hidden className="relative mx-auto mt-4 h-px w-24" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.7), transparent)' }} />
+              <p className="relative mt-3 text-center text-[11px]" style={{ color: 'rgba(220,230,245,0.45)' }}>{t('des.qModal.close')}</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+/* Tutoriel du gobelet (référence : rendu validé sur /choix) — icône main
+   animée + consigne, mesurés par useDiceCupHeight pour la hauteur d'arène.
+   Utilisé À L'IDENTIQUE par /choix et /obstacle-solution. */
+export function DiceTutorial({ show, boxRef, text }: { show: boolean; boxRef: MutableRefObject<HTMLDivElement | null>; text: string }) {
+  return (
+    <div
+      ref={boxRef}
+      className="flex flex-col items-center transition-opacity duration-300"
+      style={{ marginTop: 6, opacity: show ? 1 : 0, pointerEvents: show ? 'auto' : 'none' }}
+    >
+      <style>{`
+        @keyframes swipe-shake-dice {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-16px); }
+          75% { transform: translateX(16px); }
+        }
+        .swipe-icon-dice {
+          animation: swipe-shake-dice 0.6s ease-in-out infinite;
+          font-size: 28px;
+          line-height: 1;
+          color: #B0E0FF;
+          opacity: 0.95;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+      `}</style>
+      <svg className="swipe-icon-dice" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#87CEEB" d="M9.5 1C8.67 1 8 1.67 8 2.5v7.38l-1.7-.85c-.3-.15-.65-.2-1-.15a1.5 1.5 0 0 0-1.3 1.3c-.15.65.05 1.3.5 1.75l4.35 4.35c.3.3.7.45 1.15.45H18c1.1 0 2-.9 2-2V9.5c0-.65-.45-1.2-1.05-1.4l-5.1-1.85c-.15-.05-.3-.05-.45-.05-.15 0-.3.05-.45.1l-.95.4V2.5C12 1.67 11.33 1 10.5 1h-1Z" opacity="0.6"/>
+        <path fill="#87CEEB" d="m17.5 14.5-2.12-1.06c-.2-.1-.44-.14-.67-.11l-1.83.35.88-3.53a1.25 1.25 0 0 0-.88-1.5c-.65-.18-1.3.2-1.48.85l-1.4 5.6-2.1-1.05.3 1.5 3.5 1.75c.3.15.65.2 1 .15H16c.65 0 1.2-.45 1.4-1.05l.35-1.05c.08-.25.05-.52-.08-.75l-.17-.15Z" opacity="0.4"/>
+      </svg>
+      <p
+        className="text-xs text-center mt-1"
+        style={{ color: '#B0E0FF', opacity: 0.95, fontFamily: 'var(--font-cinzel), serif', maxWidth: 160, lineHeight: 1.3, fontSize: '0.65rem' }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/* Scroll « gobelet centré, tuteur garanti visible » : centre l'arène dans la
+   vue, puis vérifie MESURE par mesure que le bas du tutoriel ne dépasse pas
+   l'écran ; si oui (bandeau variables, barre URL mobile qui rétrécit le
+   viewport après le calcul…), on remonte la page de l'écart exact. Relancé à
+   2 reprises (fin du scroll smooth + stabilisation du viewport). */
+export function scrollToCupFit(cupEl: HTMLElement | null, tutoEl?: HTMLElement | null) {
+  if (!cupEl) return;
+  cupEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const fix = () => {
+    const vh = Math.max(window.innerHeight, 1);
+    const MARGIN = 12; // marge basse de confort (barre URL, pouce…)
+    const t = tutoEl ?? undefined;
+    if (t) {
+      const b = t.getBoundingClientRect().bottom;
+      if (b > vh - MARGIN) window.scrollBy({ top: b - vh + MARGIN, behavior: 'smooth' });
+    } else {
+      const c = cupEl.getBoundingClientRect();
+      if (c.bottom > vh - MARGIN) window.scrollBy({ top: c.bottom - vh + MARGIN, behavior: 'smooth' });
+    }
+  };
+  window.setTimeout(fix, 350);
+  window.setTimeout(fix, 750);
+}
+
+/* Hauteur du gobelet (arène WebGL) OPTIMISÉE et MESURÉE :
+   contrainte 1 (fit)    : topH (bandeau titre+fil+question, mesuré via
+                           offsetTop du bloc arène) + arène + tuto + marge ≤ vh
+                           → même sans scroll possible le tuto est visible.
+   contrainte 2 (centre) : arène ≤ 56 % vh (le scroll centre l'arène, il faut
+                           de la place du tuto au-dessus ET en dessous).
+   bornée [300, 560]. Recalculée au resize, à l'orientation, et dès que le
+   bloc tutoriel ou le bloc arène changent de taille (ResizeObserver). */
+export function useDiceCupHeight(tutorialBoxRef?: MutableRefObject<HTMLElement | null>, activeKey?: unknown, cupBoxRef?: MutableRefObject<HTMLElement | null>): number {
+  const [cupH, setCupH] = useState(460);
+  useEffect(() => {
+    const measure = () => {
+      const vh = Math.max(window.innerHeight, window.visualViewport?.height || 0) || 700;
+      const tutH = tutorialBoxRef?.current?.offsetHeight ?? 110;
+      // Bandeau réel au-dessus de l'arène (titre + fil d'étapes + question) =
+      // position du bloc arène DANS LE DOCUMENT (mesure live, pas d'estimation).
+      let topH = 0;
+      if (cupBoxRef?.current) {
+        const rect = cupBoxRef.current.getBoundingClientRect();
+        topH = Math.max(0, Math.round(rect.top + window.scrollY));
+      }
+      const fit = topH > 0 ? vh - topH - tutH - 16 : vh - 24 - 2 * tutH;
+      const next = Math.max(300, Math.min(560, Math.min(Math.round(vh * 0.56), fit)));
+      setCupH((prev) => (prev === next ? prev : next));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      if (tutorialBoxRef?.current) ro.observe(tutorialBoxRef.current);
+      if (cupBoxRef?.current) ro.observe(cupBoxRef.current);
+    }
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+      ro?.disconnect();
+    };
+    // re-mesure (et re-observe) quand le bloc tutoriel est monté/démonté
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey]);
+  return cupH;
+}
+
 export function DiceTitle({
   title,
   subtitle,

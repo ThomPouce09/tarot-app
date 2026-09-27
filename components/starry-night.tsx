@@ -384,11 +384,25 @@ export default function StarryNight({
 
     const onResize = () => resize();
     window.addEventListener('resize', onResize);
+    // Le canvas étire son bitmap quand la HAUTEUR du conteneur change sans
+    // événement window.resize (ex : la zone d'interprétation IA se rafraîchit
+    // et pousse le layout → la lune se retrouve étirée en hauteur).
+    // Un ResizeObserver sur le parent direct recalcule le bitmap à chaque
+    // changement de taille, quelle qu'en soit la cause.
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && cv.parentElement) {
+      let lastH = cv.offsetHeight;
+      ro = new ResizeObserver(() => {
+        if (cv.offsetHeight !== lastH || cv.offsetWidth !== w) { lastH = cv.offsetHeight; resize(); }
+      });
+      ro.observe(cv.parentElement);
+    }
 
     return () => {
       running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
+      ro?.disconnect();
     };
   }, [density, cometInterval, variant]);
 
