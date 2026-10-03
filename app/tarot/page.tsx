@@ -3,7 +3,6 @@
 import { useLang } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
@@ -14,6 +13,72 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+// Liste AUTO-GÉNÉRÉE au build/dev (scripts/gen-backdrops.cjs lit
+// public/backgrounds/tarot-bg*.jpg|.mp4) : déposer un nouveau fichier
+// numéroté suffit, aucune édition de code.
+import tarotBackdrops from '@/lib/generated/backdrops-tarot.json';
+
+// Poster noir inline : neutralise le triangle par défaut de la WebView Android
+// avant décodage de la vidéo (même correctif que les autres fonds du projet).
+const BLACK_POSTER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='black'/%3E%3C/svg%3E";
+
+// Fonds d'écran aléatoires du hub /tarot — liste auto-générée ci-dessus
+// (fallback statique si la génération n'a pas tourné).
+const TAROT_BACKDROPS: string[] = (tarotBackdrops as string[]).length
+  ? (tarotBackdrops as string[])
+  : ['/backgrounds/tarot-bg.jpg', '/backgrounds/tarot-bg1.jpg', '/backgrounds/tarot-bg2.jpg'];
+
+// Un fond de la liste (images + vidéos) est tiré au hasard à chaque ouverture
+// de la page (tirage côté client → aucun mismatch d'hydratation), comme
+// /runes, /des-divinatoires et /yi-jing, sous un voile sombre pour la lisibilité.
+function TarotRandomBackdrop() {
+  const [src, setSrc] = useState<string | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    setVideoReady(false);
+    setSrc(TAROT_BACKDROPS[Math.floor(Math.random() * TAROT_BACKDROPS.length)]);
+  }, []);
+  if (!src) return null;
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(src);
+  return (
+    <>
+      {/* Une vidéo en z négatif passerait derrière le fond opaque du body
+          (noir) → conteneur dédié en z-0. */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        {isVideo ? (
+          <video
+            key={src}
+            src={src}
+            autoPlay muted loop playsInline preload="auto"
+            poster={BLACK_POSTER}
+            onCanPlay={() => setVideoReady(true)}
+            onPlaying={() => setVideoReady(true)}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ) : (
+          <motion.img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            style={{ objectPosition: 'center 30%' }}
+          />
+        )}
+      </div>
+      {/* Voile : garde le titre et les tuiles parfaitement lisibles */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(218,165,32,0.05) 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.85) 100%)',
+        }}
+      />
+    </>
+  );
+}
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
 // Chaque slide correspond à une tuile (même ordre).
@@ -144,21 +209,10 @@ export default function TarotHubPage() {
   if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
-      {/* BACKGROUND: même image que la landing */}
-      <Image
-        src="/backgrounds/landing-bg.jpg"
-        alt="background mystique"
-        fill
-        priority
-        style={{ objectFit: "cover" }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(218,165,32,0.05) 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.85) 100%)",
-        }}
-      />
+      {/* BACKGROUND — un fond de la liste auto-générée (images + vidéos) est
+          tiré au hasard à chaque ouverture de la page, comme /runes,
+          /des-divinatoires et /yi-jing, sous un voile sombre pour la lisibilité. */}
+      <TarotRandomBackdrop />
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />

@@ -3,12 +3,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { initPush } from '@/lib/push';
 
-export type Lang = 'fr' | 'en' | 'es' | 'zh';
-const VALID_LANGS: Lang[] = ['fr', 'en', 'es', 'zh'];
+export type Lang = 'fr' | 'en' | 'es' | 'hi';
+const VALID_LANGS: Lang[] = ['fr', 'en', 'es', 'hi'];
 
 // Les chaînes UI binaires ({fr, en}) vivent encore en ContentLang : tant que
-// es/zh ne sont pas traduits (lib/i18n/ui.ts en cours de remplissage), ils
-// retombent sur fr. À éliminer quand les entrées es/zh existent partout.
+// es/hi ne sont pas traduits (lib/i18n/ui.ts en cours de remplissage), ils
+// retombent sur fr. À éliminer quand les entrées es/hi existent partout.
 export type ContentLang = 'fr' | 'en';
 export const contentLang = (l: Lang): ContentLang => (l === 'en' ? 'en' : 'fr');
 
@@ -42,7 +42,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const nav = navigator.language?.slice(0, 2).toLowerCase();
       if (nav === 'en') setLangState('en');
       else if (nav === 'es') setLangState('es');
-      else if (nav === 'zh') setLangState('zh');
+      else if (nav === 'hi') setLangState('hi');
       // sinon reste 'fr' par défaut
     } catch {}
   }, []);

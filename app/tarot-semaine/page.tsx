@@ -20,6 +20,7 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
+import WheelWait from './wheel-wait';
 import { api } from '@/lib/api-client';
 import { playSound } from '@/lib/sounds';
 
@@ -47,11 +48,32 @@ interface Wheel {
   cards: CardView[];
   woven: boolean;
   filRouge: { fr: string; en: string } | null;
+  // Archivage : `canCastNext` = les 7 jours sont écoulés, une nouvelle roue
+  // peut être posée (l'ancienne reste dans l'historique), augure scellée ou non.
+  archived: boolean;
+  canCastNext: boolean;
   echo: { id: string; textFr: string; textEn: string | null; dueAt: string; verdict: string | null; verdictPct: number | null; bestCardIndex: number | null } | null;
 }
 
 function emailLocal(): string {
   try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email ?? ''; } catch { return ''; }
+}
+
+// Date (discrète) du `day`-ième jour de la roue, calculée en jour LOCAL depuis
+// la date de pose — même découpage que le serveur (les jours basculent à
+// minuit local). L'ordre des composants suit la langue : JJ/MM en français,
+// MM/JJ en anglais. L'année n'est ajoutée que si la roue n'est pas de l'année
+// en cours (utile pour une roue archivée dans l'historique).
+function wheelDayLabel(castAt: string, day: number, lang: string): string {
+  const d = new Date(castAt);
+  if (Number.isNaN(d.getTime())) return '';
+  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  base.setDate(base.getDate() + day);
+  const dd = String(base.getDate()).padStart(2, '0');
+  const mm = String(base.getMonth() + 1).padStart(2, '0');
+  const yyyy = base.getFullYear();
+  const dm = lang === 'en' ? `${mm}/${dd}` : `${dd}/${mm}`;
+  return yyyy === new Date().getFullYear() ? dm : `${dm}/${String(yyyy).slice(2)}`;
 }
 
 function SemainePage() {
@@ -63,6 +85,17 @@ function SemainePage() {
   const [verdictPct, setVerdictPct] = useState(50);
   const [bestCard, setBestCard] = useState<number | null>(null);
   const [sealedBusy, setSealedBusy] = useState(false);
+
+  // Attente d'ouverture : l'animation de la roue se joue EN ENTIER (3,5 s),
+  // même si le tirage est déjà prêt — sinon elle n'aurait pas le temps de se
+  // lire. Le contenu n'apparaît qu'une fois ce délai écoulé.
+  const BOOT_MS = 3500;
+  const [booted, setBooted] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setBooted(true), BOOT_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+  const showWait = wheel === undefined || !booted;
 
   const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(null), 2600); };
 
@@ -189,17 +222,25 @@ function SemainePage() {
               ? 'Seven major arcana, one per planetary day. Once cast, the week unfolds on its own: past days reveal themselves, today’s card glows, and the thread weaves the seven into one counsel — sealed as an augury.'
               : 'Sept arcanes majeurs, un par jour planétaire. Posée d’un seul geste, la semaine se déplie d’elle-même : les jours passés se révèlent, celui d’aujourd’hui luit, et le fil rouge tisse les sept en un conseil — scellé en augure.'}
           </p>
-          {!wheel && (
+          {wheel === null && booted && (
             <p className="mt-1 text-[10px] tracking-widest" style={{ color: `${GOLD}99` }}>
               {lang === 'en' ? 'casting the wheel spends two advanced readings' : 'poser la roue débite deux grands tirages'}
             </p>
           )}
         </div>
 
-        {wheel === undefined && <p className="mt-16 text-center text-sm italic" style={{ color: IVORY, opacity: 0.6 }}>…</p>}
+        {/* Attente de la roue : la roue se lève (voir wheel-wait.tsx), 3,5 s
+            garanties, puis fondu vers le tirage. */}
+        <AnimatePresence>
+          {showWait && (
+            <motion.div key="wheel-wait" exit={{ opacity: 0 }} transition={{ duration: 0.45, ease: 'easeInOut' }}>
+              <WheelWait />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Pas de roue : proposer l'office ── */}
-        {wheel === null && (
+        {wheel === null && booted && (
           <div className="mt-16 text-center">
             <motion.button type="button" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={cast} disabled={busy}
               className="rounded-full px-8 py-3 font-[family-name:var(--font-cinzel-deco)] text-sm font-bold uppercase tracking-widest disabled:opacity-50"
@@ -217,7 +258,7 @@ function SemainePage() {
         )}
 
         {/* ── La roue posée : couronne 4 + 3 ── */}
-        {wheel && (
+        {wheel && booted && (
           <>
             <div className="mt-8 flex flex-col items-center gap-2">
               {rows.map((row, ri) => (
@@ -259,6 +300,11 @@ function SemainePage() {
                           <div className="text-sm" style={{ color: isToday ? GOLD_PALE : `${GOLD}99` }}>{DAYS[c.weekday].planet}</div>
                           <div className="text-[9px] uppercase tracking-widest" style={{ color: IVORY, opacity: isToday ? 0.95 : 0.5 }}>
                             {DAYS[c.weekday][lang as 'fr' | 'en']}
+                          </div>
+                          {/* Date du jour de la roue — discrète, pour situer le tirage
+                              dans le calendrier (jour local). */}
+                          <div className="text-[8px] sm:text-[9px] tabular-nums" style={{ color: isToday ? GOLD_PALE : `${GOLD}88`, opacity: isToday ? 0.8 : 0.5, letterSpacing: '0.06em' }}>
+                            {wheelDayLabel(wheel.castAt, idx, lang)}
                           </div>
                         </div>
                       </motion.button>
@@ -393,18 +439,31 @@ function SemainePage() {
                           <> · {lang === 'en' ? 'best' : 'tenue'} : {wheel.cards[wheel.echo.bestCardIndex]?.[lang === 'en' ? 'nameEn' : 'name']}</>
                         )}
                       </p>
-                      <p className="mt-3 text-[11px]" style={{ color: `${IVORY}99` }}>
-                        {lang === 'en' ? 'A new wheel can be cast whenever you’re ready.' : 'Une nouvelle roue peut être posée quand tu es prêt.'}
-                      </p>
-                      <button onClick={cast} disabled={busy} className="mt-2 rounded-full px-6 py-2 text-[11px] font-bold uppercase tracking-widest" style={{
-                        background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
-                        color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)', boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(0,0,0,0.35)' }}>
-                        {lang === 'en' ? 'Cast the next wheel' : 'Poser la roue suivante'}
-                      </button>
                     </div>
                   )}
                 </div>
               </motion.div>
+            )}
+
+            {/* ── Semaine écoulée : la roue passée est archivée dans l'historique
+                   et une nouvelle peut être posée — augure scellée ou non. ── */}
+            {wheel.canCastNext && (
+              <div className="mx-auto mt-6 max-w-md text-center">
+                <p className="text-[11px] italic" style={{ color: `${IVORY}99` }}>
+                  {lang === 'en'
+                    ? 'This week is over. Its wheel is archived in your history.'
+                    : 'Cette semaine est écoulée. Sa roue est archivée dans votre historique'}
+                </p>
+                <button onClick={cast} disabled={busy}
+                  className="mt-3 rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
+                    color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)',
+                    boxShadow: '0 0 16px rgba(212,175,55,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 7px rgba(0,0,0,0.35)',
+                  }}>
+                  {busy ? '…' : lang === 'en' ? 'Cast the next wheel' : 'Poser la roue suivante'}
+                </button>
+              </div>
             )}
           </>
         )}
