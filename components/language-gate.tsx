@@ -153,19 +153,19 @@ export default function LanguageGate() {
                 {picked === 'es' ? '✓ ' : ''}Español
               </button>
 
-              {/* 中文 */}
+              {/* हिन्दी (indien) */}
               <button
                 type="button"
-                onClick={() => choose('zh')}
+                onClick={() => choose('hi')}
                 className="w-full rounded-[0.6rem] border py-3 text-[15px] font-semibold transition-colors duration-200"
                 style={{
-                  background: picked === 'zh' ? `linear-gradient(135deg, #F0C75E, #B8860B)` : 'rgba(24,10,4,0.35)',
+                  background: picked === 'hi' ? `linear-gradient(135deg, #F0C75E, #B8860B)` : 'rgba(24,10,4,0.35)',
                   borderColor: `${GOLD}66`,
-                  color: picked === 'zh' ? '#34121F' : IVORY,
+                  color: picked === 'hi' ? '#34121F' : IVORY,
                 }}
-                aria-pressed={picked === 'zh'}
+                aria-pressed={picked === 'hi'}
               >
-                {picked === 'zh' ? '✓ ' : ''}中文
+                {picked === 'hi' ? '✓ ' : ''}हिन्दी (Indian)
               </button>
             </div>
 

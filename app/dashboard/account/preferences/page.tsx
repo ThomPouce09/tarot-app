@@ -15,7 +15,7 @@ type Prefs = {
   dailyReminderHour: number;
   emailNews: boolean;
   backgrounds: string[];
-  language: 'fr' | 'en' | 'es' | 'zh';
+  language: 'fr' | 'en' | 'es' | 'hi';
   soundEffects: boolean;
   voices: boolean;
   musicOn: boolean;
@@ -39,7 +39,7 @@ const LANGUAGES: { key: Lang; label: string }[] = [
   { key: 'fr', label: 'Français' },
   { key: 'en', label: 'English' },
   { key: 'es', label: 'Español' },
-  { key: 'zh', label: '中文' },
+  { key: 'hi', label: 'हिन्दी (Indian)' },
 ];
 
 export default function PreferencesPage() {
