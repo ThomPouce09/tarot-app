@@ -2,13 +2,12 @@
 
 import { useLang } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
-import { useUniverseBackground } from '@/lib/use-universe-background';
-import UniverseBgPicker from '@/components/universe-bg-picker';
-import { YI_JING_BACKGROUND_POOLS } from '@/lib/backgrounds';
+// Liste AUTO-GÉNÉRÉE au build/dev (scripts/gen-backdrops.cjs lit
+// public/backgrounds/yi-jing-bg*.jpg|.mp4) : déposer un nouveau fichier suffit.
+import yiJingBackdrops from '@/lib/generated/backdrops-yi-jing.json';
 import YiSlideNav from '@/components/yi-slide-nav';
 import FirstVisitHints from '@/components/first-visit-hints';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
@@ -89,6 +88,68 @@ const YI_TUTORIALS: TutorialSlide[] = [
   },
 ];
 
+// Fonds d'écran aléatoires du hub /yi-jing — liste AUTO-GÉNÉRÉE au build/dev
+// (scripts/gen-backdrops.cjs lit public/backgrounds/yi-jing-bg*.jpg|.mp4) :
+// déposer un nouveau fichier numéroté suffit, aucune édition de code.
+const YI_JING_BACKDROPS: string[] = (yiJingBackdrops as string[]).length
+  ? (yiJingBackdrops as string[])
+  : [
+      '/backgrounds/yi-jing-bg.jpg',
+      '/backgrounds/yi-jing-bg0.mp4',
+      '/backgrounds/yi-jing-bg1.mp4',
+      '/backgrounds/yi-jing-bg2.mp4',
+    ];
+
+// Affiche un fond tiré AU HASARD à chaque ouverture de la page (tirage côté
+// client → aucun mismatch d'hydratation), comme /runes et /des-divinatoires.
+// Le pool contient images ET vidéos ; voile sombre par-dessus pour la lisibilité.
+function YiJingRandomBackdrop() {
+  const [src, setSrc] = useState<string | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    setVideoReady(false);
+    setSrc(YI_JING_BACKDROPS[Math.floor(Math.random() * YI_JING_BACKDROPS.length)]);
+  }, []);
+  if (!src) return null;
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(src);
+  return (
+    <>
+      {/* Une vidéo en z négatif passerait derrière le fond opaque du body
+          (noir) → conteneur dédié en z-0, comme l'ancien code du hub. */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        {isVideo ? (
+          <video
+            key={src}
+            src={src}
+            autoPlay muted loop playsInline preload="auto"
+            onCanPlay={() => setVideoReady(true)}
+            onPlaying={() => setVideoReady(true)}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ) : (
+          <motion.img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            style={{ objectPosition: 'center 30%' }}
+          />
+        )}
+      </div>
+      {/* Voile : garde le titre et les tuiles parfaitement lisibles */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, rgba(180,40,45,0.05) 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.85) 100%)',
+        }}
+      />
+    </>
+  );
+}
+
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -98,9 +159,6 @@ export default function YiJingHubPage() {
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
   const auth = useRequireVerified();
-  // Fond de l'univers : rotation aléatoire restreinte au forfait + sélection
-  // de la modale UniverseBgPicker (aperçu immédiat, recharge à la fermeture).
-  const bg = useUniverseBackground(YI_JING_BACKGROUND_POOLS);
 
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
@@ -146,44 +204,13 @@ export default function YiJingHubPage() {
   if (auth !== 'ok') return <VerifiedGate state={auth} />;
   return (
     <div className="relative w-full min-h-screen overflow-y-auto flex items-center justify-center">
-      {/* BACKGROUND — rotation aléatoire parmi les fonds de l'univers (pool du
-          forfait ∩ sélection de la modale). Même structure que la landing : une
-          vidéo en z négatif passerait DERRIÈRE le fond opaque du body → noir. */}
-      <div className="absolute inset-0 z-0">
-        {bg.isVideo ? (
-          <video
-            src={bg.background}
-            autoPlay muted loop playsInline preload="auto"
-            onLoadedData={() => bg.setVideoReady(true)}
-            onCanPlay={() => bg.setVideoReady(true)}
-            onPlaying={() => bg.setVideoReady(true)}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${bg.videoReady ? 'opacity-100' : 'opacity-0'}`}
-          />
-        ) : (
-          <Image
-            src={bg.background || '/backgrounds/yi-jing-bg.jpg'}
-            alt="background mystique"
-            fill
-            priority
-            style={{ objectFit: "cover" }}
-          />
-        )}
-      </div>
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(180,40,45,0.05) 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.85) 100%)",
-        }}
-      />
+      {/* BACKGROUND — un fond de la liste auto-générée (images + vidéos) est
+          tiré au hasard à chaque ouverture de la page, comme /runes et
+          /des-divinatoires, sous un voile sombre pour la lisibilité. */}
+      <YiJingRandomBackdrop />
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
-      {/* Modale de sélection des fonds — bouton discret à gauche de l'enceinte. */}
-      {bg.ready && (
-        <UniverseBgPicker pools={YI_JING_BACKGROUND_POOLS} level={bg.level} current={bg.background}
-          onPreview={(b) => bg.preview(b)} onReselect={() => bg.reselect()} />
-      )}
       <FirstVisitHints flagKey="hints_yijing" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}

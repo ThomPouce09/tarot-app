@@ -34,6 +34,14 @@ const DEFAULT_PREFS: Prefs = {
   musicTrack: 'vibrations',
 };
 
+// Langues proposées, dans l'ordre d'affichage des pastilles.
+const LANGUAGES: { key: Lang; label: string }[] = [
+  { key: 'fr', label: 'Français' },
+  { key: 'en', label: 'English' },
+  { key: 'es', label: 'Español' },
+  { key: 'zh', label: '中文' },
+];
+
 export default function PreferencesPage() {
   const t = useT();
   const lang = useLang();
@@ -281,36 +289,43 @@ export default function PreferencesPage() {
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
       </div>
 
-      {/* Langue */}
+      {/* Langue — pastilles alignées sur la charte de la page (or sur bois).
+          Même idiome que le LanguageGate : pilule dorée = langue active,
+          fant sombre cerclé d'or sinon. */}
       <div className="mystic-panel p-5">
         <h2 className="mystic-subtitle text-sm mb-3">{t('prefs.language')}</h2>
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value as Lang)}
-          aria-label={t('prefs.language')}
-          className="w-full rounded-lg px-4 py-3 text-sm font-medium outline-none transition-all cursor-pointer focus:ring-2 focus:ring-amber-400/70"
-          style={{
-            color: '#F5EAD6',
-            border: '1px solid rgba(218,165,32,0.4)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(240,199,94,0.08)',
-            appearance: 'none',
-            WebkitAppearance: 'none',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23DAA520' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"), linear-gradient(135deg, rgba(90,58,30,0.6), rgba(74,25,49,0.6))`,
-            backgroundRepeat: 'no-repeat, no-repeat',
-            backgroundPosition: 'right 14px center, center',
-          }}
-        >
-          {([
-            { key: 'fr', label: 'Français' },
-            { key: 'en', label: 'English' },
-            { key: 'es', label: 'Español' },
-            { key: 'zh', label: '中文' },
-          ] as const).map((l) => (
-            <option key={l.key} value={l.key} style={{ background: '#1d0d14', color: '#F5EAD6' }}>
-              {l.label}{lang === l.key ? '  ✓' : ''}
-            </option>
-          ))}
-        </select>
+        <div role="group" aria-label={t('prefs.language')} className="grid grid-cols-2 gap-2.5">
+          {LANGUAGES.map((l) => {
+            const on = lang === l.key;
+            return (
+              <button
+                key={l.key}
+                type="button"
+                onClick={() => setLang(l.key)}
+                aria-pressed={on}
+                className="rounded-[0.6rem] py-2.5 text-sm font-semibold transition-all duration-200 hover:brightness-110"
+                style={
+                  on
+                    ? {
+                        background:
+                          'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 58%), linear-gradient(135deg, #F0C75E, #B8860B)',
+                        color: '#34121F',
+                        border: '1px solid rgba(240,199,94,0.9)',
+                        boxShadow: '0 4px 14px rgba(218,165,32,0.4), inset 0 -3px 8px rgba(122,74,4,0.45)',
+                      }
+                    : {
+                        background: 'linear-gradient(135deg, rgba(90,58,30,0.5), rgba(58,36,16,0.5))',
+                        color: '#F5EAD6',
+                        border: '1px solid rgba(218,165,32,0.35)',
+                        boxShadow: 'inset 0 1px 0 rgba(240,199,94,0.07)',
+                      }
+                }
+              >
+                {on ? '✓ ' : ''}{l.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Visiter — rejouer le tutoriel de première visite */}

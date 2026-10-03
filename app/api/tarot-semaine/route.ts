@@ -35,6 +35,11 @@ type WheelState = {
   revealed: number[];      // jours ouverts par le user (les passés s'ajoutent à la lecture)
   filRouge?: { fr: string; en: string };
   days?: { fr: string; en: string }[];   // 7 « éclats » (un par position/card) — un seul appel IA
+  // Roue ARCHIVÉE = les 7 jours de sa semaine sont écoulés (le user l'a scellée
+  // ou non) : elle n'est plus la roue active et n'empêche plus d'en poser une
+  // autre. La lecture reste dans l'historique (elle y est depuis sa création).
+  archived?: boolean;
+  archivedAt?: string;
 };
 
 async function findUser(email: string) {
@@ -52,6 +57,26 @@ function nowDayIndex(castAt: string): number {
 // Jour de semaine réel (0=dim…6=sam) de la carte n° `day` de la roue.
 const castWeekday = (castAt: string) => new Date(castAt).getDay();
 
+type ReadingRow = { id: string; interpretation: string | null; echo?: any };
+
+/**
+ * Archive une roue dont la semaine est ÉCOULÉE (marque `archived` dans l'état
+ * persisté). Idempotent, no-op tant que la roue est en cours. Renvoie la
+ * lecture — éventuellement réécrite. C'est ce qui libère la place de « roue
+ * active » : l'augure scellée ou non, le user peut poser la semaine suivante.
+ */
+async function autoArchiveIfDone<T extends ReadingRow>(reading: T): Promise<T> {
+  let st: WheelState;
+  try { st = JSON.parse(reading.interpretation || '{}'); } catch { return reading; }
+  if (!st?.castAt || st.archived) return reading;
+  if (nowDayIndex(st.castAt) < 7) return reading;   // semaine encore en cours
+  const updated = await prisma.reading.update({
+    where: { id: reading.id },
+    data: { interpretation: JSON.stringify({ ...st, archived: true, archivedAt: new Date().toISOString() }) },
+  });
+  return { ...reading, interpretation: updated.interpretation };
+}
+
 /** État public de la roue (avec jours passés auto-révélés + résonances). */
 function wheelView(reading: { id: string; createdAt: Date; cards: string; interpretation: string | null }, echo: any) {
   let st: WheelState;
@@ -63,6 +88,10 @@ function wheelView(reading: { id: string; createdAt: Date; cards: string; interp
     readingId: reading.id,
     castAt: st.castAt,
     nowDay,                      // 0..7 (7 = semaine bouclée)
+    archived: !!st.archived,     // semaine écoulée → roue archivée dans l'historique
+    // Une nouvelle roue est proposée dès que la semaine est bouclée (augure
+    // scellée ou non) — c'est ce que la page utilise pour afficher son CTA.
+    canCastNext: nowDay >= 7 || !!st.archived,
     dueAt: new Date(new Date(st.castAt).getTime() + 7 * DAY_MS).toISOString(),
     cards: st.cards.map((id: number, day: number) => {
       const open = revealedSet.has(day);
@@ -95,13 +124,21 @@ export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email') || '';
   const user = await findUser(email);
   if (!user) return NextResponse.json({ wheel: null });
-  const reading = await prisma.reading.findFirst({
+  const readings = await prisma.reading.findMany({
     where: { userId: user.id, type: 'tarot-semaine' },
     orderBy: { createdAt: 'desc' },
+    take: 50,
     include: { echo: true },
   });
-  if (!reading) return NextResponse.json({ wheel: null });
-  return NextResponse.json({ wheel: wheelView(reading, reading.echo) });
+  if (readings.length === 0) return NextResponse.json({ wheel: null });
+  // Auto-archivage : TOUTES les roues dont la semaine est écoulée sont marquées
+  // (`archived`) — l'augure scellée ou non — et restent consultables dans
+  // l'historique. Seule la dernière roue encore en cours reste active. Écriture
+  // idempotente : une roue déjà marquée n'est jamais réécrite.
+  const [latest, ...older] = readings;
+  const current = await autoArchiveIfDone(latest);
+  for (const r of older) await autoArchiveIfDone(r);
+  return NextResponse.json({ wheel: wheelView(current, current.echo) });
 }
 
 export async function POST(request: NextRequest) {
@@ -122,9 +159,17 @@ export async function POST(request: NextRequest) {
   switch (String(body.action || '')) {
     // ── Poser la roue ────────────────────────────────────────────────
     case 'cast': {
-      // Une seule roue active à la fois (tant que la 7ᵉ journée n'est pas bouclée).
-      if (latest && nowDayIndex(JSON.parse(latest.interpretation || '{}')?.castAt || '') < 7) {
-        return NextResponse.json({ error: 'Une roue est déjà en cours.', reason: 'active' }, { status: 409 });
+      // Une seule roue ACTIVE à la fois — mais « active » s'arrête à la fin des
+      // 7 jours : une fois la semaine écoulée, la roue précédente est archivée
+      // (augure scellée ou non) et une nouvelle peut être posée.
+      if (latest) {
+        let prev: Partial<WheelState> = {};
+        try { prev = JSON.parse(latest.interpretation || '{}'); } catch { prev = {}; }
+        const prevCastAt = prev?.castAt;
+        if (prevCastAt && nowDayIndex(prevCastAt) < 7) {
+          return NextResponse.json({ error: 'Une roue est déjà en cours.', reason: 'active' }, { status: 409 });
+        }
+        await autoArchiveIfDone(latest);
       }
       const cards = Array.isArray(body.cards) ? (body.cards as unknown[]).map(Number) : [];
       const valid = cards.length === 7 && cards.every((n) => Number.isInteger(n) && n >= 0 && n <= 21)
