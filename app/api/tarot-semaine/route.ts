@@ -19,11 +19,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle } from '@/lib/llm';
+import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { canCreateEcho, echoDomainForType } from '@/lib/echo';
 // Résonance planétaire canonique (Golden Dawn) — arcane ↔ planète du jour.
 // (un fichier de route Next n'exporte que ses handlers → constant en lib/.)
-import { isResonant } from '@/lib/tarot-semaine';
+import { isResonant, EXPIRY_DAY } from '@/lib/tarot-semaine';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ type WheelState = {
   cards: number[];         // 7 ids d'arcanes majeurs (0..21)
   revealed: number[];      // jours ouverts par le user (les passés s'ajoutent à la lecture)
   filRouge?: { fr: string; en: string };
-  days?: { fr: string; en: string }[];   // 7 « éclats » (un par position/card) — un seul appel IA
+  days?: { fr: string; en: string; es?: string; hi?: string }[];   // 7 « éclats » (un par position/card) — un seul appel IA
   // Roue ARCHIVÉE = les 7 jours de sa semaine sont écoulés (le user l'a scellée
   // ou non) : elle n'est plus la roue active et n'empêche plus d'en poser une
   // autre. La lecture reste dans l'historique (elle y est depuis sa création).
@@ -57,6 +58,12 @@ function nowDayIndex(castAt: string): number {
 // Jour de semaine réel (0=dim…6=sam) de la carte n° `day` de la roue.
 const castWeekday = (castAt: string) => new Date(castAt).getDay();
 
+// Grâce de scellement : 5 jours après la fin de la semaine (jour 7) pour sceller
+// l'augure (SEAL_GRACE_DAYS + EXPIRY_DAY vivent dans lib/tarot-semaine.ts — un
+// fichier de route n'exporte que ses handlers). Passé ce délai sans sceau, la
+// roue n'est plus affichée (archivée dans l'historique) et /tarot-semaine propose
+// directement un nouveau tirage.
+
 type ReadingRow = { id: string; interpretation: string | null; echo?: any };
 
 /**
@@ -75,6 +82,18 @@ async function autoArchiveIfDone<T extends ReadingRow>(reading: T): Promise<T> {
     data: { interpretation: JSON.stringify({ ...st, archived: true, archivedAt: new Date().toISOString() }) },
   });
   return { ...reading, interpretation: updated.interpretation };
+}
+
+/** Roue PÉRIMÉE = semaine finie depuis plus de la grâce (12 jours) SANS augure
+ *  scellée : le fil rouge n'a jamais été scellé, on cesse de l'afficher — la
+ *  page retombe sur « Poser la roue de la semaine » (la lecture reste archivée
+ *  dans l'historique). Une roue scellée (echo) ne périmera jamais : son bilan
+ *  reste dû. */
+function isExpiredUnsealed(reading: ReadingRow): boolean {
+  if (reading.echo) return false;
+  let st: Partial<WheelState> = {};
+  try { st = JSON.parse(reading.interpretation || '{}'); } catch { return false; }
+  return !!st.castAt && nowDayIndex(st.castAt) >= EXPIRY_DAY;
 }
 
 /** État public de la roue (avec jours passés auto-révélés + résonances). */
@@ -133,11 +152,19 @@ export async function GET(request: NextRequest) {
   if (readings.length === 0) return NextResponse.json({ wheel: null });
   // Auto-archivage : TOUTES les roues dont la semaine est écoulée sont marquées
   // (`archived`) — l'augure scellée ou non — et restent consultables dans
-  // l'historique. Seule la dernière roue encore en cours reste active. Écriture
-  // idempotente : une roue déjà marquée n'est jamais réécrite.
-  const [latest, ...older] = readings;
-  const current = await autoArchiveIfDone(latest);
-  for (const r of older) await autoArchiveIfDone(r);
+  // l'historique. Écriture idempotente : une roue déjà marquée n'est jamais
+  // réécrite. Puis on rend la première roue AFFICHABLE en partant de la plus
+  // récente : une roue non scellée dont la semaine est finie depuis plus de la
+  // grâce (5 j) est périmée → masquée, la page retombe sur le CTA de nouvelle
+  // roue. Une roue scellée (echo) ne périmera jamais : son bilan reste dû.
+  let current: (typeof readings)[number] | null = null;
+  for (const r of readings) {
+    const done = await autoArchiveIfDone(r);
+    if (isExpiredUnsealed(done)) continue;
+    current = done;
+    break;
+  }
+  if (!current) return NextResponse.json({ wheel: null });
   return NextResponse.json({ wheel: wheelView(current, current.echo) });
 }
 
@@ -215,10 +242,11 @@ export async function POST(request: NextRequest) {
       const { getRights } = await import('@/lib/entitlements');
       const rights = await getRights(email).catch(() => null);
       const depth = rights && rights.level !== 'apprenti' ? '2 à 3 phrases' : '1 phrase seule';
+      const outLang: LlmLang = resolveLang(body.lang);
       const prompt = `Tu es un taromancien bienveillant et concret. Voici la roue des 7 arcanes majeurs d'une semaine (jour réel : arcane) :\n${lines}\n\n
 1) Pour CHAQUE jour, dans l'ordre (7 entrées), un « éclairage » de ${depth} : l'attitude, la température ou le conseil que cette carte donne CE jour-là — concret, incarné, jamais vague ni prédictif (« ce jour se prête à… », « tiens-toi à… »).
 2) Puis le « fil rouge » de la semaine : 3-4 phrases (ton général, jour le plus porteur, jour le plus prudent, une attitude).
-Traduis chaque texte en anglais naturel (même sens, pas littéral).
+Traduis chaque texte en anglais naturel (même sens, pas littéral)${outLang === 'fr' ? '' : `. Traduis aussi chaque texte en ${langName(outLang)} dans la clé '${outLang}'`}
 
 Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."}],"filRouge":{"fr":"...","en":"..."}}`;
       let days: { fr: string; en: string }[] | null = null;
@@ -233,10 +261,10 @@ Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{
           const j = m ? JSON.parse(m[0]) : null;
           const ds = Array.isArray(j?.days) ? j.days : null;
           if (ds && ds.length === 7 && ds.every((x: { fr?: string }) => String(x?.fr || '').trim().length > 15)) {
-            days = ds.map((x: { fr: string; en?: string }) => ({ fr: String(x.fr).trim(), en: String(x.en || x.fr).trim() }));
+            days = ds.map((x: { fr: string; en?: string; es?: string; hi?: string }) => ({ fr: String(x.fr).trim(), en: String(x.en || x.fr).trim(), ...(x.es ? { es: String(x.es).trim() } : {}), ...(x.hi ? { hi: String(x.hi).trim() } : {}) }));
           }
           if (j?.filRouge && String(j.filRouge.fr || '').trim().length > 20) {
-            fil = { fr: String(j.filRouge.fr).trim(), en: String(j.filRouge.en || j.filRouge.fr).trim() };
+            fil = { fr: String(j.filRouge.fr).trim(), en: String(j.filRouge.en || j.filRouge.fr).trim(), ...(j.filRouge.es ? { es: String(j.filRouge.es).trim() } : {}), ...(j.filRouge.hi ? { hi: String(j.filRouge.hi).trim() } : {}) };
           }
         } catch { /* relance */ }
       }
@@ -250,6 +278,11 @@ Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{
     // ── Sceller l'augure (le fil rouge, échéance = fin de semaine) ───
     case 'seal': {
       if (!latest) return NextResponse.json({ error: 'Aucune roue.' }, { status: 404 });
+      // Sceller une roue périmée (au-delà de la grâce, jamais scellée) n'a plus
+      // de sens : elle a été masquée, un nouveau cycle a commencé.
+      if (isExpiredUnsealed(latest)) {
+        return NextResponse.json({ error: 'La semaine de cette roue est close sans augure scellé.', reason: 'expired' }, { status: 409 });
+      }
       const st: WheelState = JSON.parse(latest.interpretation || '{}');
       if (!st.filRouge) return NextResponse.json({ error: 'Tissez le fil rouge d’abord.' }, { status: 400 });
       if (latest.echo) return NextResponse.json({ echoId: latest.echo.id });

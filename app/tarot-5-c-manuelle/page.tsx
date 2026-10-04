@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import TarotApp from '@/app/components/tarot-app';
@@ -156,13 +157,13 @@ function TarotUpgradePage() {
                 textShadow: '0 0 18px rgba(218,165,32,0.35), 0 1px 3px rgba(0,0,0,0.6)',
               }}
             >
-              Votre question au Tarot
+              {tr("Votre question au Tarot", "Your question to the Tarot", "Su pregunta al Tarot", "तारोट से आपका प्रश्न")}
             </h2>
             <label
               className="mb-4 block text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C87A]"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              Ouvrez votre cœur à la cartomancienne
+              {tr("Ouvrez votre cœur à la cartomancienne", "Open your heart to the card reader", "Abra su corazón a la cartomante", "अपने हृदय को तारोट पाठिका से खोलें")}
             </label>
             <textarea
               ref={questionInputRef}
@@ -170,7 +171,7 @@ function TarotUpgradePage() {
               onChange={handleQuestionChange}
               onFocus={handleVideoStart}
               rows={3}
-              placeholder="Quel chemin choisir dans ma vie amoureuse ?"
+              placeholder={tr("Quel chemin choisir dans ma vie amoureuse ?", "Which path should I choose in my love life?", "¿Qué camino elegir en mi vida amorosa?", "मेरे प्रेम जीवन में कौन-सा मार्ग चुनूँ ?")}
               className="mb-4 w-full resize-none rounded-xl border border-[rgba(218,165,32,0.28)] p-5 text-lg text-[#F0E6D3] outline-none transition-all duration-300 placeholder:text-[#C9B58A]/60 focus:border-[#DAA520] focus:shadow-[0_0_22px_rgba(218,165,32,0.18)]"
               style={{ fontFamily: 'var(--font-cormorant), serif', background: 'linear-gradient(160deg, #241811 0%, #1d0d16 100%)', colorScheme: 'dark', caretColor: '#FFD700' }}
             />
@@ -179,7 +180,7 @@ function TarotUpgradePage() {
               disabled={!questionText.trim()}
               className={`tarot-btn flex w-full items-center justify-center gap-2.5 py-4 text-base font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-40 ${questionText.trim() ? 'animate-question-pulse' : ''}`}
             >
-              Enregistrer et tirer vos cartes
+              {tr("Enregistrer et tirer vos cartes", "Save and draw your cards", "Guardar y tirar sus cartas", "अपनी पत्तियाँ सहेजें और खींचें")}
             </button>
           </div>
         </div>
@@ -192,7 +193,7 @@ function TarotUpgradePage() {
             totalPicks={TOTAL_PICKS}
             positionLabels={POSITION_LABELS}
             positionIcons={POSITION_ICONS}
-            title="Tirage 5 cartes"
+            title={tr("Tirage 5 cartes", "5-Card Spread", "Tirada de 5 cartas", "5 पत्तियाँ खींच")}
             spreadType="tarot-5-c-manuelle"
             onInterpret={handleInterpret}
             question={questionText.trim()}

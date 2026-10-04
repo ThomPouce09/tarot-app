@@ -9,6 +9,7 @@
 //
 // API inchangée : count, layout, isRolling, onRest, height.
 
+import { tr } from '@/lib/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -622,7 +623,7 @@ export default function RuneStonesSet({
                 ⇄
               </motion.span>
               <span className="rounded-full px-3 py-1" style={{ background: 'rgba(10,20,13,0.72)', border: '1px solid rgba(233,217,172,0.4)' }}>
-                Tapez ou secouez le sac
+                {tr("Tapez ou secouez le sac", "Tap or shake the bag", "Toque o sacuda la bolsa", "थैली पर टैप करें या उसे हिलाएँ")}
               </span>
               <motion.span
                 animate={{ x: [5, -5, 5] }}

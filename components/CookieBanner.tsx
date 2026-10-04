@@ -1,4 +1,5 @@
 'use client';
+import { tr } from '@/lib/i18n';
 import { useState, useEffect } from 'react';
 
 export default function CookieBanner() {
@@ -28,7 +29,7 @@ export default function CookieBanner() {
       <div className="max-w-4xl mx-auto rounded-xl p-4" style={{ background: 'rgba(26, 14, 10, 0.95)', border: '1px solid rgba(218, 165, 32, 0.3)', boxShadow: '0 0 40px rgba(218,165,32,0.2)' }}>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex-1 text-sm" style={{ color: 'rgba(255,215,0,0.8)', fontFamily: 'var(--font-cinzel), serif' }}>
-            <p>Nous utilisons des cookies pour améliorer votre expérience. En continuant, vous acceptez notre <a href="/privacy" className="underline" style={{ color: '#DAA520' }}>Politique de confidentialité</a>.</p>
+            <p>{tr('Nous utilisons des cookies pour améliorer votre expérience. En continuant, vous acceptez notre', 'We use cookies to improve your experience. By continuing, you accept our', 'Usamos cookies para mejorar su experiencia. Al continuar, acepta nuestra', 'हम आपका अनुभव सुधारने के लिए कुकिय़ों का उपयोग करते हैं। जारी रखने पर, आप हमारी')} <a href="/privacy" className="underline" style={{ color: '#DAA520' }}>{tr("Politique de confidentialité", "Privacy Policy", "Política de privacidad", "गोपनीयता नीति")}</a>.</p>
           </div>
           <div className="flex gap-2">
             <button onClick={acceptEssential} className="mystic-btn-ghost text-sm">

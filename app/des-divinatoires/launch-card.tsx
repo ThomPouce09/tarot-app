@@ -7,6 +7,7 @@
 // or sur indigo profond. `lockedMode` impose le mode hérité du 1ᵉʳ tirage
 // (thème ⇒ thème, question ⇒ question — jamais de mélange A/B).
 
+import { tr } from '@/lib/i18n';
 import { useState } from 'react';
 import { DICE_THEME } from './_shared';
 import { DiceThemeSelector } from '@/app/des-divinatoires-simplifie/theme-selector';
@@ -108,7 +109,7 @@ export function DiceLaunchCard({ title, placeholder, instruct, draft, setDraft, 
                 textShadow: '0 0 12px rgba(232,198,106,0.5), 0 1px 2px rgba(0,0,0,0.9)',
               }}
             >
-              Enregistrer et lancer les dés
+              {tr("Enregistrer et lancer les dés", "Save and roll the dice", "Guardar y lanzar los dados", "सेवें और पासे फेंकें")}
             </button>
           </div>
         </div>

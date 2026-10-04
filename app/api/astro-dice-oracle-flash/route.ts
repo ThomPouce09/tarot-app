@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
+import { resolveLang, outputDirective } from '@/lib/lang';
 
 const PLANET_NAMES: Record<string, string> = {
   '☉': 'le Soleil', '☽': 'la Lune', '☿': 'Mercure', '♀': 'Vénus',
@@ -93,7 +94,7 @@ ${consigne}
 Réponds UNIQUEMENT avec du texte libre, pas de JSON, pas de markdown, pas de formatage.`;
   }
 
-  const content = (await callOracle(prompt)) || '';
+  const content = (await callOracle(prompt + outputDirective(resolveLang(body.lang)))) || '';
 
   // Nettoyage agressif : le LLM renvoie parfois du texte entouré de
   // {"ANSWER": "..."}, {"oracle": "..."}, "réponse", ou { "..." }.

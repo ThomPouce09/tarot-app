@@ -13,6 +13,8 @@
 // Charte Tarot ; un « flip » sonore à CHAQUE sélection ; fallback tap garanti.
 
 import { useMemo, useRef, useState } from 'react';
+import { pickContent, type Lang } from '@/lib/i18n';
+import { cardDisplayName } from '@/lib/i18n/cards';
 import { motion } from 'framer-motion';
 import { GameFrame, GOLD, GOLD_PALE, ROSE, SkipDemo } from './fx';
 import { TAROT_CARDS } from '@/lib/tarot-data';
@@ -25,18 +27,18 @@ const STEP = 36; // pas horizontal entre deux dos (px)
 const CARD_W = 52; // largeur d'une lame (px)
 
 const SLOTS = [
-  { fr: 'Passé', en: 'Past' },
-  { fr: 'Présent', en: 'Present' },
-  { fr: 'Futur', en: 'Future' },
+  { fr: 'Passé', en: 'Past' , es: "Pasado", hi: "अतीत"},
+  { fr: 'Présent', en: 'Present' , es: "Presente", hi: "वर्तमान"},
+  { fr: 'Futur', en: 'Future' , es: "Futuro", hi: "भविष्य"},
 ] as const;
 
 export default function TarotDraw({
-  isEn,
+  lang,
   labels,
   onDone,
   onSkip,
 }: {
-  isEn: boolean;
+  lang: Lang;
   labels: { tapDeck: string; pick3: string; result: string; skip: string };
   onDone: () => void;
   onSkip: () => void;
@@ -189,7 +191,7 @@ export default function TarotDraw({
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={`/cards/arcana/${card.id}.jpg`}
-                            alt={isEn && card.nameEn ? card.nameEn : card.name}
+                            alt={cardDisplayName(card, lang)}
                             className="h-full w-full object-cover"
                           />
                         </div>
@@ -201,7 +203,7 @@ export default function TarotDraw({
                   className="mt-1 text-[8.5px] uppercase tracking-[0.18em]"
                   style={{ fontFamily: 'var(--font-cinzel), serif', color: `${ROSE}aa` }}
                 >
-                  {isEn ? s.en : s.fr}
+                  {pickContent(s, lang)}
                 </p>
                 {card && revealed[slot] && (
                   <motion.p
@@ -211,7 +213,7 @@ export default function TarotDraw({
                     transition={{ delay: 0.7 }}
                     style={{ color: `${GOLD_PALE}dd` }}
                   >
-                    {isEn && card.nameEn ? card.nameEn : card.name}
+                    {cardDisplayName(card, lang)}
                   </motion.p>
                 )}
               </div>

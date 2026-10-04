@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
+import { resolveLang, outputDirective } from '@/lib/lang';
 import { type DieKind } from '@/components/astro-dice/glyphs';
 
 type Mode = 'global' | 'zoom-action' | 'zoom-domaine' | 'choix' | 'obstacle-solution';
@@ -244,6 +245,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { faces, activeKinds, mode, facesA, facesB, dbInterpretation, question } = body;
+  // Langue de sortie de l'analyse (le prompt reste français, on greffe l'impératif en fin).
+  const lang = resolveLang(body.lang);
   const m = (mode as Mode) || 'global';
   const kinds = Array.isArray(activeKinds)
     ? (activeKinds.filter((k: string) => k === 'planet' || k === 'sign' || k === 'house') as DieKind[])
@@ -280,7 +283,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'facesA et facesB requis' }, { status: 400 });
     }
     const prompt = buildChoixPrompt(facesA, facesB, kinds, question, body.dbInterpretationA, body.dbInterpretationB);
-    const content = (await callOracle(prompt)) || '';
+    const content = (await callOracle(prompt + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         comparaison: "Les étoiles se voilent un instant… La comparaison n'a pas pu être générée. Recommence plus tard.",
@@ -302,7 +305,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'faces requis' }, { status: 400 });
     }
     const prompt = buildObstacleSolutionPrompt(faces, kinds, kind, dbInterpretation, question);
-    const content = (await callOracle(prompt)) || '';
+    const content = (await callOracle(prompt + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         texte: "Les étoiles se voilent un instant… L'analyse n'a pas pu être générée. Recommence plus tard.",
@@ -336,7 +339,7 @@ export async function POST(request: NextRequest) {
   const prompt = buildPrompt(faces, kinds, m, dbInterpretation, question);
   // Analyse longue (json ~10 phrases) : délai élargi, sinon abort sur les
   // modèles gratuits → « Les étoiles se voilent » et bouton de relance.
-  const content = (await callOracle(prompt, m === 'global' ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
+  const content = (await callOracle(prompt + outputDirective(lang), m === 'global' ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json({

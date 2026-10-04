@@ -1,6 +1,6 @@
 'use client';
 
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -22,8 +22,10 @@ const YI_TUTORIALS: TutorialSlide[] = [
     iconImg: '/images/yi-jing-double.png',
     title: 'Le Double Hexagramme',
     titleEn: 'The Double Hexagram',
+titleEs: "El Doble Hexagrama", titleHi: "दोहरी षटरेखा",
     desc: 'Le rituel des trois pièces (zhi gua) : six jets construisent ton hexagramme ; les lignes mutantes se retournent sous tes yeux et le présent enfante son futur.',
     descEn: 'The three-coin ritual (zhi gua): six casts build your hexagram; the moving lines flip before your eyes and the present gives birth to its future.',
+descEs: "El ritual de las tres monedas (zhi gua): seis lanzamientos construyen tu hexagrama; las líneas mutantes se voltean ante tus ojos y el presente engendra su futuro.", descHi: "तीन सिक्कों का अनुष्ठान (zhi gua): छह फेंक तुम्हारी षटरेखा बनाते हैं; परिवर्तन-रेखाएँ तुम्हारे सामने पलटती हैं और वर्तमान अपने भविष्य को जन्म देता है।",
     steps: [
       'Saisis les trois pièces d’un geste : brasse-les dans le bol, puis jette-les six fois vers le haut',
       'Les lignes mutantes ondulent en rouge puis se retournent — le second hexagramme naît en face du premier',
@@ -34,13 +36,17 @@ const YI_TUTORIALS: TutorialSlide[] = [
       'The moving lines ripple red, then flip — the second hexagram is born opposite the first',
       'The oracle reads the pair and names a date; seal the augury and come back to judge the turn',
     ],
+stepsEs: ["Toma las tres monedas de un solo gesto: agítalas en el bol y lánzalas seis veces hacia arriba", "Las líneas mutantes ondean en rojo y luego se voltean — el segundo hexagrama nace frente al primero", "El oráculo lee la pareja y anuncia un plazo; sella el augurio y vuelve a juzgar el volteo"],
+stepsHi: ["एक ही संवेग में तीन सिक्के ग्रहण करो: कटोरी में उन्हें हिलाओ, फिर छह बार ऊपर की ओर फेंको", "परिवर्तन-रेखाएँ लाल में लहराती हैं, फिर पलट जाती हैं — दूसरी षटरेखा पहली के सामने जन्म लेती है", "भविष्यवेत्ता जोड़ी पढ़ता है और एक अवधि सुनाता है; शुभसूचन सील करो और लौटकर पलटन का न्याय करो"],
   },
   {
     iconImg: '/images/yi-jing-icon.png',
     title: 'Yi Jing simplifié',
     titleEn: 'Simplified I Ching',
+titleEs: "Yi Jing simplificado", titleHi: "सरल यी जिंग",
     desc: 'Le tirage des baguettes d\u2019achill\u00e9e : choisissez un domaine et une intention, puis secouez la boîte.',
     descEn: 'The yarrow stalk draw: choose a domain and an intention, then shake the box.',
+descEs: "La tirada de las varillas de aquilea: elija un ámbito y una intención, luego agite la caja.", descHi: "आचिली की छड़ों से वाचन: एक क्षेत्र और एक संकल्प चुनें, फिर डिब्बा हिलाएँ।",
     steps: [
       'Choisissez votre domaine',
       'Pr\u00e9cisez votre intention',
@@ -51,13 +57,17 @@ const YI_TUTORIALS: TutorialSlide[] = [
       'Set your intention',
       'Draw the chosen stalk',
     ],
+stepsEs: ["Elija su ámbito", "Precise su intención", "Extraiga la varilla elegida"],
+stepsHi: ["अपना क्षेत्र चुनें", "अपना संकल्प स्पष्ट करें", "चुनी हुई छड़ निकालें"],
   },
   {
     iconImg: '/images/yi-jing-simple.png',
     title: 'Yi Jing précis',
     titleEn: 'Precise I Ching',
+titleEs: "Yi Jing preciso", titleHi: "सटीक यी जिंग",
     desc: 'Un tirage rapide pour obtenir une réponse claire en un seul hexagramme.',
     descEn: 'A quick reading for a clear answer from a single hexagram.',
+descEs: "Una tirada rápida para obtener una respuesta clara en un solo hexagrama.", descHi: "एक तेज़ वाचन, केवल एक षटरेखा में स्पष्ट उत्तर पाने के लिए।",
     steps: [
       'Formulez votre question',
       'Tirez un hexagramme',
@@ -68,11 +78,14 @@ const YI_TUTORIALS: TutorialSlide[] = [
       'Draw one hexagram',
       'Read its message',
     ],
+stepsEs: ["Formule su pregunta", "Tire un hexagrama", "Lea su mensaje"],
+stepsHi: ["अपने प्रश्न को शब्द दें", "एक षटरेखा निकालें", "उसका संदेश पढ़ें"],
   },
   {
     iconImg: '/images/yi-jing-du-jour.png',
     title: 'Hexagramme du Jour',
     titleEn: 'Hexagram of the Day',
+titleEs: "El Hexagrama del Día", titleHi: "आज की षटरेखा",
     desc: "Le conseil du jour sous forme d'un hexagramme tiré pour vous.",
     descEn: "The day's advice in a hexagram drawn for you.",
     steps: [
@@ -85,6 +98,8 @@ const YI_TUTORIALS: TutorialSlide[] = [
       'Draw today’s hexagram',
       'Apply its counsel',
     ],
+stepsEs: ["Haga balance de su jornada", "Tire el hexagrama del día", "Aplique su consejo"],
+stepsHi: ["अपने दिन का अवलोकन करें", "आज की षटरेखा निकालें", "उस परामर्श को अपनाएँ"],
   },
 ];
 
@@ -267,7 +282,7 @@ export default function YiJingHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
                   title={t('hubs.yijing.base')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
@@ -343,7 +358,7 @@ export default function YiJingHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
                   title={t('hubs.yijing.simple')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
@@ -419,7 +434,7 @@ export default function YiJingHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
                   title={t('hubs.yijing.day')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
@@ -495,7 +510,7 @@ export default function YiJingHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
                   title={t('hubs.yijing.double')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}

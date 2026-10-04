@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
+import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
   let body: any;
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { planet, sign, house, question, kind, mode = 'short' } = body || {};
+  const { planet, sign, house, question, kind, mode = 'short', lang } = body || {};
   if (!planet || !sign || !house || !kind) {
     return NextResponse.json(
       { error: 'Champs requis : planet, sign, house, kind' },
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const maxTokens = mode === 'deep' ? 1200 : 500;
     const temperature = mode === 'deep' ? 0.5 : 0.3;
-    const response = await callOracle(prompt, { maxTokens, temperature });
+    const response = await callOracle(prompt + outputDirective(resolveLang(lang)), { maxTokens, temperature });
     if (!response) {
       return NextResponse.json(
         { interpretation: null, analysis: null, found: false },

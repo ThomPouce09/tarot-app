@@ -17,6 +17,12 @@ export function isResonant(dayIndex: number, cardId: number): boolean {
   return RESONANCE[dayIndex] === cardId;
 }
 
+// Grâce de scellement : 5 jours après la fin de la semaine (jour 7) pour sceller
+// l'augure. Passé ce délai sans sceau, la roue est PÉRIMÉE : masquée, la page
+// retombe sur « Poser la roue de la semaine » (la lecture reste dans l'historique).
+export const SEAL_GRACE_DAYS = 5;
+export const EXPIRY_DAY = 7 + SEAL_GRACE_DAYS; // nowDayIndex ≥ 12 → périmée si non scellée
+
 const DAY_MS = 86400000;
 // Minuit local — les jours de la roue basculent à minuit, pas à l'heure du cast.
 const sod = (t: number | string | Date) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };

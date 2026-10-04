@@ -9,7 +9,7 @@ import FirstVisitHints from '@/components/first-visit-hints';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -133,8 +133,13 @@ interface Tile {
    *  si absente — obligatoire pour les pages hors sous-répertoire. */
   type?: string;
   title: string;
+  titleEn?: string;
+  titleEs?: string;
+  titleHi?: string;
   desc: string;
   descEn: string;
+  descEs?: string;
+  descHi?: string;
   icon: string;
   /** Image d'icône (remplace l'emoji si fournie) — style tuiles du hub /tarot. */
   iconImg?: string;
@@ -145,36 +150,40 @@ const TILES: Tile[] = [
   {
     href: '/des-divinatoires-simplifie',
     type: 'des-simplifie',
-    title: 'Dés Simplifié',
+    title: 'Dés Simplifié', titleEn: 'Dice Simplified', titleEs: 'Dados Simplificados', titleHi: 'सरल पासा',
     desc: 'Un élément, une intention : les 3 dés vous aiguillent',
     descEn: 'One element, one intention: the 3 dice guide you',
+descEs: "Un elemento, una intención: los 3 dados le guían", descHi: "एक तत्व, एक संकल्प: 3 पासे आपको मार्ग दिखाते हैं",
     icon: '✦',
     iconImg: '/images/des-simplifie.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.steel} 100%)`,
   },
   {
     href: '/des-divinatoires/affinage',
-    title: "Tirage par Affinage",
+    title: "Tirage par Affinage", titleEn: 'Refinement Reading', titleEs: 'Tirada por Refinamiento', titleHi: 'परिष्करण-वाचन',
     desc: 'Préciser une nuance ou ajuster votre posture sans refaire tout le tirage',
     descEn: 'Refine a nuance or adjust your stance without redoing the whole reading',
+descEs: "Precisar un matiz o ajustar su postura sin repetir toda la tirada", descHi: "पूरा वाचन दोहराए बिना कोई सूक्ष्मता स्पष्ट करना या अपनी मुद्रा समायोजित करना",
     icon: '🔍',
     iconImg: '/images/des-affinage.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
   },
   {
     href: '/des-divinatoires/choix',
-    title: 'Le tirage du choix',
+    title: 'Le tirage du choix', titleEn: 'The Choice Reading', titleEs: 'La tirada de la elección', titleHi: 'चयन का वाचन',
     desc: 'Aide à la décision : 2 chemins, 2 énergies, à vous de choisir',
     descEn: 'Decision aid: 2 paths, 2 energies — the choice is yours',
+descEs: "Ayuda a la decisión: 2 caminos, 2 energías, usted decide", descHi: "निर्णय-सहायता: 2 पथ, 2 ऊर्जाएँ, चुनना आपका है",
     icon: '⚖️',
     iconImg: '/images/des-choix.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.brickDark} 100%)`,
   },
   {
     href: '/des-divinatoires/obstacle-solution',
-    title: 'Obstacle & Solution',
+    title: 'Obstacle & Solution', titleEn: 'Obstacle & Solution', titleEs: 'Obstáculo & Solución', titleHi: 'रुकावट & समाधान',
     desc: '2 lancers pour comprendre un blocage et obtenir conseil pour sa solution',
     descEn: '2 throws to understand a block and get advice for its solution',
+descEs: "2 tiradas para comprender un bloqueo y obtener un consejo para su solución", descHi: "अवरोध को समझने और समाधान का सुझाव पाने के लिए 2 फेंक",
     icon: '🗝️',
     iconImg: '/images/des-solution.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.steel} 0%, ${DICE_THEME.brickDeep} 100%)`,
@@ -189,8 +198,10 @@ const TUTORIALS: TutorialSlide[] = [
     icon: '✦',
     title: 'Dés Simplifié',
     titleEn: 'Dice Simplified',
+titleEs: "Dados Simplificados", titleHi: "सरल पासा",
     desc: 'Choisissez un Élément et une intention : les trois dés répondent à l’essentiel.',
     descEn: 'Pick an Element and an intention: the three dice answer the essentials.',
+descEs: "Elija un Elemento y una intención: los tres dados responden a lo esencial.", descHi: "एक तत्व और एक संकल्प चुनें: तीन पासे सार का उत्तर देते हैं।",
     steps: [
       'Choisissez un Élément (Feu, Terre, Air, Eau)',
       'Choisissez une intention dans la liste',
@@ -203,13 +214,17 @@ const TUTORIALS: TutorialSlide[] = [
       'Shake the cup and cast the three dice',
       'Read the analysis anchored to your intention',
     ],
+stepsEs: ["Elija un Elemento (Fuego, Tierra, Aire, Agua)", "Elija una intención en la lista", "Agite el vaso y lance los tres dados", "Lea el análisis anclado en su intención"],
+stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्वी, वायु, जल)", "सूची से एक संकल्प चुनें", "गिलास हिलाएँ और तीन पासे फेंकें", "अपने संकल्प पर आधारित विश्लेषण पढ़ें"],
   },
   {
     icon: '🔍',
     title: 'Tirage par Affinage',
     titleEn: 'Refinement Reading',
+titleEs: "Tirada por Refinamiento", titleHi: "परिष्करण-वाचन",
     desc: 'Préciser une nuance ou ajuster votre posture sans refaire tout le tirage.',
     descEn: 'Refine a nuance or adjust your stance without redoing the whole reading.',
+descEs: "Precisar un matiz o ajustar su postura sin repetir toda la tirada.", descHi: "पूरा वाचन दोहराए बिना कोई सूक्ष्मता स्पष्ट करना या अपनी मुद्रा समायोजित करना।",
     steps: [
       'Posez votre question de départ',
       'Lancez les trois dés (Planète, Signe, Maison)',
@@ -220,11 +235,14 @@ const TUTORIALS: TutorialSlide[] = [
       'Roll the three dice (Planet, Sign, House)',
       'Refine: reroll one die to sharpen the answer',
     ],
+stepsEs: ["Formule su pregunta inicial", "Lance los tres dados (Planeta, Signo, Casa)", "Afine: vuelva a lanzar un dado para precisar la respuesta"],
+stepsHi: ["अपना प्रारंभिक प्रश्न रखें", "तीन पासे फेंकें (ग्रह, राशि, भाव)", "परिष्कृत करें: उत्तर स्पष्ट करने के लिए एक पासा दोबारा फेंकें"],
   },
   {
     icon: '⚖️',
     title: 'Le tirage du choix',
     titleEn: 'The Choice Reading',
+titleEs: "La tirada de la elección", titleHi: "चयन का वाचन",
     desc: "Une aide à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
     descEn: "A decision aid: compare the energy of two options when you're torn between two paths.",
     steps: [
@@ -237,11 +255,14 @@ const TUTORIALS: TutorialSlide[] = [
       'Roll once for option A',
       'Roll again for option B, then compare the energies',
     ],
+stepsEs: ["Formule sus dos opciones con claridad", "Lance una primera vez para la opción A", "Vuelva a lanzar para la opción B, luego compare las energías"],
+stepsHi: ["अपने दोनों विकल्प स्पष्ट रूप से रखें", "विकल्प A के लिए पहली बार फेंकें", "विकल्प B के लिए दोबारा फेंकें, फिर ऊर्जाओं की तुलना करें"],
   },
   {
     icon: '🗝️',
     title: 'Obstacle & Solution',
     titleEn: 'Obstacle & Solution',
+titleEs: "Obstáculo & Solución", titleHi: "रुकावट & समाधान",
     desc: "Une méthode en deux lancers pour comprendre l'origine d'un blocage et obtenir un conseil précis pour le débloquer.",
     descEn: 'A two-throw method to understand the source of a block and get precise advice to overcome it.',
     steps: [
@@ -254,6 +275,8 @@ const TUTORIALS: TutorialSlide[] = [
       'Roll again for the solution',
       'Read the combined synthesis of both readings',
     ],
+stepsEs: ["Lance para identificar el obstáculo", "Lance de nuevo para la solución", "Lea la síntesis combinada de las dos tiradas"],
+stepsHi: ["अवरोध की पहचान के लिए फेंकें", "समाधान के लिए पुनः फेंकें", "दोनों वाचनों का संयुक्त सारांश पढ़ें"],
   },
 ] satisfies readonly TutorialSlide[];
 
@@ -314,8 +337,8 @@ export default function DesDivinatoiresHub() {
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_des" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <DiceTitle
-        title="Les Dés du zodiaque"
-        subtitle="Trois dés, trois clés : Planète, signe et vision pour décoder votre situation."
+        title={tr("Les Dés du zodiaque", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
+        subtitle={tr("Trois dés, trois clés : Planète, signe et vision pour décoder votre situation.", "Three dice, three keys: Planet, sign and vision to decode your situation.", "Tres dados, tres claves: Planeta, signo y visión para descodificar su situación.", "तीन पासे, तीन कुंजियाँ: ग्रह, राशि और दृष्टि — अपनी स्थिति को सुलझाने के लिए।")}
       />
 
       <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 px-4 pb-4 sm:gap-5">
@@ -360,9 +383,7 @@ export default function DesDivinatoiresHub() {
                   openTutorial(i);
                 }}
                 aria-label={
-                  lang === 'en'
-                    ? `How this reading works: ${tile.title}`
-                    : `Comment fonctionne ce tirage : ${tile.title}`
+                  pick4(`Comment fonctionne ce tirage : ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, `How this reading works: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, "Cómo funciona esta tirada: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}", "यह विन्यास कैसे काम करता है: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}")(lang)
                 }
                 data-info-i
                 className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
@@ -407,7 +428,7 @@ export default function DesDivinatoiresHub() {
                   textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                 }}
               >
-                {tile.title}
+                {lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}
               </h2>
               <p
                 className="relative text-xs sm:text-sm leading-relaxed"
@@ -417,7 +438,7 @@ export default function DesDivinatoiresHub() {
                   opacity: 0.88,
                 }}
               >
-                {lang === 'en' ? tile.descEn : tile.desc}
+                {lang === 'en' ? tile.descEn : lang === 'es' ? (tile.descEs || tile.desc) : lang === 'hi' ? (tile.descHi || tile.desc) : tile.desc}
               </p>
             </motion.div>
           </GatedTile>

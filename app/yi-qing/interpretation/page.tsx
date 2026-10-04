@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import WaitOverlay from '@/components/wait-overlay';
-import { useLang } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
 
 export default function YiQingInterpretationPage() {
   const lang = useLang();
@@ -27,7 +27,7 @@ export default function YiQingInterpretationPage() {
     const baguetteNum = localStorage.getItem('yi-qing-baguette');
     
     if (!baguetteNum) {
-      setError("Aucun tirage trouvé. Retournez à l'accueil pour tirer une baguette.");
+      setError(tr("Aucun tirage trouvé. Retournez à l'accueil pour tirer une baguette.", "No reading found. Return home to draw a stalk.", "Ninguna tirada encontrada. Vuelva al inicio para lanzar una varilla.", "कोई खींच नहीं मिली। छड़ी खींचने के लिए होम पर लौटें।"));
       setLoading(false);
       return;
     }
@@ -68,7 +68,7 @@ export default function YiQingInterpretationPage() {
       <Link 
         href="/" 
         className="fixed top-4 right-4 text-yellow-400 text-3xl font-bold hover:text-yellow-300 transition-colors z-50"
-        aria-label="Retour à l'accueil"
+        aria-label={tr("Retour à l'accueil", "Back to Home", "Volver al inicio", "होम पर लौटें")}
       >
         ×
       </Link>
@@ -79,7 +79,7 @@ export default function YiQingInterpretationPage() {
           <>
             <p className="text-red-400 mb-4">{error}</p>
             <Link href="/yi-qing" className="text-yellow-400 underline">
-              Retour au tirage
+              {tr("Retour au tirage", "Back to the reading", "Volver a la tirada", "खींच पर लौटें")}
             </Link>
           </>
         ) : interpretation ? (
@@ -89,10 +89,10 @@ export default function YiQingInterpretationPage() {
             </h1>
             
             <div className="text-left bg-black/40 p-4 rounded-lg mb-6">
-              <h2 className="text-yellow-500 font-bold mb-2">Méditation</h2>
+              <h2 className="text-yellow-500 font-bold mb-2">{tr("Méditation", "Meditation", "Meditación", "ध्यान")}</h2>
               <p className="text-gray-200 mb-4">{interpretation.meditation}</p>
               
-              <h2 className="text-yellow-500 font-bold mb-2">Conseil</h2>
+              <h2 className="text-yellow-500 font-bold mb-2">{tr("Conseil", "Advice", "Consejo", "सलाह")}</h2>
               <p className="text-gray-200 mb-4">{interpretation.conseil}</p>
               
               {interpretation.attitude && (

@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
 
 export default function QuestionModal({
   onSubmit,
@@ -64,16 +64,14 @@ export default function QuestionModal({
               textShadow: '0 0 14px rgba(218,165,32,0.45), 0 2px 4px rgba(0,0,0,0.8)',
             }}
           >
-            {lang === 'en' ? 'Your precise question' : 'Votre question précise'}
+            {pick4('Votre question précise', 'Your precise question', "Su pregunta precisa", "आपका सटीक प्रश्न")(lang)}
           </h2>
 
           <p
             className="mt-2 text-center text-xs italic leading-relaxed text-[#E2B8AC]/80"
             style={{ fontFamily: 'var(--font-cinzel), serif' }}
           >
-            {lang === 'en'
-              ? 'The cards answer best what the heart asks clearly. Formulate your question — Passé, Présent and Avenir will unfold around it.'
-              : 'Les cartes répondent mieux à ce que le cœur demande clairement. Formulez votre question — Passé, Présent et Avenir se déploieront autour d’elle.'}
+            {pick4('Les cartes répondent mieux à ce que le cœur demande clairement. Formulez votre question — Passé, Présent et Avenir se déploieront autour d’elle.', 'The cards answer best what the heart asks clearly. Formulate your question — Passé, Présent and Avenir will unfold around it.', "Las cartas responden mejor a lo que el corazón pregunta con claridad. Formule su pregunta — Pasado, Presente y Futuro se desplegarán a su alrededor.", "पत्ते उसी का सबसे उत्तम उत्तर देते हैं जो हृदय स्पष्टता से पूछे। अपना प्रश्न गढ़ें — अतीत, वर्तमान और भविष्य उसके चारों ओर खुल जाएँगे।")(lang)}
           </p>
 
           <div className="mx-auto mt-4 h-px w-2/3 bg-gradient-to-r from-transparent via-[#DAA520]/50 to-transparent" />
@@ -91,9 +89,7 @@ export default function QuestionModal({
               }
             }}
             placeholder={
-              lang === 'en'
-                ? 'e.g. What do I need to understand about this relationship?'
-                : 'Ex : Que dois-je comprendre de cette relation ?'
+              pick4('Ex : Que dois-je comprendre de cette relation ?', 'e.g. What do I need to understand about this relationship?', "Ej.: ¿Qué debo entender de esta relación?", "उदा.: इस रिश्ते के बारे में मुझे क्या समझना चाहिए?")(lang)
             }
             className="mt-4 w-full resize-none rounded-xl border border-[#DAA520]/40 p-3.5 text-[15px] leading-relaxed text-[#FFF6E8] italic placeholder-[#DAA520]/55 transition-colors focus:border-[#DAA520]/70 focus:outline-none focus:shadow-[0_0_18px_rgba(218,165,32,0.25)]"
             style={{
@@ -115,7 +111,7 @@ export default function QuestionModal({
             whileHover={value.trim() ? { scale: 1.03 } : {}}
             whileTap={value.trim() ? { scale: 0.97 } : {}}
           >
-            {lang === 'en' ? 'Ask the cards and draw' : 'Interroger les cartes et tirer'}
+            {pick4('Interroger les cartes et tirer', 'Ask the cards and draw', "Interrogar las cartas y hacer la tirada", "पत्तों से पूछें और विन्यास करें")(lang)}
           </motion.button>
         </div>
       </motion.div>

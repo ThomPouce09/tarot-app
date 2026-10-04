@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   motion,
   useMotionValue,
+  motionValue,
   useMotionTemplate,
   useTransform,
   animate,
@@ -42,7 +43,8 @@ import { installSoundUnlock, playRandom, playSound, stopSound } from '@/lib/soun
 // que seul le son de déroulé sur la piste continue.
 const SHAKE_KEYS = ['dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1', 'dices-cup-2', 'dices-cup-3'];
 function cutShake() { for (const k of SHAKE_KEYS) stopSound(k); }
-import { PLANET_NAMES, SIGN_NAMES } from './names';
+import { PLANET_NAMES, SIGN_NAMES, planetName, signName, houseName } from './names';
+import { getRuntimeLang } from '@/lib/i18n';
 import { ConstellationStrike } from './constellation';
 
 /* -------------------------------------------------------------------------- */
@@ -69,10 +71,12 @@ function useCupDice(
       };
     }),
   );
+  // motionValue() (fabrique, pas hook) : les valeurs vivent dans un ref,
+  // créées une fois au premier rendu — hook défendu dans un callback (rules-of-hooks).
   const mvs = useRef(
     Array.from({ length: count }, () => ({
-      x: useMotionValue(0),
-      y: useMotionValue(0),
+      x: motionValue(0),
+      y: motionValue(0),
     })),
   ).current;
 
@@ -458,11 +462,11 @@ export default function AstroDiceCup({
   const handleRest = useCallback(
     (faces: TargetFaces) => {
       setRolling(false);
-      setStrike((s) => ({ t: [
-        [String(faces.planet), PLANET_NAMES[String(faces.planet)] ?? String(faces.planet)],
-        [String(faces.sign), SIGN_NAMES[String(faces.sign)] ?? String(faces.sign)],
-        [String(faces.house), `Maison ${faces.house}`],
-      ] as [string, string][], n: (s?.n ?? 0) + 1 }));
+      setStrike((s) => { const rl = getRuntimeLang(); return { t: [
+        [String(faces.planet), planetName(String(faces.planet), rl)],
+        [String(faces.sign), signName(String(faces.sign), rl)],
+        [String(faces.house), houseName(faces.house, rl)],
+      ] as [string, string][], n: (s?.n ?? 0) + 1 }; });
       setArenaGone(true);
       // Le résultat (scroll + oracle des pages) n'est remonté qu'après la
       // frappe complète : décalage 0,5 s + musique + 2 s de lisibilité +

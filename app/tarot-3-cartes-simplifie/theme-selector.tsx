@@ -11,11 +11,13 @@
 
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, pick4, pickContent, type Lang } from '@/lib/i18n';
 
 export interface L {
   fr: string;
   en: string;
+  es?: string;
+  hi?: string;
 }
 
 export interface TarotTheme {
@@ -104,58 +106,58 @@ export function IconWheel(c: string) {
 export const TAROT_THEMES: TarotTheme[] = [
   {
     id: 'coupes',
-    label: { fr: 'Liens du Cœur', en: 'Bonds of the Heart' },
+    label: { fr: 'Liens du Cœur', en: 'Bonds of the Heart' , es: "Vínculos del Corazón", hi: "हृदय के बंधन"},
     arcane: 'Coupes',
-    sigil: { fr: 'Le Calice · ce qui relie les cœurs', en: 'The Chalice · what binds hearts' },
+    sigil: { fr: 'Le Calice · ce qui relie les cœurs', en: 'The Chalice · what binds hearts' , es: "El Cáliz · lo que une los corazones", hi: "प्याला · जो हृदयों को जोड़ता है"},
     icon: IconChalice,
     subs: [
-      { fr: 'Un lien qui me tient à cœur', en: 'A bond close to my heart' },
-      { fr: 'Deux cœurs qui se cherchent', en: 'Two hearts searching for each other' },
-      { fr: 'Raviver la flamme d’un couple', en: 'Rekindling a couple’s flame' },
-      { fr: 'Apaiser un lien familial', en: 'Easing a family tie' },
-      { fr: 'Oser dire ce que je ressens', en: 'Daring to say what I feel' },
+      { fr: 'Un lien qui me tient à cœur', en: 'A bond close to my heart' , es: "Un vínculo que llevo en el corazón", hi: "एक बंधन जो मुझे प्रिय है"},
+      { fr: 'Deux cœurs qui se cherchent', en: 'Two hearts searching for each other' , es: "Dos corazones que se buscan", hi: "दो हृदय, एक-दूसरे की तलाश में"},
+      { fr: 'Raviver la flamme d’un couple', en: 'Rekindling a couple’s flame' , es: "Avivar la llama de una pareja", hi: "जोड़ी की लौ को फिर धकाना"},
+      { fr: 'Apaiser un lien familial', en: 'Easing a family tie' , es: "Apaciguar un vínculo familiar", hi: "पारिवारिक बंधन को शांत करना"},
+      { fr: 'Oser dire ce que je ressens', en: 'Daring to say what I feel' , es: "Atreverse a decir lo que siento", hi: "जो भीतर है, उसे कहने की हिम्मत"},
     ],
   },
   {
     id: 'batons',
-    label: { fr: 'Feu Créateur', en: 'Creative Fire' },
+    label: { fr: 'Feu Créateur', en: 'Creative Fire' , es: "Fuego Creador", hi: "सृजक अग्नि"},
     arcane: 'Bâtons',
-    sigil: { fr: 'Le Bâton fleuri · ce qui embrase l’élan', en: 'The Flowering Wand · what kindles momentum' },
+    sigil: { fr: 'Le Bâton fleuri · ce qui embrase l’élan', en: 'The Flowering Wand · what kindles momentum' , es: "El Bastón florido · lo que enciende el impulso", hi: "पुष्पित दंड · जो जोश को आग देता है"},
     icon: IconWand,
     subs: [
-      { fr: 'Un projet qui m’appelle', en: 'A project that calls me' },
-      { fr: 'Retrouver mon élan', en: 'Finding my drive again' },
-      { fr: 'Une vocation à confirmer', en: 'A calling to confirm' },
-      { fr: 'Oser le premier pas', en: 'Daring the first step' },
-      { fr: 'Traverser un passage à feu', en: 'Crossing a trial by fire' },
+      { fr: 'Un projet qui m’appelle', en: 'A project that calls me' , es: "Un proyecto que me llama", hi: "एक कार्य जो मुझे पुकारता है"},
+      { fr: 'Retrouver mon élan', en: 'Finding my drive again' , es: "Recuperar mi impulso", hi: "अपना वेग पुनः पाना"},
+      { fr: 'Une vocation à confirmer', en: 'A calling to confirm' , es: "Una vocación por confirmar", hi: "एक आह्वान की पुष्टि"},
+      { fr: 'Oser le premier pas', en: 'Daring the first step' , es: "Atreverse con el primer paso", hi: "पहला कदम उठाने का साहस"},
+      { fr: 'Traverser un passage à feu', en: 'Crossing a trial by fire' , es: "Atravesar una prueba de fuego", hi: "अग्नि-परीक्षा से गुज़रना"},
     ],
   },
   {
     id: 'epees',
-    label: { fr: 'Clarté & Épreuves', en: 'Clarity & Trials' },
+    label: { fr: 'Clarté & Épreuves', en: 'Clarity & Trials' , es: "Claridad & Pruebas", hi: "स्पष्टता & परीक्षाएँ"},
     arcane: 'Épées',
-    sigil: { fr: 'L’Épée lumineuse · ce qui tranche le vrai', en: 'The Bright Sword · what cuts to the truth' },
+    sigil: { fr: 'L’Épée lumineuse · ce qui tranche le vrai', en: 'The Bright Sword · what cuts to the truth' , es: "La Espada luminosa · lo que parte lo verdadero", hi: "प्रकाशमान तलवार · जो सत्य को भेदती है"},
     icon: IconSword,
     subs: [
-      { fr: 'Une décision à trancher', en: 'A decision to cut through' },
-      { fr: 'Une vérité qui dérange', en: 'A truth that disturbs' },
-      { fr: 'Un conflit à désamorcer', en: 'A conflict to defuse' },
-      { fr: 'Me libérer d’un poids mental', en: 'Freeing myself from a mental weight' },
-      { fr: 'Y voir clair dans mes peurs', en: 'Seeing through my fears' },
+      { fr: 'Une décision à trancher', en: 'A decision to cut through' , es: "Una decisión por tomar", hi: "एक निर्णय जिसे तय करना है"},
+      { fr: 'Une vérité qui dérange', en: 'A truth that disturbs' , es: "Una verdad que incomoda", hi: "एक सत्य जो बेचैन करता है"},
+      { fr: 'Un conflit à désamorcer', en: 'A conflict to defuse' , es: "Un conflicto por desactivar", hi: "एक संघर्ष जिसे शांत करना है"},
+      { fr: 'Me libérer d’un poids mental', en: 'Freeing myself from a mental weight' , es: "Liberarme de un peso mental", hi: "मन के बोझ से मुक्त होना"},
+      { fr: 'Y voir clair dans mes peurs', en: 'Seeing through my fears' , es: "Ver claro en mis miedos", hi: "अपने भयों को स्पष्ट देखना"},
     ],
   },
   {
     id: 'roue',
-    label: { fr: 'Roue de la Fortune', en: 'Wheel of Fortune' },
+    label: { fr: 'Roue de la Fortune', en: 'Wheel of Fortune' , es: "Rueda de la Fortuna", hi: "भाग्य का चक्र"},
     arcane: 'Roue',
-    sigil: { fr: 'La Roue · ce qui tourne pour vous', en: 'The Wheel · what turns for you' },
+    sigil: { fr: 'La Roue · ce qui tourne pour vous', en: 'The Wheel · what turns for you' , es: "La Rueda · lo que gira para usted", hi: "चक्र · जो आपके लिए घूमता है"},
     icon: IconWheel,
     subs: [
-      { fr: 'Ce que l’année fait tourner', en: 'What the year is turning' },
-      { fr: 'Abondance, travail, matière', en: 'Abundance, work, substance' },
-      { fr: 'Un cycle qui s’achève', en: 'A cycle coming to a close' },
-      { fr: 'Mes synchronicités, mon destin', en: 'My synchronicities, my fate' },
-      { fr: 'Le rendez-vous que je n’ose pas nommer', en: 'The appointment I dare not name' },
+      { fr: 'Ce que l’année fait tourner', en: 'What the year is turning' , es: "Lo que el año pone en giro", hi: "जो कुछ इस वर्ष चल रहा है"},
+      { fr: 'Abondance, travail, matière', en: 'Abundance, work, substance' , es: "Abundancia, trabajo, materia", hi: "समृद्धि, कार्य, भौतिकता"},
+      { fr: 'Un cycle qui s’achève', en: 'A cycle coming to a close' , es: "Un ciclo que se cierra", hi: "एक चक्र जो पूर्ण हो रहा है"},
+      { fr: 'Mes synchronicités, mon destin', en: 'My synchronicities, my fate' , es: "Mis sincronicidades, mi destino", hi: "मेरी समकालिकताएँ, मेरा भाग्य"},
+      { fr: 'Le rendez-vous que je n’ose pas nommer', en: 'The appointment I dare not name' , es: "La cita que no me atrevo a nombrar", hi: "वह भेंट जिसका नाम लेने से हिचकिचाता हूँ"},
     ],
   },
 ];
@@ -163,19 +165,55 @@ export const TAROT_THEMES: TarotTheme[] = [
 /* ————————————————————————— Utilitaire ————————————————————————— */
 
 /** Composante « Arcane — intention » comprise par parseTarotQuestion. */
-export function composeTarotQuestion(theme: TarotTheme, sub: L, lang: 'fr' | 'en'): string {
-  return `${theme.label[contentLang(lang)]} — ${sub[contentLang(lang)]}`;
+export function composeTarotQuestion(theme: TarotTheme, sub: L, lang: Lang): string {
+  return `${pickContent(theme.label, lang)} — ${pickContent(sub, lang)}`;
 }
 
 /** Reconstruit { theme, sub } depuis la question composée
- *  « Arcane — intention ». Renvoie null si la question n'est pas du sélecteur. */
+ *  « Arcane — intention ». Renvoie null si la question n'est pas du sélecteur.
+ *  Reconnaît les 4 langues (le label stocké peut être fr/en/es/hi). */
 export function parseTarotQuestion(question: string | null): { theme: TarotTheme; sub: string } | null {
   if (!question) return null;
   const sep = question.indexOf(' — ');
   if (sep === -1) return null;
   const head = question.slice(0, sep);
-  const theme = TAROT_THEMES.find((d) => d.label.fr === head || d.label.en === head);
+  const theme = TAROT_THEMES.find((d) => labelMatches(d.label, head));
   return theme ? { theme, sub: question.slice(sep + 3) } : null;
+}
+
+/** La question est stockée dans la langue où elle a été composée. Si l'user
+ *  change de langue AVANT de voir le résultat, on retrouve l'intention dans sa
+ *  variante locale via ce matcheur (toutes les variantes de L). */
+function labelMatches(l: L, head: string): boolean {
+  return l.fr === head || l.en === head || l.es === head || l.hi === head;
+}
+
+/** Version localisée (lang courante) du texte « Arcane — intention » mémorisé,
+ *  quelle que soit la langue où il a été composé. null = pas du sélecteur. */
+export function localizeTarotQuestion(question: string | null, lang: Lang): { label: string; sub: string } | null {
+  if (!question) return null;
+  const sep = question.indexOf(' — ');
+  if (sep === -1) return null;
+  const head = question.slice(0, sep);
+  const theme = TAROT_THEMES.find((d) => labelMatches(d.label, head));
+  if (!theme) return null;
+  const tail = question.slice(sep + 3);
+  const subIdx = theme.subs.findIndex((s) => labelMatches(s, tail));
+  return {
+    label: pickContent(theme.label, lang),
+    sub: subIdx >= 0 ? pickContent(theme.subs[subIdx], lang) : tail,
+  };
+}
+
+/** Nom localisé de la SUITE d'arcane-guide (Coupes/Bâtons/Épées/Roue). */
+export const ARCANE_SUIT_L10N: Record<string, L> = {
+  Coupes: { fr: 'Coupes', en: 'Cups', es: 'Copas', hi: 'कप' },
+  Bâtons: { fr: 'Bâtons', en: 'Wands', es: 'Bastos', hi: 'दंड' },
+  Épées: { fr: 'Épées', en: 'Swords', es: 'Espadas', hi: 'तलवार' },
+  Roue: { fr: 'Roue', en: 'Wheel', es: 'Rueda', hi: 'चक्र' },
+};
+export function arcaneSuitName(arcane: string, lang: Lang): string {
+  return pickContent(ARCANE_SUIT_L10N[arcane] ?? { fr: arcane }, lang);
 }
 
 /* ————————————————————————— Composant ————————————————————————— */
@@ -199,7 +237,7 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
 
   const cast = () => {
     if (!theme || subIdx === null) return;
-    onConfirm(`${theme.label[contentLang(lang)]} — ${theme.subs[subIdx][contentLang(lang)]}`);
+    onConfirm(`${pickContent(theme.label, lang)} — ${pickContent(theme.subs[subIdx], lang)}`);
   };
 
   return (
@@ -216,12 +254,10 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
         ☾ · <span className="ts-twinkle">✦</span> · ☼
       </p>
       <h2 className="mt-1 text-center font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: TAROT_NIGHT.gold }}>
-        {lang === 'en' ? 'Choose your guide-arcana' : 'Choisissez votre arcane-guide'}
+        {pick4('Choisissez votre arcane-guide', 'Choose your guide-arcana', "Elija su arcano guía", "अपना अर्कान-मार्गदर्शक चुनें")(lang)}
       </h2>
       <p className="mx-auto mt-1 max-w-sm text-center text-xs italic leading-relaxed" style={{ color: TAROT_NIGHT.roseDim }}>
-        {lang === 'en'
-          ? 'The Tarot answers a precise intention. Pick an arcana, then what speaks to you — the three cards will work on it.'
-          : 'Le Tarot répond à une intention précise. Choisissez un arcane, puis ce qui vous parle — les trois cartes travailleront dessus.'}
+        {pick4('Le Tarot répond à une intention précise. Choisissez un arcane, puis ce qui vous parle — les trois cartes travailleront dessus.', 'The Tarot answers a precise intention. Pick an arcana, then what speaks to you — the three cards will work on it.', "El Tarot responde a una intención precisa. Elija un arcano y luego lo que le hable — las tres cartas trabajarán sobre ello.", "टैरो एक स्पष्ट संकल्प का उत्तर देता है। एक अर्कान चुनें, फिर जो आपको भा ले — तीनों पत्ते उसी पर काम करेंगे।")(lang)}
       </p>
 
       {/* Les 4 arcanes — grille 2×2 */}
@@ -246,10 +282,10 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
                 {d.icon(sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}cc` }}>
-                {d.label[contentLang(lang)]}
+                {pickContent(d.label, lang)}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? TAROT_NIGHT.rose : `${TAROT_NIGHT.roseDim}99` }}>
-                {lang === 'en' ? `${d.arcane} suit · ` : `Suite ${d.arcane} · `}{d.sigil[contentLang(lang)].split('· ')[1]}
+                {pick4('Suite', 'Suit', 'Secuencia', 'क्रम')(lang)} {arcaneSuitName(d.arcane, lang)} · {pickContent(d.sigil, lang).split('· ')[1]}
               </span>
               {sel && (
                 <span className="ts-twinkle absolute right-2 top-2 text-[10px]" style={{ color: TAROT_NIGHT.gold }}>✦</span>
@@ -273,10 +309,10 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
             <div ref={subRef} className="mt-4 rounded-xl px-3 py-3" style={{ background: 'rgba(14,7,4,0.65)', border: `1px solid ${TAROT_NIGHT.gold}33`, boxShadow: 'inset 0 0 22px rgba(0,0,0,0.45)' }}>
               <div className="flex items-center justify-between">
                 <p className="font-[family-name:var(--font-cinzel-deco)] text-[12px] tracking-widest" style={{ color: TAROT_NIGHT.goldPale }}>
-                  {lang === 'en' ? 'What shall the cards examine?' : 'Que souhaitez-vous interroger ?'}
+                  {pick4('Que souhaitez-vous interroger ?', 'What shall the cards examine?', "¿Qué desea interrogar?", "आप क्या पूछना चाहते हैं?")(lang)}
                 </p>
                 <button type="button" onClick={() => { setThemeId(null); setSubIdx(null); }} className="text-[10px] underline-offset-2 hover:underline" style={{ color: `${TAROT_NIGHT.roseDim}bb` }}>
-                  {lang === 'en' ? 'Change arcana' : 'Changer d’arcane'}
+                  {pick4('Changer d’arcane', 'Change arcana', "Cambiar de arcano", "अर्कान बदलें")(lang)}
                 </button>
               </div>
               <ul className="mt-2 space-y-1">
@@ -292,7 +328,7 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
                       >
                         <span className={`mt-[3px] text-[8px]${sel ? ' ts-twinkle' : ''}`} style={{ color: sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}55` }}>✦</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? TAROT_NIGHT.gold : TAROT_NIGHT.rose }}>
-                          {s[contentLang(lang)]}
+                          {pickContent(s, lang)}
                         </span>
                       </button>
                     </li>
@@ -321,11 +357,11 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
             cursor: ready ? 'pointer' : 'default',
           }}
         >
-          {lang === 'en' ? 'Consult the Tarot' : 'Interroger le Tarot'}
+          {pick4('Interroger le Tarot', 'Consult the Tarot', "Consultar el Tarot", "टैरो से परामर्श करें")(lang)}
         </button>
         {!ready && (
           <p className="mt-2 text-[10px] italic" style={{ color: `${TAROT_NIGHT.roseDim}88` }}>
-            {lang === 'en' ? 'Pick an arcana, then an intention.' : 'Choisissez un arcane puis une intention.'}
+            {pick4('Choisissez un arcane puis une intention.', 'Pick an arcana, then an intention.', "Elija un arcano y luego una intención.", "अर्कान चुनें, फिर एक संकल्प।")(lang)}
           </p>
         )}
       </div>

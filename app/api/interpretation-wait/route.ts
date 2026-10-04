@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { pick4, pickContent } from '@/lib/i18n';
+import { resolveLang } from '@/lib/lang';
 
 // ── Vidéos d'attente : détection dynamique par préfixe ────────────────────
 // Toutes les vidéos "<prefix>X.mp4" (X = 1..9) présentes dans public/images
@@ -48,7 +50,7 @@ function listYiJingHVideos(): string[] { return listVideos('analyse-yi-jing-h');
 // dynamiquement dans public/images). backgroundUrls est laissé vide ici et
 // généré à CHAQUE requête dans GET() (mélange aléatoire à chaque visite).
 const CONFIG: Record<string, {
-  messages: { fr: string[]; en: string[] };
+  messages: { fr: string[]; en: string[]; es: string[]; hi: string[] };
   backgroundType: 'image' | 'video' | 'none';
   backgroundUrls: string[];
   animation: string;
@@ -62,6 +64,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les trois pièces résonnent encore…', 'Le Yi Jing médite votre tirage…'],
       en: ['The oracle consults the hexagrams…', 'The three coins still resonate…', 'The I Ching ponders your draw…'],
+      es: ["El oráculo consulta los hexagramas…", "Las tres monedas aún resuenan…", "El Yi Jing medita su tirada…"],
+      hi: ["देववाणी हैक्सग्रामों को पढ़ रही है…", "तीनों सिक्के अभी गूँज रहे हैं…", "इ चिंग आपके वाचन का मनन कर रहा है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -72,6 +76,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre tirage…'],
       en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your draw…'],
+      es: ["El oráculo consulta los hexagramas…", "Las varillas de milenrama resuenan…", "El Yi Jing medita su tirada…"],
+      hi: ["देववाणी हैक्सग्रामों को पढ़ रही है…", "यार्रो की छड़ें गूँज रही हैं…", "इ चिंग आपके वाचन का मनन कर रहा है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -84,6 +90,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre intention…'],
       en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your intention…'],
+      es: ["El oráculo consulta los hexagramas…", "Las varillas de milenrama resuenan…", "El Yi Jing medita en su intención…"],
+      hi: ["देववाणी हैक्सग्रामों को पढ़ रही है…", "यार्रो की छड़ें गूँज रही हैं…", "इ चिंग आपके संकल्प पर ध्यान कर रहा है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -96,6 +104,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre question…'],
       en: ['The oracle consults the hexagrams…', 'The yarrow stalks resonate…', 'The I Ching ponders your question…'],
+      es: ["El oráculo consulta los hexagramas…", "Las varillas de milenrama resuenan…", "El Yi Jing medita en su pregunta…"],
+      hi: ["देववाणी हैक्सग्रामों को पढ़ रही है…", "यार्रो की छड़ें गूँज रही हैं…", "इ चिंग आपके प्रश्न पर ध्यान कर रहा है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -108,6 +118,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['L’oracle consulte les hexagrammes…', 'Le Yi Jing révèle sa sagesse…'],
       en: ['The oracle consults the hexagrams…', 'The I Ching reveals its wisdom…'],
+      es: ["El oráculo consulta los hexagramas…", "El Yi Jing revela su sabiduría…"],
+      hi: ["देववाणी हैक्सग्रामों को पढ़ रही है…", "इ चिंग अपना ज्ञान प्रकट कर रहा है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -123,6 +135,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['Les cartes se dévoilent…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],
       en: ['The cards reveal themselves…', 'The tarot ponders your spread…', 'The oracle weaves the arcana…'],
+      es: ["Las cartas se revelan…", "El Tarot medita en su tirada…", "El oráculo reúne los arcanos…"],
+      hi: ["पत्र खुल रहे हैं…", "तैरो आपके विन्यास पर ध्यान कर रहा है…", "देववाणी अरकानों को जोड़ रही है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -142,6 +156,8 @@ const CONFIG: Record<string, {
         'The tarot ponders your intention…',
         'The major arcana lean close to your question…',
       ],
+      es: ["El arcano guía está posado sobre la mesa, las cartas se agitan…", "El Tarot medita en su intención…", "Los arcanos mayores se inclinan sobre su pregunta…"],
+      hi: ["मार्गदर्शक अरकान मेज़ पर विराजमान है, पत्र हिल रहे हैं…", "तैरो आपके संकल्प पर ध्यान कर रहा है…", "बड़े अरकान आपके प्रश्न पर झुक रहे हैं…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -153,6 +169,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['La croix se dessine…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],
       en: ['The cross takes shape…', 'The tarot ponders your spread…', 'The oracle weaves the arcana…'],
+      es: ["La cruz se dibuja…", "El Tarot medita en su tirada…", "El oráculo reúne los arcanos…"],
+      hi: ["क्रॉस आकार ले रहा है…", "तैरो आपके विन्यास पर ध्यान कर रहा है…", "देववाणी अरकानों को जोड़ रही है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -164,6 +182,8 @@ const CONFIG: Record<string, {
     messages: {
       fr: ['Vos cartes se révèlent…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],
       en: ['Your cards reveal themselves…', 'The tarot ponders your spread…', 'The oracle weaves the arcana…'],
+      es: ["Sus cartas se revelan…", "El Tarot medita en su tirada…", "El oráculo reúne los arcanos…"],
+      hi: ["आपके पत्र प्रकट हो रहे हैं…", "तैरो आपके विन्यास पर ध्यान कर रहा है…", "देववाणी अरकानों को जोड़ रही है…"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -201,6 +221,8 @@ const CONFIG: Record<string, {
         'Heimdall watches over the runes. They speak of you…',
         'The runes carve their path toward the light. Patience…',
       ],
+      es: ["Las runas despiertan, la verdad está a punto de estallar …", "Odín inclina su mirada sobre su tirada, paciencia …", "Las piedras rúnicas murmuran sus secretos. La revelación está cerca …", "Huginn y Muninn traen la sabiduría de las runas …", "El Futhark antiguo revela sus glifos. ¡Paciencia!", "Urd saca agua de la fuente del destino, su calabaza pronto estará llena de la respuesta a su pregunta …", "Las runas grabadas se iluminan una a una. Su sabiduría está a punto de aparecer …", "La escarcha y el fuego ya sellan la respuesta a su pregunta.", "Heimdall vela por las runas. Hablan de usted …", "Las runas trazan su camino hacia la luz. Paciencia …"],
+      hi: ["रून जाग रहे हैं, सत्य प्रकट होने वाला है …", "ओदिन आपके विन्यास पर दृष्टि डालते हैं, धैर्य …", "रून-प्रस्तर अपने रहस्य फुसफुसा रहे हैं। प्रकटीकरण निकट है …", "हुगिन और मुनिन रूनों का ज्ञान लेकर लौट रहे हैं …", "प्राचीन फुथार्क अपने चिह्न प्रकट कर रहा है। धैर्य रखें!", "उर्द्र भाग्य के स्रोत से जल खींचती हैं, उनका कलश आपके प्रश्न के उत्तर से भरा जा रहा है …", "उके हुए रून एक-एक कर जगमगा रहे हैं। उनका ज्ञान प्रकट होने वाला है …", "तुषार और अग्नि पहले ही आपके प्रश्न का उत्तर मुहर कर चुके हैं।", "हेमडॉल रूनों की रखवाली करते हैं। वे आपके बारे में कह रहे हैं …", "रून प्रकाश की ओर अपना मार्ग बना रहे हैं। धैर्य …"],
     },
     backgroundType: 'video',
     backgroundUrls: [],
@@ -211,21 +233,25 @@ const CONFIG: Record<string, {
 };
 
 // Messages d'attente spécifiques à certains tirages runes (ajoutés à la base).
-const RUNE_EXTRA_MSGS: Record<string, { fr: string; en: string }> = {
+const RUNE_EXTRA_MSGS: Record<string, { fr: string; en: string; es: string; hi: string }> = {
   nornes: {
     fr: 'Les Nornes tissent le fil de votre destin …',
     en: 'The Norns weave the thread of your destiny…',
+    es: 'Las Nornir tejen el hilo de su destino …',
+    hi: 'नॉर्न आपके भाग्य का सूत्र बुन रही हैं …',
   },
   yggdrasil: {
     fr: 'Yggdrasil, le frêne du monde, frémit …',
     en: 'Yggdrasil, the world ash, trembles…',
+    es: 'Yggdrasil, el fresno del mundo, se estremece …',
+    hi: 'युग्द्रसिल, संसार का वृक्ष, काँप उठा है …',
   },
 };
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || '';
-  const lang = searchParams.get('lang') === 'en' ? 'en' : 'fr';
+  const lang = resolveLang(searchParams.get('lang'));
   let cfg = CONFIG[type];
 
   // Les types de tirages runes (runes-nornes, runes-nornes2, runes-mjolnir,
@@ -235,7 +261,7 @@ export async function GET(request: NextRequest) {
   if (!cfg) {
     // Fallback generique
     return NextResponse.json({
-      messages: [lang === 'en' ? 'Loading the interpretation…' : 'Chargement de l’interprétation…'],
+      messages: [pick4('Chargement de l’interprétation…', 'Loading the interpretation…', "Cargando la interpretación…", "व्याख्या लोड हो रही है…")(lang)],
       backgroundType: 'none',
       backgroundUrls: [],
       animation: 'fade',
@@ -245,16 +271,15 @@ export async function GET(request: NextRequest) {
 
   // Pool de messages d'attente : base commune à tous les tirages runes, plus
   // le message spécifique du tirage (Nornes / Yggdrasil) quand il y correspond.
-  let messages = cfg.messages[lang];
+  let messages = cfg.messages[lang] ?? cfg.messages.fr;
   if (type.startsWith('runes')) {
-    const isEn = lang === 'en';
-    messages = [...cfg.messages[lang]];
+    messages = [...messages];
     if (type.includes('nornes')) {
       const ex = RUNE_EXTRA_MSGS.nornes;
-      messages.splice(2, 0, isEn ? ex.en : ex.fr);
+      messages.splice(2, 0, pickContent(ex, lang));
     } else if (type.includes('yggdrasil')) {
       const ex = RUNE_EXTRA_MSGS.yggdrasil;
-      messages.splice(2, 0, isEn ? ex.en : ex.fr);
+      messages.splice(2, 0, pickContent(ex, lang));
     }
   }
 

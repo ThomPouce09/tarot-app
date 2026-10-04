@@ -8,7 +8,7 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLang, useT, contentLang } from '@/lib/i18n';
+import { useLang, useT, contentLang, pickContent, tr } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 import { RUNE_DOMAINS } from '../nornes2/theme-selector';
 
@@ -16,18 +16,20 @@ export default function YggQuestion({ open, onConfirm, copy }: {
   open: boolean;
   onConfirm: (q: string) => void;
   /** Habillage textuel local (défaut : l'Arbre). Mjölnir passe les siens. */
-  copy?: { title: string; titleEn: string; sub: string; subEn: string; cta: string; ctaEn: string };
+  copy?: { title: string; titleEn: string; sub: string; subEn: string; cta: string; ctaEn: string; titleEs?: string; titleHi?: string };
 }) {
   const t = useT();
   const lang = useLang();
   const C = {
     title: 'À qui s’adresse l’Arbre ?', titleEn: 'Whom does the Tree speak of?',
+titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किसे संबोधित करता है?",
     sub: 'Confie ta question — ou choisis un thème pour orienter la lecture si tu préfères rester abstrait.',
     subEn: 'Entrust your question — or pick a theme to orient the reading if you prefer to stay abstract.',
     cta: 'Planter la question', ctaEn: 'Plant the question',
     ...(copy ?? {}),
   };
-  const L = (fr: string, en: string) => (lang === 'en' ? en : fr);
+  const L = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
   const [free, setFree] = useState('');
   const [domainId, setDomainId] = useState<string | null>(null);
   const domain = RUNE_DOMAINS.find((d) => d.id === domainId) ?? null;
@@ -65,7 +67,7 @@ export default function YggQuestion({ open, onConfirm, copy }: {
           >
             <p className="text-center text-[11px] tracking-[0.4em]" style={{ color: `${RUNE_THEME.goldPale}99` }}>ᚠ · ᚢ · ᚦ</p>
             <h3 className="mt-1 text-center text-xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}>
-              {lang === 'en' ? C.titleEn : C.title}
+              {lang === 'en' ? (C.titleEn || C.title) : lang === 'es' ? (C.titleEs || C.title) : lang === 'hi' ? (C.titleHi || C.title) : C.title}
             </h3>
             <p className="mx-auto mt-1.5 max-w-sm text-center text-[12px] italic leading-relaxed" style={{ color: RUNE_THEME.sage }}>
               {lang === 'en' ? C.subEn : C.sub}
@@ -78,7 +80,7 @@ export default function YggQuestion({ open, onConfirm, copy }: {
                 onChange={(e) => setFree(e.target.value)}
                 maxLength={300}
                 rows={2}
-                placeholder={L('Ta question, ton sujet…', 'Your question, your matter…')}
+                placeholder={tr("Ta question, ton sujet…", "Your question, your matter…", "Tu pregunta, tu asunto…", "तुम्हारा प्रश्न, तुम्हारा विषय…")}
                 className="w-full resize-none rounded-xl px-3.5 py-3 text-[14px] leading-relaxed outline-none"
                 style={{
                   // fond OPAQUE (force-dark WebView ne la réécrit pas) + caret doré
@@ -104,7 +106,7 @@ export default function YggQuestion({ open, onConfirm, copy }: {
             {/* Chemin 2 : thèmes orientés */}
             <div className="mt-4 flex items-center gap-3">
               <span className="h-px flex-1" style={{ background: `${RUNE_THEME.sage}33` }} />
-              <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${RUNE_THEME.sage}99` }}>{L('ou choisis un thème', 'or pick a theme')}</span>
+              <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${RUNE_THEME.sage}99` }}>{tr("ou choisis un thème", "or pick a theme", "o elige un tema", "या कोई विषय चुनो")}</span>
               <span className="h-px flex-1" style={{ background: `${RUNE_THEME.sage}33` }} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2.5">
@@ -126,7 +128,7 @@ export default function YggQuestion({ open, onConfirm, copy }: {
                   >
                     {d.icon(sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}b3`)}
                     <span className="mt-1 text-center text-[12px] leading-tight" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}cc` }}>
-                      {d.label[contentLang(lang)]}
+                      {pickContent(d.label, lang)}
                     </span>
                     <span className="mt-0.5 text-center text-[9px] italic leading-tight" style={{ color: sel ? RUNE_THEME.sagePale : `${RUNE_THEME.sage}99` }}>
                       {d.deity}
@@ -150,12 +152,12 @@ export default function YggQuestion({ open, onConfirm, copy }: {
                         <li key={i}>
                           <button
                             type="button"
-                            onClick={() => onConfirm(`${domain.label[contentLang(lang)]} — ${s[contentLang(lang)]}`)}
+                            onClick={() => onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(s, lang)}`)}
                             className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[#1f5234]/40"
                           >
                             <span className="mt-[3px] text-[8px]" style={{ color: RUNE_THEME.goldPale }}>◆</span>
                             <span className="text-[12px] leading-snug" style={{ color: RUNE_THEME.stone }}>
-                              {s[contentLang(lang)]}
+                              {pickContent(s, lang)}
                             </span>
                           </button>
                         </li>

@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
@@ -700,7 +700,7 @@ function YiQingRig({ question }: { question: string }) {
               lineHeight: '1.3',
             }}
           >
-            {lang === 'en' ? 'Shake the box to draw a yarrow stalk' : 'Secouez la boîte pour le tirage d\'une baguette d\'achillée'}
+            {pick4('Secouez la boîte pour le tirage d\'une baguette d\'achillée', 'Shake the box to draw a yarrow stalk', 'Agita la caja para extraer una vara de milenrama', 'एचिली की डंडी निकालने के लिए डिब्बा हिलाएँ')(lang)}
           </p>
         </div>
       )}
@@ -722,7 +722,7 @@ function YiQingRig({ question }: { question: string }) {
               fontSize: RESULT_SUBTITLE_FONT_SIZE
             }}
           >
-            {lang === 'en' ? 'The lot has spoken' : 'Le sort a parlé'}
+            {pick4('Le sort a parlé', 'The lot has spoken', "El destino ha hablado", "भाग्य ने कह दिया")(lang)}
           </p>
         </div>
       )}
@@ -838,7 +838,7 @@ function YiQingRig({ question }: { question: string }) {
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Consult the Oracle' : 'Consulter l\'Oracle')}
+              {interpreting ? (pick4('Chargement…', 'Loading…', "Cargando…", "लोड हो रहा है…")(lang)) : (pick4('Consulter l\'Oracle', 'Consult the Oracle', 'Consultar el Oráculo', 'ओरैकल से परामर्श करें')(lang))}
             </span>
           </motion.button>
           <p
@@ -855,9 +855,7 @@ function YiQingRig({ question }: { question: string }) {
               transition: 'opacity 1s ease-in',
             }}
           >
-            {lang === 'en'
-              ? 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.'
-              : 'La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.'}
+            {pick4('La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.', 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.', 'La vara elegida ha salido de la caja. Pulse el botón para descubrir el mensaje que el Oráculo tiene para usted.', 'चुनी हुई डंडी डिब्बे से बाहर आ गई है। बटन दबाकर जानिए ओरैकल आपके लिए क्या संदेश लेकर आया है।')(lang)}
           </p>
         </motion.div>
       )}
@@ -890,7 +888,7 @@ function YiQingPage() {
           marginBottom: '0.25rem',
         }}
       >
-        {lang === 'en' ? 'The I Ching' : 'Le Yi Jing'}
+        {pick4('Le Yi Jing', 'The I Ching', "El Yi Jing", "इ चिंग")(lang)}
       </h1>
       <p
         style={{
@@ -902,7 +900,7 @@ function YiQingPage() {
           fontSize: 'clamp(0.7rem, 2vw, 1rem)',
         }}
       >
-        {lang === 'en' ? 'Simplified — guided by your intention' : 'Simplifié — guidé par votre intention'}
+        {pick4('Simplifié — guidé par votre intention', 'Simplified — guided by your intention', "Simplificado — guiado por su intención", "सरलीकृत — आपके संकल्प से निर्देशित")(lang)}
       </p>
     </div>
   );

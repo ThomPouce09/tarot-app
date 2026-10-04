@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { enforceGate } from '@/lib/gate-server';
+import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
+import { pick4 } from '@/lib/i18n';
 
 type Mode = 'nornes' | 'mjolnir' | 'yggdrasil';
 
@@ -25,7 +27,7 @@ interface RuneInput {
   reversed: boolean;
 }
 
-function buildNornesPrompt(runes: RuneInput[], question?: string | null): string {
+function buildNornesPrompt(runes: RuneInput[], question?: string | null, lang: 'fr' | 'en' | 'es' | 'hi' = 'fr'): string {
   const liste = runes
     .map((r, i) => {
       const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
@@ -64,10 +66,10 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
   "synthese": "1 phrase qui résume le fil des Nornes, bienveillante.",
   "conseil_action": "OBLIGATOIRE : 1 phrase d'action concrète à poser aujourd'hui pour infléchir Skuld (Verdandi). Ne JAMAIS omettre cette clé."
 }
-Réponds UNIQUEMENT avec l'objet JSON.`;
+Réponds UNIQUEMENT avec l'objet JSON.${outputDirective(lang)}`;
 }
 
-function buildNornesOdinPrompt(runes: RuneInput[], question?: string | null): string {
+function buildNornesOdinPrompt(runes: RuneInput[], question?: string | null, lang: 'fr' | 'en' | 'es' | 'hi' = 'fr'): string {
   // Les 3 premières runes = le fil des Nornes ; la dernière = Conseil d'Odin.
   const nornes = runes.slice(0, 3);
   const odin = runes[runes.length - 1];
@@ -105,22 +107,21 @@ Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
   "synthese": "1 phrase : la nouvelle direction ouverte par le Conseil d'Odin.",
   "conseil_action": "1 phrase d'action concrète à poser aujourd'hui pour tisser cette nouvelle voie."
 }
-Réponds UNIQUEMENT avec l'objet JSON.`;
+Réponds UNIQUEMENT avec l'objet JSON.${outputDirective(lang)}`;
 }
 
 // Positions canoniques du tirage (le client envoie les libellés dans sa
 // langue ; on ne les réécrit pas, on les transmet telles quelles au modèle).
 const YGG_ORDER = ["Urðr — la Source", "Níðhöggr — le Dragon", "L’Arbre — la Force du jour", "Les Branches — les Voies vivantes", "L’Aigle — la Vision d’en haut"];
 
-function buildYggdrasilPrompt(runes: RuneInput[], question?: string | null, lang?: string): string {
+function buildYggdrasilPrompt(runes: RuneInput[], question?: string | null, lang: LlmLang = 'fr'): string {
   const liste = runes
     .map((r, i) => {
       const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
       return `Rune ${i + 1} — ${r.position || YGG_ORDER[i] || `Position ${i + 1}`} : ${r.name} ${r.symbol}\n  Sens réel : ${sens}`;
     })
     .join('\n\n');
-  const en = lang === 'en';
-  return `Tu es un devin scandinave, gardien du mythe d'Yggdrasil. Ton : grave, chaleureux, jamais vague. ${en ? 'Écris TOUTE la réponse en ANGLAIS.' : 'Écris toute la réponse en FRANÇAIS.'}
+  return `Tu es un devin scandinave, gardien du mythe d'Yggdrasil. Ton : grave, chaleureux, jamais vague. Écris TOUTE la réponse en ${langName(lang)} — chaque valeur des champs JSON, chaque phrase, chaque titre ; le format JSON et les noms de clés restent EXACTEMENT ceux demandés.
 
 Le tirage « Les Racines d'Yggdrasil » ne répond pas à une question : il dresse le BILAN d'une vie ou d'un projet, vu comme l'Arbre-Monde. Cinq positions, des fondations au sommet :
 • Urðr — la Source (racine qui boit au puits du destin) : ce qui nourrit le consultant SANS QU'IL LE VOIE — fondations, héritage, forces secrètes.
@@ -151,15 +152,14 @@ Réponds UNIQUEMENT avec l'objet JSON.`;
 // dans sa langue ; on ne les réécrit pas, on les transmet telles quelles).
 const MJG_ORDER = ['Base du manche — L’Ancrage', 'Haut du manche — L’Obstacle', 'Tête gauche — La Menace', 'Tête droite — L’Arme', 'Centre de la tête — La Frappe'];
 
-function buildMjolnirPrompt(runes: RuneInput[], question?: string | null, lang?: string): string {
+function buildMjolnirPrompt(runes: RuneInput[], question?: string | null, lang: LlmLang = 'fr'): string {
   const liste = runes
     .map((r, i) => {
       const sens = r.reversed ? `${r.sense} (rune inversée / merkstave)` : r.sense;
       return `Rune ${i + 1} — ${r.position || MJG_ORDER[i] || `Position ${i + 1}`} : ${r.name} ${r.symbol}\n  Sens réel : ${sens}`;
     })
     .join('\n\n');
-  const en = lang === 'en';
-  return `Tu es un forgeron-devin du nord, maître de Mjölnir. Ton : martial, lucide, chaleureux — un coach de bataille, jamais un oiseau de malheur. ${en ? 'Écris TOUTE la réponse en ANGLAIS.' : 'Écris toute la réponse en FRANÇAIS.'}
+  return `Tu es un forgeron-devin du nord, maître de Mjölnir. Ton : martial, lucide, chaleureux — un coach de bataille, jamais un oiseau de malheur. Écris TOUTE la réponse en ${langName(lang)} — chaque valeur des champs JSON, chaque phrase, chaque titre ; le format JSON et les noms de clés restent EXACTEMENT ceux demandés.
 
 Le tirage « Le Marteau de Mjölnir » ne console pas : il dresse le PLAN DE BATAILLE contre un obstacle qui résiste. Cinq positions, du sol au coup :
 • Base du manche — l'Ancrage : sur quoi le consultant s'appuie vraiment (soutien, habitude, certitude). Un manche sans ancrage fait rater le coup.
@@ -210,11 +210,11 @@ export async function POST(request: NextRequest) {
   let prompt = '';
   if (m === 'nornes') {
     const qTopic = typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null;
-    prompt = focus === 'odin' ? buildNornesOdinPrompt(runes, qTopic) : buildNornesPrompt(runes, qTopic);
+    prompt = focus === 'odin' ? buildNornesOdinPrompt(runes, qTopic, resolveLang(body.lang)) : buildNornesPrompt(runes, qTopic, resolveLang(body.lang));
   } else if (m === 'yggdrasil') {
-    prompt = buildYggdrasilPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, body.lang === 'en' ? 'en' : 'fr');
+    prompt = buildYggdrasilPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, resolveLang(body.lang));
   } else if (m === 'mjolnir') {
-    prompt = buildMjolnirPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, body.lang === 'en' ? 'en' : 'fr');
+    prompt = buildMjolnirPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, resolveLang(body.lang));
   }
 
   const content = (await callOracle(prompt)) || '';

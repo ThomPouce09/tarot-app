@@ -35,9 +35,9 @@ function readEmail(): string {
   }
 }
 
-function sealDate(dueAt: string, lang: 'fr' | 'en'): string {
+function sealDate(dueAt: string, lang: string): string {
   const d = new Date(dueAt);
-  return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', {
+  return d.toLocaleDateString(({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -224,7 +224,7 @@ export default function EchoBox({
               </div>
               )}
               <p className={`text-[15px] leading-relaxed ${moss ? 'text-[#e9d9ac]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-amber-100/90'}`}>
-                {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, contentLang(lang)))}
+                {t('echo.sealedLine').replace('{date}', sealDate(current.dueAt, lang))}
               </p>
               <p className={`mt-1 text-xs ${moss ? 'text-[#9fc4ad]' : domain === 'des' ? 'text-[#8FA3C8]' : 'text-gray-400'}`}>{t('echo.daysLeft').replace('{n}', String(Math.max(0, daysLeft)))}</p>
             </motion.div>

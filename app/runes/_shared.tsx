@@ -14,7 +14,8 @@ import type { ReactNode } from 'react';
 import type { Rune } from '@/components/rune-stones/runes';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import { playSound } from '@/lib/sounds';
-import { useLang } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
+import { localizePosition } from '@/lib/i18n/positions';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 
@@ -421,7 +422,7 @@ export function RuneTile({
           className="mt-4 inline-block text-xs uppercase tracking-widest"
           style={{ color: RUNE_THEME.goldSoft, opacity: 0.8 }}
         >
-          Découvrir →
+          {tr("Découvrir →", "Discover →", "Descubrir →", "जानें →")}
         </div>
       </motion.div>
     </Link>
@@ -648,7 +649,7 @@ export function RuneAnalysis({
   runes,
   mode,
   focus,
-  buttonLabel = "✨ Interroger l'Oracle",
+  buttonLabel = tr("✨ Interroger l'Oracle", "✨ Ask the Oracle", "✨ Interrogar al Oráculo", "✨ ओरैकल से पूछें"),
   onAnalysis,
   autoRun = false,
   odinReveal = false,
@@ -899,11 +900,11 @@ export function RuneAnalysis({
         // Propager la réponse structurée complète à la page parente (pour persistance historique)
         onAnalysis?.(JSON.stringify(data));
       } else {
-        setError("L'Oracle n'a pas répondu de façon structurée. Réessaie.");
+        setError(tr("L'Oracle n'a pas répondu de façon structurée. Réessaie.", "The Oracle did not respond in a structured way. Try again.", "El Oráculo no ha respondido de forma estructurada. Inténtalo de nuevo.", "ओरैकल ने संरचित उत्तर नहीं दिया। फिर से कोशिश करो।"));
       }
     } catch (e) {
       if (!mountedRef.current) return;
-      setError("L'Oracle est silencieux… Réessaie dans un instant.");
+      setError(tr("L'Oracle est silencieux… Réessaie dans un instant.", "The Oracle is silent… Try again in a moment.", "El Oráculo está en silencio… Inténtalo en un instante.", "ओरैकल मौन है… कुछ क्षण बाद फिर कोशिश करो।"));
     } finally {
       if (mountedRef.current) setLoading(false);
     }
@@ -1085,7 +1086,7 @@ export function RuneAnalysis({
                   className="mb-1 text-center text-sm font-bold uppercase tracking-wider"
                   style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
                 >
-                  {s.position}
+                  {localizePosition(s.position, lang)}
                 </p>
               )}
               <p
@@ -1129,7 +1130,7 @@ export function RuneAnalysis({
                 className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                 style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale }}
               >
-                Synthèse
+                {tr("Synthèse", "Synthesis", "Síntesis", "सारांश")}
               </p>
               <p
                 className="text-center text-sm leading-relaxed italic"
@@ -1166,7 +1167,7 @@ export function RuneAnalysis({
                     <circle cx="12" cy="12" r="3.2" />
                     <path d="M2.5 12s3.2-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.2 5.5-9.5 5.5S2.5 12 2.5 12z" />
                   </svg>
-                  Révéler le Conseil d&apos;Odin
+                  {tr("Révéler le Conseil d'Odin", "Reveal Odin's Counsel", "Revelar el Consejo de Odín", "ओदिन का परामर्श प्रकट करें")}
                 </button>
               ) : (
                 <motion.div
@@ -1236,7 +1237,7 @@ export function RuneAnalysis({
                           'drop-shadow(0 2px 3px rgba(0,0,0,0.55)) drop-shadow(0 0 16px rgba(243,201,105,0.4))',
                       }}
                     >
-                      Conseil d&apos;Odin
+                      {tr("Conseil d'Odin", "Odin's Counsel", "Consejo de Odín", "ओदिन का परामर्श")}
                     </span>
                     <span
                       aria-hidden
@@ -1365,7 +1366,7 @@ export function RuneAnalysis({
                 className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                 style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.sage }}
               >
-                Conseil d&apos;Odin
+                {tr("Conseil d'Odin", "Odin's Counsel", "Consejo de Odín", "ओदिन का परामर्श")}
               </p>
               <p
                 className="text-center text-sm leading-relaxed italic"

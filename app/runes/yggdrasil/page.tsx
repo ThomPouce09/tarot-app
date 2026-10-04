@@ -25,7 +25,7 @@ import {
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, pick4 } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 import { playSound } from '@/lib/sounds';
 import YggdrasilArt from './YggdrasilArt';
@@ -42,8 +42,12 @@ type Phase = 'intro' | 'ask' | 'draw' | 'read';
 function YggdrasilPage() {
   const t = useT();
   const lang = useLang();
-  const L = (fr: string, en: string) => (lang === 'en' ? en : fr);
-  const POS = YGG_POS.map((p) => (lang === 'en' ? p.en.name : p.fr.name));
+  // Variante de position selon la langue (blocs imbriques zone/name/brief/deep).
+  const pickPos = (x: { fr: any; en: any; es?: any; hi?: any }) =>
+    lang === 'fr' ? x.fr : lang === 'en' ? x.en : lang === 'es' ? (x.es || x.fr) : (x.hi || x.fr);
+  const L = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
+  const POS = YGG_POS.map((p) => (pickPos(p).name));
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [isRolling, setIsRolling] = useState(false);
@@ -102,7 +106,7 @@ function YggdrasilPage() {
       savedRef.current = true;
       const id = await saveReading({
         type: 'runes-yggdrasil',
-        spread: L("Les Racines d'Yggdrasil", "The Roots of Yggdrasil"),
+        spread: L("Les Racines d'Yggdrasil", "The Roots of Yggdrasil", "Las Raíces de Yggdrasil", "युग्द्रसिल की जड़ें"),
         cards: r.slice(0, 5).map((d, i) => ({
           name: d.rune?.name,
           symbol: d.rune?.symbol,
@@ -124,10 +128,10 @@ function YggdrasilPage() {
   // Le contenu du rappel de zone : symbolique + (si la pierre est posée) sa rune.
   const infoCard = (i: number) => {
     const p = YGG_POS[i];
-    const fr = lang === 'en' ? p.en : p.fr;
+    const fr = pickPos(p);
     const d = runes[i];
     const sens = d ? (d.reversed
-      ? (lang === 'en' ? ' (reversed)' : ' (renversée)')
+      ? (pick4(' (renversée)', ' (reversed)', " (invertida)", " (उलटी)")(lang))
       : '') : '';
     return (
       <motion.div
@@ -148,7 +152,7 @@ function YggdrasilPage() {
         >
           <button
             type="button"
-            aria-label={L('Fermer', 'Close')}
+            aria-label={L('Fermer', 'Close', 'Cerrar', 'बंद करें')}
             onClick={() => setOpenPos(null)}
             className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm"
             style={{ color: RUNE_THEME.goldPale, border: `1px solid ${RUNE_THEME.goldPale}44` }}
@@ -207,32 +211,30 @@ function YggdrasilPage() {
               <div className="pointer-events-none absolute inset-2 rounded-xl border" style={{ borderColor: `${RUNE_THEME.goldPale}22` }} />
               <p className="text-center text-sm tracking-[0.5em]" style={{ color: RUNE_THEME.goldSoft }}>ᛉ ⋅ ᛟ ⋅ ᛉ</p>
               <h2 className="mt-2 text-center text-2xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale, textShadow: '0 0 22px rgba(233,217,172,0.5)' }}>
-                {L('Les Racines d’Yggdrasil', 'The Roots of Yggdrasil')}
+                {L('Les Racines d’Yggdrasil', 'The Roots of Yggdrasil', 'Las Raíces de Yggdrasil', 'युग्द्रसिल की जड़ें')}
               </h2>
               <p className="mt-3 text-center text-[13px] italic leading-relaxed" style={{ color: RUNE_THEME.sage }}>
-                {L('Ce tirage ne répond pas à une question : il dresse ton bilan. Ton chemin vu comme l’Arbre-Monde — ce qui te nourrit en secret, ce qui te ronge, ce qui te tient debout, ce qui peut encore grandir, et ce que seul le sommet voit.',
-                  'This casting answers no question: it draws your reckoning. Your path as the World-Tree — what feeds you unseen, what gnaws at you, what keeps you standing, what can still grow, and what only the crown can see.')}
+                {L('Ce tirage ne répond pas à une question : il dresse ton bilan. Ton chemin vu comme l’Arbre-Monde — ce qui te nourrit en secret, ce qui te ronge, ce qui te tient debout, ce qui peut encore grandir, et ce que seul le sommet voit.', 'This casting answers no question: it draws your reckoning. Your path as the World-Tree — what feeds you unseen, what gnaws at you, what keeps you standing, what can still grow, and what only the crown can see.', 'Esta tirada no responde a una pregunta: traza tu balance. Tu camino visto como el Árbol-Mundo — lo que te nutre en secreto, lo que te roe, lo que te mantiene en pie, lo que aún puede crecer y lo que solo la copa ve.', 'यह वाचन प्रश्न का उत्तर नहीं देता: तुम्हारा हिसाब खींचता है। तुम्हारा पथ संसार-वृक्ष की तरह — जो गुप्त तुम्हें सींचता है, जो तुम्हें कुतरता है, जो तुम्हें खड़ा रखता है, जो और बढ़ सकता है, और वही जो केवल शिखर से दिखता है।')}
               </p>
               <div className="mt-4 space-y-2">
                 {YGG_POS.map((p) => (
                   <div key={p.key} className="flex items-start gap-3 rounded-xl px-3 py-2" style={{ background: 'rgba(12,36,23,0.6)', border: `1px solid ${RUNE_THEME.sage}22` }}>
                     <span className="mt-0.5 text-base leading-none" style={{ color: RUNE_THEME.goldPale }}>
-                      {lang === 'en' ? p.en.zone : p.fr.zone}
+                      {pickPos(p).zone}
                     </span>
                     <span className="text-[12px] leading-snug" style={{ color: RUNE_THEME.sagePale }}>
-                      <b style={{ color: RUNE_THEME.goldPale }}>{(lang === 'en' ? p.en.name : p.fr.name)}</b>
+                      <b style={{ color: RUNE_THEME.goldPale }}>{(pickPos(p).name)}</b>
                       {' — '}
-                      {lang === 'en' ? p.en.brief : p.fr.brief}
+                      {pickPos(p).brief}
                     </span>
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-center text-[11px] italic" style={{ color: `${RUNE_THEME.sage}aa` }}>
-                {L('Seule la rune du Dragon est heureuse renversée : nommer ce qui ronge, c’est déjà le vaincre.',
-                  'Only the Dragon’s rune is glad reversed: naming what gnaws is already defeating it.')}
+                {L('Seule la rune du Dragon est heureuse renversée : nommer ce qui ronge, c’est déjà le vaincre.', 'Only the Dragon’s rune is glad reversed: naming what gnaws is already defeating it.', 'Solo la runa del Dragón se complace invertida: nombrar lo que roe es ya vencerlo.', 'केवल ड्रैगन की रून उलटी होकर खुश होती है: जो कुतरता है उसे नाम देना ही उसे हराना है।')}
               </p>
               <div className="mt-5 text-center">
-                <RuneButton onClick={closeIntro}>{L('Compris', 'Understood')}</RuneButton>
+                <RuneButton onClick={closeIntro}>{L('Compris', 'Understood', 'Entendido', 'समझ गया')}</RuneButton>
               </div>
             </motion.div>
           </motion.div>
@@ -248,8 +250,7 @@ function YggdrasilPage() {
         compact
         fit
         title={t('runes.yggdrasil.title')}
-        subtitle={L('Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.',
-          'The World-Tree reckoning: five runes, from roots to crown.')}
+        subtitle={L('Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.', 'The World-Tree reckoning: five runes, from roots to crown.', 'El balance del Árbol-Mundo: cinco runas, de las raíces a la copa.', 'संसार-वृक्ष का हिसाब: पाँच रून, जड़ों से शिखर तक।')}
       />
       {drawing && question && (
         <button
@@ -287,13 +288,13 @@ function YggdrasilPage() {
               }}
             >
               <p className="text-[10px] uppercase tracking-[0.35em]" style={{ color: RUNE_THEME.goldSoft }}>
-                {L('Sujet confié à l’Arbre', 'Matter entrusted to the Tree')}
+                {L('Sujet confié à l’Arbre', 'Matter entrusted to the Tree', 'Asunto confiado al Árbol', 'विषय वृक्ष को सौंपा')}
               </p>
               <p className="mt-3 text-[16px] leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: RUNE_THEME.sagePale }}>
                 « {question} »
               </p>
               <div className="mt-4">
-                <RuneButton variant="save" saveTint="cedar" onClick={() => setOpenQ(false)}>{L('Fermer', 'Close')}</RuneButton>
+                <RuneButton variant="save" saveTint="cedar" onClick={() => setOpenQ(false)}>{L('Fermer', 'Close', 'Cerrar', 'बंद करें')}</RuneButton>
               </div>
             </motion.div>
           </motion.div>
@@ -319,7 +320,7 @@ function YggdrasilPage() {
                 <button
                   key={`${p.key}-hot`}
                   type="button"
-                  aria-label={(lang === 'en' ? p.en.name : p.fr.name)}
+                  aria-label={(pickPos(p).name)}
                   onClick={() => setOpenPos(openPos === i ? null : i)}
                   className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
                   style={{
@@ -359,7 +360,7 @@ function YggdrasilPage() {
                       animate={{ opacity: [1, 0.35, 1], scale: [1, 0.8, 1] }}
                       transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
                     />
-                    {(lang === 'en' ? p.en.name : p.fr.name).split('—')[0].trim()}
+                    {(pickPos(p).name).split('—')[0].trim()}
                   </motion.button>
                 )}
               </AnimatePresence>

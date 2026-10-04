@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT } from '@/lib/i18n';
+import { useT, tr } from '@/lib/i18n';
 import { onAccountChanged } from '@/lib/tutorials';
 
 export default function LoginPage() {
@@ -79,7 +79,7 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      setMsg('Email envoyé !');
+      setMsg(tr("Email envoyé !", "Email sent!", "¡Correo enviado!", "ईमेल भेज दिया गया!"));
     } catch {
       setMsg('Erreur lors de l\'envoi');
     }
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 letterSpacing: '0.02em',
                 textTransform: 'lowercase',
               }}
-              placeholder="votre@email.com"
+              placeholder={tr("votre@email.com", "your@email.com", "su@email.com", "aap@email.com")}
             />
           </div>
 
@@ -185,7 +185,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/70 hover:text-amber-300"
                 disabled={isBlocked}
-                aria-label="Afficher le mot de passe"
+                aria-label={tr("Afficher le mot de passe", "Show password", "Mostrar la contraseña", "पासवर्ड दिखाएँ")}
               >
                 {showPassword ? '◉' : '○'}
               </button>
@@ -211,7 +211,7 @@ export default function LoginPage() {
               className="text-center text-xs"
               style={{ color: '#fca5a5', fontFamily: 'var(--font-cormorant), serif' }}
             >
-              Compte temporairement bloqué
+              {tr("Compte temporairement bloqué", "Account temporarily locked", "Cuenta bloqueada temporalmente", "खाता अस्थायी रूप से अवरोधित")}
             </p>
           )}
 
@@ -257,18 +257,18 @@ export default function LoginPage() {
               className="text-xl font-bold mb-4"
               style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700' }}
             >
-              Réinitialiser le mot de passe
+              {tr("Réinitialiser le mot de passe", "Reset password", "Restablecer la contraseña", "पासवर्ड रीसेट करें")}
             </h3>
 
             {msg ? (
               <div className="text-center space-y-4">
                 <p style={{ color: '#86efac', fontFamily: 'var(--font-cormorant), serif', fontSize: '1.05rem' }}>{msg}</p>
-                <p style={{ color: 'rgba(255,215,0,0.5)', fontSize: '0.8rem' }}>Vérifiez votre boîte mail (y compris spam)</p>
+                <p style={{ color: 'rgba(255,215,0,0.5)', fontSize: '0.8rem' }}>{tr("Vérifiez votre boîte mail (y compris spam)", "Check your inbox (including spam)", "Consulte su correo (incluido spam)", "अपना ईमेल बॉक्स देखें (स्पैम भी)")}</p>
                 <button
                   onClick={() => setShowForgotPassword(false)}
                   className="w-full mystic-btn"
                 >
-                  Fermer
+                  {tr("Fermer", "Close", "Cerrar", "बंद करें")}
                 </button>
               </div>
             ) : (
@@ -282,7 +282,7 @@ export default function LoginPage() {
                   autoCorrect="off"
                   spellCheck={false}
                   onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                  placeholder="Votre email"
+                  placeholder={tr("Votre email", "Your email", "Su correo electrónico", "आपका ईमेल")}
                   required
                   className="w-full px-4 py-3 rounded-lg border"
                   style={{
@@ -306,7 +306,7 @@ export default function LoginPage() {
                     type="submit"
                     className="flex-1 mystic-btn"
                   >
-                    Envoyer
+                    {tr("Envoyer", "Send", "Enviar", "भेजें")}
                   </button>
                 </div>
               </form>

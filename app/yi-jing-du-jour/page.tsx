@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, pick4, pickContent, type Lang } from '@/lib/i18n';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
@@ -55,41 +55,41 @@ type ApiResponse = {
 
 // ─── Dictionnaire FR / EN ───────────────────────────────────────────────────
 const T = {
-  eyebrow: { fr: 'LE YI JING · ORACLE DU JOUR', en: 'THE I CHING · ORACLE OF THE DAY' },
-  title: { fr: 'Hexagramme du jour', en: "Today's Hexagram" },
-  sealed: { fr: 'Un sceau vous attend', en: 'A seal awaits you' },
-  sealedHint: { fr: 'Touchez pour briser le sceau du jour', en: 'Tap to break today’s seal' },
-  open: { fr: 'Briser le sceau', en: 'Break the seal' },
-  personalBadge: { fr: 'Tirage personnel', en: 'Personal draw' },
-  collectiveBadge: { fr: 'Tirage du jour', en: "Collective draw" },
-  switchPersonal: { fr: 'Lecture personnelle', en: 'Personal reading' },
-  switchCollective: { fr: 'Tirage du jour', en: "Today's draw" },
-  personalInitiated: { fr: 'Initiés & Arkanes', en: 'Initiates & Arkane' },
-  dobHint: { fr: 'Sans date de naissance dans votre profil, la lecture personnelle reprend le conseil du jour. Elle devient plus fine une fois votre date renseignée.', en: 'Without a birth date in your profile, the personal reading repeats today\u2019s guidance. It becomes sharper once your date is set.' },
-  advice: { fr: 'Conseil du jour', en: "Today's guidance" },
-  strategy: { fr: 'Stratégie', en: 'Strategy' },
-  attitude: { fr: 'Attitude', en: 'Attitude' },
-  synthesis: { fr: 'Synthèse', en: 'Synthesis' },
-  readMore: { fr: 'Lire la synthèse', en: 'Read the synthesis' },
-  close: { fr: 'Fermer', en: 'Close' },
-  mutating: { fr: 'Lignes mutantes', en: 'Changing lines' },
-  mutatingNone: { fr: 'Journée stable — aucune ligne ne bouge.', en: 'A stable day — no line is moving.' },
-  transformsInto: { fr: 'se transforme en', en: 'transforms into' },
-  yesterday: { fr: 'Hier', en: 'Yesterday' },
-  today: { fr: "Aujourd'hui", en: 'Today' },
-  tomorrow: { fr: 'Demain', en: 'Tomorrow' },
-  tomorrowHint: { fr: 'déjà levé sous la lune', en: 'already rising under the moon' },
-  collection: { fr: 'Collection', en: 'Collection' },
-  viewed: { fr: 'hexagrammes rencontrés', en: 'hexagrams met' },
-  streak: { fr: 'jours consécutifs', en: 'consecutive days' },
-  streakOn: { fr: 'Série en cours', en: 'Current streak' },
-  share: { fr: 'Partager ma carte du jour', en: 'Share my card' },
-  shareBusy: { fr: 'Gravure de la carte…', en: 'Engraving the card…' },
-  consultAgain: { fr: 'Le sceau se brise à nouveau pour la contemplation.', en: 'The seal breaks again, for contemplation.' },
-  loading: { fr: 'Lecture du ciel…', en: 'Reading the heavens…' },
-  errorTitle: { fr: 'Le ciel est voilé', en: 'The sky is veiled' },
-  retry: { fr: 'Réessayer', en: 'Retry' },
-  lineNames: { fr: ['', 'ligne initiale', '2ᵉ ligne', '3ᵉ ligne', '4ᵉ ligne', '5ᵉ ligne', 'ligne du haut'], en: ['', 'bottom line', '2nd line', '3rd line', '4th line', '5th line', 'top line'] },
+  eyebrow: { fr: 'LE YI JING · ORACLE DU JOUR', en: 'THE I CHING · ORACLE OF THE DAY' , es: "EL YI JING · ORÁCULO DEL DÍA", hi: "इ चिंग · दिन की देववाणी"},
+  title: { fr: 'Hexagramme du jour', en: "Today's Hexagram" , es: "Hexagrama del día", hi: "आज का हैक्सग्राम"},
+  sealed: { fr: 'Un sceau vous attend', en: 'A seal awaits you' , es: "Un sello le espera", hi: "एक मुहर आपकी प्रतीक्षा करती है"},
+  sealedHint: { fr: 'Touchez pour briser le sceau du jour', en: 'Tap to break today’s seal' , es: "Toque para romper el sello del día", hi: "दिन की मुहर तोड़ने के लिए टैप करें"},
+  open: { fr: 'Briser le sceau', en: 'Break the seal' , es: "Romper el sello", hi: "मुहर तोड़ें"},
+  personalBadge: { fr: 'Tirage personnel', en: 'Personal draw' , es: "Tirada personal", hi: "व्यक्तिगत चयन"},
+  collectiveBadge: { fr: 'Tirage du jour', en: "Collective draw" , es: "Tirada del día", hi: "आज का चयन"},
+  switchPersonal: { fr: 'Lecture personnelle', en: 'Personal reading' , es: "Lectura personal", hi: "व्यक्तिगत व्याख्या"},
+  switchCollective: { fr: 'Tirage du jour', en: "Today's draw" , es: "Tirada del día", hi: "आज का चयन"},
+  personalInitiated: { fr: 'Initiés & Arkanes', en: 'Initiates & Arkane' , es: "Iniciados & Arkane", hi: "इनिशिए & अर्कान"},
+  dobHint: { fr: 'Sans date de naissance dans votre profil, la lecture personnelle reprend le conseil du jour. Elle devient plus fine une fois votre date renseignée.', en: 'Without a birth date in your profile, the personal reading repeats today\u2019s guidance. It becomes sharper once your date is set.' , es: "Sin fecha de nacimiento en su perfil, la lectura personal repite el consejo del día. Se vuelve más precisa una vez que indique su fecha.", hi: "आपकी प्रोफ़ाइल में जन्म तिथि न होने पर व्यक्तिगत व्याख्या दिन का मार्गदर्शन दोहराती है। तिथि भरते ही यह अधिक सूक्ष्म हो जाती है।"},
+  advice: { fr: 'Conseil du jour', en: "Today's guidance" , es: "Consejo del día", hi: "आज का मार्गदर्शन"},
+  strategy: { fr: 'Stratégie', en: 'Strategy' , es: "Estrategia", hi: "रणनीति"},
+  attitude: { fr: 'Attitude', en: 'Attitude' , es: "Actitud", hi: "दृष्टिकोण"},
+  synthesis: { fr: 'Synthèse', en: 'Synthesis' , es: "Síntesis", hi: "सारांश"},
+  readMore: { fr: 'Lire la synthèse', en: 'Read the synthesis' , es: "Leer la síntesis", hi: "सारांश पढ़ें"},
+  close: { fr: 'Fermer', en: 'Close' , es: "Cerrar", hi: "बंद करें"},
+  mutating: { fr: 'Lignes mutantes', en: 'Changing lines' , es: "Líneas mutantes", hi: "परिवर्तन रेखाएँ"},
+  mutatingNone: { fr: 'Journée stable — aucune ligne ne bouge.', en: 'A stable day — no line is moving.' , es: "Jornada estable — ninguna línea se mueve.", hi: "स्थिर दिन — कोई रेखा नहीं हिलती।"},
+  transformsInto: { fr: 'se transforme en', en: 'transforms into' , es: "se transforma en", hi: "में बदलता है"},
+  yesterday: { fr: 'Hier', en: 'Yesterday' , es: "Ayer", hi: "कल"},
+  today: { fr: "Aujourd'hui", en: 'Today' , es: "Hoy", hi: "आज"},
+  tomorrow: { fr: 'Demain', en: 'Tomorrow' , es: "Mañana", hi: "कल"},
+  tomorrowHint: { fr: 'déjà levé sous la lune', en: 'already rising under the moon' , es: "ya erguido bajo la luna", hi: "पहले से ही चंद्रमा के नीचे उठा हुआ"},
+  collection: { fr: 'Collection', en: 'Collection' , es: "Colección", hi: "संग्रह"},
+  viewed: { fr: 'hexagrammes rencontrés', en: 'hexagrams met' , es: "hexagramas encontrados", hi: "देखे गए हेक्सग्राम"},
+  streak: { fr: 'jours consécutifs', en: 'consecutive days' , es: "días consecutivos", hi: "लगातार दिन"},
+  streakOn: { fr: 'Série en cours', en: 'Current streak' , es: "Racha actual", hi: "वर्तमान श्रृंखला"},
+  share: { fr: 'Partager ma carte du jour', en: 'Share my card' , es: "Compartir mi carta del día", hi: "आज का अपना कार्ड साझा करें"},
+  shareBusy: { fr: 'Gravure de la carte…', en: 'Engraving the card…' , es: "Grabando la carta…", hi: "कार्ड अंकित हो रहा है…"},
+  consultAgain: { fr: 'Le sceau se brise à nouveau pour la contemplation.', en: 'The seal breaks again, for contemplation.' , es: "El sello se rompe de nuevo para la contemplación.", hi: "चिंतन हेतु मुहर पुनः टूटती है।"},
+  loading: { fr: 'Lecture du ciel…', en: 'Reading the heavens…' , es: "Lectura del cielo…", hi: "आकाश का पाठ…"},
+  errorTitle: { fr: 'Le ciel est voilé', en: 'The sky is veiled' , es: "El cielo está velado", hi: "आकाश आच्छादित है"},
+  retry: { fr: 'Réessayer', en: 'Retry' , es: "Reintentar", hi: "पुनः प्रयास करें"},
+  lineNames: { fr: ['', 'ligne initiale', '2ᵉ ligne', '3ᵉ ligne', '4ᵉ ligne', '5ᵉ ligne', 'ligne du haut'], en: ['', 'bottom line', '2nd line', '3rd line', '4th line', '5th line', 'top line'] , es: ['', 'línea inicial', '2.ª línea', '3.ª línea', '4.ª línea', '5.ª línea', 'línea superior'], hi: ['', 'प्रारंभिक रेखा', 'दूसरी रेखा', 'तीसरी रेखा', 'चौथी रेखा', 'पाँचवीं रेखा', 'ऊपरी रेखा']},
 } as const;
 
 // ─── Rendu des lignes (base → sommet, affichées sommet → base) ─────────────
@@ -152,7 +152,7 @@ function SealDisc() {
   );
 }
 
-function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: 'fr' | 'en' }) {
+function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: Lang }) {
   const [breaking, setBreaking] = useState(false);
   const fire = () => {
     if (breaking) return;
@@ -172,7 +172,7 @@ function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: 'fr' | 'en' })
         border: `1.5px solid ${L.or}66`,
         boxShadow: `0 18px 50px rgba(0,0,0,0.6), 0 0 40px ${L.rougeGlow}, inset 0 0 30px rgba(0,0,0,0.35)`,
       }}
-      aria-label={T.open[contentLang(lang)]}
+      aria-label={pickContent(T.open, lang)}
     >
       <div className="absolute inset-3 rounded-xl" style={{ border: `1px solid ${L.or}33` }} />
       <svg viewBox="0 0 260 300" className="relative mt-4" width={260} height={300} aria-hidden>
@@ -264,7 +264,7 @@ function SealedCard({ onOpen, lang }: { onOpen: () => void; lang: 'fr' | 'en' })
           易經
         </span>
         <span className="font-[family-name:var(--font-cinzel-deco)] text-[13px] tracking-[0.25em]" style={{ color: L.orSoft }}>
-          {breaking ? (lang === 'fr' ? 'Le sceau se brise…' : 'The seal breaks…') : T.sealed[contentLang(lang)]}
+          {breaking ? (pick4('Le sceau se brise…', 'The seal breaks…', 'El sello se rompe…', 'मुहर टूटती है…')(lang)) : pickContent(T.sealed, lang)}
         </span>
       </div>
       <motion.div
@@ -295,7 +295,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: string): Promise<string> {
+async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): Promise<string> {
   const W = 1080;
   const H = 1350;
   const canvas = document.createElement('canvas');
@@ -322,7 +322,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(243,201,105,0.75)';
   ctx.font = '34px serif';
-  ctx.fillText(T.eyebrow[contentLang(lang)].replace('·', '·'), W / 2, 150);
+  ctx.fillText(pickContent(T.eyebrow, lang).replace('·', '·'), W / 2, 150);
   ctx.fillStyle = '#f5ead6';
   ctx.font = 'italic 40px Georgia, serif';
   ctx.fillText(dateLabel, W / 2, 215);
@@ -377,7 +377,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   // pied
   ctx.font = '28px serif';
   ctx.fillStyle = 'rgba(243,201,105,0.55)';
-  ctx.fillText(data.personal ? T.personalBadge[contentLang(lang)] : T.collectiveBadge[contentLang(lang)], W / 2, H - 90);
+  ctx.fillText(data.personal ? pickContent(T.personalBadge, lang) : pickContent(T.collectiveBadge, lang), W / 2, H - 90);
 
   const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
   if (!blob) throw new Error('toBlob');
@@ -386,7 +386,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare && nav.canShare({ files: [new File([blob], fname, { type: 'image/png' })] })) {
     try {
-      await nav.share({ files: [new File([blob], fname, { type: 'image/png' })], title: T.title[contentLang(lang)] });
+      await nav.share({ files: [new File([blob], fname, { type: 'image/png' })], title: pickContent(T.title, lang) });
       URL.revokeObjectURL(url);
       return 'shared';
     } catch {
@@ -404,7 +404,7 @@ async function exportCardPng(data: ApiResponse, lang: 'fr' | 'en', dateLabel: st
 // ─── Page ───────────────────────────────────────────────────────────────────
 function YiJingDuJourPage() {
   const lang = useLang();
-  const t = (k: keyof typeof T) => T[k][contentLang(lang)] as string;
+  const t = (k: keyof typeof T) => pickContent(T[k] as { fr: string; en?: string | null; es?: string | null; hi?: string | null }, lang);
   const { email, sub, loaded, openGate, gateReason, closeGate } = useEntitlement();
 
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -469,7 +469,7 @@ function YiJingDuJourPage() {
 
   const dateLabel = useMemo(() => {
     const d = data?.date ? new Date(`${data.date}T12:00:00`) : new Date();
-    return new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', {
+    return new Intl.DateTimeFormat(({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     }).format(d);
   }, [data?.date, lang]);
@@ -546,7 +546,7 @@ function YiJingDuJourPage() {
 
           {!loading && !error && data && hex && !opened && (
             <div className="flex flex-col items-center gap-5 pt-8">
-              <SealedCard onOpen={() => { seenSeal.current = true; setOpened(true); }} lang={contentLang(lang)} />
+              <SealedCard onOpen={() => { seenSeal.current = true; setOpened(true); }} lang={lang} />
               <p className="text-center text-xs italic" style={{ color: `${L.ivoire}77` }}>{t('sealedHint')}</p>
               {data.viewedToday && (
                 <p className="text-center text-[10px]" style={{ color: L.orDim }}>{t('consultAgain')}</p>
@@ -610,7 +610,7 @@ function YiJingDuJourPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[9px] tracking-[0.3em]" style={{ color: L.orDim }}>{t('mutating').toUpperCase()}</p>
                         <p className="mt-1 text-[12.5px]" style={{ color: L.ivoire }}>
-                          {data.mutating.map((l) => T.lineNames[contentLang(lang)][l]).join(lang === 'fr' ? ', ' : ', ')}
+                          {data.mutating.map((l) => (({ fr: T.lineNames.fr, en: T.lineNames.en, es: T.lineNames.es, hi: T.lineNames.hi } as unknown as Record<string, readonly string[]>)[lang] ?? T.lineNames.fr)[l]).join(', ')}
                         </p>
                       </div>
                       {data.transformed && (
@@ -688,7 +688,7 @@ function YiJingDuJourPage() {
                   disabled={sharing}
                   onClick={() => {
                     setSharing(true);
-                    exportCardPng(data, contentLang(lang), dateLabel)
+                    exportCardPng(data, lang, dateLabel)
                       .catch(() => undefined)
                       .finally(() => setSharing(false));
                   }}

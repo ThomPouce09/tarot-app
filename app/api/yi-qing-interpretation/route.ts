@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 
 const nomsHexagrammes = [
   "Le Créatif (乾 Qián)", "Le Réceptif (坤 Kūn)", "La difficulté initiale (屯 Zhūn)",
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
   try {
     const { baguette, userId, lang } = await request.json();
     const numeroBaguette = parseInt(baguette) || 1;
-    const isEn = lang === 'en';
+    const outLang: LlmLang = resolveLang(lang);
+    const isEn = outLang === 'en';
 
     // Nom canonique EN depuis hexagrams_en (nouvelle table), sinon FR par defaut
     let nomEn: string | null = null;
@@ -44,9 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Envoyer a l'IA pour l'interpretation
     const nomFr = nomsHexagrammes[numeroBaguette - 1] || `Hexagramme ${numeroBaguette}`;
-    const prompt = isEn
-      ? `Give a Yi Jing interpretation for hexagram ${numeroBaguette} ("${nomEn || nomFr}"). Reply in JSON: {"meditation":"...","conseil":"...","attitude":"..."}`
-      : `Donne une interpretation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomFr}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}`;
+    const prompt = `Donne une interprétation Yi Jing pour l'hexagramme ${numeroBaguette} ("${nomFr}"). Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}` + outputDirective(outLang);
 
     const content = (await callOracle(prompt)) || '';
 

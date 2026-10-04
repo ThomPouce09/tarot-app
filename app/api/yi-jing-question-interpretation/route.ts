@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { resolveLang, outputDirective } from '@/lib/lang';
 
 const nomsHexagrammes = [
   "Le Créatif (乾 Qián)", "Le Réceptif (坤 Kūn)", "La difficulté initiale (屯 Zhūn)",
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
   try {
     const { baguette, userId, question, lang } = await request.json();
     const numeroBaguette = parseInt(baguette) || 1;
-    const isEn = lang === 'en';
+    const outLang = resolveLang(lang);
+    const isEn = outLang === 'en';
 
     // Nom canonique EN depuis hexagrams_en (nouvelle table), sinon FR par defaut
     let nomEn: string | null = null;
@@ -45,9 +47,7 @@ export async function POST(request: NextRequest) {
     const nomFr = nomsHexagrammes[numeroBaguette - 1] || "Hexagramme " + numeroBaguette;
 
     // Prompt enrichi avec la question de l'utilisateur
-    const prompt = isEn
-      ? `You are a Yi Jing (I Ching) oracle. The user asked this question:\n"${question}"\n\nThe yarrow draw gave hexagram ${numeroBaguette} ("${nomEn || nomFr}").\n\nAnswer the user's question directly, leaning on the wisdom of this hexagram. Be deep, poetic and personal. Reply in JSON: {"meditation":"...","conseil":"...","attitude":"..."}\n\n- meditation: a deep reflection illuminating the question through the hexagram\n- conseil: a practical, direct piece of advice linked to the question\n- attitude: the inner attitude to adopt facing this situation`
-      : `Tu es un oracle Yi Jing (I Ching). L'utilisateur a posé cette question:\n"${question}"\n\nLe tirage d'achillée a donné l'hexagramme ${numeroBaguette} ("${nomFr}").\n\nRéponds directement à la question de l'utilisateur en t'appuyant sur la sagesse de cet hexagramme. Sois profond, poétique et personnel. Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}\n\n- meditation: une réflexion profonde qui éclaire la question posée à travers le prisme de l'hexagramme\n- conseil: un conseil pratique et direct lié à la question\n- attitude: l'attitude intérieure à adopter face à cette situation`;
+    const prompt = `Tu es un oracle Yi Jing (I Ching). L'utilisateur a posé cette question:\n"${question}"\n\nLe tirage d'achillée a donné l'hexagramme ${numeroBaguette} ("${nomFr}").\n\nRéponds directement à la question de l'utilisateur en t'appuyant sur la sagesse de cet hexagramme. Sois profond, poétique et personnel. Réponds en JSON: {"meditation":"...","conseil":"...","attitude":"..."}\n\n- meditation: une réflexion profonde qui éclaire la question posée à travers le prisme de l'hexagramme\n- conseil: un conseil pratique et direct lié à la question\n- attitude: l'attitude intérieure à adopter face à cette situation` + outputDirective(outLang);
 
     const content = (await callOracle(prompt)) || '';
     console.log('[YI-JING-QUESTION] Réponse IA brute:', content.substring(0, 300));

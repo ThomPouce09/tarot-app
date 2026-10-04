@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { localizePosition } from '@/lib/i18n/positions';
 import { useState, useEffect } from 'react';
 
 interface InterpretationModalProps {
@@ -14,9 +15,9 @@ interface InterpretationModalProps {
 }
 
 export default function InterpretationModal({ isOpen, onClose, onReturnToHome, interpretation, cardNames, loading, error }: InterpretationModalProps) {
-  if (!isOpen) return null;
-
   // Timer pour afficher le texte après 5 secondes
+  // NB : hooks AVANT tout early-return (règle react-hooks). AnimatePresence
+  // (plus bas) pilote déjà le rendu selon isOpen — pas de retour anticipé ici.
   const [showText, setShowText] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,8 @@ export default function InterpretationModal({ isOpen, onClose, onReturnToHome, i
       return () => clearTimeout(timer);
     }
   }, [loading]);
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -158,7 +161,7 @@ export default function InterpretationModal({ isOpen, onClose, onReturnToHome, i
                                 textShadow: '0 0 15px rgba(255,215,0,0.8)',
                               }}
                             >
-                              {section.icon} {section.position}
+                              {section.icon} {localizePosition(section.position)}
                             </h3>
                             <p
                               className="text-amber-400/90 text-xs mt-1"

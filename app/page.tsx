@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useLang, useT } from '@/lib/i18n';
+import { useLang, useT, tr } from '@/lib/i18n';
 import { DEFAULT_BACKGROUND, LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
 import AppLoader from '@/components/app-loader';
 import Firefly from '@/components/firefly';
@@ -251,7 +251,7 @@ export default function HomePage() {
             transform: 'scale(1.06)',
           }}
         >
-          <BrandTitle text={"L'Oracle\ndes\nétoiles"} grow={false} />
+          <BrandTitle text={t('brand.sweep')} grow={false} />
         </h1>
         <p
           className="text-sm sm:text-base md:text-lg font-medium italic mb-5"
@@ -524,8 +524,8 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => cycleBackground(-1)}
-          aria-label="Fond précédent"
-          title="Fond précédent"
+          aria-label={tr("Fond précédent", "Previous background", "Fondo anterior", "पिछली पृष्ठभूमि")}
+          title={tr("Fond pr\u00e9c\u00e9dent", "Previous background", "Fondo anterior", "\u092a\u093f\u091b\u0932\u0940 \u092a\u0943\u0937\u094d\u0920\u092d\u0942\u092e\u093f")}
           className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
           style={{
             background: 'rgba(26,14,10,0.55)',
@@ -542,8 +542,8 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => cycleBackground(1)}
-          aria-label="Fond suivant"
-          title="Fond suivant"
+          aria-label={tr("Fond suivant", "Next background", "Fondo siguiente", "अगली पृष्ठभूमि")}
+          title={tr("Fond suivant", "Next background", "Fondo siguiente", "\u0905\u0917\u0932\u0940 \u092a\u0943\u0937\u094d\u0920\u092d\u0942\u092e\u093f")}
           className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
           style={{
             background: 'rgba(26,14,10,0.55)',

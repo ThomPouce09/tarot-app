@@ -16,7 +16,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
+import { langName } from '@/lib/lang';
 import { ELDER_FUTHARK, type Rune } from '@/components/rune-stones/runes';
 import { RUNE_THEME } from '../runes/_shared';
 import { api } from '@/lib/api-client';
@@ -36,9 +37,9 @@ type Session = {
 
 const LS_KEY = '***';
 const AEATTS = [
-  { fr: 'Ætt de Frey', en: 'Frey’s Ætt' },
-  { fr: 'Ætt de Hagal', en: 'Hagal’s Ætt' },
-  { fr: 'Ætt de Týr', en: 'Týr’s Ætt' },
+  { fr: 'Ætt de Frey', en: 'Frey’s Ætt' , es: "Ætt de Frey", hi: "फ्रे का एट"},
+  { fr: 'Ætt de Hagal', en: 'Hagal’s Ætt' , es: "Ætt de Hagal", hi: "हगल का एट"},
+  { fr: 'Ætt de Týr', en: 'Týr’s Ætt' , es: "Ætt de Týr", hi: "ट्यूर का एट"},
 ];
 
 // Démo : on autorise toutes les 20 s pour tester le rythme ; la vraie
@@ -132,7 +133,7 @@ export default function PrototypeNeufNuits() {
     const s: Session = { id: `v${Date.now()}`, startedAt: Date.now(), nights: [first], revealed: 0, oracle: {} };
     setSess(s);
     try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch {}
-    setToast(lang === 'en' ? 'The vigil begins. Night 1 falls.' : 'La veille commence. La 1ʳᵉ nuit tombe.');
+    setToast(pick4('La veille commence. La 1ʳᵉ nuit tombe.', 'The vigil begins. Night 1 falls.', "La vigilia comienza. Cae la primera noche.", "जागरण आरंभ हुआ। पहली रात उतरी।")(lang));
     window.setTimeout(() => setToast(null), 2600);
   }
 
@@ -145,7 +146,7 @@ export default function PrototypeNeufNuits() {
   function reveal() {
     if (!sess) return;
     if (sess.revealed >= sess.nights.length) {
-      setToast(lang === 'en' ? 'Wait for the next night…' : 'Attends la nuit suivante…');
+      setToast(pick4('Attends la nuit suivante…', 'Wait for the next night…', "Espera la noche siguiente…", "अगली रात का इंतज़ार करो…")(lang));
       window.setTimeout(() => setToast(null), 1800);
       return;
     }
@@ -164,7 +165,7 @@ export default function PrototypeNeufNuits() {
   const milestones = [
     { at: 3, fr: 'La rune du seuil', en: 'The threshold rune' },
     { at: 6, fr: 'La rune du gouffre', en: 'The abyss rune' },
-    { at: 9, fr: 'La Saga des neuf nuits', en: 'The Saga of the Nine Nights' },
+    { at: 9, fr: 'La Saga des neuf nuits', en: 'The Saga of the Nine Nights', es: 'La Saga de las nueve noches', hi: 'नौ रातों की गाथा' },
   ];
 
   async function ask(key: string) {
@@ -184,9 +185,10 @@ export default function PrototypeNeufNuits() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'prototype',
+          lang,
           prompt: n === 9
-            ? `Tu es un vates nordique. Voici les 9 runes tirées à l'aveugle au fil d'une veille de neuf nuits (comme Odin au tree-monde) :\n${lines}\n\nEn français, en 6 phrases maximum : tisse ces neuf runes en UNE saga — le fil du début, l'épreuve du milieu, la sagesse arrachée de la fin. Termine par une sentence rituelle brève. Pas de markdown.`
-            : `Tu es un vates nordique. Voici ${n} runes tirées à l'aveugle durant une veille :\n${lines}\n\nEn français, en 3 phrases maximum : quel est le seuil que ces runes ouvrent, ce qu'elles exigent de celui qui les garde.`,
+            ? `Tu es un vates nordique. Voici les 9 runes tirées à l'aveugle au fil d'une veille de neuf nuits (comme Odin au tree-monde) :\n${lines}\n\nEn ${langName(lang)}, en 6 phrases maximum : tisse ces neuf runes en UNE saga — le fil du début, l'épreuve du milieu, la sagesse arrachée de la fin. Termine par une sentence rituelle brève. Pas de markdown.`
+            : `Tu es un vates nordique. Voici ${n} runes tirées à l'aveugle durant une veille :\n${lines}\n\nEn ${langName(lang)}, en 3 phrases maximum : quel est le seuil que ces runes ouvrent, ce qu'elles exigent de celui qui les garde.`,
         }),
       });
       if (!res.ok) throw new Error('http');
@@ -214,15 +216,13 @@ export default function PrototypeNeufNuits() {
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: `${GOLD}88` }}>✦ prototype ✦</p>
           <h1 className="mt-1 font-[family-name:var(--font-cinzel-deco)] text-3xl tracking-wide" style={{ color: GOLD, textShadow: '0 0 26px rgba(233,217,172,0.35)' }}>
-            {lang === 'en' ? 'The Nine Nights of Odin' : 'Les Neuf Nuits d’Odin'}
+            {pick4('Les Neuf Nuits d’Odin', 'The Nine Nights of Odin', "Las Nueve Noches de Odín", "ओदिन की नौ रातें")(lang)}
           </h1>
           <p className="mx-auto mt-2 max-w-md text-xs italic leading-relaxed" style={{ color: SAGE }}>
-            {lang === 'en'
-              ? '“I know I hung on the wind-swung tree, nine long nights, pierced by my own spear…” — the Hávamál. Each vigil night draws one rune blind from the leather pouch. At nights 3, 6 and 9, the seer speaks. Nine runes become one saga — and an augury is sealed for the dawn.'
-              : '« Je sais que j’ai pendu au arbre hurlant au vent, neuf longues nuits, blessé par ma propre lance… » — le Hávamál. Chaque nuit de veille tire une rune à l’aveugle dans le sachet de cuir. Aux nuits 3, 6 et 9, le vate parle. Neuf runes deviennent une saga — et l’augure est scellé pour l’aube.'}
+            {pick4('« Je sais que j’ai pendu au arbre hurlant au vent, neuf longues nuits, blessé par ma propre lance… » — le Hávamál. Chaque nuit de veille tire une rune à l’aveugle dans le sachet de cuir. Aux nuits 3, 6 et 9, le vate parle. Neuf runes deviennent une saga — et l’augure est scellé pour l’aube.', '“I know I hung on the wind-swung tree, nine long nights, pierced by my own spear…” — the Hávamál. Each vigil night draws one rune blind from the leather pouch. At nights 3, 6 and 9, the seer speaks. Nine runes become one saga — and an augury is sealed for the dawn.', "«Sé que colgué de un árbol que aullaba al viento, nueve largas noches, herido por mi propia lanza…» — el Hávamál. Cada noche de vigilia extrae una runa a ciegas de la bolsa de cuero. En las noches 3, 6 y 9, el vidente habla. Nueve runas se vuelven una saga — y el augurio queda sellado para el alba.", "«मैं जानता हूँ कि मैं हवा में झूलते वृक्ष पर नौ लंबी रातें लटका रहा, अपनी ही भाल से घायल…» — हावमाल। हर जागरण-रात चमड़े की थैली से अंधे में एक रून खींचती है। रात 3, 6 और 9 को द्रष्टा बोलता है। नौ रून एक साग बन जाते हैं — और भोर के लिए शगुन मुहरबंद हो जाता है।")(lang)}
           </p>
           <p className="mt-1 text-[10px] tracking-widest" style={{ color: `${GOLD}77` }}>
-            {lang === 'en' ? 'vigil: 1 grand draw + 2 whispers' : 'veille : 1 grand tirage + 2 murmures'} · {lang === 'en' ? 'demo pace = 20s/night' : 'démo : 20 s par nuit'}
+            {pick4('veille : 1 grand tirage + 2 murmures', 'vigil: 1 grand draw + 2 whispers', "vigilia: 1 gran tirada + 2 susurros", "जागरण: 1 बड़ा विन्यास + 2 फुसफुसाहटें")(lang)} · {pick4('démo : 20 s par nuit', 'demo pace = 20s/night', "demo: 20 s por noche", "डेमो: 20 सेकंड प्रति रात")(lang)}
           </p>
         </div>
 
@@ -234,10 +234,10 @@ export default function PrototypeNeufNuits() {
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.1) 38%, rgba(255,255,255,0) 60%), #1f5234',
                 color: GOLD, border: `1.5px solid ${GOLD}`, boxShadow: '0 0 24px rgba(233,217,172,0.25), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.5)',
               }}>
-              {lang === 'en' ? 'Begin the nine-night vigil' : 'Ouvrir la veille de neuf nuits'}
+              {pick4('Ouvrir la veille de neuf nuits', 'Begin the nine-night vigil', "Iniciar la vigilia de nueve noches", "नौ रातों का जागरण आरंभ करें")(lang)}
             </motion.button>
             <p className="mt-3 text-[11px]" style={{ color: SAGE, opacity: 0.85 }}>
-              {lang === 'en' ? 'One opening draw (big cast). The nights are free.' : 'Un geste d’ouverture (grand tirage). Les nuits, elles, sont offertes.'}
+              {pick4('Un geste d’ouverture (grand tirage). Les nuits, elles, sont offertes.', 'One opening draw (big cast). The nights are free.', "Un gesto de apertura (gran tirada). Las noches, en cambio, son gratuitas.", "आरंभ का एक इशारा (बड़ा विन्यास)। रातें, वे, नि:शुल्क हैं।")(lang)}
             </p>
           </div>
         ) : (
@@ -260,11 +260,11 @@ export default function PrototypeNeufNuits() {
                       <div className="h-16 w-16 rounded-[38%] border border-dashed sm:h-20 sm:w-20" style={{ borderColor: `${GOLD}33` }} />
                     )}
                     <span className="text-[9px] uppercase tracking-widest" style={{ color: night ? SAGE : `${SAGE}55` }}>
-                      {lang === 'en' ? `Night ${i + 1}` : `Nuit ${i + 1}`}
+                      {pick4(`Nuit ${i + 1}`, `Night ${i + 1}`, "Noche ${i + 1}", "रात ${i + 1}")(lang)}
                     </span>
                     {night && i >= sess.revealed && (
                       <span className="text-[8px] italic" style={{ color: `${GOLD}99` }}>
-                        {i === sess.revealed ? (lang === 'en' ? 'tap to reveal' : 'toucher pour révéler') : (lang === 'en' ? 'blind' : 'à l’aveugle')}
+                        {i === sess.revealed ? (pick4('toucher pour révéler', 'tap to reveal', "toca para revelar", "प्रकट करने के लिए टैप करो")(lang)) : (pick4('à l’aveugle', 'blind', "a ciegas", "अंधे में")(lang))}
                       </span>
                     )}
                   </div>
@@ -285,11 +285,11 @@ export default function PrototypeNeufNuits() {
                     borderColor: `${GOLD}66`, color: GOLD, boxShadow: 'inset 0 -6px 12px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.5)',
                     animation: shake ? 'pouchShake .6s ease-in-out' : undefined,
                   }}>
-                  {lang === 'en' ? 'the pouch' : 'le sachet'}
+                  {pick4('le sachet', 'the pouch', "la bolsa", "थैली")(lang)}
                 </motion.button>
                 <style>{`@keyframes pouchShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg) translateY(-6px)}40%{transform:rotate(10deg)}60%{transform:rotate(-8deg) translateY(-3px)}80%{transform:rotate(6deg)}}`}</style>
                 <p className="mt-2 text-[10px]" style={{ color: SAGE, opacity: 0.75 }}>
-                  {nights.length < 9 ? (lang === 'en' ? 'shake when the night has come' : 'secoue quand la nuit est venue') : ''}
+                  {nights.length < 9 ? (pick4('secoue quand la nuit est venue', 'shake when the night has come', "sacude cuando la noche haya llegado", "हिलाओ जब रात आ जाए")(lang)) : ''}
                 </p>
               </div>
             )}
@@ -302,27 +302,27 @@ export default function PrototypeNeufNuits() {
                 <motion.div key={m.en} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl p-4 sm:p-5"
                   style={{ background: 'linear-gradient(160deg, rgba(31,82,52,0.5) 0%, rgba(12,36,23,0.92) 100%)', border: `1.5px solid ${m.at === 9 ? GOLD : `${GOLD}44`}`, boxShadow: m.at === 9 ? '0 0 30px rgba(233,217,172,0.18)' : 'none' }}>
                   <h3 className="text-center font-[family-name:var(--font-cinzel-deco)] text-sm" style={{ color: GOLD }}>
-                    {lang === 'en' ? m.en : m.fr}
+                    {lang === 'en' ? m.en : lang === 'es' ? (m.es || m.fr) : lang === 'hi' ? (m.hi || m.fr) : m.fr}
                   </h3>
                   {!done && !loading[m.en] && !errors[m.en] && (
                     <div className="mt-3 text-center">
                       <button onClick={() => ask(m.en)} className="rounded-full px-6 py-2 text-xs font-bold uppercase tracking-widest"
                         style={{ background: m.at === 9 ? 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #005f6a' : 'transparent', color: m.at === 9 ? '#fff' : GOLD, border: m.at === 9 ? 'none' : `1px solid ${GOLD}55`, boxShadow: m.at === 9 ? '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)' : 'none' }}>
-                        {m.at === 9 ? (lang === 'en' ? 'Weave the saga' : 'Tisser la saga') : lang === 'en' ? 'Hear the whisper' : 'Écouter le murmure'}
+                        {m.at === 9 ? (pick4('Tisser la saga', 'Weave the saga', "Tejer la saga", "साग बुनो")(lang)) : pick4('Écouter le murmure', 'Hear the whisper', "Escuchar el susurro", "फुसफुसाहट सुनो")(lang)}
                       </button>
                     </div>
                   )}
-                  {loading[m.en] && <p className="mt-3 text-center text-xs italic" style={{ color: SAGE }}>{lang === 'en' ? 'The runes are whispering…' : 'Les runes murmurent…'}</p>}
+                  {loading[m.en] && <p className="mt-3 text-center text-xs italic" style={{ color: SAGE }}>{pick4('Les runes murmurent…', 'The runes are whispering…', "Las runas susurran…", "रून फुसफुसा रहे हैं…")(lang)}</p>}
                   {errors[m.en] && !loading[m.en] && (
                     <div className="mt-3 text-center">
-                      <p className="text-xs italic" style={{ color: SAGE }}>{lang === 'en' ? 'Wind swallowed the whisper — try again.' : 'Le vent a avalé le murmure — réessaie.'}</p>
-                      <button onClick={() => ask(m.en)} className="mt-1 text-xs underline" style={{ color: GOLD }}>{lang === 'en' ? 'Retry' : 'Relancer'}</button>
+                      <p className="text-xs italic" style={{ color: SAGE }}>{pick4('Le vent a avalé le murmure — réessaie.', 'Wind swallowed the whisper — try again.', "El viento se tragó el susurro — inténtalo de nuevo.", "हवा फुसफुसाहट निगल गई — फिर कोशिश करो।")(lang)}</p>
+                      <button onClick={() => ask(m.en)} className="mt-1 text-xs underline" style={{ color: GOLD }}>{pick4('Relancer', 'Retry', "Reintentar", "फिर से")(lang)}</button>
                     </div>
                   )}
                   {done && <p className="mt-2 text-center text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {done} »</p>}
                   {m.at === 9 && done && (
                     <p className="mt-3 text-center text-[11px]" style={{ color: `${GOLD}aa` }}>
-                      {lang === 'en' ? '→ seal your augury on the saga’s promise (EchoBox in prod)' : '→ scelle ton augure sur la promesse de la saga (EchoBox en version réelle)'}
+                      {pick4('→ scelle ton augure sur la promesse de la saga (EchoBox en version réelle)', '→ seal your augury on the saga’s promise (EchoBox in prod)', "→ sella tu augurio sobre la promesa de la saga (EchoBox en versión real)", "→ साग के वचन पर अपना शगुन मुहरबंद करो (असली संस्करण में EchoBox)")(lang)}
                     </p>
                   )}
                 </motion.div>
@@ -330,8 +330,8 @@ export default function PrototypeNeufNuits() {
             })}
 
             <div className="mt-8 text-center">
-              <button onClick={() => { if (confirm(lang === 'en' ? 'Abandon this vigil?' : 'Abandonner cette veille ?')) reshuffle(); }} className="text-[11px] underline" style={{ color: `${GOLD}77` }}>
-                {lang === 'en' ? 'abandon vigil (demo)' : 'abandonner la veille (démo)'}
+              <button onClick={() => { if (confirm(pick4('Abandonner cette veille ?', 'Abandon this vigil?', "¿Abandonar esta vigilia?", "यह जागरण छोड़ें?")(lang))) reshuffle(); }} className="text-[11px] underline" style={{ color: `${GOLD}77` }}>
+                {pick4('abandonner la veille (démo)', 'abandon vigil (demo)', "abandonar la vigilia (demo)", "जागरण छोड़ें (डेमो)")(lang)}
               </button>
             </div>
           </>

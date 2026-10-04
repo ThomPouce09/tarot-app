@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLang } from '@/lib/i18n';
 
 const FALLBACK: Record<string, string[]> = {
   'serene-divination': ['Etude du tirage en cours...', 'L\'oracle s\'apaise avec vous...', 'La réponse mûrit en silence...'],
@@ -9,17 +10,18 @@ const FALLBACK: Record<string, string[]> = {
 };
 
 export function useWaitMessages(type: string) {
+  const lang = useLang();
   const [messages, setMessages] = useState<string[]>(FALLBACK[type] || ['Chargement...']);
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}`)
+    fetch(`/api/interpretation-wait?type=${encodeURIComponent(type)}&lang=${encodeURIComponent(lang)}`)
       .then((r) => r.json())
       .then((d) => { if (alive && Array.isArray(d.messages) && d.messages.length) setMessages(d.messages); })
       .catch(() => {});
     return () => { alive = false; };
-  }, [type]);
+  }, [type, lang]);
 
   useEffect(() => {
     if (messages.length <= 1) return;

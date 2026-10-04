@@ -11,9 +11,9 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, contentLang, pick4, pickContent } from '@/lib/i18n';
 
-type L = { fr: string; en: string };
+type L = { fr: string; en: string; es?: string; hi?: string };
 
 export interface YiDomain {
   id: string;
@@ -124,58 +124,58 @@ export function IconWarrior(c: string) {
 export const YI_DOMAINS: YiDomain[] = [
   {
     id: 'commencements',
-    label: { fr: 'Commencements & Projets', en: 'Beginnings & Projects' },
+    label: { fr: 'Commencements & Projets', en: 'Beginnings & Projects' , es: "Comienzos & Proyectos", hi: "आरंभ & परियोजनाएँ"},
     guardian: 'Qinglong',
-    realm: { fr: 'Dragon bleu de l’Est · le printemps — ce qui germe', en: 'Azure Dragon of the East · spring — what germs' },
+    realm: { fr: 'Dragon bleu de l’Est · le printemps — ce qui germe', en: 'Azure Dragon of the East · spring — what germs' , es: "Dragón azul del Este · la primavera — lo que germina", hi: "पूर्व का नीला ड्रैगन · वसंत — जो अंकुरित होता है"},
     icon: IconDragon,
     subs: [
-      { fr: 'Lancer un projet', en: 'Launching a project' },
-      { fr: 'Une reconversion, un nouveau cap', en: 'A career change, a new course' },
-      { fr: 'Études, examens, validation', en: 'Studies, exams, approval' },
-      { fr: 'Une relation qui s’ébauche', en: 'A relationship taking shape' },
-      { fr: 'Ouvrir ou fermer une porte', en: 'Opening or closing a door' },
+      { fr: 'Lancer un projet', en: 'Launching a project' , es: "Iniciar un proyecto", hi: "परियोजना शुरू करना"},
+      { fr: 'Une reconversion, un nouveau cap', en: 'A career change, a new course' , es: "Una reconversión, un nuevo rumbo", hi: "व्यावसायिक मोड़, नई दिशा"},
+      { fr: 'Études, examens, validation', en: 'Studies, exams, approval' , es: "Estudios, exámenes, validación", hi: "पढ़ाई, परीक्षाएँ, स्वीकृति"},
+      { fr: 'Une relation qui s’ébauche', en: 'A relationship taking shape' , es: "Una relación que se esboza", hi: "एक रिश्ता जो आकार ले रहा है"},
+      { fr: 'Ouvrir ou fermer une porte', en: 'Opening or closing a door' , es: "Abrir o cerrar una puerta", hi: "दरवाज़ा खोलना या बंद करना"},
     ],
   },
   {
     id: 'liens',
-    label: { fr: 'Liens & Rayonnement', en: 'Bonds & Radiance' },
+    label: { fr: 'Liens & Rayonnement', en: 'Bonds & Radiance' , es: "Lazos & Resplandor", hi: "बंधन & आभा"},
     guardian: 'Zhuque',
-    realm: { fr: 'Oiseau vermillon du Sud · l’été — ce qui brille', en: 'Vermilion Bird of the South · summer — what shines' },
+    realm: { fr: 'Oiseau vermillon du Sud · l’été — ce qui brille', en: 'Vermilion Bird of the South · summer — what shines' , es: "Ave bermellón del Sur · el verano — lo que brilla", hi: "दक्षिण का सिंदूरी पक्षी · ग्रीष्म — जो चमकता है"},
     icon: IconBird,
     subs: [
-      { fr: 'Un couple qui traverse une zone de doute', en: 'A couple going through doubtful times' },
-      { fr: 'Une relation qui pourrait naître', en: 'A relationship that could blossom' },
-      { fr: 'Des liens familiaux à apaiser', en: 'Family bonds to heal' },
-      { fr: 'Ma visibilité, ma reconnaissance', en: 'My visibility, my recognition' },
-      { fr: 'Ma solitude, et la voie pour en sortir', en: 'My loneliness, and the way out' },
+      { fr: 'Un couple qui traverse une zone de doute', en: 'A couple going through doubtful times' , es: "Una pareja que atraviesa una zona de dudas", hi: "एक दंपति जो संदेह की घड़ी से गुज़रता है"},
+      { fr: 'Une relation qui pourrait naître', en: 'A relationship that could blossom' , es: "Una relación que podría nacer", hi: "एक रिश्ता जो जन्म ले सकता है"},
+      { fr: 'Des liens familiaux à apaiser', en: 'Family bonds to heal' , es: "Serenar los lazos familiares", hi: "पारिवारिक बंधनों को संवारना"},
+      { fr: 'Ma visibilité, ma reconnaissance', en: 'My visibility, my recognition' , es: "Mi visibilidad, mi reconocimiento", hi: "मेरी उपस्थिति, मेरी पहचान"},
+      { fr: 'Ma solitude, et la voie pour en sortir', en: 'My loneliness, and the way out' , es: "Mi soledad, y el camino para salir de ella", hi: "मेरा अकेलापन, और उससे निकलने की राह"},
     ],
   },
   {
     id: 'recoltes',
-    label: { fr: 'Récoltes & Tranchés', en: 'Harvest & Cutting' },
+    label: { fr: 'Récoltes & Tranchés', en: 'Harvest & Cutting' , es: "Cosecha & Decisiones", hi: "कटाई & निर्णय"},
     guardian: 'Baihu',
-    realm: { fr: 'Tigre blanc de l’Ouest · l’automne — ce qui trie', en: 'White Tiger of the West · autumn — what is sorted' },
+    realm: { fr: 'Tigre blanc de l’Ouest · l’automne — ce qui trie', en: 'White Tiger of the West · autumn — what is sorted' , es: "Tigre blanco del Oeste · el otoño — lo que selecciona", hi: "पश्चिम का श्वेत व्याघ्र · शरद — जो छाँटता है"},
     icon: IconTiger,
     subs: [
-      { fr: 'Mes finances au quotidien', en: 'My day-to-day finances' },
-      { fr: 'Un investissement, un achat important', en: 'An investment, a major purchase' },
-      { fr: 'Des dettes à dénouer', en: 'Debts to untangle' },
-      { fr: 'Un contrat, un partenariat à signer', en: 'A contract or partnership to sign' },
-      { fr: 'Rester ou partir : la décision qui pèse', en: 'To stay or to go: the weighty decision' },
+      { fr: 'Mes finances au quotidien', en: 'My day-to-day finances' , es: "Mis finanzas diarias", hi: "मेरी रोज़मर्रा की आर्थिक स्थिति"},
+      { fr: 'Un investissement, un achat important', en: 'An investment, a major purchase' , es: "Una inversión, una compra importante", hi: "एक निवेश, एक बड़ी ख़रीद"},
+      { fr: 'Des dettes à dénouer', en: 'Debts to untangle' , es: "Deudas que saldar", hi: "कर्ज़ों को सुलझाना"},
+      { fr: 'Un contrat, un partenariat à signer', en: 'A contract or partnership to sign' , es: "Un contrato, una alianza por firmar", hi: "अनुबंध या साझेदारी, हस्ताक्षर हेतु"},
+      { fr: 'Rester ou partir : la décision qui pèse', en: 'To stay or to go: the weighty decision' , es: "Quedarse o irse: la decisión que pesa", hi: "रहना या जाना: वह भारी निर्णय"},
     ],
   },
   {
     id: 'voie',
-    label: { fr: 'Voie intérieure & Temps', en: 'Inner Path & Time' },
+    label: { fr: 'Voie intérieure & Temps', en: 'Inner Path & Time' , es: "Vía interior & Tiempo", hi: "आंतरिक पथ & समय"},
     guardian: 'Xuanwu',
-    realm: { fr: 'Guerrier noir du Nord · l’hiver — ce qui garde', en: 'Black Warrior of the North · winter — what keeps' },
+    realm: { fr: 'Guerrier noir du Nord · l’hiver — ce qui garde', en: 'Black Warrior of the North · winter — what keeps' , es: "Guerrero negro del Norte · el invierno — lo que guarda", hi: "उत्तर का काला योद्धा · शिशिर — जो बनाए रखता है"},
     icon: IconWarrior,
     subs: [
-      { fr: 'Ma voie intérieure, mon éveil', en: 'My inner path, my awakening' },
-      { fr: 'L’énergie des mois à venir', en: 'The energy of the coming months' },
-      { fr: 'Un déménagement, un voyage', en: 'A move, a journey' },
-      { fr: 'Un passage important de ma vie', en: 'A major rite of passage' },
-      { fr: 'Écouter mon intuition, mes rêves', en: 'Listening to my intuition, my dreams' },
+      { fr: 'Ma voie intérieure, mon éveil', en: 'My inner path, my awakening' , es: "Mi vía interior, mi despertar", hi: "मेरा आंतरिक पथ, मेरा जागरण"},
+      { fr: 'L’énergie des mois à venir', en: 'The energy of the coming months' , es: "La energía de los meses venideros", hi: "आने वाले महीनों की ऊर्जा"},
+      { fr: 'Un déménagement, un voyage', en: 'A move, a journey' , es: "Una mudanza, un viaje", hi: "घर बदलना, कोई यात्रा"},
+      { fr: 'Un passage important de ma vie', en: 'A major rite of passage' , es: "Un paso importante de mi vida", hi: "मेरे जीवन का एक महत्वपूर्ण मोड़"},
+      { fr: 'Écouter mon intuition, mes rêves', en: 'Listening to my intuition, my dreams' , es: "Escuchar mi intuición, mis sueños", hi: "अपनी अंतर्दृष्टि, अपने सपनों को सुनना"},
     ],
   },
 ];
@@ -213,7 +213,7 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
 
   const cast = () => {
     if (!domain || subIdx === null) return;
-    onConfirm(`${domain.label[contentLang(lang)]} — ${domain.subs[subIdx][contentLang(lang)]}`);
+    onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(domain.subs[subIdx], lang)}`);
   };
 
   return (
@@ -230,12 +230,10 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
         ☰ · ☱ · ☲
       </p>
       <h2 className="mt-1 text-center font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: YI_LACQUER.gold }}>
-        {lang === 'en' ? 'Choose your intention' : 'Choisissez votre intention'}
+        {pick4('Choisissez votre intention', 'Choose your intention', "Elija su intención", "अपना संकल्प चुनें")(lang)}
       </h2>
       <p className="mx-auto mt-1 max-w-sm text-center text-xs italic leading-relaxed" style={{ color: YI_LACQUER.lilacDim }}>
-        {lang === 'en'
-          ? 'The I Ching answers a precise question. Pick a domain, then the intention that speaks to you — the yarrow stalks will work on it.'
-          : 'Le Yi Jing répond à une question précise. Choisissez un domaine, puis l’intention qui vous parle — les achillées travailleront dessus.'}
+        {pick4('Le Yi Jing répond à une question précise. Choisissez un domaine, puis l’intention qui vous parle — les achillées travailleront dessus.', 'The I Ching answers a precise question. Pick a domain, then the intention that speaks to you — the yarrow stalks will work on it.', "El Yi Jing responde a una pregunta precisa. Elija un dominio y después la intención que le hable — las milenramas trabajarán sobre ella.", "इ चिंग एक सुस्पष्ट प्रश्न का उत्तर देता है। एक क्षेत्र चुनें, फिर वह संकल्प जो आपको पुकारता है — यारो की डंडियाँ उसी पर कार्य करेंगी।")(lang)}
       </p>
 
       {/* Les 4 domaines — grille 2×2 */}
@@ -260,10 +258,10 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
                 {d.icon(sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}cc` }}>
-                {d.label[contentLang(lang)]}
+                {pickContent(d.label, lang)}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? YI_LACQUER.lilac : `${YI_LACQUER.lilacDim}99` }}>
-                {d.guardian} · {d.realm[contentLang(lang)]}
+                {d.guardian} · {pickContent(d.realm, lang)}
               </span>
               {sel && (
                 <span className="absolute right-2 top-2 text-[10px]" style={{ color: YI_LACQUER.gold }}>◆</span>
@@ -287,10 +285,10 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
             <div ref={subRef} className="mt-4 rounded-xl px-3 py-3" style={{ background: 'rgba(8,4,16,0.6)', border: `1px solid ${YI_LACQUER.gold}22` }}>
               <div className="flex items-center justify-between">
                 <p className="font-[family-name:var(--font-cinzel-deco)] text-[12px] tracking-widest" style={{ color: YI_LACQUER.goldSoft }}>
-                  {lang === 'en' ? 'What shall the stalks examine?' : 'Que souhaitez-vous interroger ?'}
+                  {pick4('Que souhaitez-vous interroger ?', 'What shall the stalks examine?', "¿Qué desea interrogar?", "डंडियों से क्या पूछना है?")(lang)}
                 </p>
                 <button type="button" onClick={() => { setDomainId(null); setSubIdx(null); }} className="text-[10px] underline-offset-2 hover:underline" style={{ color: `${YI_LACQUER.lilacDim}bb` }}>
-                  {lang === 'en' ? 'Change domain' : 'Changer de domaine'}
+                  {pick4('Changer de domaine', 'Change domain', "Cambiar de dominio", "क्षेत्र बदलें")(lang)}
                 </button>
               </div>
               <ul className="mt-2 space-y-1">
@@ -306,7 +304,7 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
                       >
                         <span className="mt-[3px] text-[8px]" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}55` }}>◆</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? YI_LACQUER.gold : YI_LACQUER.lilac }}>
-                          {s[contentLang(lang)]}
+                          {pickContent(s, lang)}
                         </span>
                       </button>
                     </li>
@@ -335,11 +333,11 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
             cursor: ready ? 'pointer' : 'default',
           }}
         >
-          {lang === 'en' ? 'Consult the Yi Jing' : 'Interroger le Yi Jing'}
+          {pick4('Interroger le Yi Jing', 'Consult the Yi Jing', "Interrogar el Yi Jing", "इ चिंग से प्रश्न करें")(lang)}
         </button>
         {!ready && (
           <p className="mt-2 text-[10px] italic" style={{ color: `${YI_LACQUER.lilacDim}88` }}>
-            {lang === 'en' ? 'Pick a domain, then an intention.' : 'Choisissez un domaine puis une intention.'}
+            {pick4('Choisissez un domaine puis une intention.', 'Pick a domain, then an intention.', "Elija un dominio y luego una intención.", "एक क्षेत्र चुनें, फिर एक संकल्प।")(lang)}
           </p>
         )}
       </div>

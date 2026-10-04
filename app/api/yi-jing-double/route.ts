@@ -23,6 +23,8 @@ import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
 import { canCreateEcho } from '@/lib/echo';
 import { deriveDouble, type DoubleDerivation } from '@/lib/yi-double';
+import { resolveLang, langName } from '@/lib/lang';
+import { pick4, type Lang } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +40,7 @@ interface DoubleState {
   hexPresent: number;
   hexFutur: number;
   names: { pFr: string; pEn: string; fFr: string; fEn: string };
-  read: { sections: { key: string; fr: string; en: string }[]; dueInDays: number } | null;
+  read: { sections: { key: string; fr: string; en: string; es?: string; hi?: string }[]; dueInDays: number } | null;
   sealedAt?: string;              // ISO quand l'augure a été scellé (echo créé)
   verdictPct?: number | null;
 }
@@ -169,7 +171,7 @@ export async function POST(request: NextRequest) {
       const a = await hexInfo(st.hexPresent);
       const b = await hexInfo(st.hexFutur);
       if (!a || !b) return NextResponse.json({ error: 'hexagramme inconnu.' }, { status: 500 });
-      const lang = body.lang === 'en' ? 'en' : 'fr';
+      const lang: Lang = resolveLang(body.lang);
       const mutTxt = st.mutants.length
         ? `Lignes mutantes (positions 1-6, base vers sommet) : ${st.mutants.map((i) => i + 1).join(', ')}.`
         : `AUCUNE ligne mutante : la situation est stable — rien ne tourne. Lis la force tranquille de l'hexagramme unique et pourquoi le consultant doit tenir. Dans ce cas 'direction' explique la stabilité comme une puissance, pas une impasse, et 'echeance' plus courte (3-10 jours d'observation).`;
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
 - direction : vers quoi cela tourne (hexagramme futur) et ce que cela exige
 - conseil : un acte concret à poser, formulé sans promettre de date
 - echeance : UN entier 5..21 = nombre de jours après lequel le retournement peut s'observer (ni 0, ni texte).
-Puis traduis chaque section en anglais naturel (pas littéral) dans "en".
+Puis traduis chaque section en anglais naturel (pas littéral) dans "en"${lang !== 'fr' ? `. Traduis aussi chaque section en ${langName(lang)} naturel dans la clé '${lang}'` : ''}.
 Réponds STRICTEMENT en JSON, rien d'autre :
 {"sections":[{"key":"situation","fr":"…","en":"…"},{"key":"bascule","fr":"…","en":"…"},{"key":"direction","fr":"…","en":"…"},{"key":"conseil","fr":"…","en":"…"}],"dueInDays":12}`;
       let read: DoubleState['read'] = null;
@@ -199,7 +201,7 @@ Réponds STRICTEMENT en JSON, rien d'autre :
             const byKey = new Map<string, any>(secs.map((s: any) => [String(s.key), s]));
             const due = Math.min(21, Math.max(5, Math.round(Number(j.dueInDays) || 12)));
             read = {
-              sections: keys.map((k) => ({ key: k, fr: String(byKey.get(k).fr).trim(), en: String(byKey.get(k).en || byKey.get(k).fr).trim() })),
+              sections: keys.map((k) => ({ key: k, fr: String(byKey.get(k).fr).trim(), en: String(byKey.get(k).en || byKey.get(k).fr).trim(), ...(byKey.get(k).es ? { es: String(byKey.get(k).es).trim() } : {}), ...(byKey.get(k).hi ? { hi: String(byKey.get(k).hi).trim() } : {}) })),
               dueInDays: due,
             };
           }

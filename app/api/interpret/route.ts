@@ -2,9 +2,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TAROT_CARDS } from '@/lib/tarot-data';
+import { tarotNameI18n, POSITION_LABELS_3 } from '@/lib/tarot-data-i18n';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { calcAge } from '@/lib/dates';
+import { resolveLang, outputDirective, type LlmLang } from '@/lib/lang';
 
 interface Interpretation {
   situation?: string;
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
   console.log('[interpret] Received body:', JSON.stringify(body, null, 2));
 
   const { type, cartes, question, userId, lang } = body;
-  const language: 'fr' | 'en' = lang === 'en' ? 'en' : 'fr';
+  const language: LlmLang = resolveLang(lang);
 
   // Validation
   if (!type || typeof type !== 'string') {
@@ -275,15 +277,23 @@ export async function POST(request: NextRequest) {
     const cardNames = cartes.map((id: number) => {
       const c = TAROT_CARDS.find(cc => cc.id === id);
       if (!c) return `Carte ${id}`;
-      return language === 'en' ? (c.nameEn || c.name) : c.name;
+      // 4 langues : fr direct, en via nameEn, es/hi via les tables générées.
+      return tarotNameI18n(c.id, c.name, language, c.nameEn);
     });
-    const positionsFr = type === 'tarot-5-c-manuelle'
-      ? ['Sommet (Situation)', 'Orient (Forces)', 'Synthèse (Issue)', 'Occident (Défis)', 'Base (Soutien)']
-      : ['Passé', 'Présent', 'Avenir'];
-    const positionsEn = type === 'tarot-5-c-manuelle'
-      ? ['Top (Situation)', 'East (Strengths)', 'Synthesis (Outcome)', 'West (Challenges)', 'Base (Support)']
-      : ['Past', 'Present', 'Future'];
-    const positions = language === 'en' ? positionsEn : positionsFr;
+    const positionsByLang: Record<LlmLang, string[]> = type === 'tarot-5-c-manuelle'
+      ? {
+          fr: ['Sommet (Situation)', 'Orient (Forces)', 'Synthèse (Issue)', 'Occident (Défis)', 'Base (Soutien)'],
+          en: ['Top (Situation)', 'East (Strengths)', 'Synthesis (Outcome)', 'West (Challenges)', 'Base (Support)'],
+          es: ['Cima (Situación)', 'Oriente (Fortalezas)', 'Síntesis (Resultado)', 'Occidente (Desafíos)', 'Base (Apoyo)'],
+          hi: ['शीर्ष (स्थिति)', 'पूर्व (शक्तियाँ)', 'संक्षेप (परिणाम)', 'पश्चिम (चुनौतियाँ)', 'आधार (सहायता)'],
+        }
+      : {
+          fr: POSITION_LABELS_3.fr,
+          en: POSITION_LABELS_3.en,
+          es: POSITION_LABELS_3.es,
+          hi: POSITION_LABELS_3.hi,
+        };
+    const positions = positionsByLang[language];
 
     prompt = `Tu es un voyant, un tireur de bonne aventure d'une profonde bonté, qui reçoit cette personne comme un être cher venu chercher du réconfort et des réponses. Tu te mets à son service, corps et âme, avec toute la chaleur humaine, la présence et l'empathie d'un véritable mentor qui l'écoute vraiment.
 L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"${contextLine}
@@ -300,7 +310,7 @@ Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 "present": "<OBLIGATOIREMENT entre 550 et 750 caractères, sinon ta réponse est incomplète : ce que la carte du Présent éclaire dans son vécu immédiat. Décris ses émotions, ses relations, ses blocages et ses forces, comme si tu lui tenais la main dans le moment présent.>",
 "avenir": "<OBLIGATOIREMENT entre 550 et 750 caractères, sinon ta réponse est incomplète : ce que la carte de l'Avenir lui annonce, comme une promesse de lumière. Esquisse le cheminement, les ouvertures possibles, les évolutions douces et les invitations de demain.>",
 "resume": "<OBLIGATOIREMENT entre 350 et 500 caractères, sinon ta réponse est incomplète : synthèse globale et conclusion bienveillante du tirage, un message de lumière qu'elle/il pourra garder et relire.>"
-}${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
+}${outputDirective(language)}`;
   } else {
     // Yi Jing
     prompt = `Tu es un Maître du Yi Jing. Réponds à la question suivante :
@@ -314,7 +324,7 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
 "issue": "<perspectives d'évolution, 3-4 phrases>",
 "conseil": "<message décisif, 1-2 phrases>",
 "resume": "<2-3 phrases : synthèse globale et conclusion de l'hexagramme>"
-}${language === 'en' ? '\nIMPORTANT: Write everything in English.' : ''}`;
+}${outputDirective(language)}`;
   }
 
   // --- Appels API en cascade ---
@@ -340,7 +350,7 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
     console.log('[interpret] Falling back to offline generator.');
     parsed = isTarot
       ? generateTarotInterpretation(cartes.map((id: number) => ({ id, name: TAROT_CARDS.find(c => c.id === id)?.name || '' })), question)
-      : generateYijingInterpretation(question, language);
+      : generateYijingInterpretation(question, language === 'en' ? 'en' : 'fr');
   }
 
   // Sauvegarde DB

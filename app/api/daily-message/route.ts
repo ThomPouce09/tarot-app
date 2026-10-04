@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { resolveLang } from '@/lib/lang';
 
 // Message du jour (1-365) pour la pause repas. Pas de cache : jour courant.
 export const dynamic = 'force-dynamic';
 
-type Row = { textFr: string; textEn: string };
+type Row = { textFr: string; textEn: string; textEs: string | null; textHi: string | null };
 
 export async function GET(req: NextRequest) {
-  const lang = req.nextUrl.searchParams.get('lang') === 'en' ? 'en' : 'fr';
+  const lang = resolveLang(req.nextUrl.searchParams.get('lang'));
 
   try {
     // Jour de l'année (1-365), stable toute la journée. Les années bissextiles
@@ -18,19 +19,25 @@ export async function GET(req: NextRequest) {
     const day = (doy % 365) + 1;
 
     const rows = await prisma.$queryRawUnsafe<Row[]>(
-      `SELECT "textFr","textEn" FROM "DailyMessage" WHERE "day" = $1 LIMIT 1`, day,
+      `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" WHERE "day" = $1 LIMIT 1`, day,
     );
+
+    const pick = (r: Row): string =>
+      lang === 'en' ? (r.textEn || r.textFr)
+      : lang === 'es' ? (r.textEs || r.textFr)
+      : lang === 'hi' ? (r.textHi || r.textFr)
+      : r.textFr;
 
     let text = '';
     if (rows.length) {
-      text = lang === 'en' ? (rows[0].textEn || rows[0].textFr) : rows[0].textFr;
+      text = pick(rows[0]);
     } else {
       // Sécurité : aucun enregistrement pour ce jour → on en pioche un au hasard.
       const any = await prisma.$queryRawUnsafe<Row[]>(
-        `SELECT "textFr","textEn" FROM "DailyMessage" ORDER BY RANDOM() LIMIT 1`,
+        `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" ORDER BY RANDOM() LIMIT 1`,
       );
       if (any.length) {
-        text = lang === 'en' ? (any[0].textEn || any[0].textFr) : any[0].textFr;
+        text = pick(any[0]);
       }
     }
 

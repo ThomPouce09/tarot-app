@@ -26,12 +26,13 @@ import {
 } from '../_shared';
 import { randomTargetFaces, type TargetFaces } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { houseName } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import EchoBox from '@/components/echo-box';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, pick4, type Lang, tr , getRuntimeLang} from '@/lib/i18n';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import { playSound } from '@/lib/sounds';
@@ -50,7 +51,7 @@ const AstroDiceCup = dynamic(
         style={{ height: 440, background: '#0d1b2a', color: '#87CEEB' }}
       >
         <span style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-          Préparation des dés…
+          {tr("Préparation des dés…", "Preparing the dice…", "Preparando los dados…", "पासे तैयार हो रहे हैं…")}
         </span>
       </div>
     ),
@@ -63,7 +64,7 @@ function diceCards(f: TargetFaces) {
   return (['planet', 'sign', 'house'] as const).map((k) => ({
     kind: k,
     value: f[k],
-    label: k === 'house' ? `Maison ${f[k]}` : String(f[k]),
+    label: k === 'house' ? houseName(f[k], getRuntimeLang()) : String(f[k]),
   }));
 }
 function diceStaticText(f: TargetFaces) {
@@ -294,7 +295,7 @@ function DiceAnalysis({
           accent={DICE_THEME.gold}
           title={
             <>
-              La sagesse se dévoile
+              {tr("La sagesse se dévoile", "Wisdom unfolds", "La sabiduría se revela", "ज्ञान प्रकट हो रहा है")}
               <span className="oracle-loader-dot">.</span>
               <span className="oracle-loader-dot">.</span>
               <span className="oracle-loader-dot">.</span>
@@ -388,7 +389,7 @@ function VoiesHeader({ faces, loading, error, lang, onRetry }: {
   faces: TargetFaces;
   loading: boolean;
   error: boolean;
-  lang: string;
+  lang: Lang;
   onRetry: () => void;
 }) {
   return (
@@ -427,18 +428,16 @@ function VoiesHeader({ faces, loading, error, lang, onRetry }: {
       </svg>
       <h3 className="text-lg font-bold"
         style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.ocreLight, textShadow: '0 0 14px rgba(232,198,106,0.4)' }}>
-        {lang === 'en' ? 'The Four Paths' : 'Les Quatre Voies'}
+        {pick4('Les Quatre Voies', 'The Four Paths', "Las Cuatro Vías", "चार पथ")(lang)}
       </h3>
       <p className="mx-auto mt-1 max-w-md text-xs italic leading-relaxed"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F599' }}>
-        {lang === 'en'
-          ? 'The oracle reads your obstacle and opens four attitudes to cross it. Choose yours — the Solution will answer within it.'
-          : 'L’oracle a lu ton obstacle et ouvre quatre attitudes pour le traverser. Choisis la tienne — la Solution répondra en elle.'}
+        {pick4('L’oracle a lu ton obstacle et ouvre quatre attitudes pour le traverser. Choisis la tienne — la Solution répondra en elle.', 'The oracle reads your obstacle and opens four attitudes to cross it. Choose yours — the Solution will answer within it.', "El oráculo ha leído tu obstáculo y abre cuatro actitudes para atravesarlo. Elige la tuya — la Solución responderá en ella.", "भविष्यवक्ता ने तुम्हारी बाधा पढ़ ली है और उसे पार करने के चार रुख खोलता है। अपना चुनो — समाधान उसी में उत्तर देगा।")(lang)}
       </p>
       {error && (
         <div className="mt-2">
           <DiceButton variant="smallGold" onClick={onRetry}>
-            {lang === 'en' ? 'Ask the oracle again' : 'Réinterroger l’oracle'}
+            {pick4('Réinterroger l’oracle', 'Ask the oracle again', "Volver a interrogar al oráculo", "भविष्यवक्ता से फिर पूछो")(lang)}
           </DiceButton>
         </div>
       )}
@@ -462,11 +461,11 @@ function GlowDefsStrike({ id }: { id: string }) {
 // ──────────────────────────────────────────────
 // Les Voies — chargement : les astres consultent (déjà-vus des dots oracle).
 // ──────────────────────────────────────────────
-function VoiesCharged({ lang }: { lang: string }) {
+function VoiesCharged({ lang }: { lang: Lang }) {
   return (
     <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest"
       style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: '0 0 12px rgba(212,175,55,0.35)' }}>
-      {lang === 'en' ? 'The stars are tracing your paths' : 'Les astres tracent tes voies'}
+      {pick4('Les astres tracent tes voies', 'The stars are tracing your paths', "Los astres trazan tus vías", "तारे तुम्हारे पथ रेखांकित कर रहे हैं")(lang)}
       <span className="oracle-loader-dot">.</span>
       <span className="oracle-loader-dot">.</span>
       <span className="oracle-loader-dot">.</span>
@@ -546,7 +545,7 @@ function VoieCard({ voie, i, onPick, chosen, dimmed, reason }: { voie: { id: str
 // violette au survol. Le clic laisse l'oracle départager les voies.
 // ──────────────────────────────────────────────
 function VoieDestinyCard({ loading, disabled, lang, onPick }: {
-  loading: boolean; disabled: boolean; lang: string; onPick: () => void;
+  loading: boolean; disabled: boolean; lang: Lang; onPick: () => void;
 }) {
   return (
     <motion.button
@@ -581,19 +580,17 @@ function VoieDestinyCard({ loading, disabled, lang, onPick }: {
       <p className="text-[26px] leading-none" style={{ filter: 'drop-shadow(0 0 10px rgba(168,120,255,0.6))' }}>❔</p>
       <p className="mt-2 text-sm font-bold tracking-wide"
         style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#D8BEFF', textShadow: '0 0 12px rgba(168,120,255,0.4)' }}>
-        {lang === 'en' ? 'Let the dice choose my path' : 'Que les dés choisissent ma voie'}
+        {pick4('Que les dés choisissent ma voie', 'Let the dice choose my path', "Que los dados elijan mi vía", "दिए ही मेरा पथ चुनें")(lang)}
       </p>
       <p className="mt-1 text-xs leading-relaxed italic"
         style={{ fontFamily: 'var(--font-cormorant), serif', color: '#CBB8E8CC', lineHeight: 1.5 }}>
-        {lang === 'en'
-          ? 'Surrender the choice: the oracle weighs the four paths and designates the wisest.'
-          : 'Remets le choix : l’oracle pèse les quatre voies et désigne la plus avisée.'}
+        {pick4('Remets le choix : l’oracle pèse les quatre voies et désigne la plus avisée.', 'Surrender the choice: the oracle weighs the four paths and designates the wisest.', "Confía la elección: el oráculo sopesa las cuatro vías y designa la más acertada.", "चुनाव सौंप दो: भविष्यवक्ता चार पथ तौलता है और सबसे समझदार को चुनता है।")(lang)}
       </p>
       <p className="mt-2 text-[10px] uppercase tracking-[0.28em]"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: loading ? '#D8BEFF' : 'rgba(216,190,255,0.65)' }}>
         {loading
-          ? <>◌ l’oracle {lang === 'en' ? 'is weighing your paths' : 'pèse tes voies'}<span className="oracle-loader-dot">.</span><span className="oracle-loader-dot">.</span></>
-          : <>✦ {lang === 'en' ? 'abandon yourself to fate' : 'remets-toi au destin'} ✦</>}
+          ? <>◌ l’oracle {pick4('pèse tes voies', 'is weighing your paths', "sopesa tus vías", "तुम्हारे पथ तौल रहा है")(lang)}<span className="oracle-loader-dot">.</span><span className="oracle-loader-dot">.</span></>
+          : <>✦ {pick4('remets-toi au destin', 'abandon yourself to fate', "Entrégate al destino", "भाग्य के हवाले हो जाओ")(lang)} ✦</>}
       </p>
     </motion.button>
   );
@@ -852,7 +849,7 @@ function ObstacleSolutionPage() {
 
       {/* Fil d'étapes (une ligne, auto-fit) : Confier › Obstacle › Solution */}
       <DiceSteps
-        steps={lang === 'en' ? ['Entrust', 'Obstacle', 'Solution'] : ['Confier', 'Obstacle', 'Solution']}
+        steps={lang === 'en' ? ['Entrust', 'Obstacle', 'Solution'] : lang === 'es' ? ['Confiar', 'Obstáculo', 'Solución'] : lang === 'hi' ? ['सौंपें', 'अवरोध', 'समाधान'] : ['Confier', 'Obstacle', 'Solution']}
         current={step === 'intro' ? 0 : step === 'obstacle_roll' || step === 'obstacle_done' ? 1 : 2}
       />
 
@@ -981,10 +978,10 @@ function ObstacleSolutionPage() {
                 {voiesError && !voiesLoading && (
                   <div className="py-8 text-center">
                     <p className="mb-4 text-sm italic" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#8FA3C8' }}>
-                      {lang === 'en' ? 'The stars are momentarily silent…' : 'Les astres se sont tus un instant…'}
+                      {pick4('Les astres se sont tus un instant…', 'The stars are momentarily silent…', "Los astres han callado un instante…", "तारे एक पल के लिए चुप हो गए…")(lang)}
                     </p>
                     <DiceButton variant="smallGold" onClick={() => { voiesFetchedRef.current = false; setVoiesError(false); }}>
-                      {lang === 'en' ? 'Ask the oracle again' : 'Réinterroger l’oracle'}
+                      {pick4('Réinterroger l’oracle', 'Ask the oracle again', "Volver a interrogar al oráculo", "भविष्यवक्ता से फिर पूछो")(lang)}
                     </DiceButton>
                   </div>
                 )}

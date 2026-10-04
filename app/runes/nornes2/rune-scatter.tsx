@@ -13,6 +13,7 @@
 //
 // Icônes/visuels SVG inline uniquement (règle utilisateur).
 
+import { tr } from '@/lib/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ELDER_FUTHARK, type Rune } from '@/components/rune-stones/runes';
@@ -768,7 +769,7 @@ export function RuneScatter({
       ref={rootRef}
       className="relative w-full select-none"
       style={{ height: `${height}px`, overflow: 'hidden' }}
-      aria-label="Tirage à l'aveugle : secouez le sac puis choisissez 3 runes"
+      aria-label={tr("Tirage à l'aveugle : secouez le sac puis choisissez 3 runes", "Blind draw: shake the pouch, then choose 3 runes", "Tirada a ciegas: sacuda la bolsa y elija 3 runas", "आँख बंद करके खींचें: थैली हिलाएँ, फिर 3 रून चुनें")}
     >
       {/* ── Table : runes sorties (vol unique puis posées) ── */}
       <div className="absolute inset-x-0 top-0" style={{ height: '68%' }}>
@@ -861,7 +862,7 @@ export function RuneScatter({
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                 }}
               >
-                Secouez le sac pour en sortir toutes les runes
+                {tr("Secouez le sac pour en sortir toutes les runes", "Shake the pouch to release all the runes", "Sacuda la bolsa para que salgan todas las runas", "थैली हिलाएँ ताकि सारे रून बाहर आ जाएँ")}
               </span>
             )}
             {/* Tuto 1re fois : chip SOUS le sac, flèches ⇄ animées. */}

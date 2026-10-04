@@ -13,6 +13,7 @@
 //
 // Toutes sont conçues pour un fond sombre et une ambiance mystique.
 
+import { tr } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
 
@@ -317,7 +318,7 @@ function SpinnerElegant() {
         animate={{ opacity: [0.4, 1, 0.4] }}
         transition={{ duration: 2.2, repeat: Infinity }}
       >
-        ORACLE
+        {tr("ORACLE", "ORACLE", "ORÁCULO", "ओरैकल")}
       </motion.p>
     </div>
   );

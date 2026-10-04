@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4, tr } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
@@ -669,7 +669,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
               fontSize: RESULT_SUBTITLE_FONT_SIZE
             }}
           >
-            Le sort a parlé
+            {tr("Le sort a parlé", "The lots have spoken", "El destino ha hablado", "भाग्य ने कह दिया")}
           </p>
         </div>
       )}
@@ -778,7 +778,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Interpret the draw' : 'Interprétation du tirage')}
+              {interpreting ? (pick4('Chargement…', 'Loading…', "Cargando…", "लोड हो रहा है…")(lang)) : (pick4('Interprétation du tirage', 'Interpret the draw', "Interpretación de la tirada", "विन्यास की व्याख्या")(lang))}
             </span>
           </motion.button>
           <p
@@ -795,9 +795,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
               transition: 'opacity 1s ease-in',
             }}
           >
-            {lang === 'en'
-              ? 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.'
-              : 'La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.'}
+            {pick4('La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.', 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.', 'La vara elegida ha salido de la caja. Pulse el botón para descubrir el mensaje que el Oráculo tiene para usted.', 'चुनी हुई डंडी डिब्बे से बाहर आ गई है। बटन दबाकर जानिए ओरैकल आपके लिए क्या संदेश लेकर आया है।')(lang)}
           </p>
         </motion.div>
       )}
@@ -840,7 +838,7 @@ function YiJingQuestionPage() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-[#e8b84b]">Vérification...</p>
+        <p className="text-[#e8b84b]">{tr("Vérification...", "Verifying...", "Verificación...", "सत्यापन...")}</p>
       </div>
     );
   }
@@ -903,7 +901,7 @@ function YiJingQuestionPage() {
             marginBottom: '0.25rem',
           }}
         >
-          {lang === 'en' ? 'I Ching' : 'Yi Jing'}
+          {pick4('Yi Jing', 'I Ching', "Yi Jing", "इ चिंग")(lang)}
         </h1>
       </div>
 
@@ -920,7 +918,7 @@ function YiJingQuestionPage() {
               className="text-center text-yellow-300/80 text-sm mb-3"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              🪶 {lang === 'en' ? 'Ask your question' : 'Formulez votre question'}
+              🪶 {pick4('Formulez votre question', 'Ask your question', "Formule su pregunta", "अपना प्रश्न पूछें")(lang)}
             </p>
             <textarea
               value={question}
@@ -931,7 +929,7 @@ function YiJingQuestionPage() {
                   handleSubmitQuestion();
                 }
               }}
-              placeholder={lang === 'en' ? 'e.g. Should I accept this career opportunity?' : 'Ex: Dois-je accepter cette opportunité professionnelle ?'}
+              placeholder={pick4('Ex: Dois-je accepter cette opportunité professionnelle ?', 'e.g. Should I accept this career opportunity?', "Ej.: ¿Debo aceptar esta oportunidad profesional?", "जैसे: क्या मुझे यह व्यावसायिक अवसर स्वीकार करना चाहिए?")(lang)}
               className="w-full bg-black/50 text-yellow-100 placeholder-yellow-700/50 rounded-lg p-3 text-sm border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none"
               rows={3}
               style={{ fontFamily: 'serif' }}
@@ -960,7 +958,7 @@ function YiJingQuestionPage() {
           transition={{ duration: 0.5 }}
         >
           <div className="bg-yellow-950/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-700/20 text-center">
-            <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">{lang === 'en' ? 'Your question' : 'Votre question'}</p>
+            <p className="text-yellow-500/60 text-xs uppercase tracking-wide mb-0.5">{pick4('Votre question', 'Your question', "Su pregunta", "आपका प्रश्न")(lang)}</p>
             <p className="text-yellow-200 italic text-sm">&quot;{question}&quot;</p>
           </div>
 

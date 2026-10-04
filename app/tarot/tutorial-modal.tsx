@@ -21,6 +21,12 @@ export interface TutorialSlide {
   descEn: string;
   steps: string[];
   stepsEn: string[];
+  titleEs?: string;
+  titleHi?: string;
+  descEs?: string;
+  descHi?: string;
+  stepsEs?: string[];
+  stepsHi?: string[];
 }
 
 // Palette TAROT_NIGHT (cf. /tarot-3-cartes-simplifie/theme-selector.tsx)
@@ -64,7 +70,8 @@ export function TutorialModal({
 
   if (!slide) return null;
   const s = slide;
-  const isEn = lang === 'en';
+  const pickL = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
 
   return (
     <AnimatePresence>
@@ -77,7 +84,7 @@ export function TutorialModal({
           transition={{ duration: 0.25 }}
           role="dialog"
           aria-modal="true"
-          aria-label={isEn ? 'How it works' : 'Comment ça marche'}
+          aria-label={pickL('Comment ça marche', 'How it works', 'Cómo funciona', 'यह कैसे काम करता है')}
         >
           {/* Overlay — brume chaude, pas noir d'encre */}
           <div
@@ -133,7 +140,7 @@ export function TutorialModal({
                   textShadow: `0 0 16px ${GOLD}99, 0 1px 2px rgba(0,0,0,0.6)`,
                 }}
               >
-                {isEn ? s.titleEn : s.title}
+                {pickL(s.title, s.titleEn, s.titleEs, s.titleHi)}
               </h2>
               <p
                 className="relative mt-2 text-xs leading-relaxed sm:text-sm"
@@ -142,14 +149,14 @@ export function TutorialModal({
                   color: ROSE,
                 }}
               >
-                {isEn ? s.descEn : s.desc}
+                {pickL(s.desc, s.descEn, s.descEs, s.descHi)}
               </p>
             </div>
 
             {/* Étapes — cartes posées sur le tapis, lisibles et lumineuses */}
             <div className="relative px-6 pb-4">
               <ol className="space-y-2.5">
-                {(isEn ? s.stepsEn : s.steps).map((step, i) => (
+                {(lang === 'en' ? s.stepsEn : lang === 'es' ? (s.stepsEs || s.steps) : lang === 'hi' ? (s.stepsHi || s.steps) : s.steps).map((step, i) => (
                   <motion.li
                     key={i}
                     initial={{ opacity: 0, x: -12 }}
@@ -196,7 +203,7 @@ export function TutorialModal({
                 className="text-[10px] italic tracking-wider"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: `${ROSE}aa` }}
               >
-                {isEn ? 'Draw with confidence ✦' : 'Tirez en toute confiance ✦'}
+                {pickL('Tirez en toute confiance ✦', 'Draw with confidence ✦', 'Tire con confianza ✦', 'विश्वास के साथ पत्ती कर्शें ✦')}
               </span>
               <button
                 onClick={onClose}
@@ -209,7 +216,7 @@ export function TutorialModal({
                   boxShadow: '0 3px 14px rgba(218,165,32,0.4), inset 0 1px 0 rgba(255,255,255,0.35)',
                 }}
               >
-                {isEn ? 'Got it' : 'J’ai compris'}
+                {pickL('J’ai compris', 'Got it', 'Entendido', 'समझ गया')}
               </button>
             </div>
           </motion.div>

@@ -218,6 +218,8 @@ model DailyMessage {
   day    Int    @unique
   textFr String
   textEn String
+  textEs String?
+  textHi String?
 }
 
 // Pause repas : consommation du barman, une fois par jour et par compte (email).

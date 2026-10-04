@@ -11,12 +11,14 @@
 
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, contentLang, pick4, pickContent } from '@/lib/i18n';
 import { DICE_THEME } from '../des-divinatoires/_shared';
 
 export interface L {
   fr: string;
   en: string;
+  es?: string;
+  hi?: string;
 }
 
 export interface DiceTheme {
@@ -83,58 +85,58 @@ export function IconWater(c: string) {
 export const DICE_THEMES: DiceTheme[] = [
   {
     id: 'feu',
-    label: { fr: 'Élément Feu', en: 'Fire Element' },
+    label: { fr: 'Élément Feu', en: 'Fire Element' , es: "Elemento Fuego", hi: "अग्नि तत्व"},
     element: 'Feu',
-    sigil: { fr: 'Mars · ce qui embrase l’élan', en: 'Mars · what kindles the drive' },
+    sigil: { fr: 'Mars · ce qui embrase l’élan', en: 'Mars · what kindles the drive' , es: "Marte · lo que incendia el impulso", hi: "मंगल · जो उत्साह को दहकाता है"},
     icon: IconFire,
     subs: [
-      { fr: 'Un projet qui m’appelle', en: 'A project that calls me' },
-      { fr: 'Oser le premier pas', en: 'Daring the first step' },
-      { fr: 'Retrouver mon élan', en: 'Finding my drive again' },
-      { fr: 'Confirmer ma voie', en: 'Confirming my path' },
-      { fr: 'Traverser une épreuve', en: 'Crossing a trial' },
+      { fr: 'Un projet qui m’appelle', en: 'A project that calls me' , es: "Un proyecto que me llama", hi: "एक परियोजना जो मुझे बुलाती है"},
+      { fr: 'Oser le premier pas', en: 'Daring the first step' , es: "Atreverse con el primer paso", hi: "पहला कदम उठाने का साहस"},
+      { fr: 'Retrouver mon élan', en: 'Finding my drive again' , es: "Recobrar mi impulso", hi: "अपना उत्साह दोबारा पाना"},
+      { fr: 'Confirmer ma voie', en: 'Confirming my path' , es: "Confirmar mi camino", hi: "अपना मार्ग सुनिश्चित करना"},
+      { fr: 'Traverser une épreuve', en: 'Crossing a trial' , es: "Atravesar una prueba", hi: "एक परीक्षा से गुज़रना"},
     ],
   },
   {
     id: 'terre',
-    label: { fr: 'Élément Terre', en: 'Earth Element' },
+    label: { fr: 'Élément Terre', en: 'Earth Element' , es: "Elemento Tierra", hi: "पृथ्वी तत्व"},
     element: 'Terre',
-    sigil: { fr: 'Le Taureau · ce qui ancre et fait croître', en: 'The Bull · what grounds and grows' },
+    sigil: { fr: 'Le Taureau · ce qui ancre et fait croître', en: 'The Bull · what grounds and grows' , es: "El Toro · lo que arraiga y hace crecer", hi: "वृषभ · जो जमाए और बढ़ाए"},
     icon: IconEarth,
     subs: [
-      { fr: 'Une décision matérielle', en: 'A material decision' },
-      { fr: 'Ancrer un projet dans le réel', en: 'Anchoring a project in reality' },
-      { fr: 'Travail, argent, foyer', en: 'Work, money, home' },
-      { fr: 'Mettre de l’ordre', en: 'Putting things in order' },
-      { fr: 'Récolter ce que j’ai semé', en: 'Reaping what I sowed' },
+      { fr: 'Une décision matérielle', en: 'A material decision' , es: "Una decisión material", hi: "एक भौतिक निर्णय"},
+      { fr: 'Ancrer un projet dans le réel', en: 'Anchoring a project in reality' , es: "Anclar un proyecto en lo real", hi: "किसी परियोजना को धरा पर उतारना"},
+      { fr: 'Travail, argent, foyer', en: 'Work, money, home' , es: "Trabajo, dinero, hogar", hi: "काम, धन, घर"},
+      { fr: 'Mettre de l’ordre', en: 'Putting things in order' , es: "Poner orden", hi: "व्यवस्था लाना"},
+      { fr: 'Récolter ce que j’ai semé', en: 'Reaping what I sowed' , es: "Cosechar lo que sembré", hi: "जो बोया था, उसका फल पाना"},
     ],
   },
   {
     id: 'air',
-    label: { fr: 'Élément Air', en: 'Air Element' },
+    label: { fr: 'Élément Air', en: 'Air Element' , es: "Elemento Aire", hi: "वायु तत्व"},
     element: 'Air',
-    sigil: { fr: 'Mercure · ce qui relie les idées', en: 'Mercury · what links ideas' },
+    sigil: { fr: 'Mercure · ce qui relie les idées', en: 'Mercury · what links ideas' , es: "Mercurio · lo que enlaza las ideas", hi: "बुध · जो विचारों को जोड़ता है"},
     icon: IconAir,
     subs: [
-      { fr: 'Une décision à éclaircir', en: 'A decision to clarify' },
-      { fr: 'Une conversation à mener', en: 'A conversation to hold' },
-      { fr: 'Études et projets nouveaux', en: 'Studies and new projects' },
-      { fr: 'Amitiés et liens', en: 'Friendships and ties' },
-      { fr: 'Voir plus clair en moi', en: 'Seeing more clearly within' },
+      { fr: 'Une décision à éclaircir', en: 'A decision to clarify' , es: "Una decisión que aclarar", hi: "एक निर्णय जिसे स्पष्ट करना है"},
+      { fr: 'Une conversation à mener', en: 'A conversation to hold' , es: "Una conversación que tener", hi: "एक वार्ता जिसे करना है"},
+      { fr: 'Études et projets nouveaux', en: 'Studies and new projects' , es: "Estudios y proyectos nuevos", hi: "अध्ययन और नए प्रकल्प"},
+      { fr: 'Amitiés et liens', en: 'Friendships and ties' , es: "Amistades y vínculos", hi: "मैत्री और बंधन"},
+      { fr: 'Voir plus clair en moi', en: 'Seeing more clearly within' , es: "Ver más claro en mí", hi: "भीतर और स्पष्ट देखना"},
     ],
   },
   {
     id: 'eau',
-    label: { fr: 'Élément Eau', en: 'Water Element' },
+    label: { fr: 'Élément Eau', en: 'Water Element' , es: "Elemento Agua", hi: "जल तत्व"},
     element: 'Eau',
-    sigil: { fr: 'La Lune · ce qui sent avant de savoir', en: 'The Moon · what feels before knowing' },
+    sigil: { fr: 'La Lune · ce qui sent avant de savoir', en: 'The Moon · what feels before knowing' , es: "La Luna · lo que siente antes de saber", hi: "चंद्र · जो जाने से पहले अनुभव करता है"},
     icon: IconWater,
     subs: [
-      { fr: 'Un lien qui me tient à cœur', en: 'A bond close to my heart' },
-      { fr: 'Apaiser une émotion', en: 'Easing an emotion' },
-      { fr: 'Écouter mon intuition', en: 'Listening to my intuition' },
-      { fr: 'Une blessure à guérir', en: 'A wound to heal' },
-      { fr: 'Amour et désir', en: 'Love and desire' },
+      { fr: 'Un lien qui me tient à cœur', en: 'A bond close to my heart' , es: "Un vínculo que me importa", hi: "एक बंधन जो मेरे हृदय के निकट है"},
+      { fr: 'Apaiser une émotion', en: 'Easing an emotion' , es: "Apaciguar una emoción", hi: "किसी भावना को शांत करना"},
+      { fr: 'Écouter mon intuition', en: 'Listening to my intuition' , es: "Escuchar mi intuición", hi: "अपने अंतर्ज्ञान को सुनना"},
+      { fr: 'Une blessure à guérir', en: 'A wound to heal' , es: "Una herida que sanar", hi: "एक घाव जिसे भरना है"},
+      { fr: 'Amour et désir', en: 'Love and desire' , es: "Amor y deseo", hi: "प्रेम और कामना"},
     ],
   },
 ];
@@ -143,7 +145,7 @@ export const DICE_THEMES: DiceTheme[] = [
 
 /** Composante « Élément — intention » comprise par parseDiceQuestion. */
 export function composeDiceQuestion(theme: DiceTheme, sub: L, lang: 'fr' | 'en'): string {
-  return `${theme.label[contentLang(lang)]} — ${sub[contentLang(lang)]}`;
+  return `${pickContent(theme.label, lang)} — ${pickContent(sub, lang)}`;
 }
 
 /** Reconstruit { theme, sub } depuis la question composée
@@ -183,7 +185,7 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
 
   const cast = () => {
     if (!theme || subIdx === null) return;
-    onConfirm(`${theme.label[contentLang(lang)]} — ${theme.subs[subIdx][contentLang(lang)]}`);
+    onConfirm(`${pickContent(theme.label, lang)} — ${pickContent(theme.subs[subIdx], lang)}`);
   };
 
   return (
@@ -200,12 +202,10 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
         ☾ · <span className="ts-twinkle">✦</span> · ☼
       </p>
       <h2 className="mt-1 text-center font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: DICE_THEME.ocreLight }}>
-        {lang === 'en' ? 'Choose your element' : 'Choisissez votre Élément'}
+        {pick4('Choisissez votre Élément', 'Choose your element', "Elija su Elemento", "अपना तत्व चुनें")(lang)}
       </h2>
       <p className="mx-auto mt-1 max-w-sm text-center text-xs italic leading-relaxed" style={{ color: `${DICE_THEME.ocre}cc` }}>
-        {lang === 'en'
-          ? 'The dice answer a precise intention. Pick an element, then what speaks to you — the three dice will work on it.'
-          : 'Les dés répondent à une intention précise. Choisissez un Élément, puis ce qui vous parle — les trois dés travailleront dessus.'}
+        {pick4('Les dés répondent à une intention précise. Choisissez un Élément, puis ce qui vous parle — les trois dés travailleront dessus.', 'The dice answer a precise intention. Pick an element, then what speaks to you — the three dice will work on it.', "Los dados responden a una intención precisa. Elija un Elemento, luego lo que le hable — los tres dados trabajarán sobre ello.", "दिए एक निश्चित संकल्प का उत्तर देते हैं। पहले तत्व चुनें, फिर जो आपको भाए — तीनों दिए उस पर कार्य करेंगे।")(lang)}
       </p>
 
       {/* Les 4 Éléments — grille 2×2 */}
@@ -233,13 +233,13 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
                 className="mt-1 font-[family-name:var(--font-cinzel-deco)] text-sm tracking-wide"
                 style={{ color: sel ? DICE_THEME.ocreLight : `${DICE_THEME.ocre}dd` }}
               >
-                {d.label[contentLang(lang)]}
+                {pickContent(d.label, lang)}
               </span>
               <span
                 className="mt-0.5 text-center text-[10px] italic leading-snug"
                 style={{ color: `${DICE_THEME.ocre}99` }}
               >
-                {d.sigil[contentLang(lang)]}
+                {pickContent(d.sigil, lang)}
               </span>
             </button>
           );
@@ -262,7 +262,7 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
                 className="mb-2 text-center font-[family-name:var(--font-cinzel-deco)] text-[11px] uppercase tracking-[0.25em]"
                 style={{ color: `${DICE_THEME.gold}aa` }}
               >
-                {lang === 'en' ? 'Your intention' : 'Votre intention'}
+                {pick4('Votre intention', 'Your intention', "Su intención", "आपका संकल्प")(lang)}
               </p>
               <div className="flex flex-col gap-2">
                 {theme.subs.map((s, i) => {
@@ -286,7 +286,7 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
                       <span style={{ color: sel ? DICE_THEME.gold : `${DICE_THEME.gold}77` }} className="mr-2">
                         ✦
                       </span>
-                      {s[contentLang(lang)]}
+                      {pickContent(s, lang)}
                     </button>
                   );
                 })}
@@ -329,12 +329,12 @@ export function DiceThemeSelector({ onConfirm, ctaSculpt = false }: {
               }}
             >
               {ctaSculpt
-                ? (lang === 'en' ? 'Save & cast the dice' : 'Enregistrer et lancer les dés')
-                : (lang === 'en' ? 'Cast the dice' : 'Lancer les dés')}
+                ? (pick4('Enregistrer et lancer les dés', 'Save & cast the dice', "Guardar y lanzar los dados", "सहेजें और दिए फेंकें")(lang))
+                : (pick4('Lancer les dés', 'Cast the dice', "Lanzar los dados", "दिए फेंकें")(lang))}
             </button>
             {!ready && !ctaSculpt && (
               <p className="mt-2 text-[11px] italic" style={{ color: `${DICE_THEME.ocre}88` }}>
-                {lang === 'en' ? '…then choose an intention' : '…puis choisissez une intention'}
+                {pick4('…puis choisissez une intention', '…then choose an intention', "…después elija una intención", "…फिर एक संकल्प चुनें")(lang)}
               </p>
             )}
           </motion.div>

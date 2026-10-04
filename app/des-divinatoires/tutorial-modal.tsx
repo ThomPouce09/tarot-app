@@ -22,6 +22,12 @@ export interface TutorialSlide {
   descEn: string;
   steps: string[];
   stepsEn: string[];
+  titleEs?: string;
+  titleHi?: string;
+  descEs?: string;
+  descHi?: string;
+  stepsEs?: string[];
+  stepsHi?: string[];
 }
 
 export function TutorialModal({
@@ -59,7 +65,8 @@ export function TutorialModal({
 
   if (!slide) return null;
   const s = slide;
-  const isEn = lang === 'en';
+  const pickL = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
 
   return (
     <AnimatePresence>
@@ -72,7 +79,7 @@ export function TutorialModal({
           transition={{ duration: 0.25 }}
           role="dialog"
           aria-modal="true"
-          aria-label={isEn ? 'How it works' : 'Comment ça marche'}
+          aria-label={pickL('Comment ça marche', 'How it works', 'Cómo funciona', 'यह कैसे काम करता है')}
         >
           {/* Overlay */}
           <div
@@ -111,7 +118,7 @@ export function TutorialModal({
                   textShadow: `0 0 14px ${DICE_THEME.gold}55`,
                 }}
               >
-                {isEn ? s.titleEn : s.title}
+                {pickL(s.title, s.titleEn, s.titleEs, s.titleHi)}
               </h2>
               <p
                 className="relative mt-2 text-xs leading-relaxed sm:text-sm"
@@ -121,14 +128,14 @@ export function TutorialModal({
                   opacity: 0.85,
                 }}
               >
-                {isEn ? s.descEn : s.desc}
+                {pickL(s.desc, s.descEn, s.descEs, s.descHi)}
               </p>
             </div>
 
             {/* Étapes */}
             <div className="px-6 pb-4">
               <ol className="space-y-2.5">
-                {(isEn ? s.stepsEn : s.steps).map((step, i) => (
+                {(lang === 'en' ? s.stepsEn : lang === 'es' ? (s.stepsEs || s.steps) : lang === 'hi' ? (s.stepsHi || s.steps) : s.steps).map((step, i) => (
                   <li
                     key={i}
                     className="flex items-start gap-3 rounded-xl px-3 py-2.5"
@@ -177,7 +184,7 @@ export function TutorialModal({
                   fontFamily: 'var(--font-cinzel), serif',
                 }}
               >
-                {isEn ? 'Got it' : 'J’ai compris'}
+                {pickL('J’ai compris', 'Got it', 'Entendido', 'समझ गया')}
               </button>
             </div>
           </motion.div>

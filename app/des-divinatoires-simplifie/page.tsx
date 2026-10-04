@@ -30,13 +30,14 @@ import {
 } from '../des-divinatoires/_shared';
 import { randomTargetFaces, ALL_KINDS, type TargetFaces } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { HintLegende, legendeSeen, markLegendeSeen } from '@/components/astro-dice/constellation';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
-import { useT, useLang, contentLang } from '@/lib/i18n';
+import { useT, useLang, contentLang, pickContent, tr , getRuntimeLang} from '@/lib/i18n';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
@@ -84,7 +85,7 @@ function DiceLoader() {
       style={{ height: 440, background: '#1a0e0a', color: DICE_THEME.ocreLight }}
     >
       <span style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-        Préparation des dés…
+        {tr("Préparation des dés…", "Preparing the dice…", "Preparando los dados…", "पासे तैयार हो रहे हैं…")}
       </span>
     </div>
   );
@@ -102,10 +103,10 @@ function diceCardsFor(f: TargetFaces) {
     value: f[k],
     label:
       k === 'planet'
-        ? PLANET_NAMES[f[k] as string]
+        ? planetName(f[k] as string, getRuntimeLang())
         : k === 'sign'
-          ? SIGN_NAMES[f[k] as string]
-          : `Maison ${f[k]}`,
+          ? signName(f[k] as string, getRuntimeLang())
+          : houseName(f[k], getRuntimeLang()),
   }));
 }
 function diceStaticTextFor(f: TargetFaces) {
@@ -283,6 +284,7 @@ function SimplifiePage() {
         activeKinds: ['planet', 'sign', 'house'],
         question: question || undefined,
         length: 'standard', // réponse de 4-5 phrases (Dés Simplifié)
+        lang,
       }),
     })
       .then((r) => { if (!r.ok) throw new Error('http'); return r.json(); })
@@ -383,7 +385,7 @@ function SimplifiePage() {
   useEffect(() => () => setOracleWait(false), []);
 
   const showResult = phase === 'firstDone';
-  const intentionLabel = theme ? `${theme.theme.label[contentLang(lang)]} — ${theme.sub}` : question;
+  const intentionLabel = theme ? `${pickContent(theme.theme.label, lang)} — ${theme.sub}` : question;
 
   /* ── ÉTAPE 1 — l'intention (les 4 Éléments × 5 intentions) ── */
   if (phase === 'intention') {
@@ -501,10 +503,10 @@ function SimplifiePage() {
                     const val = result[k] as string | number;
                     const dieName =
                       k === 'planet'
-                        ? PLANET_NAMES[val as string]
+                        ? planetName(val as string, lang)
                         : k === 'sign'
-                          ? SIGN_NAMES[val as string]
-                          : `Maison ${val}`;
+                          ? signName(val as string, lang)
+                          : houseName(val, lang);
                     return (
                       <div
                         key={k}

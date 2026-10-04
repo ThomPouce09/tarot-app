@@ -12,15 +12,59 @@ const VALID_LANGS: Lang[] = ['fr', 'en', 'es', 'hi'];
 export type ContentLang = 'fr' | 'en';
 export const contentLang = (l: Lang): ContentLang => (l === 'en' ? 'en' : 'fr');
 
+// Sélecteur 4-langues pour les libellés codés en dur (remplace progressivement
+// les ternaires `lang === 'en' ? EN : FR`). Usage :
+//   pick4(fr, en, es, hi)(lang)  — ou pick4T({fr,en,es,hi})(lang)
+// Fallback : manque → fr (jamais de trou d'affichage).
+export function pick4(fr: string, en: string, es?: string, hi?: string) {
+  return (lang: Lang): string =>
+    lang === 'fr' ? fr
+    : lang === 'en' ? (en || fr)
+    : lang === 'es' ? (es || fr)
+    : (hi || fr);
+}
+export function pick4T(t: { fr: string; en?: string; es?: string; hi?: string }) {
+  return (lang: Lang): string => pick4(t.fr, t.en ?? t.fr, t.es, t.hi)(lang);
+}
+// Contenu bilingue FR/EN existant ({fr,en} en base, prompt IA, etc.) : version
+// locale d'un objet {fr,en} selon la langue — es/hi retombe sur fr tant que le
+// contenu n'est pas scellé dans ces langues (schéma DB actuel : textFr/textEn).
+export const contentOf = (obj: { fr: string; en?: string | null }, lang: Lang): string =>
+  lang === 'en' ? (obj.en || obj.fr) : obj.fr;
+
+// Contenu statique 4 langues injecté dans le code ({fr,en,es?,hi?}) :
+// pickContent choisit la bonne variante, retombe sur fr si absente.
+// À préférer à obj[contentLang(lang)] pour tout objet ENRICHI es/hi dans le
+// code (les contenus stockés en base {fr,en} gardent contentLang).
+export const pickContent = (obj: { fr: string; en?: string | null; es?: string | null; hi?: string | null }, lang: Lang): string =>
+  lang === 'en' ? (obj.en || obj.fr)
+  : lang === 'es' ? (obj.es || obj.fr)
+  : lang === 'hi' ? (obj.hi || obj.fr)
+  : obj.fr;
+
 // Dictionnaire UI : clé sémantique stable -> { fr, en }
 // Ajouter/modifier un libellé = une seule entrée ici. Fallback fr automatique.
 import { DICT } from './ui';
+
+// Langue runtime globale — miroir de l'état du LanguageProvider (mis à jour à
+// chaque changement, et le provider re-rend tout l'arbre → les tr() dans les
+// corps de rendu se recalculent). Permet de localiser des littéraux HORS portée
+// de hook (défauts de props, tableaux de données, modules) sans casser l'SSR :
+// le serveur rend toujours 'fr', exactement comme useLang au 1er render.
+let runtimeLang: Lang = 'fr';
+export const getRuntimeLang = (): Lang => runtimeLang;
+export const setRuntimeLang = (l: Lang) => { runtimeLang = l; };
+// tr = pick4 en langue runtime : tr('FR', 'EN', 'ES', 'HI') → string localisée.
+export function tr(fr: string, en: string, es?: string, hi?: string): string {
+  return pick4(fr, en, es, hi)(runtimeLang);
+}
 
 const LangCtx = createContext<Lang>('fr');
 const SetLangCtx = createContext<(l: Lang) => void>(() => {});
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>('fr');
+  setRuntimeLang(lang); // miroir global (voir tr())
 
   // Source de vérité : localStorage 'tarot_prefs' (langue choisie dans Préférences).
   // Si aucune préférence sauvegardée, on détecte la langue de l'appareil (navigator.language).

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, pick4, contentLang, pickContent, tr } from '@/lib/i18n';
+import { localizePosition } from '@/lib/i18n/positions';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 import SpaceTitle from '@/components/space-title';
 
@@ -377,7 +378,7 @@ export default function ReadingsPage() {
       const sections: any[] = interp?.sections || interp?.fil?.sections || [];
       const norm = (s: any) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
       cards.forEach((c, i) => {
-        lines.push(`${c.symbol || 'ᚱ'} ${c.position || `Rune ${i + 1}`}${c.reversed ? ' (renversée)' : ''} — ${c.name || ''}`);
+        lines.push(`${c.symbol || 'ᚱ'} ${localizePosition(c.position) || `Rune ${i + 1}`}${c.reversed ? tr('(renversée)', '(reversed)', '(invertida)', '(उल्टी)') : ''} — ${c.name || ''}`);
         const sec = sections.find((s) => norm(s.position) === norm(c.position));
         if (sec?.lecture) lines.push(`→ ${flat(sec.lecture)}`);
         lines.push('');
@@ -842,7 +843,7 @@ function DoubleHexView({ r }: { r: Reading }) {
     castAt?: string; lignes?: number[]; mutants?: number[];
     hexPresent?: number; hexFutur?: number;
     names?: { pFr: string; pEn: string; fFr: string; fEn: string };
-    read?: { sections: { key: string; fr: string; en: string }[]; dueInDays: number } | null;
+    read?: { sections: { key: string; fr: string; en: string; es?: string; hi?: string }[]; dueInDays: number } | null;
   } | null = null;
   try { st = JSON.parse(r.interpretation || 'null'); } catch { st = null; }
   if (!st || !Array.isArray(st.lignes) || !st.hexPresent) {
@@ -876,11 +877,11 @@ function DoubleHexView({ r }: { r: Reading }) {
       </div>
     );
   };
-  const SEC_LABELS: Record<string, { fr: string; en: string }> = {
-    situation: { fr: 'La situation', en: 'The situation' },
-    bascule: { fr: 'Le point de bascule', en: 'The hinge' },
-    direction: { fr: 'La direction', en: 'Where it turns' },
-    conseil: { fr: 'Le conseil', en: 'The counsel' },
+  const SEC_LABELS: Record<string, { fr: string; en: string; es?: string; hi?: string }> = {
+    situation: { fr: 'La situation', en: 'The situation' , es: "La situación", hi: "स्थिति"},
+    bascule: { fr: 'Le point de bascule', en: 'The hinge' , es: "El punto de inflexión", hi: "मोड़"},
+    direction: { fr: 'La direction', en: 'Where it turns' , es: "La dirección", hi: "दिशा"},
+    conseil: { fr: 'Le conseil', en: 'The counsel' , es: "El consejo", hi: "सलाह"},
   };
   return (
     <div className="mt-4 space-y-4">
@@ -912,7 +913,7 @@ function DoubleHexView({ r }: { r: Reading }) {
       </p>
       {st.read?.sections?.map((s) => (
         <div key={s.key} className="rounded-xl p-3" style={{ background: 'rgba(142,28,34,0.10)', border: '1px solid rgba(243,201,105,0.15)' }}>
-          <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: `${GOLD}bb` }}>{en ? SEC_LABELS[s.key]?.en : SEC_LABELS[s.key]?.fr}</p>
+          <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: `${GOLD}bb` }}>{pickContent(SEC_LABELS[s.key] ?? { fr: '' }, lang)}</p>
           <p className="mt-1 text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {en ? s.en : s.fr} »</p>
         </div>
       ))}
@@ -982,7 +983,7 @@ function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?
 function WheelView({ r }: { r: Reading }) {
   const lang = useLang();
   const [sel, setSel] = useState<number | null>(null);
-  let st: { castAt?: string; cards?: number[]; revealed?: number[]; days?: ({ fr: string; en: string } | null)[]; filRouge?: { fr: string; en: string } | null } | null = null;
+  let st: { castAt?: string; cards?: number[]; revealed?: number[]; days?: ({ fr: string; en: string; es?: string; hi?: string } | null)[]; filRouge?: { fr: string; en: string; es?: string; hi?: string } | null } | null = null;
   try { st = JSON.parse(r.interpretation || 'null'); } catch { st = null; }
   if (!st || !Array.isArray(st.cards) || st.cards.length !== 7) {
     return <p className="text-gray-500 text-xs italic mt-3">—</p>;
@@ -990,8 +991,8 @@ function WheelView({ r }: { r: Reading }) {
   const castWd = new Date(st.castAt || r.createdAt).getDay();
   const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   const DAY_FULL = [
-    { fr: 'Dimanche', en: 'Sunday' }, { fr: 'Lundi', en: 'Monday' }, { fr: 'Mardi', en: 'Tuesday' },
-    { fr: 'Mercredi', en: 'Wednesday' }, { fr: 'Jeudi', en: 'Thursday' }, { fr: 'Vendredi', en: 'Friday' }, { fr: 'Samedi', en: 'Saturday' },
+    { fr: 'Dimanche', en: 'Sunday' , es: "Domingo", hi: "रविवार"}, { fr: 'Lundi', en: 'Monday' , es: "Lunes", hi: "सोमवार"}, { fr: 'Mardi', en: 'Tuesday' , es: "Martes", hi: "मंगलवार"},
+    { fr: 'Mercredi', en: 'Wednesday' , es: "Miércoles", hi: "बुधवार"}, { fr: 'Jeudi', en: 'Thursday' , es: "Jueves", hi: "गुरुवार"}, { fr: 'Vendredi', en: 'Friday' , es: "Viernes", hi: "शुक्रवार"}, { fr: 'Samedi', en: 'Saturday' , es: "Sábado", hi: "शनिवार"},
   ];
   const echo = r.echo;
   const best = echo?.bestCardIndex;
@@ -1040,35 +1041,35 @@ function WheelView({ r }: { r: Reading }) {
           border: '1px solid rgba(218,165,32,0.45)',
         }}>
           <p className="text-[9px] uppercase tracking-[0.25em]" style={{ color: 'rgba(218,165,32,0.75)' }}>
-            {lang === 'en' ? 'The card’s light —' : 'L’éclat du jour —'} {DAY_FULL[(castWd + active) % 7][lang as 'fr' | 'en']} · {TAROT_CARDS[st.cards[active]]?.[lang === 'en' ? 'nameEn' : 'name']}
+            {pick4('L’éclat du jour —', 'The card’s light —', "El fulgor del día —", "दिन की ज्योति —")(lang)} {DAY_FULL[(castWd + active) % 7][lang as 'fr' | 'en']} · {TAROT_CARDS[st.cards[active]]?.[lang === 'en' ? 'nameEn' : 'name']}
           </p>
           {selInsight
-            ? <p className="mt-1.5 text-[13px] italic leading-relaxed text-amber-100/95" style={{ fontFamily: 'var(--font-cinzel), serif' }}>« {selInsight[lang === 'en' ? 'en' : 'fr']} »</p>
-            : <p className="mt-1.5 text-[11px] italic text-amber-100/50">{lang === 'en' ? 'Not yet lit.' : 'Pas encore éclairé.'}</p>}
+            ? <p className="mt-1.5 text-[13px] italic leading-relaxed text-amber-100/95" style={{ fontFamily: 'var(--font-cinzel), serif' }}>« {selInsight[contentLang(lang)]} »</p>
+            : <p className="mt-1.5 text-[11px] italic text-amber-100/50">{pick4('Pas encore éclairé.', 'Not yet lit.', "Aún no está iluminado.", "अभी रोशनी नहीं पाई।")(lang)}</p>}
         </div>
       )}
       {/* Semaine close : l'analyse complète de l'oracle. */}
       {st.filRouge && (
         <div className="mx-auto max-w-md">
           <p className="text-center text-[9px] uppercase tracking-[0.25em]" style={{ color: 'rgba(218,165,32,0.8)' }}>
-            {lang === 'en' ? 'The week’s reading' : 'L’analyse de la semaine'}
+            {pick4('L’analyse de la semaine', 'The week’s reading', "El análisis de la semana", "सप्ताह का विश्लेषण")(lang)}
           </p>
           <p className="mt-1 text-center text-sm italic leading-relaxed text-amber-100/90" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-            « {st.filRouge[lang === 'en' ? 'en' : 'fr']} »
+            « {st.filRouge[contentLang(lang)]} »
           </p>
         </div>
       )}
       {echo?.verdict && (
         <p className="text-center text-[11px]" style={{ color: '#F0C75E' }}>
-          {lang === 'en' ? 'Week kept at' : 'Semaine tenue à'} {echo.verdictPct ?? (echo.verdict === 'oui' ? 100 : echo.verdict === 'partiel' ? 50 : 0)}%
+          {pick4('Semaine tenue à', 'Week kept at', "Semana fijada en", "सप्ताह का स्तर:")(lang)} {echo.verdictPct ?? (echo.verdict === 'oui' ? 100 : echo.verdict === 'partiel' ? 50 : 0)}%
           {best !== null && best !== undefined && best >= 0 && st.cards[best] !== undefined && (
-            <> · {lang === 'en' ? 'best card' : 'carte tenue'} : {TAROT_CARDS[st.cards[best]]?.name}</>
+            <> · {pick4('carte tenue', 'best card', "mejor carta", "श्रेष्ठ पत्र")(lang)} : {TAROT_CARDS[st.cards[best]]?.name}</>
           )}
         </p>
       )}
       {!weekDone && !st.filRouge && openDays.length < 7 && (
         <p className="text-center text-[10px] italic text-amber-100/40">
-          {lang === 'en' ? 'The full reading unlocks when the week is complete.' : 'L’analyse complète se libère quand la semaine est bouclée.'}
+          {pick4('L’analyse complète se libère quand la semaine est bouclée.', 'The full reading unlocks when the week is complete.', "El análisis completo se desbloquea cuando la semana se cierra.", "पूर्ण विश्लेषण तब खुलता है जब सप्ताह पूर्ण हो।")(lang)}
         </p>
       )}
     </div>
@@ -1232,7 +1233,7 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
         </div>
       )}
       {groups.length === 0 && cards.length === 0 ? (
-        <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
+        <p className="text-gray-400 text-xs italic">{tr("Tirage sans détail enregistré.", "Reading with no saved details.", "Tirada sin detalle registrado.", "विवरण-रहित विन्यास दर्ज नहीं हुई।")}</p>
       ) : groups.length > 0 ? (
         groups.map((g, gi) => {
           const isTissage = isConseilPos(g.cards[0]?.position) || (g.sections || []).some((s) => isConseilPos(s.position));
@@ -1276,7 +1277,7 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
                       <span className="font-semibold text-sm flex-1" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
                         {c.position || `Rune ${i + 1}`}
                       </span>
-                      {c.reversed && <em className="text-amber-400 text-xs shrink-0">— renversée</em>}
+                      {c.reversed && <em className="text-amber-400 text-xs shrink-0">{tr("— renversée", "— reversed", "— invertida", "— उल्टी")}</em>}
                       {expandable && (
                         <span
                           className={`text-[10px] shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -1329,7 +1330,7 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
                 <div key={`o${i}`} className="border rounded-lg p-3" style={{ borderColor: 'rgba(138,109,59,0.35)', background: 'rgba(52,42,28,0.50)' }}>
                   <h4 className="font-semibold text-xs mb-1.5 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
                     <span className="text-base">{s.rune}</span>
-                    <span>{s.position} — <em className="text-amber-400 not-italic">{s.sens}</em></span>
+                    <span>{localizePosition(s.position)} — <em className="text-amber-400 not-italic">{s.sens}</em></span>
                   </h4>
                   <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={s.lecture} query={query} /></p>
                 </div>
@@ -1344,7 +1345,7 @@ function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
             <h4 className="font-semibold text-sm mb-1 flex items-center gap-2" style={{ color: '#D4B483', fontFamily: 'var(--font-cinzel), serif' }}>
               <span className="text-2xl leading-none" style={{ color: '#e9d9ac' }}>{c.symbol || 'ᛟ'}</span>
               <span>{c.position || `Rune ${i + 1}`}</span>
-              {c.reversed && <em className="text-amber-400 text-xs">— renversée</em>}
+              {c.reversed && <em className="text-amber-400 text-xs">{tr("\u2014 renvers\u00e9e", "\u2014 reversed", "\u2014 invertida", "\u2014 \u0909\u0932\u094d\u091f\u0940")}</em>}
             </h4>
             <p className="text-gray-100 font-serif italic text-sm"><Highlight text={c.name || ''} query={query} /></p>
           </div>
@@ -1451,7 +1452,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
 
       {/* Cartes (dés) — masquées pour des-choix (affichées inline ci-dessous) */}
       {interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution' ? null : cards.length === 0 ? (
-        <p className="text-gray-400 text-xs italic">Tirage sans détail enregistré.</p>
+        <p className="text-gray-400 text-xs italic">{tr("Tirage sans d\u00e9tail enregistr\u00e9.", "Reading with no saved details.", "Tirada sin detalle registrado.", "\u0935\u093f\u0935\u0930\u0923-\u0930\u0939\u093f\u0924 \u0935\u093f\u0928\u094d\u092f\u093e\u0938 \u0926\u0930\u094d\u091c \u0928\u0939\u0940\u0902 \u0939\u0941\u0908\u0964")}</p>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, minmax(0, 1fr))` }}>
           {cards.map((c, i) => (
@@ -1496,13 +1497,13 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
               {renderDiceGrid(cardA)}
               {interpData.shortA && (
                 <div className="mt-3">
-                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>【Interprétation combinée】</h5>
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>{tr("【Interprétation combinée】", "【Combined Interpretation】", "【Interpretación combinada】", "【संयुक्त व्याख्या】")}</h5>
                   <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.shortA} query={query} /></p>
                 </div>
               )}
               {interpData.deepA && (
                 <div className="mt-3">
-                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>{tr("【Analyse approfondie Oracle】", "【In-depth Oracle Analysis】", "【Análisis profundo del Oráculo】", "【ओरैकल का गहन विश्लेषण】")}</h5>
                   {renderMd(interpData.deepA)}
                 </div>
               )}
@@ -1516,13 +1517,13 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
               {renderDiceGrid(cardB)}
               {interpData.shortB && (
                 <div className="mt-3">
-                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>【Interprétation combinée】</h5>
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#F0E6D3', fontFamily: 'var(--font-cinzel), serif' }}>{tr("\u3010Interpr\u00e9tation combin\u00e9e\u3011", "\u3010Combined Interpretation\u3011", "\u3010Interpretaci\u00f3n combinada\u3011", "\u3010\u0938\u0902\u092f\u0941\u0915\u094d\u0924 \u0935\u094d\u092f\u093e\u0916\u094d\u092f\u093e\u3011")}</h5>
                   <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.shortB} query={query} /></p>
                 </div>
               )}
               {interpData.deepB && (
                 <div className="mt-3">
-                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>【Analyse approfondie Oracle】</h5>
+                  <h5 className="text-xs font-semibold mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>{tr("\u3010Analyse approfondie Oracle\u3011", "\u3010In-depth Oracle Analysis\u3011", "\u3010An\u00e1lisis profundo del Or\u00e1culo\u3011", "\u3010\u0913\u0930\u0948\u0915\u0932 \u0915\u093e \u0917\u0939\u0928 \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923\u3011")}</h5>
                   {renderMd(interpData.deepB)}
                 </div>
               )}
@@ -1596,13 +1597,13 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {/* Analyse LLM en texte brut (non structurée) */}
           {interpData.analysisGlobal?.texte && !interpData.analysisGlobal?.sections && (
             <div className="bg-gray-800/40 rounded-lg p-3">
-              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Analyse complète</h4>
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{tr("Analyse complète", "Complete analysis", "Análisis completo", "पूर्ण विश्लेषण")}</h4>
               <p className="text-gray-300 text-sm leading-relaxed"><Highlight text={interpData.analysisGlobal.texte} query={query} /></p>
             </div>
           )}
           {interpData.analysisRefine?.texte && !interpData.analysisRefine?.sections && (
             <div className="bg-gray-800/40 rounded-lg p-3">
-              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Analyse affinée</h4>
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{tr("Analyse affinée", "Refined analysis", "Análisis afinado", "सूक्ष्म विश्लेषण")}</h4>
               <p className="text-gray-300 text-sm leading-relaxed"><Highlight text={interpData.analysisRefine.texte} query={query} /></p>
             </div>
           )}

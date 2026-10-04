@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { pick4 } from '@/lib/i18n';
+import { resolveLang, langName, type LlmLang } from '@/lib/lang';
 
 export const maxDuration = 60;
 
@@ -24,8 +26,8 @@ const FALLBACK_VOIES = {
   ],
 } as const;
 
-function buildPrompt(planet: string, sign: string, house: string, question: string | null, lang: string): string {
-  const langue = lang === 'en' ? 'anglais' : 'français';
+function buildPrompt(planet: string, sign: string, house: string, question: string | null, lang: LlmLang): string {
+  const langue = langName(lang);
   return `Tu es l'oracle d'un tirage de dés zodiacaux « Obstacle & Solution ».
 
 Obstacle tiré : la planète ${planet} dans le signe ${sign}, Maison ${house}.
@@ -39,7 +41,7 @@ répondre et s'opposer fécondement (affronter / contourner / transformer /
 enraciner, ou tes équivalents inspirés du tirage).
 
 ids imposés : fire, water, air, earth (dans cet ordre).
-Réponds UNIQUEMENT avec ce JSON, tout en ${langue} :
+Réponds UNIQUEMENT avec ce JSON, rédigé tout en ${langue} (noms de clés et ids INCHANGÉS) :
 {"voies":[{"id":"fire","name":"...","motto":"..."},{"id":"water","name":"...","motto":"..."},{"id":"air","name":"...","motto":"..."},{"id":"earth","name":"...","motto":"..."}]}`;
 }
 
@@ -69,7 +71,7 @@ ${liste}
 
 Choisis LA voie la plus avisée pour traverser cet obstacle (celle qui débloque
 vraiment, pas la plus confortable). Réponds UNIQUEMENT en JSON :
-{"id":"<l'id exact parmi fire|water|air|earth>","reason":"<une phrase courte d'inspiration, max 18 mots, dans la langue de la question (français par défaut)>", "reasonEn":"<la même phrase en anglais>"}`;
+{"id":"<l'id exact parmi fire|water|air|earth>","reason":"<une phrase courte d'inspiration, max 18 mots, dans la langue ${langName(resolveLang(lang))}>", "reasonEn":"<la même phrase en anglais>"}`;
     try {
       const raw = await callOracle(choosePrompt, { maxTokens: 500, temperature: 0.8, timeoutMs: 40_000 });
       const parsed = extractJsonObject(raw || '');
@@ -91,7 +93,7 @@ vraiment, pas la plus confortable). Réponds UNIQUEMENT en JSON :
   }
 
   try {
-    const raw = await callOracle(buildPrompt(planet, sign, house, question || null, lang), {
+    const raw = await callOracle(buildPrompt(planet, sign, house, question || null, resolveLang(lang)), {
       maxTokens: 900,
       temperature: 0.9,
       timeoutMs: 45_000,

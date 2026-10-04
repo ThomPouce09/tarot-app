@@ -33,6 +33,31 @@ export const TRIGRAM_INFO_EN: Record<string, TrigramInfo> = {
   Lac: { name: 'Lake', symbol: '☱', meaning: 'Joy, openness, satisfaction' },
 };
 
+// Version espagnole — noms canoniques védiques (choix user 2026-10-04 : les
+// trigrammes portent le nom de la divinité/élément védique correspondant).
+export const TRIGRAM_INFO_ES: Record<string, TrigramInfo> = {
+  Ciel: { name: 'Dyaus', symbol: '☰', meaning: 'Creatividad, fuerza, acción soberana' },
+  Terre: { name: 'Prithvi', symbol: '☷', meaning: 'Receptividad, acogida, fertilidad' },
+  Eau: { name: 'Varuna', symbol: '☵', meaning: 'Peligro profundo, fluidez, abismo' },
+  Montagne: { name: 'Parvata', symbol: '☶', meaning: 'Inmovilidad, calma, detención' },
+  Tonnerre: { name: 'Parjanya', symbol: '☳', meaning: 'Movimiento, despertar, acción' },
+  Vent: { name: 'Vayu', symbol: '☴', meaning: 'Penetración suave, flexibilidad' },
+  Feu: { name: 'Agni', symbol: '☲', meaning: 'Claridad, luz, dependencia' },
+  Lac: { name: 'Sarovara', symbol: '☱', meaning: 'Alegría, apertura, satisfacción' },
+};
+
+// Version hindi — même translittération védique en devanagari.
+export const TRIGRAM_INFO_HI: Record<string, TrigramInfo> = {
+  Ciel: { name: 'द्यौः (Dyaus)', symbol: '☰', meaning: 'सृजन-शक्ति, बल, संप्रभु क्रिया' },
+  Terre: { name: 'पृथ्वी (Prithvi)', symbol: '☷', meaning: 'स्वीकार, स्वागत, उर्वरता' },
+  Eau: { name: 'वरुण (Varuna)', symbol: '☵', meaning: 'गंभीर संकट, तरलता, गहराई' },
+  Montagne: { name: 'पर्वत (Parvata)', symbol: '☶', meaning: 'स्थिरता, शांति, विराम' },
+  Tonnerre: { name: 'परजन्य (Parjanya)', symbol: '☳', meaning: 'गति, जागरण, कर्म' },
+  Vent: { name: 'वायु (Vayu)', symbol: '☴', meaning: 'मृदु प्रवेश, लचीलापन' },
+  Feu: { name: 'अग्नि (Agni)', symbol: '☲', meaning: 'स्पष्टता, प्रकाश, निर्भरता' },
+  Lac: { name: 'सरोवर (Sarovara)', symbol: '☱', meaning: 'आनंद, खुलापन, संतुष्टि' },
+};
+
 // Paires de trigrammes par numéro d'hexagramme (1..64), depuis le seed.
 export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: string }> = {
   1: { superior: 'Ciel', inferior: 'Ciel' },
@@ -101,10 +126,10 @@ export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: str
   64: { superior: 'Feu', inferior: 'Eau' },
 };
 
-export function getHexagramTrigrams(numero: number, lang: 'fr' | 'en' = 'fr'): { superior: TrigramInfo | null; inferior: TrigramInfo | null } {
+export function getHexagramTrigrams(numero: number, lang: 'fr' | 'en' | 'es' | 'hi' = 'fr'): { superior: TrigramInfo | null; inferior: TrigramInfo | null } {
   const pair = HEXAGRAM_TRIGRAMS[numero];
   if (!pair) return { superior: null, inferior: null };
-  const map = lang === 'en' ? TRIGRAM_INFO_EN : TRIGRAM_INFO;
+  const map = lang === 'en' ? TRIGRAM_INFO_EN : lang === 'es' ? TRIGRAM_INFO_ES : lang === 'hi' ? TRIGRAM_INFO_HI : TRIGRAM_INFO;
   return {
     superior: map[pair.superior] ?? null,
     inferior: map[pair.inferior] ?? null,

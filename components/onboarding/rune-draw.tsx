@@ -14,6 +14,7 @@
 // Charte nordique ; aucun son ; fallback tap garanti.
 
 import { useMemo, useRef, useState } from 'react';
+import { pick4, type Lang } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { GameFrame, GOLD, GOLD_PALE, IVORY, ROSE, SkipDemo } from './fx';
 import { usePouchShake } from '@/components/rune-stones/use-pouch-shake';
@@ -27,12 +28,12 @@ const SWAY_MAX = 34; // débattement latéral max du pochon (jeu : 34)
 const POUCH_W = 72; // pochon du tutoriel : réduit des 3/4 (le jeu : 150 px)
 
 export default function RuneDraw({
-  isEn,
+  lang,
   labels,
   onDone,
   onSkip,
 }: {
-  isEn: boolean;
+  lang: Lang;
   labels: {
     shake: string;
     again: string;
@@ -144,7 +145,7 @@ export default function RuneDraw({
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: `${GOLD_PALE}dd` }}
               >
                 {rune.name}
-                {rune.rev ? (isEn ? ' · reversed' : ' · renversée') : ''}
+                {rune.rev ? (lang === 'en' ? ' · reversed' : ' · renversée') : ''}
               </motion.p>
             )}
           </div>
@@ -197,7 +198,7 @@ export default function RuneDraw({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={POCHON_IMG}
-              alt={isEn ? 'Rune pouch' : 'Pochon de runes'}
+              alt={pick4('Pochon de runes', 'Rune pouch', 'Saco de runas', 'रून थैली')(lang)}
               className="block h-full w-full object-contain"
               style={{
                 filter: `drop-shadow(0 6px 12px rgba(0,0,0,0.55)) drop-shadow(0 0 ${

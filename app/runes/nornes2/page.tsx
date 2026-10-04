@@ -28,7 +28,8 @@ import { type DrawnRune } from '@/components/rune-stones';
 import { type ScatterPick } from './rune-scatter';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { useEntitlement } from '@/lib/use-entitlement';
-import { useT } from '@/lib/i18n';
+import { useT, tr, useLang } from '@/lib/i18n';
+import { localizePosition } from '@/lib/i18n/positions';
 import AuthGate from '@/components/auth-gate';
 
 const RuneScatter = dynamic(() => import('./rune-scatter').then((m) => m.RuneScatter), {
@@ -43,6 +44,7 @@ const RuneStonesSet = dynamic(
 const NORNES_POS = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir'];
 
 function Nornes2Page() {
+  const lang = useLang();
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   // picks : les 3 runes choisies à l'aveugle (face cachée) → preset révélé.
@@ -77,7 +79,7 @@ function Nornes2Page() {
     return r.slice(0, count).map((d, i) => {
       const name = d.rune?.name || 'Rune';
       const sense = d.reversed ? d.rune?.reversed : d.rune?.upright;
-      const pos = ['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir', 'Conseil d’Odin'][i] || `Rune ${i + 1}`;
+      const pos = localizePosition(['Urd — Le Passé', 'Verdandi — Le Présent', 'Skuld — L’Avenir', 'Conseil d’Odin'][i], lang) || `Rune ${i + 1}`;
       return `**${pos} : ${name}**\n${sense || ''}`;
     }).join('\n\n');
   }, []);
@@ -133,7 +135,7 @@ function Nornes2Page() {
             name: d.rune?.name,
             symbol: d.rune?.symbol,
             reversed: d.reversed,
-            position: NORNES_POS[i],
+            position: localizePosition(NORNES_POS[i], lang),
           })),
           interpretation: staticInterpretation(p, 3),
           question,
@@ -171,7 +173,7 @@ function Nornes2Page() {
           name: d.rune?.name,
           symbol: d.rune?.symbol,
           reversed: d.reversed,
-          position: NORNES_POS[i] || 'Conseil d’Odin',
+          position: localizePosition(NORNES_POS[i] || 'Conseil d’Odin', lang),
         }));
         // On n'écrase PAS l'interprétation IA du fil par le texte statique :
         // elle est conservée puis fusionnée avec le Conseil d'Odin quand son
@@ -366,7 +368,7 @@ function Nornes2Page() {
                 className="mb-4 text-sm italic"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
               >
-                Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une
+                {tr("Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une", "If the future (Skuld) feels heavy, you may weave a", "Si el porvenir (Skuld) le parece pesado, puede urdir una", "यदि भविष्य (स्कल्ड) आपको भारी प्रतीत हो, तो आप बुन सकते हैं एक")}
                 nouvelle voie.
               </p>
               <RuneButton variant="save" onClick={adviceRoll}>
@@ -408,12 +410,12 @@ function Nornes2Page() {
                 gateType="runes-nornes2"
                 focus="odin"
                 odinReveal
-                buttonLabel="Consulter l'Oracle sur le conseil d'Odin"
+                buttonLabel={tr("Consulter l'Oracle sur le conseil d'Odin", "Consult the Oracle on Odin's counsel", "Consulte al Oráculo sobre el consejo de Odín", "ओदिन की सलाह पर ओरैकल से पूछें")}
                 runes={[
                   { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
                   { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
                   { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
-                  { rune: runes[3].rune, reversed: runes[3].reversed, position: 'Conseil d’Odin' },
+                  { rune: runes[3].rune, reversed: runes[3].reversed, position: localizePosition('Conseil d’Odin', lang) },
                 ]}
                 onAnalysis={onAdviceAnalysis}
                 autoRun

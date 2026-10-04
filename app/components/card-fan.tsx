@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useRef, useState, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -752,7 +753,7 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
                     className="mt-4 text-amber-300 text-lg"
                     style={{ fontFamily: 'var(--font-cinzel), serif' }}
                   >
-                    Les esprits consultent les cartes...
+                    {tr("Les esprits consultent les cartes...", "The spirits consult the cards...", "Los espíritus consultan las cartas...", "आत्माएँ पत्रों को पढ़ रही हैं...")}
                   </p>
                 </motion.div>
               )}

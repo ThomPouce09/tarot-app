@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AccountNav from '@/components/account-nav';
@@ -56,7 +57,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen cosmos relative isolate flex flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="cosmos-veil" aria-hidden /><div className="cosmos-nebula3" aria-hidden /><div className="cosmos-stars" aria-hidden /><div className="cosmos-stars2" aria-hidden />
         <span className="text-5xl">🔒</span>
-        <p className="mystic-title text-xl">Accès réservé aux initiés</p>
+        <p className="mystic-title text-xl">{tr("Accès réservé aux initiés", "Access reserved for the Initiates", "Acceso reservado a los iniciados", "प्रवेश केवल इनिशिए के लिए")}</p>
         <button type="button" onClick={() => router.replace('/login')} className="mystic-btn">Se connecter</button>
       </div>
     );

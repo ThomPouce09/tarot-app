@@ -52,7 +52,7 @@ export default function AccountNav({ user }: { user: any }) {
         <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 mb-6 group">
           <img src="/logo-espace.png" alt="" className="h-9 w-auto object-contain" />
           <span className="brand-oracle text-2xl transition-all duration-200 group-hover:brightness-125">
-            L&apos;oracle des étoiles
+            {t('brand.name')}
           </span>
           <span aria-hidden className="text-amber-300/90 text-lg leading-none transition-all duration-200 group-hover:-translate-x-0.5" style={{ fontFamily: 'var(--font-cinzel), serif' }}>‹</span>
           <span aria-hidden className="absolute inset-x-0 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
@@ -114,7 +114,7 @@ export default function AccountNav({ user }: { user: any }) {
         <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 group">
           <img src="/logo-espace.png" alt="" className="w-8 h-8 object-contain" />
           <span className="brand-oracle text-xl transition-all duration-200 group-hover:brightness-125">
-            L&apos;oracle des étoiles
+            {t('brand.name')}
           </span>
           <span aria-hidden className="text-amber-300/75 text-base leading-none" style={{ fontFamily: 'var(--font-cinzel), serif' }}>‹</span>
           {tourStep === 1 && (

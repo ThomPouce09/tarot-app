@@ -13,6 +13,7 @@
 // Charte Yi Jing (laque noir/rouge/or) ; aucun son ; tap = fallback.
 
 import { useMemo, useRef, useState } from 'react';
+import { pick4, type Lang } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { GameFrame, GOLD, GOLD_PALE, IVORY, ROSE, SkipDemo } from './fx';
 import { useSwipeGestures } from './use-swipe-gestures';
@@ -30,12 +31,12 @@ function linesFor(n: number): boolean[] {
 }
 
 export default function YiJingDraw({
-  isEn,
+  lang,
   labels,
   onDone,
   onSkip,
 }: {
-  isEn: boolean;
+  lang: Lang;
   labels: { shake: string; count: (n: number) => string; tap: string; skip: string; result: string };
   onDone: () => void;
   onSkip: () => void;
@@ -185,7 +186,7 @@ export default function YiJingDraw({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={BOX_IMG}
-                alt={isEn ? 'Yarrow stalks box' : 'Boîte de baguettes d’achillée'}
+                alt={pick4('Boîte de baguettes d’achillée', 'Yarrow stalks box', 'Caja de varas de milenrama', 'यार्रो डंडियों का डिब्बा')(lang)}
                 className="relative block w-full"
                 style={{
                   filter: `drop-shadow(0 5px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 ${
@@ -215,7 +216,7 @@ export default function YiJingDraw({
                   fontFamily: 'var(--font-cinzel), serif',
                 }}
               >
-                {isEn ? 'Stalk' : 'Tige'} n° {stick.n}
+                {pick4('Tige', 'Stalk', 'Vara', 'डंडी')(lang)} n° {stick.n}
               </span>
               <div className="flex flex-col-reverse gap-[3px]">
                 {stick.lines.map((solid, i) => (

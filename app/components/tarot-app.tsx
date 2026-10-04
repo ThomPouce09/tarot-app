@@ -1,5 +1,8 @@
 'use client';
 
+import { tr, getRuntimeLang } from '@/lib/i18n';
+import { cardDisplayName } from '@/lib/i18n/cards';
+import { localizePosition } from '@/lib/i18n/positions';
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
@@ -135,7 +138,7 @@ function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position, posit
         className="text-[8px] sm:text-sm md:text-base tracking-widest uppercase font-bold whitespace-nowrap overflow-hidden"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFD700', textOverflow: 'ellipsis' }}
       >
-        {positionLabels[position]}
+        {localizePosition(positionLabels[position])}
       </span>
     </motion.div>
   ) : null;
@@ -211,7 +214,7 @@ function DrawnCardSlot({ drawnCard, isMobile, isReady, slotRefs, position, posit
           paddingTop: '0px',
         }}
       >
-        {drawnCard ? drawnCard.card.name : ''}
+        {drawnCard ? cardDisplayName(drawnCard.card, getRuntimeLang()) : ''}
       </p>
     </div>
   );
@@ -383,7 +386,7 @@ export default function TarotApp({
   totalPicks = 3,
   positionLabels = DEFAULT_POSITION_LABELS,
   positionIcons = DEFAULT_POSITION_ICONS,
-  title = 'Tirage 3 cartes',
+  title = tr("Tirage 3 cartes", "3-card spread", "Tirada de 3 cartas", "3 पत्रों की विन्यास"),
   spreadType = 'tarot-3-cartes',
   // true = la pioche ne contient que les 22 arcanes majeurs (tirage 3 cartes).
   majorsOnly = false,
@@ -479,7 +482,7 @@ export default function TarotApp({
   // écriture machine à écrire, disparaît 5s après la fin de la main.
   const [showHint, setShowHint] = useState(false);
   const [hintLen, setHintLen] = useState(0);
-  const HINT_TEXT = "Choisis tes cartes dans la pioche";
+  const HINT_TEXT = tr("Choisis tes cartes dans la pioche", "Pick your cards from the deck", "Elige tus cartas del mazo", "गड्डी से अपने पत्ते चुनें");
 
   // Tuto geste "Pincer la pioche pour l'ouvrir" : apparaît après l'indice,
   // disparaît au premier pinch / premier tap carte / après 5s. S'il disparaît
@@ -930,8 +933,8 @@ export default function TarotApp({
           >
             <span style={{ color: '#FFD700', fontSize: '11px', lineHeight: 1 }}>✧</span>
             <span className="flex flex-col items-start leading-tight">
-              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">Votre</span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">question</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">{tr("Votre", "Your", "Su", "आपका")}</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8C87A]">{tr("question", "question", "pregunta", "\u092a\u094d\u0930\u0936\u094d\u0928")}</span>
             </span>
             <svg
               width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden
@@ -967,12 +970,12 @@ export default function TarotApp({
                 className="text-sm font-bold uppercase tracking-[0.16em] text-[#FFD700]"
                 style={{ fontFamily: 'var(--font-cinzel), serif' }}
               >
-                Votre question
+                {tr("Votre question", "Your question", "Su pregunta", "आपका प्रश्न")}
               </h3>
               <button
                 onClick={() => setShowQuestion(false)}
                 className="flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(218,165,32,0.4)] text-[#E8C87A] transition-colors hover:bg-white/10"
-                aria-label="Fermer"
+                aria-label={tr("Fermer", "Close", "Cerrar", "बंद करें")}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
@@ -1141,7 +1144,7 @@ export default function TarotApp({
               fontFamily: "serif", fontSize: 13, whiteSpace: "nowrap",
               textShadow: "0 0 10px rgba(255,190,90,0.7)", transition: "color .3s",
             }}>
-              carte {Math.round(z.center) + 1} / {nCards}
+              {tr("carte", "card", "carta", "पत्ता")} {Math.round(z.center) + 1} / {nCards}
             </span>
           </div>
         </div>
@@ -1280,7 +1283,7 @@ export default function TarotApp({
               textShadow: "0 1px 3px rgba(0,0,0,0.8)",
             }}
           >
-            Pincez la pioche pour l&apos;ouvrir
+            {tr("Pincez la pioche pour l'ouvrir", "Pinch the deck to open it", "Pellizca el mazo para abrirlo", "गड्डी खोलने के लिए पिंच करें")}
           </span>
         </div>
       )}
@@ -1348,7 +1351,7 @@ export default function TarotApp({
             />
             <span className="relative z-10 flex items-center justify-center gap-2.5">
               <span className="star-ornament" style={{ fontSize: '1.15em', filter: 'drop-shadow(0 0 6px rgba(255,225,150,0.9))' }}>✦</span>
-              Consulter l&apos;Oracle à propos de ce tirage
+              {tr("Consulter l'Oracle à propos de ce tirage", "Ask the Oracle about this reading", "Consultar al Oráculo sobre esta tirada", "इस वाचन पर ओरैकल से परामर्श करें")}
               <span className="star-ornament" style={{ fontSize: '1.15em', filter: 'drop-shadow(0 0 6px rgba(255,225,150,0.9))', animationDelay: '-1.6s, -0.8s' }}>✦</span>
             </span>
           </motion.button>

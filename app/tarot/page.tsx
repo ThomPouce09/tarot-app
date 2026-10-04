@@ -1,6 +1,6 @@
 'use client';
 
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4, tr } from '@/lib/i18n';
 import Firefly from '@/components/firefly';
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -87,8 +87,10 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
     iconImg: '/images/tirage-3-cartes.png',
     title: '3 Cartes Simplifié',
     titleEn: '3 Cards Simplified',
+titleEs: "3 Cartas Simple", titleHi: "3 पत्ते सरल",
     desc: 'Notre tirage de base : choisissez votre arcane-guide et une intention, les cartes répondent en Passé, Présent et Avenir.',
     descEn: 'Our base reading: choose your guide-arcana and an intention, the cards answer in Past, Present and Future.',
+descEs: "Nuestra tirada base: elija su arcano guía y una intención, las cartas responden en Pasado, Presente y Futuro.", descHi: "हमारी आधार-विन्यास: अपना आर्काना-मार्गदर्शक और एक संकल्प चुनिए, पत्ते अतीत, वर्तमान और भविष्य में उत्तर देते हैं।",
     steps: [
       'Choisissez votre arcane-guide',
       'Sélectionnez votre intention',
@@ -99,13 +101,17 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
       'Select your intention',
       'Draw 3 cards and read their message',
     ],
+stepsEs: ["Elija su arcano guía", "Seleccione su intención", "Tire 3 cartas y lea su mensaje"],
+stepsHi: ["अपना अर्काना-मार्गदर्शक चुनें", "अपना संकल्प चुनें", "3 पत्ते निकालें और उनका संदेश पढ़ें"],
   },
   {
     iconImg: '/images/tirage-3-cartes.png',
     title: '3 Cartes · Précis',
     titleEn: '3 Cards · Precise',
+titleEs: "3 Cartas · Preciso", titleHi: "3 पत्ते · संक्षिप्त",
     desc: 'Un tirage rapide et clair pour obtenir une réponse directe à votre question.',
     descEn: 'A quick, clear reading for a direct answer to your question.',
+descEs: "Una tirada rápida y clara para obtener una respuesta directa a su pregunta.", descHi: "एक तेज़ और स्पष्ट वाचन, आपके प्रश्न का सीधा उत्तर पाने के लिए।",
     steps: [
       'Formulez votre question',
       'Mélangez et coupez le jeu',
@@ -116,13 +122,17 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
       'Shuffle and cut the deck',
       'Draw 3 cards and read their message',
     ],
+stepsEs: ["Formule su pregunta", "Baraje y corte el mazo", "Tire 3 cartas y lea su mensaje"],
+stepsHi: ["अपने प्रश्न को शब्द दें", "गड्डी फेंटें और काटें", "3 पत्ते निकालें और उनका संदेश पढ़ें"],
   },
   {
     iconImg: '/images/roue-semaine.svg',
     title: 'Les Arcanes de la Semaine',
     titleEn: 'Arcana of the Week',
+titleEs: "Los Arcanos de la Semana", titleHi: "सप्ताह के आर्काना",
     desc: 'Sept arcanes majeurs, un par jour : votre semaine se déplie jour après jour, puis le fil rouge se scelle en augure.',
     descEn: 'Seven major arcana, one per day: your week unfolds day by day, then the red thread seals as an augury.',
+descEs: "Siete arcanos mayores, uno por día: su semana se despliega día tras día, y luego el hilo rojo se sella en augurio.", descHi: "सात बृहत् अर्काना, एक-एक दिन: आपका सप्ताह दिन-प्रतिदिन खुलता है, फिर लाल धागा शुभसूचन बनकर मुद्रित हो जाता है।",
     steps: [
       'Posez la roue (un seul geste, deux grands tirages)',
       'Chaque jour, ouvrez la carte qui luit — les jours passés se révèlent seuls',
@@ -135,13 +145,17 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
       'At week’s end, weave the red thread and seal it as an augury',
       'Score your week in percent — the Fervor remembers',
     ],
+stepsEs: ["Despliegue la rueda (un solo gesto, dos grandes tiradas)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio", "Puntúe su semana en porcentaje — el Fervor lo recuerda"],
+stepsHi: ["चक्र बिछाइए (एक ही क्रिया, दो बड़े वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें", "अपने सप्ताह को प्रतिशत में अंकित करें — उत्ताप इसे याद रखता है"],
   },
   {
     iconImg: '/images/5 cartes manuelles.png',
     title: '5 cartes manuelles',
     titleEn: 'Manual 5-Card Reading',
+titleEs: "5 cartas manuales", titleHi: "5 पत्ते, हाथ से चुने",
     desc: "Choisissez vous-même vos 5 cartes dans le jeu pour une lecture personnalisée.",
     descEn: 'Pick your own 5 cards from the deck for a personal reading.',
+descEs: "Elija usted mismo sus 5 cartas del mazo para una lectura personalizada.", descHi: "व्यक्तिगत वाचन के लिए गड्डी में से अपने 5 पत्ते स्वयं चुनें।",
     steps: [
       'Parcourez le jeu',
       'Sélectionnez vos 5 cartes',
@@ -152,6 +166,8 @@ const TAROT_TUTORIALS: TutorialSlide[] = [
       'Select your 5 cards',
       'Read the combined interpretation',
     ],
+stepsEs: ["Recorra el mazo", "Seleccione sus 5 cartas", "Lea la interpretación combinada"],
+stepsHi: ["गड्डी का अवलोकन करें", "अपने 5 पत्ते चुनें", "संयुक्त व्याख्या पढ़ें"],
   },
 ];
 
@@ -232,7 +248,7 @@ export default function TarotHubPage() {
               "0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)",
           }}
         >
-          Le Tarot
+          {tr("Le Tarot", "The Tarot", "El Tarot", "तारोट")}
         </h1>
         <p
           className="text-sm sm:text-base md:text-lg font-medium italic"
@@ -275,7 +291,7 @@ export default function TarotHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
                   title={t('hubs.tarot.tile3s')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
@@ -346,7 +362,7 @@ export default function TarotHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
                   title={t('hubs.tarot.tile3')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
@@ -417,7 +433,7 @@ export default function TarotHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
                   title={t('hubs.tarot.tile5')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
@@ -489,7 +505,7 @@ export default function TarotHubPage() {
                 {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
-                  aria-label={ lang === 'en' ? 'How this reading works' : 'Comment fonctionne ce tirage' }
+                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
                   title={t('hubs.tarot.tileMan')}
                   data-info-i
                   className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}

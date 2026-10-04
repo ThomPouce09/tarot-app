@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -139,11 +140,11 @@ export default function SignUpPage() {
             <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-amber-600 to-orange-700 rounded-full flex items-center justify-center">
               <span className="text-3xl">✨</span>
             </div>
-            <h2 className="text-2xl font-bold text-amber-300 mb-2">Inscription Réussie !</h2>
+            <h2 className="text-2xl font-bold text-amber-300 mb-2">{tr("Inscription Réussie !", "Sign-Up Successful!", "¡Registro completado!", "पंजीकरण सफल रहा!")}</h2>
             <p className="text-gray-300 mb-4">
-              Consultez vos emails pour activer votre compte et découvrir les mystères du Tarot et du Yi Jing.
+              {tr("Consultez vos emails pour activer votre compte et découvrir les mystères du Tarot et du Yi Jing.", "Check your emails to activate your account and discover the mysteries of Tarot and the Yi Jing.", "Consulte sus emails para activar su cuenta y descubrir los misterios del Tarot y del Yi Jing.", "अपने ईमेल देखें ताकि आप अपना खाता सक्रिय कर सकें और टैरो तथा इ चिंग के रहस्य जान सकें।")}
             </p>
-            <div className="text-amber-500/70 text-sm">Redirection vers la connexion...</div>
+            <div className="text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
           </div>
         ) : (
           <div className="bg-gradient-to-b from-gray-900/80 to-amber-950/30 rounded-xl shadow-2xl border border-amber-800/50 flex flex-col max-h-[90dvh] overflow-hidden">
@@ -157,7 +158,7 @@ export default function SignUpPage() {
                 <span className="text-3xl">☯️</span>
               </div>
               <p className="text-gray-400 text-xs">
-                Accédez aux tirages de Tarot et aux hexagrammes du Yi Jing
+                {tr("Accédez aux tirages de Tarot et aux hexagrammes du Yi Jing", "Access Tarot readings and Yi Jing hexagrams", "Acceda a las tiradas de Tarot y a los hexagramas del Yi Jing", "टैरो की विन्यास और इ चिंग के षट्कोण पाएँ")}
               </p>
             </div>
 
@@ -178,7 +179,7 @@ export default function SignUpPage() {
                     inputMode="email"
                     autoComplete="off"
                     className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all backdrop-blur-sm"
-                    placeholder="votre@email.com"
+                    placeholder={tr("votre@email.com", "your@email.com", "votre@email.com", "votre@email.com")}
                     required
                   />
                   {errors.email && <p className="text-red-400 text-[10px] mt-1 animate-shake">{errors.email}</p>}
@@ -187,7 +188,7 @@ export default function SignUpPage() {
                 <div className="group">
                   <label htmlFor="firstName" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                     <span className="text-amber-500">👤</span>
-                    Prénom/Pseudo *
+                    {tr("Prénom/Pseudo *", "First name/Nickname *", "Nombre/seudónimo *", "नाम / उपनाम *")}
                   </label>
                   <input
                     type="text"
@@ -197,7 +198,7 @@ export default function SignUpPage() {
                     onChange={handleChange}
                     autoComplete="given-name"
                     className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all"
-                    placeholder="Votre prénom (min 2 lettres)"
+                    placeholder={tr("Votre prénom (min 2 lettres)", "Your first name (min 2 letters)", "Su nombre (mín. 2 letras)", "आपका नाम (न्यूनतम 2 अक्षर)")}
                     required
                   />
                   {errors.firstName && <p className="text-red-400 text-[10px] mt-1">{errors.firstName}</p>}
@@ -218,7 +219,7 @@ export default function SignUpPage() {
                       onChange={handleChange}
                       autoComplete="new-password"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
-                      placeholder="8-20 caractères, A-Z, a-z, 0-9"
+                      placeholder={tr("8-20 caractères, A-Z, a-z, 0-9", "8-20 characters, A-Z, a-z, 0-9", "8-20 caractères, A-Z, a-z, 0-9", "8-20 अक्षर, A-Z, a-z, 0-9")}
                       required
                     />
                     <button
@@ -262,7 +263,7 @@ export default function SignUpPage() {
                       onChange={handleChange}
                       autoComplete="new-password"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
-                      placeholder="Confirmez le mot de passe"
+                      placeholder={tr("Confirmez le mot de passe", "Confirm password", "Confirme la contraseña", "पासवर्ड की पुष्टि करें")}
                       required
                     />
                     <button
@@ -280,7 +281,7 @@ export default function SignUpPage() {
                     <p className="text-green-400 text-[10px] mt-1">✓ Mots de passe identiques</p>
                   )}
                   {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-red-400 text-[10px] mt-1">✗ Mots de passe différents</p>
+                    <p className="text-red-400 text-[10px] mt-1">{tr("✗ Mots de passe différents", "✗ Passwords don't match", "✗ Contraseñas diferentes", "✗ पासवर्ड अलग-अलग हैं")}</p>
                   )}
                 </div>
 
@@ -341,7 +342,7 @@ export default function SignUpPage() {
                   <div>
                     <label htmlFor="phone" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">📞</span>
-                      Téléphone
+                      {tr("Téléphone", "Phone", "Teléfono", "फ़ोन")}
                     </label>
                     <input
                       type="tel"
@@ -352,7 +353,7 @@ export default function SignUpPage() {
                       inputMode="tel"
                       autoComplete="tel"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                      placeholder="Téléphone"
+                      placeholder={tr("T\u00e9l\u00e9phone", "Phone", "Tel\u00e9fono", "\u092b\u093c\u094b\u0928")}
                     />
                   </div>
                 </div>
@@ -369,7 +370,7 @@ export default function SignUpPage() {
                     onChange={handleChange}
                     rows={2}
                     className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none"
-                    placeholder="Vos remarques sur l'univers..."
+                    placeholder={tr("Vos remarques sur l'univers...", "Your comments about the universe...", "Sus observaciones sobre el universo...", "ब्रह्मांड के बारे में आपके विचार...")}
                   ></textarea>
                 </div>
 
@@ -396,7 +397,7 @@ export default function SignUpPage() {
                       </>
                     ) : (
                       <>
-                        <span>Créer mon compte</span>
+                        <span>{tr("Créer mon compte", "Create my account", "Crear mi cuenta", "अपना खाता बनाएँ")}</span>
                         <span className="group-hover:translate-x-1 transition-transform">→</span>
                       </>
                     )}
@@ -406,7 +407,7 @@ export default function SignUpPage() {
             </div>
 
             <div className="p-3 text-center text-amber-700/50 text-[10px] border-t border-amber-800/20">
-              <span className="hidden sm:inline">🔮 Tarot & Yi Jing - L'âme a toutes ses réponses</span>
+              <span className="hidden sm:inline">{tr("🔮 Tarot & Yi Jing - L'âme a toutes ses réponses", "🔮 Tarot & Yi Jing - The soul has all the answers", "🔮 Tarot & Yi Jing - El alma tiene todas las respuestas", "🔮 टैरो और इ चिंग - आत्मा के पास सभी उत्तर हैं")}</span>
               <span className="sm:hidden">🌙 Tarot YiJing</span>
             </div>
           </div>

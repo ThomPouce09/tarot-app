@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLang, useSetLang, useT, type Lang } from '@/lib/i18n';
+import { useLang, useSetLang, useT, tr, type Lang } from '@/lib/i18n';
 import SpaceTitle from '@/components/space-title';
 import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib/sounds';
 import MusicPlayer from '@/components/music-player';
@@ -285,7 +285,7 @@ export default function PreferencesPage() {
         {prefs.dailyReminder && (
           <p className="text-gray-400 text-xs pl-1">{t('prefs.reminderFixedHour')} <span className="text-amber-200 font-medium">{t('prefs.reminderFixedTime')}</span></p>
         )}
-        {reminderBlocked && <p className="text-red-400/80 text-xs">Notification non autorisée — autorisez-la dans les réglages de l&apos;app.</p>}
+        {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
       </div>
 

@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { useLang, useT } from '@/lib/i18n';
+import { useLang, useT, type Lang } from '@/lib/i18n';
 import { installSoundUnlock, stopAllSounds } from '@/lib/sounds';
 import { isTutorialSeen, markTutorialSeen, hydrateTutorials } from '@/lib/tutorials';
 import { GOLD, GOLD_PALE, IVORY, ROSE, WINE, goldPill, darkPill } from './onboarding/fx';
@@ -30,7 +30,7 @@ export default function OnboardingTour() {
   const lang = useLang();
   const t = useT();
   const pathname = usePathname();
-  const isEn = lang === 'en';
+  // (lang pilotte directement les sous-composants)
 
   const [open, setOpen] = useState(false);
   const [slide, setSlide] = useState(0);
@@ -192,7 +192,7 @@ export default function OnboardingTour() {
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: slide === 9 ? 0.8 : 0.32, ease: 'easeOut' }}
               >
-                <SlideBody slide={slide} isEn={isEn} t={t} onAdvance={next} onClose={close} />
+                <SlideBody slide={slide} lang={lang} t={t} onAdvance={next} onClose={close} />
               </motion.div>
             </AnimatePresence>
           </div>
@@ -256,13 +256,13 @@ function SlideTitle({ children }: { children: React.ReactNode }) {
 
 function SlideBody({
   slide,
-  isEn,
+  lang,
   t,
   onAdvance,
   onClose,
 }: {
   slide: number;
-  isEn: boolean;
+  lang: Lang;
   t: (k: string) => string;
   onAdvance: () => void;
   onClose: () => void;
@@ -339,7 +339,7 @@ function SlideBody({
         <div className="py-1">
           <SlideTitle>{t('tour.s4.title')}</SlideTitle>
           <TarotDraw
-            isEn={isEn}
+            lang={lang}
             labels={{
               tapDeck: t('tour.s4.tap'),
               pick3: t('tour.s4.pick'),
@@ -356,7 +356,7 @@ function SlideBody({
         <div className="py-1">
           <SlideTitle>{t('tour.s5.title')}</SlideTitle>
           <YiJingDraw
-            isEn={isEn}
+            lang={lang}
             labels={{
               shake: t('tour.s5.shake'),
               count: (n) => t('tour.s5.count').replace('{n}', String(n)),
@@ -374,7 +374,7 @@ function SlideBody({
         <div className="py-1">
           <SlideTitle>{t('tour.s6.title')}</SlideTitle>
           <RuneDraw
-            isEn={isEn}
+            lang={lang}
             labels={{
               shake: t('tour.s6.shake'),
               again: t('tour.s6.again'),
@@ -392,7 +392,7 @@ function SlideBody({
         <div className="py-1">
           <SlideTitle>{t('tour.s7.title')}</SlideTitle>
           <DiceDraw
-            isEn={isEn}
+            lang={lang}
             labels={{
               shake: t('tour.s7.shake'),
               throw: t('tour.s7.throw'),

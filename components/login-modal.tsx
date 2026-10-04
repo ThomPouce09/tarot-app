@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT } from '@/lib/i18n';
+import { useT, tr } from '@/lib/i18n';
 import { onAccountChanged } from '@/lib/tutorials';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
@@ -115,7 +115,7 @@ export function LoginModal() {
                 letterSpacing: '0.02em',
                 textTransform: 'lowercase',
               }}
-              placeholder="votre@email.com"
+              placeholder={tr("votre@email.com", "your@email.com", "su@correo.com", "आपका@email.com")}
             />
           </div>
           <div>

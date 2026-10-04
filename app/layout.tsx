@@ -111,7 +111,11 @@ export default function RootLayout({
      parse = jamais peint, et l'arbre React reste identique.
      '/index.html' = entrée de la WebView Capacitor (export statique). */
   if(location.pathname!=='/'&&location.pathname!=='/index.html'){v.style.display='none';return;}
-  try{var p=JSON.parse(localStorage.getItem('tarot_prefs')||'{}');var tx=document.getElementById('boot-veil-text');if(p.language==='en'&&tx)tx.textContent='Loading...';}catch(e){}
+  /* PAS de swap du texte du voile selon localStorage ici : ce nœud est rendus
+     par React (layout). Le modifier AVANT hydratation → mismatch de contenu
+     texte → React abandonne l'arbre et le voile ne se lève plus (bug EN 2026-10-04 :
+     « Chargement… » infini pour les comptes en anglais). La traduction du texte
+     arrive via <AppLoader> (t('loader.text')) dès le relais. */
   function out(){if(!v)return;clearInterval(iv);v.classList.add('app-loader-out');var w=v;v=null;setTimeout(function(){w.remove();},800);}
   /* Relais = le <AppLoader /> React de la landing (hydraté, avec fondu + minuteries).
      S'il n'arrive pas (JS en échec), on découvre la page au plus tard 4,5 s après load. */

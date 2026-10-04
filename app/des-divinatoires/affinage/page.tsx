@@ -39,13 +39,14 @@ import {
   type HouseNumber,
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
-import { useT } from '@/lib/i18n';
+import { useT, useLang, tr , getRuntimeLang} from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
@@ -61,7 +62,7 @@ function DiceLoader() {
       style={{ height: 440, background: '#1a0e0a', color: DICE_THEME.ocreLight }}
     >
       <span style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-        Préparation des dés…
+        {tr("Préparation des dés…", "Preparing the dice…", "Preparando los dados…", "पासे तैयार हो रहे हैं…")}
       </span>
     </div>
   );
@@ -83,7 +84,7 @@ function diceCardsFor(f: TargetFaces, kinds: DieKind[]) {
   return kinds.map((k) => ({
     kind: k,
     value: f[k],
-    label: k === 'planet' ? PLANET_NAMES[f[k] as string] : k === 'sign' ? SIGN_NAMES[f[k] as string] : `Maison ${f[k]}`,
+    label: k === 'planet' ? planetName(f[k] as string, getRuntimeLang()) : k === 'sign' ? signName(f[k] as string, getRuntimeLang()) : houseName(f[k], getRuntimeLang()),
   }));
 }
 function diceStaticTextFor(f: TargetFaces, kinds: DieKind[]) {
@@ -97,6 +98,7 @@ function AffinagePage() {
   const [phase, setPhase] = useState<Phase>('initial');
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
+  const lang = useLang();
   // Continuité : suggestion = la question du dernier tirage de dés enregistré
   // (pré-remplit le champ « Garder votre question en mémoire »).
   const [lastDiceQuestion, setLastDiceQuestion] = useState<string | null>(null);
@@ -328,6 +330,7 @@ function AffinagePage() {
         mode: llmMode(),
         dbInterpretation: dbInterpretation || undefined,
         question: question || undefined,
+        lang,
       };
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
@@ -442,6 +445,7 @@ function AffinagePage() {
       faces: { planet: planetGlyph, sign: signGlyph, house: houseNum },
       activeKinds: ['planet', 'sign', 'house'],
       question: question || undefined,
+      lang,
     };
     // Si affinage : passer l'option + les faces originales pour comparaison
     if (option && originalFacesRef.current) {
@@ -501,8 +505,8 @@ function AffinagePage() {
               setHasLaunched(true);
             }}
             glowLabel={!question ? "Concentrez-vous sur votre question" : undefined}
-            label="Garder votre question en mémoire (facultatif)"
-            placeholder="Garder votre question en mémoire (facultatif)"
+            label={tr("Garder votre question en mémoire (facultatif)", "Keep your question in mind (optional)", "Guardar su pregunta en la memoria (opcional)", "अपने प्रश्न को याद रखें (वैकल्पिक)")}
+            placeholder={tr("Garder votre question en mémoire (facultatif)", "Keep your question in mind (optional)", "Guardar su pregunta en la memoria (opcional)", "अपने प्रश्न को याद रखें (वैकल्पिक)")}
             confirmLabel="Enregistrer"
             launchLabel="Lancer les dés zodiacaux !"
             onLaunch={() => {
@@ -607,7 +611,7 @@ function AffinagePage() {
                 lineHeight: 1.2,
               }}
             >
-              Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter
+              {tr("Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter", "Shake the cup to mix the dice, then swipe up to cast them", "Agite el vaso para mezclar los dados y deslice hacia arriba para lanzarlos", "गिलास को हिलाकर पाशों को मिलाएँ, फिर फेंकने के लिए ऊपर स्लाइड करें")}
             </p>
           </div>
 
@@ -647,10 +651,10 @@ function AffinagePage() {
                     const val = result[k] as string | number;
                     const dieName =
                       k === 'planet'
-                        ? PLANET_NAMES[val as string]
+                        ? planetName(val as string, getRuntimeLang())
                         : k === 'sign'
-                          ? SIGN_NAMES[val as string]
-                          : `Maison ${val}`;
+                          ? signName(val as string, getRuntimeLang())
+                          : houseName(val, getRuntimeLang());
                     return (
                       <div
                         key={k}
@@ -796,7 +800,7 @@ function AffinagePage() {
                       }}
                     >
                       Le fond du problème ne change pas,<br />
-                      c'est la sensibilité du microscope qui s'ajuste.
+                      c&rsquo;est la sensibilité du microscope qui s&rsquo;ajuste.
                     </p>
                   </div>
                 )}
@@ -831,7 +835,7 @@ function AffinagePage() {
                       className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                       style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                     >
-                      Oracle du tirage
+                      {tr("Oracle du tirage", "Reading Oracle", "Oráculo de la tirada", "विन्यास का ओरैकल")}
                     </p>
                     <p
                       className="text-center text-sm leading-relaxed italic"
@@ -854,7 +858,7 @@ function AffinagePage() {
                       className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                       style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                     >
-                      Résumé du tirage
+                      {tr("Résumé du tirage", "Reading summary", "Resumen de la tirada", "विन्यास का सारांश")}
                     </p>
                     <p
                       className="text-center text-sm leading-relaxed"
@@ -915,7 +919,7 @@ function AffinagePage() {
                             className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                             style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                           >
-                            Synthèse
+                            {tr("Synthèse", "Synthesis", "Síntesis", "संक्षेप")}
                           </p>
                           <p
                             className="text-center text-sm leading-relaxed italic"
@@ -944,7 +948,7 @@ function AffinagePage() {
                   {analysisErrored && !analysisLoading && (
                     <div className="mt-4 text-center">
                       <DiceButton variant="ocre" onClick={runAnalysis}>
-                        🔄 Relancer l'analyse
+                        🔄 Relancer l&rsquo;analyse
                       </DiceButton>
                     </div>
                   )}

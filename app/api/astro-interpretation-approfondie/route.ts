@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
+import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
   let body: any;
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const response = await callOracle(prompt, { maxTokens: 1200, temperature: 0.5 });
+    const response = await callOracle(prompt + outputDirective(resolveLang(lang)), { maxTokens: 1200, temperature: 0.5 });
     if (!response) {
       return NextResponse.json({ analysis: null }, { status: 200 });
     }

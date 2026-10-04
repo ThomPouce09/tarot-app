@@ -13,7 +13,7 @@ import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -88,32 +88,32 @@ const TILES = [
   {
     href: '/runes/nornes2',
     glyph: 'ᚾ', // N – Norn (Urdhr, Verdandi, Skuld)
-    title: 'Le fil des Nornes (simplifié)',
-    subtitle: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
+    title: 'Le fil des Nornes (simplifié)', titleEn: 'The Thread of the Norns (Simplified)', titleEs: 'El hilo de las Nornir (simplificado)', titleHi: 'नॉर्न का धागा (सरल)',
+    subtitle: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.', subtitleEn: 'Blind draw: shake the pouch, pick 3 runes, let the thread unfold.', subtitleEs: 'A ciegas: agite la bolsa, elija 3 runas, deje que el hilo se desenrolle.', subtitleHi: 'आँख मूँदकर: थैली हिलाएँ, 3 रन चुनें, धागे को खुलने दें।',
     bg: `linear-gradient(135deg, ${RUNE_THEME.forestMid} 0%, ${RUNE_THEME.forest} 100%)`,
     border: `${RUNE_THEME.goldPale}55`,
   },
   {
     href: '/runes/nornes',
     glyph: 'ᚢ', // U – Urd, la première Norne
-    title: 'Le Fil des Nornes — Précis',
-    subtitle: 'Une question exacte, une réponse ciblée — et le conseil d’Odin.',
+    title: 'Le Fil des Nornes — Précis', titleEn: 'The Thread of the Norns — Precise', titleEs: 'El Hilo de las Nornir — Preciso', titleHi: 'नॉर्न का धागा — सटीक',
+    subtitle: 'Une question exacte, une réponse ciblée — et le conseil d’Odin.', subtitleEn: 'One exact question, one targeted answer — and Odin’s counsel.', subtitleEs: 'Una pregunta exacta, una respuesta precisa — y el consejo de Odín.', subtitleHi: 'एक सटीक प्रश्न, एक लक्षित उत्तर — और ओदिन का परामर्श।',
     bg: `linear-gradient(135deg, ${RUNE_THEME.forest} 0%, ${RUNE_THEME.ink} 100%)`,
     border: `${RUNE_THEME.goldSoft}55`,
   },
   {
     href: '/runes/mjolnir',
     glyph: 'ᛗ', // M – Mjölnir
-    title: 'Le Marteau de Mjölnir',
-    subtitle: 'Le plan de bataille du forgeron : cinq runes en T, du manche à la crête.',
+    title: 'Le Marteau de Mjölnir', titleEn: 'Mjölnir’s Hammer', titleEs: 'El Martillo de Mjölnir', titleHi: 'म्जोल्निर का हथौड़ा',
+    subtitle: 'Le plan de bataille du forgeron : cinq runes en T, du manche à la crête.', subtitleEn: 'The forge-master’s battle plan: five runes in a T, from haft to crest.', subtitleEs: 'El plan de batalla del herrero: cinco runas en T, del mango a la cresta.', subtitleHi: 'बर्द़ई की रणनीति: पाँच रन T-आकार में, हत्थे से शिखर तक।',
     bg: `linear-gradient(135deg, ${RUNE_THEME.forest} 0%, ${RUNE_THEME.ink} 100%)`,
     border: `${RUNE_THEME.goldSoft}55`,
   },
   {
     href: '/runes/yggdrasil',
     glyph: 'ᛟ', // O – Yggdrasil / Odin
-    title: "Les Racines d'Yggdrasil",
-    subtitle: 'Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.',
+    title: "Les Racines d'Yggdrasil", titleEn: "The Roots of Yggdrasil", titleEs: "Las Raíces de Yggdrasil", titleHi: "युग्द्रसिल की जड़ेँ",
+    subtitle: 'Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.', subtitleEn: 'The World-Tree reckoning: five runes, from roots to crown.', subtitleEs: 'El balance del Árbol del Mundo: cinco runas, de las raíces a la corona.', subtitleHi: 'विश्व-वृक्ष का हिसाब: पाँच रन, जड़ों से मुकुट तक।',
     bg: `linear-gradient(135deg, #163a26 0%, ${RUNE_THEME.forestDeep} 100%)`,
     border: `${RUNE_THEME.sage}66`,
   },
@@ -126,8 +126,10 @@ const TUTORIALS: TutorialSlide[] = [
     glyph: 'ᚾ',
     title: 'Le fil des Nornes (simplifié)',
     titleEn: 'The Thread of the Norns (Simplified)',
+titleEs: "El hilo de las Nornir (simplificado)", titleHi: "नॉर्न का धागा (सरल)",
     desc: 'À l’aveugle : secouez, choisissez 3 runes, laissez le fil se dérouler.',
     descEn: 'Blind draw: shake the pouch, pick 3 runes, let the thread unfold.',
+descEs: "A ciegas: agite la bolsa, elija 3 runas, deje que el hilo se desenrolle.", descHi: "आँख मूँदकर: थैली हिलाएँ, 3 रन चुनें, धागे को खुलने दें।",
     steps: [
       'Choisissez le domaine et l’intention des Nornes',
       'Secouez le pochon, puis tirez 3 runes face cachée',
@@ -138,13 +140,17 @@ const TUTORIALS: TutorialSlide[] = [
       'Shake the pouch, then draw 3 face-down runes',
       'Read the synthesis + Odin’s counsel',
     ],
+stepsEs: ["Elija el ámbito y la intención de las Nornir", "Agite la bolsa y luego tire 3 runas boca abajo", "Lea la síntesis + el consejo de Odín"],
+stepsHi: ["नॉर्न का क्षेत्र और संकल्प चुनें", "थैली हिलाएँ, फिर 3 रन चेहरा नीचे करके निकालें", "संश्लेषण + ओडिन का परामर्श पढ़ें"],
   },
   {
     glyph: 'ᚢ',
     title: 'Le Fil des Nornes — Précis',
     titleEn: 'The Thread of the Norns — Precise',
+titleEs: "El Hilo de las Nornir — Preciso", titleHi: "नॉर्न का धागा — सटीक",
     desc: 'Une question exacte, une réponse ciblée — et le conseil d’Odin.',
     descEn: 'One exact question, one targeted answer — and Odin’s counsel.',
+descEs: "Una pregunta exacta, una respuesta precisa — y el consejo de Odín.", descHi: "एक सटीक प्रश्न, एक लक्षित उत्तर — और ओडिन का परामर्श।",
     steps: [
       'Formulez votre question',
       'Tirez trois runes : passé, présent, avenir',
@@ -155,6 +161,8 @@ const TUTORIALS: TutorialSlide[] = [
       'Draw three runes: past, present, future',
       'Read the synthesis + Odin’s counsel',
     ],
+stepsEs: ["Formule su pregunta", "Saque tres runas: pasado, presente, futuro", "Lea la síntesis + el consejo de Odín"],
+stepsHi: ["अपने प्रश्न को शब्द दें", "तीन रून निकालें: अतीत, वर्तमान, भविष्य", "संश्लेषण + ओडिन का परामर्श पढ़ें"],
   },
   {
     glyph: 'ᛗ',
@@ -162,6 +170,7 @@ const TUTORIALS: TutorialSlide[] = [
     titleEn: "Mjölnir's Hammer",
     desc: 'Le plan de bataille du forgeron : cinq runes en T, du manche à la crête.',
     descEn: 'The forge-master’s battle plan: five runes in a T, from haft to crest.',
+descEs: "El plan de batalla del herrero: cinco runas en T, del mango a la cresta.", descHi: "बढ़ई की रणनीति: पाँच रन T-आकार में, हत्थे से शिखर तक।",
     steps: [
       'Nomme l’obstacle qui résiste (question ou thème)',
       'Base du manche — l’Ancrage : sur quoi tu tiens',
@@ -178,6 +187,8 @@ const TUTORIALS: TutorialSlide[] = [
       'Right head — the Weapon: what you strike with',
       'Head center — the Strike: the blow to deliver',
     ],
+stepsEs: ["Nombra el obstáculo que resiste (pregunta o tema)", "Base del mango — el Anclaje: sobre qué te sostienes", "Extremo del mango — el Obstáculo: lo que de verdad te bloquea", "Cabeza izquierda — la Amenaza: lo que hay que soltar (invertida, buena noticia)", "Cabeza derecha — el Arma: con qué golpeas", "Centro de la cabeza — el Golpe: el golpe que debes dar"],
+stepsHi: ["उस रुकावट का नाम बताओ जो विरोध करती है (प्रश्न या विषय)", "मूठ का आधार — अंकुरण: तुम किस पर टिके हो", "मूठ का सिरा — रुकावट: जो सच में तुम्हें रोकता है", "बायाँ सिर — ख़तरा: जिसे छोड़ना होगा (उल्टी हो, तो शुभ समाचार)", "दायाँ सिर — हथियार: तुम जिससे वार करते हो", "सिर का केंद्र — प्रहार: जो वार करना है"],
   },
   {
     glyph: 'ᛟ',
@@ -185,6 +196,7 @@ const TUTORIALS: TutorialSlide[] = [
     titleEn: "The Roots of Yggdrasil",
     desc: 'Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.',
     descEn: 'The World-Tree reckoning: five runes, from roots to crown.',
+descEs: "El balance del Árbol del Mundo: cinco runas, de las raíces a la corona.", descHi: "विश्व-वृक्ष का हिसाब: पाँच रन, जड़ों से मुकुट तक।",
     steps: [
       'Urðr — la Source : ce qui te nourrit sans que tu le voies',
       'Níðhöggr — le Dragon : ce qui te ronge (renversée, elle est bienvenue)',
@@ -199,6 +211,8 @@ const TUTORIALS: TutorialSlide[] = [
       'The Branches — living paths: what can still grow',
       'The Eagle — the view from above: what only the crown sees',
     ],
+stepsEs: ["Urðr — la Fuente: lo que te alimenta sin que lo veas", "Níðhöggr — el Dragón: lo que te roe (invertida, es bienvenida)", "El Árbol — la Fuerza del día: lo que te mantiene en pie hoy", "Las Ramas — los Caminos vivos: lo que aún puede crecer", "El Águila — la Visión desde lo alto: lo que solo ve la cima"],
+stepsHi: ["Urðr — स्रोत: जो तुम्हें पोषित करता है, बिना तुम्हें दिखे", "नीधोग्गर — ड्रैगन: जो तुम्हें अंदर से खाता है (उल्टी हो, तो स्वागत है)", "वृक्ष — आज का बल: जो आज तुम्हें टिकाए रखता है", "शाखाएँ — जीवंत पथ: जो अभी और बढ़ सकता है", "ईगल — ऊँचाई की दृष्टि: जो केवल शिखर देखता है"],
   },
 ] satisfies readonly TutorialSlide[];
 
@@ -250,8 +264,8 @@ export default function RunesHub() {
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_runes" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <RuneTitle
-        title="Runes Scandinaves : Interroger le Futhark"
-        subtitle="Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin."
+        title={tr("Runes Scandinaves : Interroger le Futhark", "Scandinavian Runes: Question the Futhark", "Runas Escandinavas: Interrogar el Futhark", "स्कैंडिनेवियाई रून: फुथार्क से पूछें")}
+        subtitle={tr("Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin.", "The Elder Futhark, 24 runes carved in stone, reveals the currents of destiny.", "El Futhark Antiguo, 24 runas grabadas en piedra, revela las corrientes del destino.", "प्राचीन फुथार्क, पत्थर पर उत्कीर्ण 24 रून, भाग्य की धाराएँ प्रकट करता है।")}
       />
 
       {/* TUILES : 2 colonnes sur mobile (comme /tarot & /yi-jing) */}
@@ -280,9 +294,7 @@ export default function RunesHub() {
                   openTutorial(i);
                 }}
                 aria-label={
-                  lang === 'en'
-                    ? `How this reading works: ${tile.title}`
-                    : `Comment fonctionne ce tirage : ${tile.title}`
+                  pick4(`Comment fonctionne ce tirage : ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, `How this reading works: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, "Cómo funciona esta tirada: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}", "यह विन्यास कैसे काम करता है: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}")(lang)
                 }
                 data-info-i
                 className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
@@ -333,7 +345,7 @@ export default function RunesHub() {
                     textShadow: `0 0 10px ${RUNE_THEME.goldGlow}`,
                   }}
                 >
-                  {tile.title}
+                  {lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}
                 </h2>
                 <p
                   className="mt-1 px-1 text-center text-[9px] leading-tight sm:text-[11px]"
@@ -342,7 +354,7 @@ export default function RunesHub() {
                     color: RUNE_THEME.sage,
                   }}
                 >
-                  {tile.subtitle}
+                  {lang === 'en' ? (tile.subtitleEn || tile.subtitle) : lang === 'es' ? (tile.subtitleEs || tile.subtitle) : lang === 'hi' ? (tile.subtitleHi || tile.subtitle) : tile.subtitle}
                 </p>
               </div>
               <div
