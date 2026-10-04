@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ function EdgeTab({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      aria-label="Ouvrir le menu"
+      aria-label={tr("Ouvrir le menu", "Open the menu", "Abrir el menú", "मेनू खोलें")}
       className="group relative flex h-24 w-3 items-center justify-center rounded-r-md border border-l-0 border-yellow-500/15 bg-yellow-500/[0.06] backdrop-blur-sm transition-all duration-300 hover:border-yellow-400/40 hover:bg-yellow-500/15"
       style={{ boxShadow: 'none' }}
     >
@@ -101,7 +102,7 @@ export default function MenuDrawer({
           className="mb-4 text-sm uppercase tracking-[0.25em] text-yellow-500/70"
           style={{ fontFamily: "'Hoshiko Satsuki', serif" }}
         >
-          Oracle
+          {tr("Oracle", "Oracle", "Oráculo", "ओरैकल")}
         </p>
         {links.map((link) => (
           <button

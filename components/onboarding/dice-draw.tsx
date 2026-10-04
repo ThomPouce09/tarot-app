@@ -17,6 +17,7 @@
 // Sons : ceux du vrai tirage (dice-shake / dice-throw / spell) via lib/sounds.
 
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { pick4, pickContent, type Lang } from '@/lib/i18n';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { GameFrame, GOLD, GOLD_PALE, ROSE, SkipDemo } from './fx';
@@ -34,21 +35,21 @@ const CUP_W = 44; // gobelet réduit des 3/4 sur demande (le jeu : 200 px)
 // à chaque render → AstroDiceSet relance le roulé une 2e fois (bug observé).
 const SPAWN = { x: 0, z: 2.6 };
 
-const PLANET_NAMES: Record<string, { fr: string; en: string }> = {
-  '☉': { fr: 'Soleil', en: 'Sun' }, '☽': { fr: 'Lune', en: 'Moon' },
-  '☿': { fr: 'Mercure', en: 'Mercury' }, '♀': { fr: 'Vénus', en: 'Venus' },
-  '♂': { fr: 'Mars', en: 'Mars' }, '♃': { fr: 'Jupiter', en: 'Jupiter' },
-  '♄': { fr: 'Saturne', en: 'Saturn' }, '♅': { fr: 'Uranus', en: 'Uranus' },
-  '♆': { fr: 'Neptune', en: 'Neptune' }, '♇': { fr: 'Pluton', en: 'Pluto' },
-  '☊': { fr: 'Nœud Nord', en: 'North Node' }, '☋': { fr: 'Nœud Sud', en: 'South Node' },
+const PLANET_NAMES: Record<string, { fr: string; en: string; es?: string; hi?: string }> = {
+  '☉': { fr: 'Soleil', en: 'Sun' , es: "Sol", hi: "सूर्य"}, '☽': { fr: 'Lune', en: 'Moon' , es: "Luna", hi: "चंद्र"},
+  '☿': { fr: 'Mercure', en: 'Mercury' , es: "Mercurio", hi: "बुध"}, '♀': { fr: 'Vénus', en: 'Venus' , es: "Venus", hi: "शुक्र"},
+  '♂': { fr: 'Mars', en: 'Mars' , es: "Marte", hi: "मंगल"}, '♃': { fr: 'Jupiter', en: 'Jupiter' , es: "Júpiter", hi: "बृहस्पति"},
+  '♄': { fr: 'Saturne', en: 'Saturn' , es: "Saturno", hi: "शनि"}, '♅': { fr: 'Uranus', en: 'Uranus' , es: "Urano", hi: "यूरानस"},
+  '♆': { fr: 'Neptune', en: 'Neptune' , es: "Neptuno", hi: "नेपच्यून"}, '♇': { fr: 'Pluton', en: 'Pluto' , es: "Plutón", hi: "प्लूटो"},
+  '☊': { fr: 'Nœud Nord', en: 'North Node' , es: "Nodo Norte", hi: "राहु"}, '☋': { fr: 'Nœud Sud', en: 'South Node' , es: "Nodo Sur", hi: "केतु"},
 };
-const SIGN_NAMES: Record<string, { fr: string; en: string }> = {
-  '♈': { fr: 'Bélier', en: 'Aries' }, '♉': { fr: 'Taureau', en: 'Taurus' },
-  '♊': { fr: 'Gémeaux', en: 'Gemini' }, '♋': { fr: 'Cancer', en: 'Cancer' },
-  '♌': { fr: 'Lion', en: 'Leo' }, '♍': { fr: 'Vierge', en: 'Virgo' },
-  '♎': { fr: 'Balance', en: 'Libra' }, '♏': { fr: 'Scorpion', en: 'Scorpio' },
-  '♐': { fr: 'Sagittaire', en: 'Sagittarius' }, '♑': { fr: 'Capricorne', en: 'Capricorn' },
-  '♒': { fr: 'Verseau', en: 'Aquarius' }, '♓': { fr: 'Poissons', en: 'Pisces' },
+const SIGN_NAMES: Record<string, { fr: string; en: string; es?: string; hi?: string }> = {
+  '♈': { fr: 'Bélier', en: 'Aries' , es: "Aries", hi: "मेष"}, '♉': { fr: 'Taureau', en: 'Taurus' , es: "Tauro", hi: "वृषभ"},
+  '♊': { fr: 'Gémeaux', en: 'Gemini' , es: "Géminis", hi: "मिथुन"}, '♋': { fr: 'Cancer', en: 'Cancer' , es: "Cáncer", hi: "कर्क"},
+  '♌': { fr: 'Lion', en: 'Leo' , es: "Leo", hi: "सिंह"}, '♍': { fr: 'Vierge', en: 'Virgo' , es: "Virgo", hi: "कन्या"},
+  '♎': { fr: 'Balance', en: 'Libra' , es: "Libra", hi: "तुला"}, '♏': { fr: 'Scorpion', en: 'Scorpio' , es: "Escorpio", hi: "वृश्चिक"},
+  '♐': { fr: 'Sagittaire', en: 'Sagittarius' , es: "Sagitario", hi: "धनु"}, '♑': { fr: 'Capricorne', en: 'Capricorn' , es: "Capricornio", hi: "मकर"},
+  '♒': { fr: 'Verseau', en: 'Aquarius' , es: "Acuario", hi: "कुंभ"}, '♓': { fr: 'Poissons', en: 'Pisces' , es: "Piscis", hi: "मीन"},
 };
 
 /* Le canvas WebGL ne doit JAMAIS bloquer le tutoriel : s'il échoue (WebView
@@ -67,12 +68,12 @@ class GLBoundary extends Component<{ onError: () => void; children: ReactNode },
 }
 
 export default function DiceDraw({
-  isEn,
+  lang,
   labels,
   onDone,
   onSkip,
 }: {
-  isEn: boolean;
+  lang: Lang;
   labels: {
     shake: string;
     throw: string;
@@ -178,12 +179,12 @@ export default function DiceDraw({
   };
 
   const resultText = labels.result(
-    `${faces.planet} ${PLANET_NAMES[faces.planet][isEn ? 'en' : 'fr']}`,
-    `${faces.sign} ${SIGN_NAMES[faces.sign][isEn ? 'en' : 'fr']}`,
-    `${isEn ? 'House' : 'Maison'} ${faces.house}`,
+    `${faces.planet} ${pickContent(PLANET_NAMES[faces.planet], lang)}`,
+    `${faces.sign} ${pickContent(SIGN_NAMES[faces.sign], lang)}`,
+    `${pick4('Maison', 'House', 'Casa', 'गृह')(lang)} ${faces.house}`,
   );
   // bandeau lisible en HAUT de piste : le doigt masque les dés posés en bas
-  const summary = `${faces.planet} ${PLANET_NAMES[faces.planet][isEn ? 'en' : 'fr']} · ${faces.sign} ${SIGN_NAMES[faces.sign][isEn ? 'en' : 'fr']} · ${isEn ? 'H' : 'M'}${faces.house}`;
+  const summary = `${faces.planet} ${pickContent(PLANET_NAMES[faces.planet], lang)} · ${faces.sign} ${pickContent(SIGN_NAMES[faces.sign], lang)} · ${lang === 'fr' ? 'M' : 'H'}${faces.house}`;
   const hint = firedRef.current ? resultText : shaking ? labels.throw : labels.shake;
 
   return (
@@ -306,7 +307,7 @@ export default function DiceDraw({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={!firedRef.current ? CUP1 : tilt === -9 ? CUP2 : CUP3}
-              alt={isEn ? 'Dice cup' : 'Gobelet de dés'}
+              alt={pick4('Gobelet de dés', 'Dice cup', 'Vaso de dados', 'पासा गिलास')(lang)}
               className="block w-full"
               style={{
                 filter: 'drop-shadow(0 5px 9px rgba(0,0,0,0.55))',

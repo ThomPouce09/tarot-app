@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useT } from '@/lib/i18n';
+import { useT, tr } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import { onAccountChanged } from '@/lib/tutorials';
 
@@ -117,7 +117,7 @@ export function LoginModal() {
                 letterSpacing: '0.02em',
                 textTransform: 'lowercase',
               }}
-              placeholder="votre@email.com"
+              placeholder={tr("votre@email.com", "your@email.com", "su@correo.com", "आपका@email.com")}
             />
           </div>
           <div>

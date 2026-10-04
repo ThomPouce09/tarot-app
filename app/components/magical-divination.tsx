@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { useWaitMessages } from './use-wait-messages';
 
@@ -270,7 +271,7 @@ export default function MagicalDivination({ isVisible }: MagicalDivinationProps)
           animate={{ opacity: isVisible ? 1 : 0 }}
           transition={{ duration: 0.5, delay: 0.8 }}
         >
-          Les esprits consultent les cartes pour vous...
+          {tr("Les esprits consultent les cartes pour vous...", "The spirits consult the cards for you...", "Los espíritus consultan las cartas para usted...", "आत्माएँ आपके लिए पत्र पढ़ रही हैं...")}
         </motion.p>
 
         {/* Sablier animé */}

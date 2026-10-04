@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
 import TarotApp from '../components/tarot-app';
 import AuthGate from '@/components/auth-gate';
 import QuestionModal from './question-modal';
@@ -17,7 +17,7 @@ function Home() {
 
   // Tirage 3 cartes : la pioche ne présente que les 22 arcanes majeurs.
   return <TarotApp majorsOnly question={question}
-    title={lang === 'en' ? '3 Cards · Precise' : '3 Cartes · Précis'} />;
+    title={pick4('3 Cartes · Précis', '3 Cards · Precise', "3 Cartas · Preciso", "3 पत्ते · सटीक")(lang)} />;
 }
 
 export default function GatedPage() {

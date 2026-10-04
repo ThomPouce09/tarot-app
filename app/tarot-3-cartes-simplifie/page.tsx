@@ -15,10 +15,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, contentLang, pick4, pickContent } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 import TarotApp from '../components/tarot-app';
-import { TarotThemeSelector, parseTarotQuestion, TAROT_NIGHT } from './theme-selector';
+import { TarotThemeSelector, parseTarotQuestion, localizeTarotQuestion, TAROT_NIGHT } from './theme-selector';
 
 const TABLE_BG = '/backgrounds/table-tarot-bg.jpg?v=11';
 
@@ -28,7 +28,11 @@ function SimplifiePage() {
   // Intention choisie (« Arcane — intention »). Le tirage n'apparaît qu'après.
   const [question, setQuestion] = useState<string | null>(null);
   const theme = parseTarotQuestion(question);
-  const themeLabel = theme ? `${theme.theme.label[contentLang(lang)]} · ${theme.sub}` : undefined;
+  // Libellé « arcane · intention » : re-localisé dans la langue COURANTE, même
+  // si l'intention a été composée dans une autre langue (changement de langue
+  // entre les deux étapes).
+  const localized = localizeTarotQuestion(question, lang);
+  const themeLabel = localized ? `${localized.label} · ${localized.sub}` : theme ? `${pickContent(theme.theme.label, lang)} · ${theme.sub}` : undefined;
 
   /* ── ÉTAPE 1 — l'intention (flux scrollable, rien ne se superpose) ── */
   if (question === null) {
@@ -60,7 +64,7 @@ function SimplifiePage() {
                   marginBottom: '0.25rem',
                 }}
               >
-                {lang === 'en' ? 'The Tarot' : 'Le Tarot'}
+                {pick4('Le Tarot', 'The Tarot', "El Tarot", "टैरो")(lang)}
               </h1>
               <p
                 style={{
@@ -72,7 +76,7 @@ function SimplifiePage() {
                   fontSize: 'clamp(0.7rem, 2vw, 1rem)',
                 }}
               >
-                {lang === 'en' ? 'Simplified — guided by your guide-arcana' : 'Simplifié — guidé par votre arcane'}
+                {pick4('Simplifié — guidé par votre arcane', 'Simplified — guided by your guide-arcana', "Simplificado — guiado por su arcano", "सरलीकृत — आपके अर्कान द्वारा मार्गदर्शित")(lang)}
               </p>
             </div>
           </motion.div>
@@ -108,7 +112,7 @@ function SimplifiePage() {
     <div className="relative w-full select-none" style={{ height: '100dvh' }}>
       <TarotApp
         majorsOnly
-        title={lang === 'en' ? '3 Cards · Simplified' : '3 Cartes Simplifié'}
+        title={pick4('3 Cartes Simplifié', '3 Cards · Simplified', "3 Cartas Simplificado", "3 पत्ते सरलीकृत")(lang)}
         onInterpret={handleInterpret}
         themeLabel={themeLabel}
       />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT } from '@/lib/i18n';
+import { useT, tr } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import SpaceTitle from '@/components/space-title';
 
@@ -169,9 +169,9 @@ export default function AccountPage() {
         {editMode ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field id="firstName" label="Prénom" value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
+              <Field id="firstName" label={tr("Prénom", "First name", "Nombre", "नाम")} value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
               <Field id="lastName" label="Nom" value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
-              <Field id="phone" label="Téléphone" value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
+              <Field id="phone" label={tr("Téléphone", "Phone", "Teléfono", "फ़ोन")} value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
               <Field id="dateOfBirth" label="Date de naissance" value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
             </div>
             <div>

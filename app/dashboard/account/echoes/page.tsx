@@ -31,8 +31,9 @@ const DOMAIN_ICON: Record<string, string> = {
   des: '/images/des-zodiaque.png',
 };
 
-function fmtDate(iso: string, lang: 'fr' | 'en'): string {
-  return new Date(iso).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', {
+function fmtDate(iso: string, lang: string): string {
+  const loc = ({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR';
+  return new Date(iso).toLocaleDateString(loc, {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 }
@@ -130,7 +131,7 @@ export default function AuguresPage() {
                         <img src={DOMAIN_ICON[e.domain] || DOMAIN_ICON.tarot} alt="" className="w-6 h-6 object-contain" />
                         <span className="text-xs text-gray-400">{t(`echo.domain.${e.domain}`)}</span>
                         <span className="ml-auto text-xs text-gray-400">
-                          {fmtDate(e.dueAt, contentLang(lang))}
+                          {fmtDate(e.dueAt, lang)}
                         </span>
                       </div>
                       {revealed ? (
@@ -164,7 +165,7 @@ export default function AuguresPage() {
                         </div>
                       ) : (
                         <p className="text-[14px]" style={{ color: '#4db8c4' }}>
-                          {t('echo.sealedLine').replace('{date}', fmtDate(e.dueAt, contentLang(lang)))}
+                          {t('echo.sealedLine').replace('{date}', fmtDate(e.dueAt, lang))}
                         </p>
                       )}
                     </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 // Final fixed forgot-password/page.tsx
 
+import { tr } from '@/lib/i18n';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
@@ -42,7 +43,7 @@ export default function ForgotPasswordModal() {
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
-        <h3 className="text-lg font-bold text-amber-300 mb-4">🔑 Réinitialiser le mot de passe</h3>
+        <h3 className="text-lg font-bold text-amber-300 mb-4">{tr("🔑 Réinitialiser le mot de passe", "🔑 Reset your password", "🔑 Restablecer la contraseña", "🔑 पासवर्ड पुनः निर्धारित करें")}</h3>
         
         {isSuccess ? (
           <div className="text-center space-y-4">
@@ -73,7 +74,7 @@ export default function ForgotPasswordModal() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Votre email"
+              placeholder={tr("Votre email", "Your email", "Su email", "आपका ईमेल")}
               className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
               required
             />
@@ -96,7 +97,7 @@ export default function ForgotPasswordModal() {
                 type="submit"
                 className="flex-1 mystic-btn"
               >
-                Envoyer
+                {tr("Envoyer", "Send", "Enviar", "भेजें")}
               </button>
             </div>
           </form>

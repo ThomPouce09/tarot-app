@@ -22,7 +22,7 @@ import {
 } from '../_shared';
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, pick4 } from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 import { playSound } from '@/lib/sounds';
 import MjolnirArt, { MjolnirStrike } from './MjolnirArt';
@@ -39,8 +39,12 @@ type Phase = 'intro' | 'ask' | 'draw' | 'read';
 function MjolnirPage() {
   const t = useT();
   const lang = useLang();
-  const L = (fr: string, en: string) => (lang === 'en' ? en : fr);
-  const POS = MJG_POS.map((p) => (lang === 'en' ? p.en.name : p.fr.name));
+  // Variante de position selon la langue (blocs imbriques zone/name/brief/deep).
+  const pickPos = (x: { fr: any; en: any; es?: any; hi?: any }) =>
+    lang === 'fr' ? x.fr : lang === 'en' ? x.en : lang === 'es' ? (x.es || x.fr) : (x.hi || x.fr);
+  const L = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
+  const POS = MJG_POS.map((p) => (pickPos(p).name));
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [isRolling, setIsRolling] = useState(false);
@@ -100,7 +104,7 @@ function MjolnirPage() {
       savedRef.current = true;
       const id = await saveReading({
         type: 'runes-mjolnir',
-        spread: L('Le Marteau de Mjölnir', 'Mjölnir’s Hammer'),
+        spread: L('Le Marteau de Mjölnir', 'Mjölnir’s Hammer', 'El Martillo de Mjölnir', 'म्जोल्निर का हथौड़ा'),
         cards: r.slice(0, 5).map((d, i) => ({
           name: d.rune?.name, symbol: d.rune?.symbol, reversed: d.reversed, position: POS[i],
         })),
@@ -119,7 +123,7 @@ function MjolnirPage() {
   // Rappel de zone (clic sur étiquette ou pastille du fil).
   const infoCard = (i: number) => {
     const p = MJG_POS[i];
-    const z = lang === 'en' ? p.en : p.fr;
+    const z = pickPos(p);
     const d = runes[i];
     return (
       <motion.div
@@ -135,13 +139,13 @@ function MjolnirPage() {
           boxShadow: '0 0 34px rgba(233,217,172,0.18), 0 18px 44px rgba(0,0,0,0.65)',
           colorScheme: 'dark',
         }}>
-          <button type="button" aria-label={L('Fermer', 'Close')} onClick={() => setOpenPos(null)}
+          <button type="button" aria-label={L('Fermer', 'Close', 'Cerrar', 'बंद करें')} onClick={() => setOpenPos(null)}
             className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm"
             style={{ color: RUNE_THEME.goldPale, border: `1px solid ${RUNE_THEME.goldPale}44` }}>✕</button>
           <p className="text-[10px] uppercase tracking-[0.35em]" style={{ color: RUNE_THEME.goldSoft }}>{z.zone}</p>
           <h4 className="mt-1 text-[15px] font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}>
             {z.name}
-            {d && <span className="ml-2 font-normal" style={{ color: RUNE_THEME.sagePale }}>— {d.rune?.symbol} {d.rune?.name}{d.reversed ? (lang === 'en' ? ' (reversed)' : ' (renversée)') : ''}</span>}
+            {d && <span className="ml-2 font-normal" style={{ color: RUNE_THEME.sagePale }}>— {d.rune?.symbol} {d.rune?.name}{d.reversed ? (pick4(' (renversée)', ' (reversed)', " (invertida)", " (उलटी)")(lang)) : ''}</span>}
           </h4>
           <p className="mt-1 text-[12px] leading-relaxed" style={{ color: RUNE_THEME.sage }}>{z.deep}</p>
           {d && <p className="mt-1 text-[12px] italic leading-relaxed" style={{ color: RUNE_THEME.stone }}>{d.reversed ? d.rune?.reversed : d.rune?.upright}</p>}
@@ -175,29 +179,27 @@ function MjolnirPage() {
               <div className="pointer-events-none absolute inset-2 rounded-xl border" style={{ borderColor: `${RUNE_THEME.goldPale}22` }} />
               <p className="text-center text-sm tracking-[0.5em]" style={{ color: RUNE_THEME.goldSoft }}>ᛏ ⋅ ᛗ ⋅ ᛏ</p>
               <h2 className="mt-2 text-center text-2xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: RUNE_THEME.goldPale, textShadow: '0 0 22px rgba(233,217,172,0.5)' }}>
-                {L('Le Marteau de Mjölnir', 'Mjölnir’s Hammer')}
+                {L('Le Marteau de Mjölnir', 'Mjölnir’s Hammer', 'El Martillo de Mjölnir', 'म्जोल्निर का हथौड़ा')}
               </h2>
               <p className="mt-3 text-center text-[13px] italic leading-relaxed" style={{ color: RUNE_THEME.sage }}>
-                {L('Les autres tirages éclairent. Celui-ci frappe. Face à un blocage qui résiste, le marteau d’Odin ne donne pas un conseil : il donne un plan de bataille — sur quoi t’appuyer, ce qui bloque vraiment, ce qu’il faut casser, avec quoi frapper, et le coup à porter.',
-                  'The other castings illuminate. This one strikes. Facing a block that resists, Odin’s hammer gives no advice: it gives a battle plan — what to stand on, what truly blocks, what must break, what you strike with, and the blow to deliver.')}
+                {L('Les autres tirages éclairent. Celui-ci frappe. Face à un blocage qui résiste, le marteau d’Odin ne donne pas un conseil : il donne un plan de bataille — sur quoi t’appuyer, ce qui bloque vraiment, ce qu’il faut casser, avec quoi frapper, et le coup à porter.', 'The other castings illuminate. This one strikes. Facing a block that resists, Odin’s hammer gives no advice: it gives a battle plan — what to stand on, what truly blocks, what must break, what you strike with, and the blow to deliver.', 'Las demás tiradas iluminan. Ésta golpea. Ante un bloqueo que resiste, el martillo de Odín no da un consejo: da un plan de batalla — en qué apoyarte, qué bloquea de verdad, qué hay que romper, con qué golpear y el golpe a descargar.', 'अन्य वाचन रोशनी देते हैं; यह प्रहार करता है। ऐसे अवरोध के सामने जो टिक जाए, ओदिन का हथौड़ा सलाह नहीं — युद्ध-योजना देता है: किस पर टिको, क्या सच में रोके है, क्या तोड़े, किससे वार करो, और कौन-सा प्रहार करना है।')}
               </p>
               <div className="mt-4 space-y-2">
                 {MJG_POS.map((p) => (
                   <div key={p.key} className="flex items-start gap-3 rounded-xl px-3 py-2" style={{ background: 'rgba(12,36,23,0.6)', border: `1px solid ${RUNE_THEME.sage}22` }}>
-                    <span className="mt-0.5 text-base leading-none" style={{ color: RUNE_THEME.goldPale }}>{lang === 'en' ? p.en.zone : p.fr.zone}</span>
+                    <span className="mt-0.5 text-base leading-none" style={{ color: RUNE_THEME.goldPale }}>{pickPos(p).zone}</span>
                     <span className="text-[12px] leading-snug" style={{ color: RUNE_THEME.sagePale }}>
-                      <b style={{ color: RUNE_THEME.goldPale }}>{(lang === 'en' ? p.en.name : p.fr.name)}</b>
-                      {' — '}{lang === 'en' ? p.en.brief : p.fr.brief}
+                      <b style={{ color: RUNE_THEME.goldPale }}>{(pickPos(p).name)}</b>
+                      {' — '}{pickPos(p).brief}
                     </span>
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-center text-[11px] italic" style={{ color: `${RUNE_THEME.sage}aa` }}>
-                {L('Seule la rune de la Menace est heureuse renversée : ce qui devait mourir est déjà mourant.',
-                  'Only the Threat’s rune is glad reversed: what was meant to die is already dying.')}
+                {L('Seule la rune de la Menace est heureuse renversée : ce qui devait mourir est déjà mourant.', 'Only the Threat’s rune is glad reversed: what was meant to die is already dying.', 'Solo la runa de la Amenaza se complace invertida: lo que debía morir ya está muriendo.', 'केवल ख़तरे की रून उलटी होकर खुश होती है: जो मरना था, वह पहले से मर रहा है।')}
               </p>
               <div className="mt-5 text-center">
-                <RuneButton variant="save" saveTint="cedar" onClick={closeIntro}>{L('Compris', 'Understood')}</RuneButton>
+                <RuneButton variant="save" saveTint="cedar" onClick={closeIntro}>{L('Compris', 'Understood', 'Entendido', 'समझ गया')}</RuneButton>
               </div>
             </motion.div>
           </motion.div>
@@ -210,6 +212,7 @@ function MjolnirPage() {
         onConfirm={roll}
         copy={{
           title: 'Quel obstacle frapper ?', titleEn: 'Which obstacle to strike?',
+titleEs: "¿Qué obstáculo golpear?", titleHi: "किस अवरोध पर प्रहार करें?",
           sub: 'Nomme le blocage — ou choisis un thème si tu préfères rester abstrait.',
           subEn: 'Name the block — or pick a theme if you prefer to stay abstract.',
           cta: 'Armer le marteau', ctaEn: 'Arm the hammer',
@@ -224,7 +227,7 @@ function MjolnirPage() {
         compact
         fit
         title={t('runes.mjolnir.title')}
-        subtitle={L('Brise ce qui résiste !', 'Break what resists!')}
+        subtitle={L('Brise ce qui résiste !', 'Break what resists!', '¡Rompe lo que resiste!', 'जो रोके, उसे तोड़ दो!')}
       />
       {drawing && question && (
         <button type="button" onClick={() => setOpenQ(true)}
@@ -247,10 +250,10 @@ function MjolnirPage() {
               className="relative w-full max-w-sm rounded-2xl border p-5 text-center"
               style={{ background: 'linear-gradient(160deg, #14301f 0%, #0a2014 100%)', borderColor: `${RUNE_THEME.goldPale}55`, boxShadow: '0 0 40px rgba(233,217,172,0.14), 0 22px 54px rgba(0,0,0,0.7)' }}>
               <p className="text-[10px] uppercase tracking-[0.35em]" style={{ color: RUNE_THEME.goldSoft }}>
-                {L('Obstacle confié au marteau', 'Obstacle entrusted to the hammer')}
+                {L('Obstacle confié au marteau', 'Obstacle entrusted to the hammer', 'Obstacle confiado al martillo', 'अवरोध हथौड़े को सौंपा')}
               </p>
               <p className="mt-3 text-[16px] leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: RUNE_THEME.sagePale }}>« {question} »</p>
-              <div className="mt-4"><RuneButton variant="save" saveTint="cedar" onClick={() => setOpenQ(false)}>{L('Fermer', 'Close')}</RuneButton></div>
+              <div className="mt-4"><RuneButton variant="save" saveTint="cedar" onClick={() => setOpenQ(false)}>{L('Fermer', 'Close', 'Cerrar', 'बंद करें')}</RuneButton></div>
             </motion.div>
           </motion.div>
         )}
@@ -261,9 +264,9 @@ function MjolnirPage() {
         {drawing && (
           <div className="mb-0 mt-2 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.14em]" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
             {[
-              { k: L('Confier', 'Entrust'), at: 0 },
-              { k: L('Forger', 'Forge'), at: 1 },
-              { k: L('Frapper', 'Strike'), at: 5 },
+              { k: L('Confier', 'Entrust', 'Confiar', 'सौंपें'), at: 0 },
+              { k: L('Forger', 'Forge', 'Forjar', 'गढ़ें'), at: 1 },
+              { k: L('Frapper', 'Strike', 'Golpear', 'प्रहार करो'), at: 5 },
             ].map((s, i) => {
               const reached = phase === 'read' || lit >= s.at || (s.at === 0 && !!question);
               const active = !reached || (i === 1 && lit > 0 && !strike && phase === 'draw');
@@ -303,7 +306,7 @@ function MjolnirPage() {
             {/* pastilles cliquables sur chaque zone (pendant ET après le tirage) */}
             <div className="pointer-events-none absolute inset-0" style={{ zIndex: 20 }}>
               {MJG_POS.map((p, i) => (
-                <button key={`${p.key}-hot`} type="button" aria-label={(lang === 'en' ? p.en.name : p.fr.name)}
+                <button key={`${p.key}-hot`} type="button" aria-label={(pickPos(p).name)}
                   onClick={() => setOpenPos(openPos === i ? null : i)}
                   className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
                   style={{
@@ -328,7 +331,7 @@ function MjolnirPage() {
                       style={{ background: RUNE_THEME.goldPale, boxShadow: '0 0 8px rgba(233,217,172,0.9)' }}
                       animate={{ opacity: [1, 0.35, 1], scale: [1, 0.8, 1] }}
                       transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} />
-                    {(lang === 'en' ? p.en.name : p.fr.name).split('—')[0].trim()}
+                    {(pickPos(p).name).split('—')[0].trim()}
                   </motion.button>
                 )}
               </AnimatePresence>

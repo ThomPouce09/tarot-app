@@ -13,7 +13,8 @@ import type { TargetFaces, DieKind } from '@/components/astro-dice';
 import { PLANETS, SIGNS } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
-import { useT } from '@/lib/i18n';
+import { useT, useLang, tr, getRuntimeLang } from '@/lib/i18n';
+import { planetName, signName, houseName } from '@/components/astro-dice/names';
 import { api } from '@/lib/api-client';
 
 // Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
@@ -416,11 +417,11 @@ export function ResultLine({ faces }: { faces: TargetFaces }) {
       className="text-center text-base sm:text-lg font-semibold"
       style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
     >
-      <span title="Planète">{faces.planet} {PLANET_NAMES[faces.planet]}</span>
+      <span title={tr("Planète", "Planet", "Planeta", "ग्रह")}>{faces.planet} {planetName(String(faces.planet), getRuntimeLang())}</span>
       <span style={{ color: DICE_THEME.glyph, opacity: 0.6 }}> · </span>
-      <span title="Signe">{faces.sign} {SIGN_NAMES[faces.sign]}</span>
+      <span title={tr("Signe", "Sign", "Signo", "राशि")}>{faces.sign} {signName(String(faces.sign), getRuntimeLang())}</span>
       <span style={{ color: DICE_THEME.glyph, opacity: 0.6 }}> · </span>
-      <span title="Maison">Maison {faces.house}</span>
+      <span title={tr("Maison", "House", "Casa", "भाव")}>{houseName(faces.house, getRuntimeLang())}</span>
     </div>
   );
 }
@@ -494,6 +495,7 @@ export function DiceAnalysis({
   const [actions, setActions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasErrored, setHasErrored] = useState(false);
+  const lang = useLang();
 
   const run = useCallback(async () => {
     setLoading(true);
@@ -506,7 +508,7 @@ export function DiceAnalysis({
       const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined }),
+        body: JSON.stringify({ faces, activeKinds, mode, kind, question: question || undefined, dbInterpretation: dbInterpretation || undefined, lang }),
       });
       const data = await res.json();
       if (data.sections && Array.isArray(data.sections)) {
@@ -541,7 +543,7 @@ export function DiceAnalysis({
           textShadow: `0 0 12px ${DICE_THEME.gold}44`,
         }}
       >
-        Analyse du tirage
+        {tr("Analyse du tirage", "Reading analysis", "Análisis de la tirada", "वाचन का विश्लेषण")}
       </h3>
 
       {/* Partie statique — instantanée (fait patienter) */}
@@ -573,7 +575,7 @@ export function DiceAnalysis({
             className="text-center text-sm italic"
             style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
           >
-            Les astres réfléchissent… ✨
+            {tr("Les astres réfléchissent… ✨", "The stars reflect… ✨", "Los astros reflexionan… ✨", "ग्रह चिंतन कर रहे हैं… ✨")}
           </div>
         )}
 
@@ -617,7 +619,7 @@ export function DiceAnalysis({
                   className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
                   style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
                 >
-                  Synthèse
+                  {tr("Synthèse", "Synthesis", "Síntesis", "सारांश")}
                 </p>
                 <p
                   className="text-center text-sm leading-relaxed italic"

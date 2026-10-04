@@ -9,6 +9,8 @@ export type MjolPos = {
   key: string;
   fr: { zone: string; name: string; brief: string; deep: string };
   en: { zone: string; name: string; brief: string; deep: string };
+  es: { zone: string; name: string; brief: string; deep: string };
+  hi: { zone: string; name: string; brief: string; deep: string };
   at: { x: number; y: number };
   /** ordre d'assemblage (bas → haut : on arme le marteau avant de frapper) */
   grow: number;
@@ -29,6 +31,18 @@ export const MJG_POS: MjolPos[] = [
       brief: 'What you stand on to hold.',
       deep: 'The bottom of the haft: what secures your grip in this ordeal — support, habit, certainty. Without an anchor, the blow is wasted.',
     },
+    es: {
+    zone: "MANGO",
+    name: "Base del mango — El Anclaje",
+    brief: "En lo que te apoyas para sostenerte.",
+    deep: "La base del mango: lo que asegura tu agarre en esta prueba — un apoyo, una costumbre, una certeza. Sin anclaje, el golpe se pierde.",
+  },
+    hi: {
+    zone: "हत्था",
+    name: "हत्थे का आधार — स्थिरता",
+    brief: "वह आधार जिस पर तुम टिके हो।",
+    deep: "हत्थे का निचला सिरा: जो इस परीक्षा में तुम्हारी पकड़ को डोलता है — एक सहारा, एक आदत, एक निश्चय। बिना स्थिरता के प्रहार व्यर्थ जाता है।",
+  },
     at: { x: 50, y: 65 },
     grow: 0,
   },
@@ -46,6 +60,18 @@ export const MJG_POS: MjolPos[] = [
       brief: 'What truly blocks you.',
       deep: 'The top of the haft, where the grip fails: the exact nature of the block, named without flattery.',
     },
+    es: {
+        zone: "MANGO",
+        name: "Parte alta del mango — El Obstáculo",
+        brief: "Lo que te bloquea de verdad.",
+        deep: "La parte alta del mango, donde la mano suelta si el agarre es malo: la naturaleza exacta del bloqueo, nombrada sin condescendencia.",
+      },
+    hi: {
+        zone: "हत्था",
+        name: "हत्थे का ऊपरी सिरा — बाधा",
+        brief: "जो सच में तुम्हें रोकता है।",
+        deep: "हत्थे का ऊपरी सिरा, जहाँ पकड़ कमज़ोर हो तो हाथ छूट जाता है: रुकावट का सही स्वरूप, बिना किसी लिहाज़ के नाम दिया गया।",
+      },
     at: { x: 50, y: 41 },
     grow: 1,
   },
@@ -63,6 +89,18 @@ export const MJG_POS: MjolPos[] = [
       brief: 'What must be dropped or broken.',
       deep: 'The edge facing the enemy: what the blow must destroy — a habit, a bond, a fear. The one position where a reversed rune is auspicious: what was meant to die is already dying.',
     },
+    es: {
+        zone: "CABEZA",
+        name: "Cabeza izquierda — La Amenaza",
+        brief: "Lo que hay que soltar o romper.",
+        deep: "El flanco vuelto hacia el enemigo: lo que el golpe debe destruir — una costumbre, un vínculo, un miedo. La única posición donde una runa invertida es de buen augurio: lo que debía morir ya está muriendo.",
+      },
+    hi: {
+        zone: "शिरोभाग",
+        name: "बायाँ शिरोभाग — ख़तरा",
+        brief: "जो छोड़ना या तोड़ना ज़रूरी है।",
+        deep: "शत्रु की ओर मुड़ा पार्श्व: जिसे प्रहार को नष्ट करना है — एक आदत, एक बंधन, एक भय। केवल इसी स्थान पर उलटी रुण शुभ है: जो मरना था, वह पहले से मर रहा है।",
+      },
     at: { x: 30, y: 24 },
     grow: 2,
   },
@@ -80,6 +118,18 @@ export const MJG_POS: MjolPos[] = [
       brief: 'What you strike with.',
       deep: 'The friendly edge: the strength, talent or ally you under-use — what makes the blow possible.',
     },
+    es: {
+        zone: "CABEZA",
+        name: "Cabeza derecha — El Arma",
+        brief: "Con qué golpeas.",
+        deep: "El flanco amigo: la fuerza, el talento o el aliado que aún no usas lo bastante — lo que hace posible el golpe.",
+      },
+    hi: {
+        zone: "शिरोभाग",
+        name: "दाहिना शिरोभाग — हथियार",
+        brief: "जिससे तुम प्रहार करते हो।",
+        deep: "मित्र पार्श्व: वह बल, प्रतिभा या मित्र जिसे तुम अभी पर्याप्त नहीं काम लाते — जो प्रहार को संभव बनाता है।",
+      },
     at: { x: 70, y: 24 },
     grow: 3,
   },
@@ -97,6 +147,18 @@ export const MJG_POS: MjolPos[] = [
       brief: 'The blow to deliver.',
       deep: 'The crest at the hammer’s core: the decisive action, dated and concrete. Never read alone — it is the verb of the other four.',
     },
+    es: {
+        zone: "CORONA",
+        name: "Centro de la cabeza — El Golpe",
+        brief: "El golpe que debes dar.",
+        deep: "La cresta en el corazón del martillo: la acción decisiva, datada y concreta. Nunca se lee sola — es el verbo de las otras cuatro posiciones.",
+      },
+    hi: {
+        zone: "शिखर",
+        name: "शिरोभाग का केंद्र — प्रहार",
+        brief: "वह प्रहार जो करना है।",
+        deep: "हथौड़े के हृदय में शिखर-रेखा: निर्णायक कृति, समयबद्ध और ठोस। इसे कभी अकेले नहीं पढ़ा जाता — यह अन्य चार स्थानों की क्रिया है।",
+      },
     at: { x: 50, y: 15 },
     grow: 4,
   },

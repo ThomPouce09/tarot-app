@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSetLang, type Lang } from '@/lib/i18n';
+import { useSetLang, type Lang, tr } from '@/lib/i18n';
 
 // Palette charte tutoriel Tarot (cf. app/tarot/tutorial-modal.tsx) — bois chaud,
 // bordeaux & or. Écritures claires sur fonds foncés : jamais de noir sur
@@ -100,7 +100,7 @@ export default function LanguageGate() {
               Langue <span style={{ color: `${GOLD}b3` }}>·</span> Language
             </h2>
             <p className="relative mt-2 text-[13px] leading-snug" style={{ color: ROSE }}>
-              Choisissez la langue de l’application.
+              {tr("Choisissez la langue de l’application.", "Choose the language of the app.", "Elija el idioma de la aplicación.", "एप्लिकेशन की भाषा चुनें।")}
               <br />
               <span className="italic opacity-80">Choose the app language.</span>
             </p>
@@ -120,7 +120,7 @@ export default function LanguageGate() {
                 aria-pressed={picked === 'fr'}
               >
                 {picked === 'fr' ? '✓ ' : ''}Français
-                <span className="ml-2 text-xs font-normal opacity-70">(par défaut)</span>
+                <span className="ml-2 text-xs font-normal opacity-70">{tr("(par défaut)", "(default)", "(por defecto)", "(डिफ़ॉल्ट)")}</span>
               </button>
 
               {/* English — fant doré, texte ivoire (jamais noir sur bordeaux) */}
@@ -170,7 +170,7 @@ export default function LanguageGate() {
             </div>
 
             <p className="relative mt-5 text-[11px] leading-snug" style={{ color: `${ROSE}99` }}>
-              Modifiable à tout moment dans Préférences
+              {tr("Modifiable à tout moment dans Préférences", "Changeable anytime in Preferences", "Modificable en cualquier momento en Preferencias", "आप इसे कभी भी वरीयताओं में बदल सकते हैं")}
               <br />
               <span className="italic">Change anytime in Preferences</span>
             </p>

@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -512,7 +513,7 @@ function YiQingRig() {
               fontSize: RESULT_SUBTITLE_FONT_SIZE
             }}
           >
-            Le sort a parlé
+            {tr("Le sort a parlé", "The lot has spoken", "El destino ha hablado", "भाग्य ने कह दिया")}
           </p>
           <strong
             className="block"
@@ -633,7 +634,7 @@ export default function YiQingPage() {
             fontSize: 'clamp(0.7rem, 2vw, 1rem)',
           }}
         >
-          La sagesse des hexagrammes
+          {tr("La sagesse des hexagrammes", "The wisdom of the hexagrams", "La sabiduría de los hexagramas", "हैक्सग्रामों का ज्ञान")}
         </p>
       </div>
     </div>

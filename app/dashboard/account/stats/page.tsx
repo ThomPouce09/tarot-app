@@ -3,6 +3,12 @@
 import React from 'react';
 import { useEffect, useState, useMemo } from 'react';
 import { useT } from '@/lib/i18n';
+
+// Code BCP-47 pour toLocaleDateString/Time selon la langue de l'app.
+const LOCALE: Record<string, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
+const loc = (lang: string): string => LOCALE[lang] ?? 'fr-FR';
+
+
 import SpaceTitle from '@/components/space-title';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
@@ -207,7 +213,7 @@ function Heatmap({ counts, lang }: { counts: Map<string, number>; lang: string }
   cells.forEach((c, idx) => {
     if (c.date.getDate() === 1 || idx === 0) {
       if (c.date.getMonth() !== lastMonth) {
-        monthLabels.push({ idx, label: c.date.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { month: 'short' }) });
+        monthLabels.push({ idx, label: c.date.toLocaleDateString(loc(lang), { month: 'short' }) });
         lastMonth = c.date.getMonth();
       }
     }
@@ -227,7 +233,7 @@ function Heatmap({ counts, lang }: { counts: Map<string, number>; lang: string }
               const cell = cells[col * 7 + row];
               if (!cell) return <div key={col} className="h-3.5 w-3.5 rounded-[3px]" style={{ background: 'transparent' }} />;
               return (
-                <div key={col} title={`${cell.date.toLocaleDateString('fr-FR')} : ${cell.count} tirage(s)`}
+                <div key={col} title={`${cell.date.toLocaleDateString(loc(lang))} : ${cell.count} tirage(s)`}
                   className="h-3.5 w-3.5 rounded-[3px]" style={{ background: colorFor(cell.count) }} />
               );
             })}
@@ -328,7 +334,7 @@ export default function StatsPage() {
     const monthMap: Record<string, number> = {};
     readings.forEach((r) => {
       const d = new Date(r.createdAt);
-      const key = d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { month: 'short', year: '2-digit' });
+      const key = d.toLocaleDateString(loc(lang), { month: 'short', year: '2-digit' });
       monthMap[key] = (monthMap[key] || 0) + 1;
     });
     Object.entries(monthMap).map(([month, count]) => byMonth.push({ month, count })).slice(-6);
@@ -354,8 +360,8 @@ export default function StatsPage() {
   const { groups, counts, total, streak, best, activeDays, questions, dayMap, byMonth, maxMonth, recent } = derived;
 
   const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) +
-    ' · ' + new Date(iso).toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' });
+    new Date(iso).toLocaleDateString(loc(lang), { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' · ' + new Date(iso).toLocaleTimeString(loc(lang), { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="space-y-6">

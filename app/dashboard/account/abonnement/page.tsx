@@ -7,6 +7,9 @@ import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE
 import { UNIVERSES, type Universe } from '@/lib/classification';
 import { api } from '@/lib/api-client';
 
+// Code BCP-47 pour dates localisées selon la langue de l'app.
+const loc = (lang: string): string => ({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR';
+
 // Niveaux affichés, ordre d'exposition.
 const CARDS: PlanId[] = ['bienvenue', 'apprenti', 'recharge', 'initie', 'arkane'];
 
@@ -323,7 +326,7 @@ export default function AbonnementPage() {
           <p role="status" aria-live="polite" className="text-sm text-red-200">
             {t('sub.expiredNotice').replace(
               '{date}',
-              new Date(currentPeriodEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+              new Date(currentPeriodEnd).toLocaleDateString(loc(lang), { day: 'numeric', month: 'long', year: 'numeric' })
             )}
           </p>
         </div>
@@ -336,7 +339,7 @@ export default function AbonnementPage() {
             <div className="mystic-title text-lg">
               {t('sub.activePlan')} — {cancelAtPeriodEnd ? t('sub.canceledStatus') : t('sub.activeStatus')}
               <span className="text-gray-400 text-sm ml-2">
-                {t('sub.untilDate')} {currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                {t('sub.untilDate')} {currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString(loc(lang), { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
               </span>
             </div>
             <p className="text-gray-400 text-xs mt-1">{cancelAtPeriodEnd ? t('sub.canceledHint') : t('sub.activeHint')}</p>
@@ -407,7 +410,7 @@ export default function AbonnementPage() {
                 <div className="mt-1 text-xs text-gray-400">
                   {t('sub.giftExpires')}{' '}
                   {giftExpiry.toLocaleDateString(
-                    lang === 'en' ? 'en-GB' : 'fr-FR',
+                    loc(lang),
                     { day: '2-digit', month: '2-digit' },
                   )}
                 </div>

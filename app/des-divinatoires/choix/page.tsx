@@ -32,12 +32,13 @@ import {
   type DieKind,
 } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
+import { planetName, signName, houseName } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import EchoBox from '@/components/echo-box';
-import { useT, useLang } from '@/lib/i18n';
+import { useT, useLang, tr , getRuntimeLang} from '@/lib/i18n';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import { DiceSteps, BalancePlateaux, ClickableFaces, strikeTokens } from '@/components/astro-dice/constellation';
@@ -82,7 +83,7 @@ const AstroDiceCup = dynamic(
         style={{ height: 440, background: '#1a0e0a', color: DICE_THEME.ocreLight }}
       >
         <span style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-          Préparation des dés…
+          {tr("Préparation des dés…", "Preparing the dice…", "Preparando los dados…", "पासे तैयार हो रहे हैं…")}
         </span>
       </div>
     ),
@@ -97,7 +98,7 @@ function diceCards(f: TargetFaces) {
   return ACTIVE_DICE.map((k) => ({
     kind: k,
     value: f[k],
-    label: k === 'planet' ? PLANET_NAMES[f[k] as string] : k === 'sign' ? SIGN_NAMES[f[k] as string] : `Maison ${f[k]}`,
+    label: k === 'planet' ? planetName(f[k] as string, getRuntimeLang()) : k === 'sign' ? signName(f[k] as string, getRuntimeLang()) : houseName(f[k], getRuntimeLang()),
   }));
 }
 function diceStaticText(f: TargetFaces) {
@@ -201,7 +202,7 @@ function DiceAnalysis({
         const llmRes = await api('/api/astro-interpretation-choix', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planet, sign, house, question: question || undefined, spread }),
+          body: JSON.stringify({ planet, sign, house, question: question || undefined, spread, lang }),
         });
         const llmData = await llmRes.json();
         if (seq !== shortLastSeqRef.current) return; // réponse obsolète → ignorer
@@ -372,7 +373,7 @@ function DiceAnalysis({
               accent={DICE_THEME.gold}
               title={
                 <>
-                  La sagesse se dévoile
+                  {tr("La sagesse se dévoile", "Wisdom unfolds", "La sabiduría se revela", "ज्ञान प्रकट हो रहा है")}
                   <span className="oracle-loader-dot">.</span>
                   <span className="oracle-loader-dot">.</span>
                   <span className="oracle-loader-dot">.</span>

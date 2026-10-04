@@ -23,6 +23,7 @@
 // (jet 1 = trait du bas), mutables marqués ○ (vieux yang) × (vieux yin).
 // ═══════════════════════════════════════════════════════════════════
 
+import { tr } from '@/lib/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, stopSound } from '@/lib/sounds';
@@ -122,7 +123,7 @@ function Bowl() {
 /* ─────────────────────────── Le rituel ─────────────────────────── */
 
 interface Props {
-  L: (fr: string, en: string) => string;
+  L: (fr: string, en: string, es?: string, hi?: string) => string;
   onPickup: () => Promise<boolean>;
   /** Débit refusé (quota/paywall) : la page revient à la question. */
   onBlocked?: () => void;
@@ -388,7 +389,7 @@ export default function CoinRitual({ L, onPickup, onDone, onProgress, onBlocked,
               transition={{ duration: 2.2, repeat: Infinity }}
               className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap text-[10px] uppercase tracking-[0.25em]"
               style={{ color: `${GOLD}cc` }}>
-              {L('↟ glissez vers le haut pour jeter', '↟ swipe up to cast')}
+              {tr("↟ glissez vers le haut pour jeter", "↟ swipe up to cast", "↟ deslice hacia arriba para lanzar", "↟ फेंकने के लिए ऊपर खिसकाएँ")}
             </motion.p>
           )}
         </AnimatePresence>
@@ -401,24 +402,24 @@ export default function CoinRitual({ L, onPickup, onDone, onProgress, onBlocked,
             className="mx-auto max-w-xs text-sm italic leading-relaxed" style={{ color: sub === 'brassage' ? GOLD : '#c9b28a' }}>
             {sub === 'brassage' && (st.current.mixed
               ? L(`${lines.length}/6 traits posés — secoue, puis glisse vers le haut.`, `${lines.length}/6 lines set — shake, then swipe up.`)
-              : L('Brasse les pièces dans le bol (glisse à gauche/droite).', 'Rattle the coins in the bowl (drag left/right).'))}
-            {sub === 'toss' && L('Les pièces s’envolent…', 'The coins take flight…')}
+              : tr("Brasse les pièces dans le bol (glisse à gauche/droite).", "Rattle the coins in the bowl (drag left/right).", "Agita las monedas en el cuenco (desliza a izquierda/derecha).", "कटोरी में सिक्के हिलाओ (बाएँ/दाएँ खिसकाओ)"))}
+            {sub === 'toss' && tr("Les pièces s’envolent…", "The coins take flight…", "Las monedas echan a volar…", "सिक्के उड़ान भर रहे हैं…")}
             {sub === 'landed' && L(`Impact sur la table — valeur ${lines[lines.length - 1]}.`, `Table impact — value ${lines[lines.length - 1]}.`)}
-            {sub === 'return' && L('Récupère les pièces…', 'Gather the coins…')}
-            {sub === 'landed' && lines.length >= 6 && casting && L('Le ciel lit la table…', 'Heaven reads the table…')}
-            {sub === 'landed' && lines.length >= 6 && castError && L('La lecture a glissé — vos pièces sont gardées, relancez.', 'The reading slipped — your coins are kept, try again.')}
+            {sub === 'return' && tr("Récupère les pièces…", "Gather the coins…", "Recoge las monedas…", "सिक्के समेटो…")}
+            {sub === 'landed' && lines.length >= 6 && casting && tr("Le ciel lit la table…", "Heaven reads the table…", "El cielo lee la mesa…", "आसमान मेज़ को पढ़ रहा है…")}
+            {sub === 'landed' && lines.length >= 6 && castError && tr("La lecture a glissé — vos pièces sont gardées, relancez.", "The reading slipped — your coins are kept, try again.", "La lectura se resbaló — sus monedas quedan guardadas, vuelva a intentarlo.", "पाठ फिसल गया — आपके सिक्के सुरक्षित हैं, फिर से प्रयास करें।")}
           </motion.p>
           {sub === 'landed' && lines.length >= 6 && castError && (
             <button onClick={() => onRetry && onRetry()}
               className="mx-auto mt-1 block rounded-full px-6 py-1.5 font-[family-name:var(--font-cinzel-deco)] text-xs tracking-wide"
               style={{ background: 'linear-gradient(180deg, #F9E9B8 0%, #E7C15F 45%, #B98A2B 100%)', color: '#2A1704', border: '1px solid rgba(255,248,222,0.65)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -3px 6px rgba(74,44,6,0.5), 0 5px 16px rgba(218,165,32,0.5), 0 2px 6px rgba(0,0,0,0.5)' }}>
-              {L('Réessayer la lecture', 'Retry the reading')}
+              {tr("Réessayer la lecture", "Retry the reading", "Reintentar la lectura", "पाठ फिर से आज़माएँ")}
             </button>
           )}
         </AnimatePresence>
 
         <p className="mt-1 text-[10px]" style={{ color: 'rgba(243,201,105,0.45)' }}>
-          {L('1 grand tirage · les pièces sèment, le ciel décide', '1 grand reading · the coins sow, heaven decides')}
+          {tr("1 grand tirage · les pièces sèment, le ciel décide", "1 grand reading · the coins sow, heaven decides", "1 gran tirada · las monedas siembran, el cielo decide", "1 बड़ी खींच · सिक्के बोते हैं, आसमान फ़ैसला करता है")}
         </p>
       </div>
     </div>

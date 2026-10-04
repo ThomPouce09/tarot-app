@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { playSound as sfx } from '@/lib/sounds';
+import { useLang, pick4, type Lang, tr } from '@/lib/i18n';
 
 export default function YiSlideNav() {
+  const lang = useLang();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -29,7 +31,7 @@ export default function YiSlideNav() {
       <motion.button
         type="button"
         onClick={() => { sfx('scroll1', 0.5); setOpen(true); }}
-        aria-label="Ouvrir la navigation"
+        aria-label={tr("Ouvrir la navigation", "Open navigation", "Abrir la navegación", "नेविगेशन खोलें")}
         aria-expanded={open}
         data-nav-menu
         className="fixed right-1 -top-2 z-50 flex items-center"
@@ -93,7 +95,7 @@ export default function YiSlideNav() {
               <button
                 type="button"
                 onClick={() => { sfx('scroll1', 0.5); setOpen(false); }}
-                aria-label="Fermer la navigation"
+                aria-label={tr("Fermer la navigation", "Close navigation", "Cerrar la navegación", "नेविगेशन बंद करें")}
                 className="absolute right-2.5 top-1 text-[#5a3e1c] text-base leading-none transition-colors hover:text-[#8a6d3e]"
               >
                 ×
@@ -112,7 +114,7 @@ export default function YiSlideNav() {
                       style={{ fontFamily: 'var(--font-cinzel), serif' }}
                       aria-disabled="true"
                     >
-                      {l.label}
+                      {menuLabel(l, lang)}
                     </span>
                   ) : (
                     <button
@@ -121,7 +123,7 @@ export default function YiSlideNav() {
                       className="block whitespace-nowrap rounded px-2 py-px text-[11px] font-bold tracking-wide text-[#3e2a12] transition-colors hover:bg-[#7a5a30]/20"
                       style={{ fontFamily: 'var(--font-cinzel), serif' }}
                     >
-                      {l.label}
+                      {menuLabel(l, lang)}
                     </button>
                   )}
                 </motion.div>
@@ -132,6 +134,20 @@ export default function YiSlideNav() {
       </AnimatePresence>
     </>
   );
+}
+
+// Libellés du parchemin dans les 4 langues de l'app.
+function menuLabel(l: { href: string; label: string }, lang: Lang): string {
+  const M: Record<string, [string, string, string, string]> = {
+    '/': ['Accueil', 'Home', 'Inicio', 'मुखपृष्ठ'],
+    '/tarot': ['Tarot', 'Tarot', 'Tarot', 'टैरो'],
+    '/yi-jing': ['Yi Jing', 'Yi Jing', 'Yi Jing', 'इ चिंग'],
+    '/runes': ['Runes', 'Runes', 'Runas', 'रून'],
+    '/des-divinatoires': ['Dés du zodiaque', 'Zodiac Dice', 'Dados del Zodiaco', 'राशि पासे'],
+    '/dashboard/account': ['Mon espace', 'My space', 'Mi espacio', 'मेरा क्षेत्र'],
+  };
+  const e = M[l.href];
+  return e ? pick4(e[0], e[1], e[2], e[3])(lang) : l.label;
 }
 
 const MENU_LINKS: { href: string; label: string; disabled?: boolean }[] = [

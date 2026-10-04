@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 
 interface DivinationScreenProps {
@@ -166,7 +167,7 @@ export default function DivinationScreen({ isVisible }: DivinationScreenProps) {
             textShadow: '0 0 20px rgba(218,165,32,0.6)',
           }}
         >
-          Les esprits consultent les cartes...
+          {tr("Les esprits consultent les cartes...", "The spirits consult the cards...", "Los espíritus consultan las cartas...", "आत्माएँ पत्रों को पढ़ रही हैं...")}
         </motion.p>
         
         <motion.p

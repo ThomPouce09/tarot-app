@@ -5,15 +5,17 @@ import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { usePathname, useSearchParams } from 'next/navigation';
 import WaitOverlay from '@/components/wait-overlay';
-import { useLang, useT, contentLang } from '@/lib/i18n';
+import { useLang, useT, pick4, pickContent, tr } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
 import { TAROT_CARDS } from '@/lib/tarot-data';
+import { cardDisplayName } from '@/lib/i18n/cards';
+import { localizePosition } from '@/lib/i18n/positions';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
-import { parseTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
+import { parseTarotQuestion, localizeTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
 
 interface Interpretation {
   situation?: string;
@@ -63,7 +65,10 @@ function InterpretationInner() {
   const yiTheme = parseYiQuestion(searchParams.get('question'));
   // Arcane-guide & intention choisis au sélecteur de « 3 Cartes Simplifié »
   // (question « Arcane — intention ») → bandeau bois/bordeaux & or en tête.
+  // parse = reconnaissance (toutes langues) ; localize = rendu dans la langue
+  // courante même si l'intention a été composée dans une autre langue.
   const tarotTheme = parseTarotQuestion(searchParams.get('question'));
+  const tarotThemeL10n = localizeTarotQuestion(searchParams.get('question'), lang);
   // Question libre posée à l'oracle (Yi Jing précis) → affichage sublime en tête.
   const rawQuestion = (searchParams.get('question') || '').trim();
   const GUARDIAN_ICONS: Record<string, (c: string) => JSX.Element> = {
@@ -81,7 +86,7 @@ function InterpretationInner() {
 
   useEffect(() => {
     if (!type) {
-      setError('Type d\'interprétation manquant');
+      setError(tr("Type d'interprétation manquant", "Missing interpretation type", "Falta el tipo de interpretación", "व्याख्या का प्रकार अनुपलब्ध है"));
       setLoading(false);
       return;
     }
@@ -121,7 +126,7 @@ function InterpretationInner() {
     if (isTarot) {
       const cartes = searchParams.get('cartes');
       if (!cartes) {
-        setError('Données de tirage manquantes (cartes)');
+        setError(tr("Données de tirage manquantes (cartes)", "Missing reading data (cards)", "Faltan los datos de la tirada (cartas)", "वाचन का डेटा अनुपलब्ध (पत्ते)"));
         setLoading(false);
         return;
       }
@@ -131,7 +136,7 @@ function InterpretationInner() {
         cardIds = cartes.split(',').map(Number);
         if (cardIds.some(isNaN)) throw new Error('Invalid card IDs');
       } catch (e) {
-        setError('Format des cartes invalide');
+        setError(tr("Format des cartes invalide", "Invalid card format", "Formato de cartas no válido", "पत्तों का प्रारूप अमान्य"));
         setLoading(false);
         return;
       }
@@ -139,19 +144,19 @@ function InterpretationInner() {
     } else if (isYiJing) {
       const baguette = searchParams.get('baguette');
       if (!baguette) {
-        setError('Données de tirage manquantes (baguette)');
+        setError(tr("Données de tirage manquantes (baguette)", "Missing reading data (yarrow stalks)", "Faltan los datos de la tirada (varilla)", "वाचन का डेटा अनुपलब्ध (तना)"));
         setLoading(false);
         return;
       }
       const baguetteNum = parseInt(baguette, 10);
       if (isNaN(baguetteNum)) {
-        setError('Format de la baguette invalide');
+        setError(tr("Format de la baguette invalide", "Invalid yarrow-stalk format", "Formato de la varilla no válido", "तने का प्रारूप अमान्य"));
         setLoading(false);
         return;
       }
       payload.baguette = baguetteNum;
     } else {
-      setError('Type d\'interprétation non supporté');
+      setError(tr("Type d'interprétation non supporté", "Unsupported interpretation type", "Tipo de interpretación no compatible", "व्याख्या का प्रकार समर्थित नहीं है"));
       setLoading(false);
       return;
     }
@@ -211,18 +216,21 @@ function InterpretationInner() {
   // Titres d'interprétation : Allura (script féerique) pour le Tarot,
   // Hoshiko Satsuki (calligraphie) pour le Yi Jing.
   const titleFont = isTarot ? "'Allura', cursive" : "'Hoshiko Satsuki', serif";
-  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, contentLang(lang)) : { superior: null, inferior: null };
+  const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
   // Cartes tirées (Tarot) : id + nom + position, pour le récap visuel en haut de page
   const tarotCards = isTarot
     ? (searchParams.get('cartes') || '')
         .split(',')
         .map((s) => parseInt(s, 10))
         .filter((n) => !isNaN(n))
-        .map((id, i) => ({
-          id,
-          name: TAROT_CARDS.find((c) => c.id === id)?.name || `Carte ${id}`,
-          position: i === 0 ? 'Passé' : i === 1 ? 'Présent' : 'Avenir',
-        }))
+        .map((id, i) => {
+          const card = TAROT_CARDS.find((c) => c.id === id);
+          return {
+            id,
+            name: card ? cardDisplayName(card, lang) : `Carte ${id}`,
+            position: localizePosition(i === 0 ? 'Passé' : i === 1 ? 'Présent' : 'Avenir', lang),
+          };
+        })
     : [];
 
   // Sections d'analyse — le serveur renvoie passe/present/avenir/resume pour
@@ -270,7 +278,7 @@ function InterpretationInner() {
         {type === 'yi-jing-simple' && !yiTheme && rawQuestion && (
           <div className="yi-question-card w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-yellow-500/30 bg-black/45 backdrop-blur-sm shadow-[0_0_28px_rgba(243,201,105,0.14)]">
             <p className="pt-4 text-center text-yellow-500/70 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: titleFont }}>
-              {lang === 'en' ? 'The question asked' : 'La question posée'}
+              {pick4('La question posée', 'The question asked', "La pregunta formulada", "पूछा गया प्रश्न")(lang)}
             </p>
             <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
             <p
@@ -290,7 +298,7 @@ function InterpretationInner() {
                     className="text-yellow-200/60 text-[11px] uppercase tracking-[0.22em]"
                     style={{ fontFamily: titleFont }}
                   >
-                    {lang === 'en' ? 'Stalk' : 'Baguette'}
+                    {pick4('Baguette', 'Stalk', "Varilla", "डंडी")(lang)}
                   </span>
                   <span
                     className="yi-stalk-num text-lg leading-none"
@@ -308,7 +316,7 @@ function InterpretationInner() {
               );
             })()}
             <p className="pb-4 pt-2 text-center text-yellow-100/40 text-[11px] italic">
-              {lang === 'en' ? 'The yarrow stalks echo your question…' : 'Les baguettes d’achillée résonnent de votre question…'}
+              {pick4('Les baguettes d’achillée résonnent de votre question…', 'The yarrow stalks echo your question…', "Las varillas de aquilea resuenan con su pregunta…", "आखले की डंडियाँ आपके प्रश्न से गूँज रही हैं…")(lang)}
             </p>
           </div>
         )}
@@ -319,7 +327,7 @@ function InterpretationInner() {
         {type === 'tarot-3-cartes' && !tarotTheme && rawQuestion && (
           <div className="yi-question-card w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 bg-black/45 backdrop-blur-sm shadow-[0_0_28px_rgba(74,25,49,0.45)]">
             <p className="pt-4 text-center text-[#DAA520]/70 text-[10px] uppercase tracking-[0.3em]" style={{ fontFamily: titleFont }}>
-              {lang === 'en' ? 'The question asked' : 'La question posée'}
+              {pick4('La question posée', 'The question asked', "La pregunta formulada", "पूछा गया प्रश्न")(lang)}
             </p>
             <div className="yi-q-line mx-8 mt-2 mb-3 h-px bg-gradient-to-r from-transparent via-[#DAA520]/60 to-transparent" />
             <p
@@ -329,7 +337,7 @@ function InterpretationInner() {
               « {rawQuestion} »
             </p>
             <p className="pb-4 pt-2 text-center text-[#E2B8AC]/50 text-[11px] italic">
-              {lang === 'en' ? 'The arcana unfold around your question…' : 'Les arcanes se déploient autour de votre question…'}
+              {pick4('Les arcanes se déploient autour de votre question…', 'The arcana unfold around your question…', "Los arcanos se despliegan alrededor de su pregunta…", "अर्कान आपके प्रश्न के चारों ओर खुल रहे हैं…")(lang)}
             </p>
           </div>
         )}
@@ -351,22 +359,22 @@ function InterpretationInner() {
                 )}
                 <div className="min-w-0">
                   <p className="text-yellow-500/70 text-[10px] uppercase tracking-[0.22em] mb-0.5">
-                    {lang === 'en' ? 'Domain' : 'Domaine'}
+                    {pick4('Domaine', 'Domain', "Ámbito", "क्षेत्र")(lang)}
                   </p>
                   <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: YI_LACQUER.gold }}>
-                    {domain.label[contentLang(lang)]}
+                    {pickContent(domain.label, lang)}
                   </p>
                 </div>
               </div>
               <div className="mx-5 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
               <div className="px-5 py-3.5">
                 <p className="text-yellow-500/70 text-[10px] uppercase tracking-[0.22em] mb-1">
-                  {lang === 'en' ? 'Intention' : 'Intention'}
+                  {pick4('Intention', 'Intention', "Intención", "संकल्प")(lang)}
                 </p>
                 <p className="text-sm leading-snug" style={{ color: YI_LACQUER.lilac }}>
                   {sub}
                 </p>
-                <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{domain.realm[contentLang(lang)]}</p>
+                <p className="text-[11px] italic mt-1.5 text-yellow-100/40">{pickContent(domain.realm, lang)}</p>
               </div>
             </div>
           );
@@ -375,7 +383,9 @@ function InterpretationInner() {
         {/* Arcane-guide & intention — bandeau boudoir tarotique (marron bois, bordeaux & or),
             repris du sélecteur de « 3 Cartes Simplifié ». */}
         {tarotTheme && (() => {
-          const { theme, sub } = tarotTheme;
+          const { theme } = tarotTheme;
+          const sub = tarotThemeL10n?.sub ?? tarotTheme.sub;
+          const themeLabel = tarotThemeL10n?.label ?? pickContent(theme.label, lang);
           return (
             <div
               className="w-full max-w-md mb-6 overflow-hidden rounded-2xl border border-[#DAA520]/30 shadow-[0_0_26px_rgba(74,25,49,0.45)]"
@@ -387,18 +397,18 @@ function InterpretationInner() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-0.5">
-                    {lang === 'en' ? 'Guide-arcana' : 'Arcane-guide'}
+                    {pick4('Arcane-guide', 'Guide-arcana', "Arcano guía", "अर्कान-मार्गदर्शक")(lang)}
                   </p>
                   <p className="text-lg leading-tight font-semibold truncate" style={{ fontFamily: titleFont, color: TAROT_NIGHT.gold }}>
-                    {theme.label[contentLang(lang)]}
+                    {themeLabel}
                   </p>
-                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{theme.sigil[contentLang(lang)]}</p>
+                  <p className="text-[11px] italic" style={{ color: `${TAROT_NIGHT.roseDim}cc` }}>{pickContent(theme.sigil, lang)}</p>
                 </div>
               </div>
               <div className="mx-5 h-px bg-gradient-to-r from-transparent via-[#DAA520]/45 to-transparent" />
               <div className="px-5 py-3.5">
                 <p className="text-[#DAA520]/70 text-[10px] uppercase tracking-[0.22em] mb-1">
-                  {lang === 'en' ? 'Intention' : 'Intention'}
+                  {pick4('Intention', 'Intention', "Intención", "संकल्प")(lang)}
                 </p>
                 <p className="text-sm leading-snug" style={{ color: TAROT_NIGHT.rose }}>
                   {sub}
@@ -411,7 +421,7 @@ function InterpretationInner() {
       {/* Votre tirage — cartes tirées (miniatures) en haut de page */}
       {isTarot && tarotCards.length > 0 && (
         <div className="w-full max-w-md mb-2">
-          <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3 text-center">Votre tirage</p>
+          <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3 text-center">{tr("Votre tirage", "Your reading", "Su tirada", "आपका वाचन")}</p>
           <div className="flex justify-center items-end gap-3">
             {tarotCards.map((c, i) => (
               <div key={c.id} className="flex flex-col items-center gap-1.5 w-1/3 max-w-[110px]">
@@ -462,7 +472,7 @@ function InterpretationInner() {
                 {/* Traduction : les 2 trigrammes réels (supérieur / inférieur) */}
                 {(trigs.superior || trigs.inferior) && (
                   <div className="mt-5 pt-4 border-t border-yellow-500/15">
-                    <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3">Traduction</p>
+                    <p className="text-yellow-500/80 text-xs uppercase tracking-[0.18em] mb-3">{tr("Traduction", "Translation", "Traducción", "अनुवाद")}</p>
                     <div className="flex flex-col gap-3">
                       {trigs.superior && (
                         <div className="flex items-start gap-3">
@@ -471,7 +481,7 @@ function InterpretationInner() {
                           </span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
-                              {trigs.superior.name} <span className="text-yellow-500/60">(supérieur)</span>
+                              {trigs.superior.name} <span className="text-yellow-500/60">{tr("(supérieur)", "(upper)", "(superior)", "(ऊपरी)")}</span>
                             </p>
                             <p className="text-gray-300 text-xs">{trigs.superior.meaning}</p>
                           </div>
@@ -484,7 +494,7 @@ function InterpretationInner() {
                           </span>
                           <div>
                             <p className="text-yellow-100 font-medium text-sm">
-                              {trigs.inferior.name} <span className="text-yellow-500/60">(inférieur)</span>
+                              {trigs.inferior.name} <span className="text-yellow-500/60">{tr("(inférieur)", "(lower)", "(inferior)", "(निचली)")}</span>
                             </p>
                             <p className="text-gray-300 text-xs">{trigs.inferior.meaning}</p>
                           </div>
@@ -528,7 +538,7 @@ function InterpretationInner() {
               <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
-                  <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>Résumé</h3>
+                  <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>{tr("Résumé", "Summary", "Resumen", "सारांश")}</h3>
                 </div>
                 <p className="text-gray-100 leading-relaxed italic text-[15px]">
                   {interpretation.resume}

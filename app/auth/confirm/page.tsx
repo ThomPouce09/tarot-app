@@ -1,5 +1,6 @@
 'use client';
 
+import { tr } from '@/lib/i18n';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
@@ -24,9 +25,9 @@ function ConfirmPasswordInner() {
         .then(r => r.json())
         .then(data => {
           if (data.valid) setVerified(true);
-          else setMessage('Lien invalide ou expiré');
+          else setMessage(tr("Lien invalide ou expiré", "Invalid or expired link", "Enlace inválido o caducado", "लिंक अमान्य या समय-समाप्त"));
         })
-        .catch(() => setMessage('Erreur de vérification du lien'));
+        .catch(() => setMessage(tr("Erreur de vérification du lien", "Link verification error", "Error al verificar el enlace", "लिंक सत्यापन में त्रुटि")));
     }
   }, [token]);
 
@@ -50,7 +51,7 @@ function ConfirmPasswordInner() {
       setMessage(okMsg);
       setTimeout(() => router.push('/'), 1500);
     } else {
-      setMessage(data.error || 'Erreur');
+      setMessage(data.error || tr("Erreur", "Error", "Error", "त्रुटि"));
     }
   };
 
@@ -65,9 +66,9 @@ function ConfirmPasswordInner() {
         body: JSON.stringify({ token, mode: 'activate' }),
       });
       const data = await res.json();
-      finish(res, data, '✅ Compte activé avec succès !');
+      finish(res, data, '✅ ' + tr("Compte activé avec succès !", "Account activated successfully!", "¡Cuenta activada con éxito!", "खाता सफलतापूर्वक सक्रिय हुआ!"));
     } catch {
-      setMessage('Erreur');
+      setMessage(tr("Erreur", "Error", "Error", "त्रुटि"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +76,7 @@ function ConfirmPasswordInner() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) return setMessage('Mots de passe différents');
+    if (password !== confirmPassword) return setMessage(tr("Mots de passe différents", "Passwords do not match", "Las contraseñas no coinciden", "पासवर्ड मेल नहीं खाते"));
     setLoading(true);
     setMessage('');
     try {
@@ -85,9 +86,9 @@ function ConfirmPasswordInner() {
         body: JSON.stringify({ token, password, mode: 'reset' }),
       });
       const data = await res.json();
-      finish(res, data, '✅ Mot de passe mis à jour.');
+      finish(res, data, '✅ ' + tr("Mot de passe mis à jour.", "Password updated.", "Contraseña actualizada.", "पासवर्ड अपडेट किया गया।"));
     } catch {
-      setMessage('Erreur');
+      setMessage(tr("Erreur", "Error", "Error", "त्रुटि"));
     } finally {
       setLoading(false);
     }
@@ -96,7 +97,7 @@ function ConfirmPasswordInner() {
   if (!verified) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-white">Vérification du lien...</p>
+        <p className="text-white">{tr("Vérification du lien...", "Verifying the link...", "Verificando el enlace...", "लिंक का सत्यापन हो रहा है...")}</p>
       </div>
     );
   }
@@ -106,26 +107,26 @@ function ConfirmPasswordInner() {
       <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
         {isActivate ? (
           <>
-            <h2 className="text-2xl font-bold text-amber-300 mb-2">✦ Activation de votre compte</h2>
+            <h2 className="text-2xl font-bold text-amber-300 mb-2">{tr("✦ Activation de votre compte", "✦ Activating your account", "✦ Activación de su cuenta", "✦ आपके खाते की सक्रियता")}</h2>
             <p className="text-sm text-amber-100/80 mb-4">
-              Confirmez votre adresse email pour activer votre compte et accéder aux univers.
+              {tr("Confirmez votre adresse email pour activer votre compte et accéder aux univers.", "Confirm your email address to activate your account and access the universes.", "Confirme su dirección de email para activar su cuenta y acceder a los universos.", "कृपया अपना ईमेल पता पुष्टि करें ताकि आपका खाता सक्रिय हो और आप ब्रह्मांडों में प्रवेश कर सकें।")}
             </p>
             <form onSubmit={handleActivate} className="space-y-4">
               {message && <p className={`text-xs ${message.startsWith('✅') ? 'text-amber-200' : 'text-red-400'}`}>{message}</p>}
               <button type="submit" disabled={loading} className="w-full mystic-btn">
-                {loading ? 'Activation...' : 'Activer mon compte ✦'}
+                {loading ? tr("Activation...", "Activating...", "Activando...", "सक्रिय हो रहा है...") : tr("Activer mon compte ✦", "Activate my account ✦", "Activar mi cuenta ✦", "अपना खाता सक्रिय करें ✦")}
               </button>
             </form>
           </>
         ) : (
           <>
-            <h2 className="text-2xl font-bold text-amber-300 mb-4">🔑 Nouveau mot de passe</h2>
+            <h2 className="text-2xl font-bold text-amber-300 mb-4">🔑 {tr("Nouveau mot de passe", "New password", "Nueva contraseña", "नया पासवर्ड")}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Nouveau mot de passe"
+                placeholder={tr("Nouveau mot de passe", "New password", "Nueva contraseña", "नया पासवर्ड")}
                 className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
                 required
               />
@@ -133,13 +134,13 @@ function ConfirmPasswordInner() {
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="Confirmer"
+                placeholder={tr("Confirmer", "Confirm", "Confirmar", "पुष्टि करें")}
                 className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm"
                 required
               />
               {message && <p className={`text-xs ${message.startsWith('✅') ? 'text-amber-200' : 'text-red-400'}`}>{message}</p>}
               <button type="submit" disabled={loading} className="w-full mystic-btn">
-                {loading ? 'Patientez...' : 'Changer le mot de passe'}
+                {loading ? tr("Patientez...", "Please wait...", "Espere...", "कृपया प्रतीक्षा करें...") : tr("Changer le mot de passe", "Change password", "Cambiar la contraseña", "पासवर्ड बदलें")}
               </button>
             </form>
           </>

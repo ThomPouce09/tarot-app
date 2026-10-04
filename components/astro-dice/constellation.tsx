@@ -11,23 +11,25 @@
 //  - HintLegende : 3 bulles (Planète/Signe/Maison) expliquant la ligne de
 //    résultat, affichées une seule fois (localStorage).
 
+import { tr, getRuntimeLang } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFitOneLine } from '@/lib/fit-one-line';
 import { playSound } from '@/lib/sounds';
 import { DICE_THEME } from '@/app/des-divinatoires/_shared';
-import { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
+import { PLANET_NAMES, SIGN_NAMES, planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import type { TargetFaces } from './glyphs';
 
 const GOLD = '#e9d9ac';
 
-/** 3 étoiles [glyphe, nom FR] pour la constellation et la balance. */
+/** 3 étoiles [glyphe, nom localisé] pour la constellation et la balance. */
 export function strikeTokens(f: TargetFaces): [string, string][] {
+  const lang = getRuntimeLang();
   return [
-    [String(f.planet), PLANET_NAMES[String(f.planet)] ?? String(f.planet)],
-    [String(f.sign), SIGN_NAMES[String(f.sign)] ?? String(f.sign)],
-    [String(f.house), `Maison ${f.house}`],
+    [String(f.planet), planetName(String(f.planet), lang)],
+    [String(f.sign), signName(String(f.sign), lang)],
+    [String(f.house), houseName(f.house, lang)],
   ];
 }
 
@@ -269,9 +271,9 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
   useFitOneLine(pillRef, [`${faces.planet}|${faces.sign}|${faces.house}`],
     { base: 16, min: 8, max: 16, inset: 0, font: '400 16px "Cinzel"' });
   const rows = [
-    ['Planète', String(faces.planet), meaningFor('planet', faces.planet)],
-    ['Signe', String(faces.sign), meaningFor('sign', faces.sign)],
-    ['Maison', String(faces.house), meaningFor('house', faces.house)],
+    [dieKindLabel('planet', getRuntimeLang()), String(faces.planet), meaningFor('planet', faces.planet)],
+    [dieKindLabel('sign', getRuntimeLang()), String(faces.sign), meaningFor('sign', faces.sign)],
+    [dieKindLabel('house', getRuntimeLang()), String(faces.house), meaningFor('house', faces.house)],
   ] as const;
   return (
     <>
@@ -284,13 +286,13 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
           fontFamily: 'var(--font-cinzel), serif', fontSize: '1rem',
           textDecoration: 'underline dotted rgba(212,175,55,0.5) 1px', textUnderlineOffset: 4,
         }}
-        title="Toucher pour la signification des faces">
+        title={tr("Toucher pour la signification des faces", "Tap for the meaning of the faces", "Toca para el significado de las caras", "फ़लकों का अर्थ जानने के लिए टैप करें")}>
         <span className="whitespace-nowrap text-center leading-snug">
-          <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.planet)} {PLANET_NAMES[String(faces.planet)] ?? faces.planet}</span>
+          <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.planet)} {planetName(String(faces.planet), getRuntimeLang())}</span>
           <span style={{ color: DICE_THEME.glyph, opacity: 0.6 }}> · </span>
-          <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.sign)} {SIGN_NAMES[String(faces.sign)] ?? faces.sign}</span>
+          <span style={{ color: DICE_THEME.ocreLight }}>{String(faces.sign)} {signName(String(faces.sign), getRuntimeLang())}</span>
           <span style={{ color: DICE_THEME.glyph, opacity: 0.6 }}> · </span>
-          <span style={{ color: DICE_THEME.ocreLight }}>Maison {String(faces.house)}</span>
+          <span style={{ color: DICE_THEME.ocreLight }}>{houseName(faces.house, getRuntimeLang())}</span>
         </span>
         <motion.span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
           style={{ color: '#1a0e0a', background: `linear-gradient(180deg, #f4d98b, ${DICE_THEME.gold})`, boxShadow: '0 0 10px rgba(212,175,55,0.7)' }}
@@ -316,7 +318,7 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
                 ☾ · ✦ · ☼
               </p>
               <h3 className="mb-4 text-center text-lg font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.ocreLight }}>
-                Vos trois faces
+                {tr("Vos trois faces", "Your three faces", "Sus tres caras", "आपके तीन फ़लक")}
               </h3>
               <ul className="space-y-3">
                 {rows.map(([label, gly, txt]) => (
@@ -335,7 +337,7 @@ export function ClickableFaces({ faces }: { faces: TargetFaces }) {
                 <button type="button" onClick={() => setOpen(false)}
                   className="rounded-full px-6 py-2 text-sm font-bold"
                   style={{ background: 'linear-gradient(180deg, #22366f, #070d22)', color: '#F7ECCE', border: '1px solid rgba(232,198,106,0.8)', boxShadow: '0 0 0 3px rgba(212,175,55,0.1), 0 8px 18px rgba(3,5,12,0.8), inset 0 1px 0 rgba(232,198,106,0.4)', fontFamily: 'var(--font-cinzel-deco), serif' }}>
-                  Fermer
+                  {tr("Fermer", "Close", "Cerrar", "बंद करें")}
                 </button>
               </div>
             </motion.div>

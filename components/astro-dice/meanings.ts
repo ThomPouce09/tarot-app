@@ -6,6 +6,8 @@
 // Clés : le glyphe (planète/signe) ou le numéro de maison (string).
 
 import type { DieKind } from './glyphs';
+import { diceMeaningI18n } from './meanings-i18n';
+import { getRuntimeLang } from '@/lib/i18n';
 
 /** Significations du dé des Planètes (12 glyphes). */
 export const PLANET_MEANINGS: Record<string, string> = {
@@ -97,10 +99,13 @@ export const DICE_MEANINGS: Record<DieKind, Record<string, string>> = {
   house: HOUSE_MEANINGS,
 };
 
-/** Renvoie le texte de signification pour un dé + valeur, ou '' si inconnu. */
+/** Renvoie le texte de signification pour un dé + valeur, ou '' si inconnu.
+ *  Langue : table FR en français, variantes en/es/hi via meanings-i18n.ts
+ *  (langue runtime = miroir du LanguageProvider → se recalcule au changement). */
 export function meaningFor(
   kind: DieKind,
   value: string | number,
 ): string {
-  return DICE_MEANINGS[kind]?.[String(value)] ?? '';
+  const key = String(value);
+  return diceMeaningI18n(kind, key, getRuntimeLang()) ?? (DICE_MEANINGS[kind]?.[key] ?? '');
 }

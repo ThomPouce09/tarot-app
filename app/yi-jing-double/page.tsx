@@ -22,7 +22,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -55,7 +55,7 @@ const YI_RED = {
   textShadow: '0 1px 2px rgba(0,0,0,0.6)',
 };
 
-interface DoubleRead { sections: { key: string; fr: string; en: string }[]; dueInDays: number }
+interface DoubleRead { sections: { key: string; fr: string; en: string; es?: string; hi?: string }[]; dueInDays: number }
 interface DoubleView {
   id: string; castAt: string; question: string | null;
   lignes: number[]; mutants: number[];
@@ -190,16 +190,15 @@ function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onC
         <div className="pointer-events-none absolute inset-2 rounded-[20px] border border-[#F3C969]/20" />
         <p className="text-xs tracking-[0.45em]" style={{ color: `${GOLD}cc` }}>✦ ☾ ✦</p>
         <h2 className="mt-2 font-[family-name:var(--font-cinzel-deco)] text-xl" style={{ color: GOLD, textShadow: '0 0 16px rgba(243,201,105,0.55)' }}>
-          {L('Le rituel des trois pièces', 'The ritual of the three coins')}
+          {tr("Le rituel des trois pièces", "The ritual of the three coins", "El ritual de las tres monedas", "तीन सिक्कों का अनुष्ठान")}
         </h2>
         <p className="mt-3 text-sm italic leading-relaxed" style={{ color: LILAC_DIM }}>
-          {L('Six jets, six traits : brasse les pièces dans le bol, puis jette-les vers le haut. Les lignes mutantes — vieux yang, vieux yin — ondulent puis se retournent : ta situation enfante sous tes yeux l’hexagramme en quoi elle se transforme.',
-             'Six casts, six lines: rattle the coins in the bowl, then cast them upward. The moving lines — old yang, old yin — ripple, then flip: your situation gives birth, before your eyes, to the hexagram it is becoming.')}
+          {tr("Six jets, six traits : brasse les pi\u00e8ces dans le bol, puis jette-les vers le haut. Les lignes mutantes \u2014 vieux yang, vieux yin \u2014 ondulent puis se retournent : ta situation enfante sous tes yeux l\u2019hexagramme en quoi elle se transforme.", "Six casts, six lines: rattle the coins in the bowl, then cast them upward. The moving lines \u2014 old yang, old yin \u2014 ripple, then flip: your situation gives birth, before your eyes, to the hexagram it is becoming.", "Seis eches, seis l\u00edneas: agita las monedas en el cuenco y l\u00e1nzalas hacia arriba. Las l\u00edneas mutantes \u2014 viejo yang, viejo yin \u2014 ondean y se voltean: tu situaci\u00f3n pare, ante tus ojos, el hexagrama en que se transforma.", "\u091b\u0939 \u0928\u094d\u092f\u093e\u0938, \u091b\u0939 \u0930\u0947\u0916\u093e\u090f\u0901: \u0915\u091f\u094b\u0930\u0940 \u092e\u0947\u0902 \u0938\u093f\u0915\u094d\u0915\u0947 \u0939\u093f\u0932\u093e\u0913, \u092b\u093f\u0930 \u0909\u0928\u094d\u0939\u0947\u0902 \u090a\u092a\u0930 \u0915\u0940 \u0913\u0930 \u092b\u0947\u0902\u0915\u094b\u0964 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928 \u0930\u0947\u0916\u093e\u090f\u0901 \u2014 \u092a\u0941\u0930\u093e\u0928\u093e \u092f\u093e\u0902\u0917, \u092a\u0941\u0930\u093e\u0928\u093e \u092f\u093f\u0928 \u2014 \u0932\u0939\u0930\u093e\u0915\u0930 \u092a\u0932\u091f\u0924\u0940 \u0939\u0948\u0902: \u0924\u0941\u092e\u094d\u0939\u093e\u0930\u0940 \u0938\u094d\u0925\u093f\u0924\u093f \u0924\u0941\u092e\u094d\u0939\u093e\u0930\u0947 \u0928\u0947\u0924\u094d\u0930\u094b\u0902 \u0915\u0947 \u0938\u093e\u092e\u0928\u0947 \u0909\u0938 \u0939\u0948\u0915\u094d\u0938\u0917\u094d\u0930\u093e\u092e \u0915\u094b \u091c\u0928\u094d\u092e \u0926\u0947\u0924\u0940 \u0939\u0948 \u091c\u093f\u0938\u092e\u0947\u0902 \u0935\u0939 \u092c\u0926\u0932 \u0930\u0939\u0940 \u0939\u0948\u0964")}
         </p>
         <button onClick={onClose} type="button"
           className="mt-6 rounded-full px-9 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-[15px] tracking-wide transition-transform active:scale-[0.97]"
           style={YI_GLASS}>
-          {L('Compris', 'Got it')}
+          {tr("Compris", "Got it", "Entendido", "समझ गया")}
         </button>
       </motion.div>
     </motion.div>
@@ -212,7 +211,8 @@ function DoublePage() {
   const lang = useLang();
   const en = lang === 'en';
   const { gateReason, closeGate, openGate } = useEntitlement();
-  const L = (fr: string, e: string) => (en ? e : fr);
+  const L = (fr: string, e: string, es?: string, hi?: string) =>
+    lang === 'en' ? e : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
 
   const [db, setDb] = useState<DoubleView | null | undefined>(undefined);
   const [question, setQuestion] = useState<string | null>(null);
@@ -246,7 +246,7 @@ function DoublePage() {
      grand tirage au ramassage des pièces, puis enregistre les six valeurs. ── */
   const consumePickup = useCallback(async () => {
     const e = emailLocal();
-    if (!e) { flash(L('Connectez-vous pour consulter.', 'Log in to consult.')); return false; }
+    if (!e) { flash(tr("Connectez-vous pour consulter.", "Log in to consult.", "Inicie sesión para consultar.", "परामर्श के लिए लॉग इन करें।")); return false; }
     setBusy(true);
     try {
       const dec = await api('/api/entitlement', {
@@ -277,12 +277,12 @@ function DoublePage() {
       // Pose en base (le serveur re-dérive la paire depuis les six jets).
       const res = await api('/api/yi-jing-double', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: e, action: 'cast', lignes, question }),
+        body: JSON.stringify({ email: e, action: 'cast', lignes, question, lang }),
         signal: AbortSignal.timeout(25000),
       } as RequestInit);
       const d = await res.json();
       if (!res.ok) {
-        flash(d.error || L('Le tirage a échoué.', 'The cast failed.'));
+        flash(d.error || tr("Le tirage a échoué.", "The cast failed.", "La tirada ha fallado.", "खींच विफल रही।"));
         setCastError(true);
         return;
       }
@@ -309,7 +309,7 @@ function DoublePage() {
         later(() => setPhase('read'), 1150 + m.length * 900 + 1900);
         if (!m.length) later(() => setPhase('read'), 2200); // stable : pas de ballet
       }, t1);
-    } catch { flash(L('Connexion perdue — la table garde vos pièces.', 'Connection lost — the table keeps your coins.')); setCastError(true); }
+    } catch { flash(tr("Connexion perdue — la table garde vos pièces.", "Connection lost — the table keeps your coins.", "Conexión perdida — la mesa conserva sus monedas.", "कनेक्शन टूट गया — मेज़ आपके सिक्के थामे रखती है।")); setCastError(true); }
     finally { castingRef.current = false; setCasting(false); }
   };
 
@@ -362,7 +362,7 @@ function DoublePage() {
         const dir = prev.read.sections.find((x) => x.key === 'direction') || prev.read.sections[0];
         return { ...prev, echo: { id: d.echoId, textFr: dir.fr, textEn: dir.en, dueAt: d.dueAt, verdict: null, verdictPct: null } };
       });
-      flash(L('Ton augure est scellé — la boucle est lancée.', 'Your augury is sealed — the loop is cast.'));
+      flash(tr("Ton augure est scellé — la boucle est lancée.", "Your augury is sealed — the loop is cast.", "Tu augurio está sellado — el ciclo ha echado a andar.", "तुम्हारा शगुन मुहरबंद हो गया — चक्र चल पड़ा।"));
     } finally { setSealedBusy(false); }
   };
 
@@ -375,11 +375,11 @@ function DoublePage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailLocal(), action: 'verdict', id: db.id, pct: verdictPct }),
       });
-      if (!res.ok) { flash(L('L’enregistrement a échoué.', 'The record failed.')); return; }
+      if (!res.ok) { flash(tr("L’enregistrement a échoué.", "The record failed.", "El registro ha fallado.", "सहेजना असफल रहा।")); return; }
       setDb((prev) => (prev && prev.echo
         ? { ...prev, echo: { ...prev.echo, verdict: verdictPct >= 100 ? 'oui' : verdictPct <= 0 ? 'non' : 'partiel', verdictPct } }
         : prev));
-      flash(L('La mutation est consignée — la Ferveur grandit.', 'The turn is recorded — Fervor grows.'));
+      flash(tr("La mutation est consignée — la Ferveur grandit.", "The turn is recorded — Fervor grows.", "La mutación queda registrada — el Fervor crece.", "परिवर्तन दर्ज हो गया — जोश बढ़ रहा है।"));
     } finally { setSealedBusy(false); }
   };
 
@@ -393,10 +393,10 @@ function DoublePage() {
   const daysLeft = db?.echo ? Math.max(0, Math.ceil((new Date(db.echo.dueAt).getTime() - Date.now()) / DAY_MS)) : 0;
 
   const SECTIONS = [
-    { key: 'situation', fr: 'La situation', en: 'The situation' },
-    { key: 'bascule', fr: 'Le point de bascule', en: 'The hinge' },
-    { key: 'direction', fr: 'La direction du changement', en: 'Where it turns' },
-    { key: 'conseil', fr: 'Le conseil', en: 'The counsel' },
+    { key: 'situation', fr: 'La situation', en: 'The situation', es: 'La situación', hi: 'स्थिति' },
+    { key: 'bascule', fr: 'Le point de bascule', en: 'The hinge', es: 'El punto de inflexión', hi: 'मोड़' },
+    { key: 'direction', fr: 'La direction du changement', en: 'Where it turns', es: 'La dirección del cambio', hi: 'परिवर्तन की दिशा' },
+    { key: 'conseil', fr: 'Le conseil', en: 'The counsel', es: 'El consejo', hi: 'सलाह' },
   ];
 
   /* ── Rendu ── */
@@ -411,9 +411,9 @@ function DoublePage() {
       <div className="relative z-10 mx-auto max-w-2xl px-4 pb-24 pt-14">
         {/* En-tête — marque de l'épreuve */}
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: `${GOLD}99` }}>zhi gua ✦ {L('le tirage du changement', 'the transformation casting')}</p>
+          <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: `${GOLD}99` }}>zhi gua ✦ {tr("le tirage du changement", "the transformation casting", "la tirada del cambio", "परिवर्तन की खींच")}</p>
           <h1 className="mt-1 font-[family-name:var(--font-cinzel-deco)] text-3xl" style={{ color: GOLD, textShadow: '0 0 30px rgba(243,201,105,0.35)' }}>
-            {L('Le Double Hexagramme', 'The Double Hexagram')}
+            {tr("Le Double Hexagramme", "The Double Hexagram", "El Doble Hexagrama", "दोहरा हैक्सग्राम")}
           </h1>
           {question && phase !== 'ask' && (
             <p className="mx-auto mt-3 inline-block max-w-full truncate rounded-full px-4 py-1.5 text-xs italic" style={{ background: 'rgba(142,28,34,0.22)', border: `1px solid ${GOLD}44`, color: LILAC }}>
@@ -431,14 +431,14 @@ function DoublePage() {
             {/* Saisie libre — ou sélection d'un thème & intention existants. */}
             <input type="text" value={freeQ} onChange={(e) => setFreeQ(e.target.value)}
               maxLength={300}
-              placeholder={L('Garder en mémoire votre question', 'Keep your question in mind')}
+              placeholder={tr("Garder en mémoire votre question", "Keep your question in mind", "Tener presente su pregunta", "अपने प्रश्न को मन में रखें")}
               className="mx-auto mb-3 block w-full max-w-sm rounded-lg px-4 py-2.5 text-sm"
               style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${GOLD}44`, color: '#f0e6d3' }}
               onKeyDown={(e) => { if (e.key === 'Enter' && freeQ.trim()) { setQuestion(freeQ.trim()); setPhase('shake'); } }} />
             <button disabled={!freeQ.trim()} onClick={() => { setQuestion(freeQ.trim()); setPhase('shake'); }}
               className="mx-auto block rounded-full px-8 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-[15px] tracking-wide transition-[filter,transform] hover:brightness-110 active:scale-[0.97] disabled:opacity-40 disabled:hover:brightness-100"
               style={YI_GLASS}>
-              {L('Consulter avec cette question', 'Consult with this question')}
+              {tr("Consulter avec cette question", "Consult with this question", "Consultar con esta pregunta", "इस प्रश्न पर परामर्श करें")}
             </button>
             <p className="my-3 text-center text-[10px] uppercase tracking-[0.3em]" style={{ color: `${LILAC_DIM}77` }}>{L('— ou —', '— or —')}</p>
             <div className="mb-6">
@@ -458,7 +458,7 @@ function DoublePage() {
           <div className="mt-10 flex items-start justify-center gap-1 sm:gap-8">
             {/* Présent */}
             <div className="flex w-[34vw] max-w-[160px] flex-col items-center gap-3">
-              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}99` }}>{L('Présent', 'Present')}</p>
+              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}99` }}>{tr("Présent", "Present", "Presente", "उपस्थित")}</p>
               <p className="font-[family-name:var(--font-cinzel-deco)] text-2xl" style={{ color: GOLD }}>
                 #{db.hexPresent} <span className="ml-1">{glyph(db.hexPresent)}</span>
               </p>
@@ -507,7 +507,7 @@ function DoublePage() {
                     <HexColumn lignes={db.lignes} mutants={mutantsSet} wave={false} turnCount={turnedCount} showFuture />
                   </div>
                   <p className="h-3 text-[10px]" style={{ color: `${GOLD}aa` }}>
-                    {phase !== 'turn' ? L('le nouvel hexagramme est posé', 'the new hexagram stands') : '…'}
+                    {phase !== 'turn' ? tr("le nouvel hexagramme est posé", "the new hexagram stands", "el nuevo hexagrama queda trazado", "नया हैक्सग्राम रख दिया गया है") : '…'}
                   </p>
                 </motion.div>
               )}
@@ -520,7 +520,7 @@ function DoublePage() {
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-10 max-w-xl">
             <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(160deg, rgba(142,28,34,0.22) 0%, rgba(10,5,7,0.9) 100%)', border: `1.5px solid ${GOLD}55`, boxShadow: '0 0 30px rgba(0,0,0,0.6)' }}>
               <h3 className="text-center font-[family-name:var(--font-cinzel-deco)] text-base" style={{ color: GOLD }}>
-                {L('Lecture de la paire', 'Reading of the pair')}
+                {tr("Lecture de la paire", "Reading of the pair", "Lectura de la pareja", "जोड़ी का वाचन")}
               </h3>
 
               {!db.read && !readBusy && !readErr && (
@@ -528,23 +528,23 @@ function DoublePage() {
                   <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
                     <button onClick={() => void askPair(db.id)} className="rounded-full px-7 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-xs font-bold uppercase tracking-widest"
                       style={YI_RED}>
-                      {L('Oracle sur la paire', 'Oracle on the pair')}
+                      {tr("Oracle sur la paire", "Oracle on the pair", "Oráculo sobre la pareja", "जोड़ी का ओरैकल")}
                     </button>
                     <p className="animate-pulse text-[11px] italic" style={{ color: `${LILAC}bb` }}>
                       ⟳ {L(`Déclenchement automatique dans ${countdown} s`, `Auto-launching in ${countdown}s`)}
                     </p>
                   </div>
-                  <p className="mt-2 text-[10px]" style={{ color: `${LILAC_DIM}99` }}>→ {L('puis scelle l’augure sur l’échéance annoncée', 'then seal the augury on the announced date')}</p>
+                  <p className="mt-2 text-[10px]" style={{ color: `${LILAC_DIM}99` }}>→ {tr("puis scelle l’augure sur l’échéance annoncée", "then seal the augury on the announced date", "luego sella el augurio sobre la fecha anunciada", "फिर घोषित तिथि पर शगुन की मुहर लगाएँ")}</p>
                 </div>
               )}
               {readBusy && !db.read && (
                 <p className="mt-4 text-center text-xs italic" style={{ color: LILAC, opacity: 0.7 }}>
-                  {L('Les deux hexagrammes conversent…', 'The two hexagrams converse…')}
+                  {tr("Les deux hexagrammes conversent…", "The two hexagrams converse…", "Los dos hexagramas conversan…", "दोनों हैक्सग्राम संवाद करते हैं…")}
                 </p>
               )}
               {readErr && !db.read && (
                 <div className="mt-4 text-center">
-                  <p className="text-xs italic" style={{ color: '#E2B8AC' }}>{L('L’oracle se tait — réessaie.', 'The oracle is silent — retry.')}</p>
+                  <p className="text-xs italic" style={{ color: '#E2B8AC' }}>{tr("L’oracle se tait — réessaie.", "The oracle is silent — retry.", "El oráculo calla — inténtalo de nuevo.", "ओरैकल मौन है — पुनः प्रयास करो।")}</p>
                   <button onClick={() => void askPair(db.id)} className="mt-1 text-xs underline" style={{ color: GOLD }}>{L('Relancer', 'Retry')}</button>
                 </div>
               )}
@@ -560,9 +560,9 @@ function DoublePage() {
                           initial={i > 0 ? { opacity: 0, y: 8 } : false}
                           animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.18 }}
                           className="rounded-xl p-3.5" style={{ background: 'rgba(10,5,7,0.55)', border: '1px solid rgba(243,201,105,0.18)' }}>
-                          <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: `${GOLD}bb` }}>{en ? s.en : s.fr}</p>
+                          <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: `${GOLD}bb` }}>{lang === 'en' ? s.en : lang === 'es' ? (s.es || s.fr) : lang === 'hi' ? (s.hi || s.fr) : s.fr}</p>
                           <p className="mt-1.5 text-sm italic leading-relaxed" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>
-                            « {sec ? (en ? sec.en : sec.fr) : '…'} »
+                            « {sec ? (lang === 'en' ? sec.en : lang === 'es' ? (sec.es || sec.fr) : lang === 'hi' ? (sec.hi || sec.fr) : sec.fr) : '…'} »
                           </p>
                         </motion.div>
                       );
@@ -580,17 +580,17 @@ function DoublePage() {
               <div className="mt-4 text-center">
                 <button onClick={seal} disabled={sealedBusy} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                   style={YI_RED}>
-                  {L('Sceller l’augure', 'Seal the augury')}
+                  {tr("Sceller l’augure", "Seal the augury", "Sellar el augurio", "शगुन पर मुहर लगाएँ")}
                 </button>
                 <p className="mt-1.5 text-[10px]" style={{ color: `${LILAC_DIM}99` }}>
-                  {L('l’oracle te rappellera au jour dit — puis tu jugeras', 'the oracle will call you back on the day — then you judge')}
+                  {tr("l’oracle te rappellera au jour dit — puis tu jugeras", "the oracle will call you back on the day — then you judge", "el oráculo te recordará el día señalado — luego juzgarás", "ओरैकल नियत दिन याद दिलाएगा — फिर तुम निर्णय करोगे")}
                 </p>
               </div>
             )}
 
             {db.echo && !db.echo.verdict && !echoDue && (
               <div className="mt-4 rounded-2xl p-5 text-center" style={{ background: 'linear-gradient(160deg,#4A2C1A 0%,#2A1408 60%,#180B05 100%)', border: '1.5px solid rgba(218,165,32,0.45)' }}>
-                <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{L("Envie de défier l'Oracle ?", 'Dare to challenge the Oracle?')}</p>
+                <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{tr("Envie de défier l'Oracle ?", "Dare to challenge the Oracle?", "¿Te atreves a desafiar al Oráculo?", "ओरैकल को चुनौती दोगे?")}</p>
                 <p className="mt-2 text-sm italic leading-relaxed" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {en && db.echo.textEn ? db.echo.textEn : db.echo.textFr} »</p>
                 <p className="mt-3 text-xs" style={{ color: GOLD_PALE_SAFE }}>
                   {L(`le retournement s’observe dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`, `the turn ripens in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`)}
@@ -600,9 +600,9 @@ function DoublePage() {
 
             {echoDue && db.echo && (
               <div className="mt-4 rounded-2xl p-5" style={{ background: 'linear-gradient(160deg,#4A2C1A 0%,#2A1408 60%,#180B05 100%)', border: '1.5px solid rgba(218,165,32,0.6)', boxShadow: '0 0 26px rgba(218,165,32,0.25)' }}>
-                <p className="text-center text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{L('L’échéance est là', 'The day has come')}</p>
+                <p className="text-center text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{tr("L’échéance est là", "The day has come", "La fecha ha llegado", "नियत समय आ गया है")}</p>
                 <p className="mt-2 text-center text-sm italic" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {en && db.echo.textEn ? db.echo.textEn : db.echo.textFr} »</p>
-                <p className="mt-3 text-center text-[11px]" style={{ color: `${LILAC}aa` }}>{L('Le retournement promis a-t-il eu lieu ?', 'Did the promised turn come to pass?')}</p>
+                <p className="mt-3 text-center text-[11px]" style={{ color: `${LILAC}aa` }}>{tr("Le retournement promis a-t-il eu lieu ?", "Did the promised turn come to pass?", "¿Ha tenido lugar el vuelco prometido?", "क्या वादा किया गया मोड़ आया है?")}</p>
                 <div className="mt-3 flex justify-center gap-2">
                   {[0, 25, 50, 75, 100].map((p) => (
                     <button key={p} onClick={() => setVerdictPct(p)} className="h-10 w-14 rounded-lg text-sm font-bold transition-all" style={{
@@ -617,7 +617,7 @@ function DoublePage() {
                     style={{
                       background: 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',
                       color: '#241505', border: '1.5px solid rgba(232,198,106,0.6)', boxShadow: '0 0 18px rgba(212,175,55,0.55)' }}>
-                    {L('Consigner le verdict', 'Record the verdict')}
+                    {tr("Consigner le verdict", "Record the verdict", "Registrar el veredicto", "निर्णय दर्ज करें")}
                   </button>
                 </div>
               </div>

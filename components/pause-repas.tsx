@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { playRandom, playSound, soundProgress } from '@/lib/sounds';
 import { api } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLang, contentLang } from '@/lib/i18n';
+import { useLang, pick4, pickContent } from '@/lib/i18n';
 
 // ---------------------------------------------------------------------------
 // PAUSE REPAS — barman interactif sur la landing page.
@@ -22,9 +22,9 @@ import { useLang, contentLang } from '@/lib/i18n';
 // Coordonnées des zones cliquables du plateau, en % de l'image affichée.
 // Mesurées sur plateau.png (373×270). Ajuster ici si besoin.
 const PLATEAU_ZONES = [
-  { id: 'cafe', label: 'Café', labelEn: 'Coffee', left: 46, top: 16, width: 20, height: 27, video: '/images/pause_repas/cafe.mp4' },
-  { id: 'cracker', label: 'Crackers', labelEn: 'Crackers', left: 66, top: 26, width: 21, height: 28, video: '/images/pause_repas/cracker.mp4' },
-  { id: 'the', label: 'Thé', labelEn: 'Tea', left: 61, top: 57, width: 20, height: 27, video: '/images/pause_repas/the.mp4' },
+  { id: 'cafe', label: { fr: 'Café', en: 'Coffee', es: 'Café', hi: 'कॉफ़ी' }, left: 46, top: 16, width: 20, height: 27, video: '/images/pause_repas/cafe.mp4' },
+  { id: 'cracker', label: { fr: 'Crackers', en: 'Crackers', es: 'Galletas saladas', hi: 'नमकीन बिस्कुट' }, left: 66, top: 26, width: 21, height: 28, video: '/images/pause_repas/cracker.mp4' },
+  { id: 'the', label: { fr: 'Thé', en: 'Tea', es: 'Té', hi: 'चाय' }, left: 61, top: 57, width: 20, height: 27, video: '/images/pause_repas/the.mp4' },
 ] as const;
 
 const BARMAN_SMALL = '/images/pause_repas/barman1.png';
@@ -36,9 +36,11 @@ const PLATEAU = '/images/pause_repas/plateau.png';
 const PLATEAU_RATIO = 373 / 270;
 
 // Accroche du barman (bulle de dialogue affichée pendant l'étape barman), bilingue.
-const BARMAN_GREETING: Record<'fr' | 'en', string> = {
+const BARMAN_GREETING: Record<'fr' | 'en' | 'es' | 'hi', string> = {
   fr: "Bonjour, qu'est-ce que je vous sert aujourd'hui ?",
   en: "Hello, what can I get you today?",
+  es: "Buenos días, ¿qué le sirvo hoy?",
+  hi: "नमस्ते, आज आपको क्या सेवा दूँ?",
 };
 
 // DEBUG : affiche les zones cliquables du plateau (fins traits rouges + libellé)
@@ -135,7 +137,7 @@ export default function PauseRepas() {
   const [fitFont, setFitFont] = useState<string | null>(null);
   const lang = useLang();
   const [dailyMessage, setDailyMessage] = useState('');
-  const zLabel = (z: (typeof PLATEAU_ZONES)[number]) => (lang === 'en' ? z.labelEn : z.label);
+  const zLabel = (z: (typeof PLATEAU_ZONES)[number]) => pickContent(z.label, lang);
 
   // --- Programmation : le barman apparaît seulement en fenêtre horaire et une
   // fois par jour (lié au compte). Une fois cliqué → consommé → caché jusqu'au lendemain.
@@ -239,7 +241,7 @@ export default function PauseRepas() {
       .then((d) => { if (mounted && typeof d?.text === 'string') setDailyMessage(d.text); })
       .catch(() => {});
     return () => { mounted = false; };
-  }, [contentLang(lang)]);
+  }, [lang]);
 
   const clearBarmanTimer = useCallback(() => {
     if (barmanTimer.current) clearTimeout(barmanTimer.current);
@@ -334,7 +336,7 @@ export default function PauseRepas() {
         <motion.button
           key={enterSeq}
           type="button"
-          aria-label={lang === 'en' ? 'Break time' : 'Pause repas'}
+          aria-label={pick4('Pause repas', 'Break time', "Pausa para comer", "भोजन विराम")(lang)}
           onClick={openModal}
           className="barman-enter fixed left-2.5 top-[4%] z-[80] cursor-pointer select-none outline-none"
           style={{ filter: 'drop-shadow(0 0 8px rgba(218,165,32,0.55))' }}
@@ -348,7 +350,7 @@ export default function PauseRepas() {
             animate={{ y: [0, -4, 0] }}
             transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut', delay: 1.92 }}
           >
-            <img src={BARMAN_SMALL} alt={lang === 'en' ? 'Bartender' : 'Barman'} className="w-14 sm:w-[70px] md:w-20 object-contain" />
+            <img src={BARMAN_SMALL} alt={pick4('Barman', 'Bartender', "Barman", "बारमैन")(lang)} className="w-14 sm:w-[70px] md:w-20 object-contain" />
           </motion.span>
         </motion.button>
       )}
@@ -367,7 +369,7 @@ export default function PauseRepas() {
             {/* Bouton fermer discret — haut-droite */}
             <button
               type="button"
-              aria-label={lang === 'en' ? 'Close' : 'Fermer'}
+              aria-label={pick4('Fermer', 'Close', "Cerrar", "बंद करें")(lang)}
               onClick={closeModal}
               className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full text-xl text-[#FFF6E0]/70 transition-colors hover:text-[#FFF6E0]"
               style={{ fontFamily: 'var(--font-cormorant), serif' }}
@@ -393,7 +395,7 @@ export default function PauseRepas() {
                 >
                   <img
                     src={BARMAN_BIG}
-                    alt={lang === 'en' ? 'Bartender' : 'Barman'}
+                    alt={pick4('Barman', 'Bartender', "Barman", "बारमैन")(lang)}
                     className="h-full w-auto object-contain"
                   />
                   <motion.div
@@ -416,7 +418,7 @@ export default function PauseRepas() {
                         width: 'min(280px, 72vw)',
                       }}
                     >
-                      {BARMAN_GREETING[contentLang(lang)]}
+                      {BARMAN_GREETING[lang]}
                       {/* pointe vers la bouche */}
                       <span
                         className="absolute"
@@ -442,7 +444,7 @@ export default function PauseRepas() {
                   <div className="relative" style={{ width: 'min(88vw, 50vh)', aspectRatio: `${PLATEAU_RATIO}` }}>
                     <img
                       src={PLATEAU}
-                      alt={lang === 'en' ? 'Snack break tray' : 'Plateau de pause repas'}
+                      alt={pick4('Plateau de pause repas', 'Snack break tray', "Bandeja de pausa para comer", "भोजन-विराम की ट्रे")(lang)}
                       className="absolute inset-0 h-full w-full object-contain pointer-events-none"
                       draggable={false}
                     />
@@ -537,7 +539,7 @@ export default function PauseRepas() {
                     animate={{ opacity: [0, 1, 1, 0] }}
                     transition={{ delay: 4.3, duration: 4, times: [0, 0.1, 0.85, 1] }}
                   >
-                    {lang === 'en' ? 'Tap to taste' : 'Touchez pour déguster'}
+                    {pick4('Touchez pour déguster', 'Tap to taste', "Toque para degustar", "चखने के लिए टैप करें")(lang)}
                   </motion.p>
                 </div>
               )}

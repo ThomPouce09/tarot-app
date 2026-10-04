@@ -90,7 +90,8 @@ function StepDot({ glyph }: { glyph: string }) {
 export function ShakeTutorial() {
   const t = useT();
   const lang = useLang();
-  const isEn = lang === 'en';
+  const pickL = (fr: string, en: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
 
   const steps = [
     { glyph: 'ᛟ', key: 'runes.nornes.tutoStep1' },
@@ -192,7 +193,7 @@ export function ShakeTutorial() {
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        {isEn ? 'The pouch below is ready — tap it to shake.' : 'Le sac ci-dessous est prêt — touchez-le pour secouer.'}
+        {pickL('Le sac ci-dessous est prêt — touchez-le pour secouer.', 'The pouch below is ready — tap it to shake.', 'La bolsa de abajo está lista — tóquela para agitar.', 'नीचे दी थैली तैयार है — हिलाने के लिए उसे छुईए।')}
       </motion.p>
     </div>
   );

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useLang } from '@/lib/i18n';
+import { useLang, pick4 } from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
@@ -680,7 +680,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
               lineHeight: '1.3',
             }}
           >
-            {lang === 'en' ? 'Shake the box to draw a yarrow stalk' : 'Secouez la boîte pour le tirage d\'une baguette d\'achillée'}
+            {pick4('Secouez la boîte pour le tirage d\'une baguette d\'achillée', 'Shake the box to draw a yarrow stalk', 'Agita la caja para extraer una vara de milenrama', 'एचिली की डंडी निकालने के लिए डिब्बा हिलाएँ')(lang)}
           </p>
         </div>
       )}
@@ -702,7 +702,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
               fontSize: RESULT_SUBTITLE_FONT_SIZE
             }}
           >
-            {lang === 'en' ? 'The lot has spoken' : 'Le sort a parlé'}
+            {pick4('Le sort a parlé', 'The lot has spoken', "El destino ha hablado", "भाग्य ने कह दिया")(lang)}
           </p>
         </div>
       )}
@@ -816,7 +816,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
             whileTap={{ scale: interpreting ? 1 : 0.97 }}
           >
             <span className="relative z-10">
-              {interpreting ? (lang === 'en' ? 'Loading…' : 'Chargement…') : (lang === 'en' ? 'Consult the Oracle' : 'Consulter l\'Oracle')}
+              {interpreting ? (pick4('Chargement…', 'Loading…', "Cargando…", "लोड हो रहा है…")(lang)) : (pick4('Consulter l\'Oracle', 'Consult the Oracle', 'Consultar el Oráculo', 'ओरैकल से परामर्श करें')(lang))}
             </span>
           </motion.button>
           <p
@@ -833,9 +833,7 @@ function YiQingRig({ questionAsked, question }: { questionAsked: boolean; questi
               transition: 'opacity 1s ease-in',
             }}
           >
-            {lang === 'en'
-              ? 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.'
-              : 'La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.'}
+            {pick4('La baguette élue est sortie de la boîte. Cliquez sur le bouton pour découvrir le message que l\'Oracle vous destine.', 'The chosen stalk has left the box. Click the button to discover the message the Oracle has for you.', 'La vara elegida ha salido de la caja. Pulse el botón para descubrir el mensaje que el Oráculo tiene para usted.', 'चुनी हुई डंडी डिब्बे से बाहर आ गई है। बटन दबाकर जानिए ओरैकल आपके लिए क्या संदेश लेकर आया है।')(lang)}
           </p>
         </motion.div>
       )}
@@ -896,7 +894,7 @@ function YiQingPage() {
               className="text-center text-yellow-300/80 text-sm mb-3"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              {lang === 'en' ? 'Ask your question' : 'Formulez votre question'}
+              {pick4('Formulez votre question', 'Ask your question', "Formule su pregunta", "अपना प्रश्न बनाएँ")(lang)}
             </p>
             <textarea
               value={question}
@@ -907,7 +905,7 @@ function YiQingPage() {
                   handleSubmitQuestion();
                 }
               }}
-              placeholder={lang === 'en' ? 'e.g. Should I accept this career opportunity?' : 'Ex: Dois-je accepter cette opportunité professionnelle ?'}
+              placeholder={pick4('Ex: Dois-je accepter cette opportunité professionnelle ?', 'e.g. Should I accept this career opportunity?', "Ej.: ¿Debo aceptar esta oportunidad profesional?", "जैसे: क्या मुझे यह करियर का अवसर स्वीकार करना चाहिए?")(lang)}
               className="w-full bg-black/50 text-yellow-100 placeholder-yellow-700/50 rounded-lg p-3 text-sm border border-yellow-800/30 focus:border-yellow-500/50 focus:outline-none transition-colors resize-none"
               rows={3}
               style={{ fontFamily: 'serif' }}
@@ -946,7 +944,7 @@ function YiQingPage() {
               className="shrink-0 text-yellow-500/70 text-[10px] uppercase tracking-[0.18em]"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}
             >
-              {lang === 'en' ? 'Your question' : 'Votre question'}
+              {pick4('Votre question', 'Your question', "Su pregunta", "आपका प्रश्न")(lang)}
             </span>
             {!qOpen && (
               <span className="min-w-0 max-w-[46vw] truncate text-yellow-200/75 italic text-xs" style={{ fontFamily: 'serif' }}>
@@ -1011,7 +1009,7 @@ function YiQingPage() {
             marginBottom: '0.25rem',
           }}
         >
-          {lang === 'en' ? 'The I Ching' : 'Le Yi Jing'}
+          {pick4('Le Yi Jing', 'The I Ching', "El Yi Jing", "इ चिंग")(lang)}
         </h1>
         <p
           style={{
@@ -1023,7 +1021,7 @@ function YiQingPage() {
             fontSize: 'clamp(0.7rem, 2vw, 1rem)',
           }}
         >
-          {lang === 'en' ? 'The wisdom of the hexagrams' : 'La sagesse des hexagrammes'}
+          {pick4('La sagesse des hexagrammes', 'The wisdom of the hexagrams', "La sabiduría de los hexagramas", "षट्कोणों का ज्ञान")(lang)}
         </p>
       </div>
     </div>

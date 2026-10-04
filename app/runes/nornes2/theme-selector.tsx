@@ -10,10 +10,10 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLang, useT, contentLang } from '@/lib/i18n';
+import { useLang, useT, contentLang, pickContent } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 
-type L = { fr: string; en: string };
+type L = { fr: string; en: string; es?: string; hi?: string };
 
 interface RuneDomain {
   id: string;
@@ -86,58 +86,58 @@ function IconHeimdall(c: string) {
 export const RUNE_DOMAINS: RuneDomain[] = [
   {
     id: 'amour',
-    label: { fr: 'Amour & Liens', en: 'Love & Bonds' },
+    label: { fr: 'Amour & Liens', en: 'Love & Bonds' , es: "Amor y Vínculos", hi: "प्रेम और बंधन"},
     deity: 'Freyja',
-    realm: { fr: 'Fólkvangr — le champ des âmes choisies', en: 'Fólkvangr — the field of chosen souls' },
+    realm: { fr: 'Fólkvangr — le champ des âmes choisies', en: 'Fólkvangr — the field of chosen souls' , es: "Fólkvangr — el campo de las almas elegidas", hi: "फोल्कवांग्र — चुनिंदा आत्माओं का क्षेत्र"},
     icon: IconFreyja,
     subs: [
-      { fr: 'Un couple qui traverse une zone de doute', en: 'A couple going through doubtful times' },
-      { fr: 'Une relation qui pourrait naître', en: 'A relationship that could blossom' },
-      { fr: 'Retrouvailles avec un(e) ex', en: 'A reunion with an ex' },
-      { fr: 'Ma solitude, et la voie pour en sortir', en: 'My loneliness, and the way out' },
-      { fr: 'Des liens familiaux à apaiser', en: 'Family bonds to heal' },
+      { fr: 'Un couple qui traverse une zone de doute', en: 'A couple going through doubtful times' , es: "Una pareja que atraviesa una zona de duda", hi: "एक जोड़ी जो संदेह की घड़ी से गुज़र रही है"},
+      { fr: 'Une relation qui pourrait naître', en: 'A relationship that could blossom' , es: "Una relación que podría nacer", hi: "एक रिश्ता जो जन्म ले सकता है"},
+      { fr: 'Retrouvailles avec un(e) ex', en: 'A reunion with an ex' , es: "Reencuentro con un/a ex", hi: "पूर्व साथी से पुनर्मिलन"},
+      { fr: 'Ma solitude, et la voie pour en sortir', en: 'My loneliness, and the way out' , es: "Mi soledad, y el camino para salir de ella", hi: "मेरा एकाकीपन, और उससे निकलने की राह"},
+      { fr: 'Des liens familiaux à apaiser', en: 'Family bonds to heal' , es: "Vínculos familiares que apaciguar", hi: "पारिवारिक बंधनों को शांत करना"},
     ],
   },
   {
     id: 'travail',
-    label: { fr: 'Travail & Mission', en: 'Work & Calling' },
+    label: { fr: 'Travail & Mission', en: 'Work & Calling' , es: "Trabajo y Misión", hi: "कर्म और ध्येय"},
     deity: 'Freyr',
-    realm: { fr: 'Álfheimr — la lumière qui fait croître', en: 'Álfheimr — the light that makes things grow' },
+    realm: { fr: 'Álfheimr — la lumière qui fait croître', en: 'Álfheimr — the light that makes things grow' , es: "Álfheimr — la luz que hace crecer", hi: "आल्फ़हेइम्र — वह ज्योति जो बढ़ाती है"},
     icon: IconFreyr,
     subs: [
-      { fr: 'Une reconversion, un nouveau cap', en: 'A career change, a new course' },
-      { fr: 'Un projet à lancer', en: 'A project to launch' },
-      { fr: 'Ambiances lourdes : hiérarchie, collègues', en: 'Heavy workplace dynamics' },
-      { fr: 'Examens, concours, validation', en: 'Exams, competitions, approval' },
-      { fr: 'Rester ou partir', en: 'To stay or to go' },
+      { fr: 'Une reconversion, un nouveau cap', en: 'A career change, a new course' , es: "Una reorientación, un nuevo rumbo", hi: "एक नया कर्ममार्ग, एक नई दिशा"},
+      { fr: 'Un projet à lancer', en: 'A project to launch' , es: "Un proyecto que lanzar", hi: "आरंभ करने योग्य परियोजना"},
+      { fr: 'Ambiances lourdes : hiérarchie, collègues', en: 'Heavy workplace dynamics' , es: "Ambientes pesados: jerarquía, compañeros", hi: "भारी माहौल: पदानुक्रम, सहकर्मी"},
+      { fr: 'Examens, concours, validation', en: 'Exams, competitions, approval' , es: "Exámenes, oposiciones, validación", hi: "परीक्षा, प्रतियोगिता, स्वीकृति"},
+      { fr: 'Rester ou partir', en: 'To stay or to go' , es: "Quedarse o irse", hi: "टिकना या चल देना"},
     ],
   },
   {
     id: 'argent',
-    label: { fr: 'Argent & Abondance', en: 'Money & Abundance' },
+    label: { fr: 'Argent & Abondance', en: 'Money & Abundance' , es: "Dinero y Abundancia", hi: "धन और समृद्धि"},
     deity: 'Njörðr',
-    realm: { fr: 'Nóatún — le navire des richesses', en: 'Nóatún — the ship of riches' },
+    realm: { fr: 'Nóatún — le navire des richesses', en: 'Nóatún — the ship of riches' , es: "Nóatún — el navío de las riquezas", hi: "नोआतून — धन का पोत"},
     icon: IconNjord,
     subs: [
-      { fr: 'Mes finances au quotidien', en: 'My day-to-day finances' },
-      { fr: 'Un investissement, un achat important', en: 'An investment, a major purchase' },
-      { fr: 'Des dettes à dénouer', en: 'Debts to untangle' },
-      { fr: 'Une chance à saisir, des revenus inattendus', en: 'An opportunity, unexpected income' },
-      { fr: 'Un contrat, un partenariat à signer', en: 'A contract or partnership to sign' },
+      { fr: 'Mes finances au quotidien', en: 'My day-to-day finances' , es: "Mis finanzas cotidianas", hi: "मेरा रोज़मर्रा का हिसाब-किताब"},
+      { fr: 'Un investissement, un achat important', en: 'An investment, a major purchase' , es: "Una inversión, una compra importante", hi: "एक निवेश, एक बड़ी खरीद"},
+      { fr: 'Des dettes à dénouer', en: 'Debts to untangle' , es: "Deudas que deshacer", hi: "कर्ज़ जो सुलझाने हैं"},
+      { fr: 'Une chance à saisir, des revenus inattendus', en: 'An opportunity, unexpected income' , es: "Una oportunidad que aprovechar, ingresos inesperados", hi: "पकड़ने योग्य अवसर, अप्रत्याशित आय"},
+      { fr: 'Un contrat, un partenariat à signer', en: 'A contract or partnership to sign' , es: "Un contrato, una alianza que firmar", hi: "एक अनुबंध, एक साझेदारी करने को"},
     ],
   },
   {
     id: 'destin',
-    label: { fr: 'Route & Destin', en: 'Path & Destiny' },
+    label: { fr: 'Route & Destin', en: 'Path & Destiny' , es: "Camino y Destino", hi: "राह और नियति"},
     deity: 'Heimdallr',
-    realm: { fr: 'Himinbjörg — la garde des chemins', en: 'Himinbjörg — the watch over roads' },
+    realm: { fr: 'Himinbjörg — la garde des chemins', en: 'Himinbjörg — the watch over roads' , es: "Himinbjörg — la guardia de los caminos", hi: "हिमिनब्योर्ग — मार्गों की रखवाली"},
     icon: IconHeimdall,
     subs: [
-      { fr: 'Une décision qui pèse', en: 'A weighty decision' },
-      { fr: 'Un déménagement, un voyage', en: 'A move, a journey' },
-      { fr: 'Ma voie intérieure, mon éveil', en: 'My inner path, my awakening' },
-      { fr: 'L’énergie des mois à venir', en: 'The energy of the coming months' },
-      { fr: 'Un passage important de ma vie', en: 'A major rite of passage' },
+      { fr: 'Une décision qui pèse', en: 'A weighty decision' , es: "Una decisión que pesa", hi: "एक निर्णय जो बोझल है"},
+      { fr: 'Un déménagement, un voyage', en: 'A move, a journey' , es: "Una mudanza, un viaje", hi: "एक स्थानांतरण, एक यात्रा"},
+      { fr: 'Ma voie intérieure, mon éveil', en: 'My inner path, my awakening' , es: "Mi camino interior, mi despertar", hi: "मेरी भीतरी राह, मेरा जागरण"},
+      { fr: 'L’énergie des mois à venir', en: 'The energy of the coming months' , es: "La energía de los meses venideros", hi: "आने वाले महीनों की ऊर्जा"},
+      { fr: 'Un passage important de ma vie', en: 'A major rite of passage' , es: "Un paso importante de mi vida", hi: "मेरे जीवन का एक महत्वपूर्ण मोड़"},
     ],
   },
 ];
@@ -167,7 +167,7 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
   const weave = () => {
     if (!domain || subIdx === null) return;
     // Question générique : « Domaine — intention », rien de plus.
-    onConfirm(`${domain.label[contentLang(lang)]} — ${domain.subs[subIdx][contentLang(lang)]}`);
+    onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(domain.subs[subIdx], lang)}`);
   };
 
   return (
@@ -212,10 +212,10 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
                 {d.icon(sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}b3`)}
               </span>
               <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}cc` }}>
-                {d.label[contentLang(lang)]}
+                {pickContent(d.label, lang)}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? RUNE_THEME.sagePale : `${RUNE_THEME.sage}99` }}>
-                {d.deity} · {d.realm[contentLang(lang)]}
+                {d.deity} · {pickContent(d.realm, lang)}
               </span>
               {sel && (
                 <span className="absolute right-2 top-2 text-[10px]" style={{ color: RUNE_THEME.goldPale }}>◆</span>
@@ -258,7 +258,7 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
                       >
                         <span className="mt-[3px] text-[8px]" style={{ color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}55` }}>◆</span>
                         <span className="text-[12.5px] leading-snug" style={{ color: sel ? RUNE_THEME.goldPale : RUNE_THEME.stone }}>
-                          {s[contentLang(lang)]}
+                          {pickContent(s, lang)}
                         </span>
                       </button>
                     </li>
