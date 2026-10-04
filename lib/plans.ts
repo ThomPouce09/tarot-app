@@ -22,23 +22,8 @@ export const PLAN_PRICE_YEAR_EUR: Record<SubscriptionPlanId, number> = {
   arkane: 75,
 };
 
-// Prix psychologiques INR (marché indien, hindi).
-// Stripe INR = unités entières (pas de centimes). 449 ₹ = unit_amount 449.
-export const PLAN_PRICE_INR: Record<SubscriptionPlanId, number> = {
-  initie: 449,
-  arkane: 699,
-};
-
-export const PLAN_PRICE_YEAR_INR: Record<SubscriptionPlanId, number> = {
-  initie: 4499,
-  arkane: 6499,
-};
-
 // Promotions one-shot.
-export const ONE_SHOT: { rechargePriceEur: number; rechargePriceInr: number } = {
-  rechargePriceEur: 2,
-  rechargePriceInr: 179,
-};
+export const ONE_SHOT: { rechargePriceEur: number } = { rechargePriceEur: 2 };
 
 // Recharge cosmique : pool de crédits exact (2€ = 105 crédits : base = 7, avancé = 15).
 // 15x7 = 105 = 7x15 → on pioche au ratio jusqu'à épuisement (mixable). Client-safe.

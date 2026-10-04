@@ -45,7 +45,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     return (
       <div className="min-h-screen cosmos relative isolate flex items-center justify-center">
         <div className="cosmos-veil" aria-hidden /><div className="cosmos-nebula3" aria-hidden /><div className="cosmos-stars" aria-hidden /><div className="cosmos-stars2" aria-hidden />
-        <p className="text-amber-300 mystic-subtitle">Chargement...</p>
+        <p className="text-amber-300 mystic-subtitle">{tr("Chargement ...", "Loading...", "Cargando ...", "लोड हो रहा है ...")}</p>
       </div>
     );
   }

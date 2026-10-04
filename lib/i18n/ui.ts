@@ -236,6 +236,10 @@ export const DICT = {
   'sub.pay': { fr: "Payer 2,00 €", en: "Pay €2.00", es: "Pagar 2,00 €", hi: "2,00 € का भुगतान करें" },
   'sub.selected': { fr: "Forfait « {name} » sélectionné.", en: "Plan « {name} » selected.", es: "Plan « {name} » seleccionado.", hi: "योजना «{name}» चुनी गई।" },
   'sub.previewNote': { fr: "Paiements gérés par Stripe (carte bancaire & PayPal).", en: "Payments handled by Stripe (card & PayPal).", es: "Pagos gestionados por Stripe (tarjeta y PayPal).", hi: "भुगतान Stripe द्वारा प्रबंधित (बैंक कार्ड और PayPal)।" },
+  // Devise locale : avec l'Adaptive Pricing activé côté Dashboard Stripe, la page de
+  // paiement affiche automatiquement le prix dans la devise du client. Cette phrase
+  // prévient le client, qui voit encore des euros dans l'app avant d'y arriver.
+  'sub.localCurrencyNote': { fr: "Vous pourrez payer dans votre devise sur la page de paiement sécurisée.", en: "You will be able to pay in your own currency on the secure payment page.", es: "Podrás pagar en tu moneda en la página de pago segura.", hi: "आप सुरक्षित भुगतान पृष्ठ पर अपनी मुद्रा में भुगतान कर सकते हैं।" },
   'sub.loginRequired': { fr: "Connecte-toi pour souscrire.", en: "Log in to subscribe.", es: "Inicia sesión para suscribirte.", hi: "सदस्यता लेने के लिए प्रवेश करो।" },
   'sub.manage': { fr: "Gérer mon abonnement", en: "Manage my subscription", es: "Gestionar mi suscripción", hi: "मेरी सदस्यता प्रबंधित करें" },
   'sub.activating': { fr: "Activation de votre forfait…", en: "Activating your plan…", es: "Activación de su plan…", hi: "आपकी योजना सक्रिय हो रही है…" },
@@ -592,8 +596,18 @@ export const DICT = {
   'des.affinage.qDomaine': { fr: "« Quel autre domaine de ma vie va être impacté par ricochet par cette décision ? »", en: "“What other area of my life will be impacted in ripple by this decision?”", es: "« ¿Qué otro ámbito de mi vida se verá afectado de rebote por esta decisión? »", hi: "«इस निर्णय से मेरे जीवन का कौन-सा और क्षेत्र प्रभावित होगा?»" },
   'des.affinage.yourDice': { fr: "Vos dés ont parlé", en: "Your dice have spoken", es: "Sus dados han hablado", hi: "आपके पासे बोल उठे" },
   'des.affinage.analysisTitle': { fr: "Analyse du tirage", en: "Reading analysis", es: "Análisis de la tirada", hi: "पाठ का विश्लेषण" },
+  'des.affinage.analysisRefine': { fr: "Analyse de l'affinage", en: "Refinement analysis", es: "Análisis del refinamiento", hi: "सुधार विश्लेषण" },
   'des.affinage.analyze': { fr: "✨ Analyser en profondeur", en: "✨ Analyse in depth", es: "✨ Analizar en profundidad", hi: "✨ गहराई से विश्लेषण करें" },
   'des.affinage.thinking': { fr: "Les astres réfléchissent… ✨", en: "The stars are pondering… ✨", es: "Los astros reflexionan… ✨", hi: "नक्षत्र सोच रहे हैं… ✨" },
+  'des.affinage.artemis.title': { fr: "Le secret d'Artémis", en: "Artemis' Secret", es: "El secreto de Artemisa", hi: "आर्टेमिस का रहस्य" },
+  'des.affinage.artemis.reveal': { fr: "Révéler le secret d'Artémis", en: "Reveal Artemis' Secret", es: "Revelar el secreto de Artemisa", hi: "आर्टेमिस का रहस्य प्रकट करें" },
+  'des.affinage.artemis.whispering': { fr: "La déesse chuchote aux étoiles…", en: "The goddess is whispering to the stars…", es: "La diosa susurra a las estrellas…", hi: "देवी तारों को फुसफुसा रही है…" },
+  'des.affinage.cardA.title': { fr: "Zoom d'action", en: "Action zoom", es: "Zoom de acción", hi: "क्रिया ज़ूम" },
+  'des.affinage.cardA.desc': { fr: "Relance le dé des Signes : quelle attitude adopter MAINTENANT ?", en: "Re-rolls the Sign die: what attitude to adopt NOW?", es: "Vuelve a tirar el dado de los Signos: ¿qué actitud adoptar AHORA?", hi: "राशि का पासा दोबारा फेंकता है : अभी कैसा व्यवहार अपनाएँ?" },
+  'des.affinage.cardA.chip': { fr: "1 dé relancé · Signes", en: "1 die re-rolled · Signs", es: "1 dado relanzado · Signos", hi: "1 पासा दोबारा · राशियाँ" },
+  'des.affinage.cardB.title': { fr: "Zoom de domaine", en: "Domain zoom", es: "Zoom de ámbito", hi: "क्षेत्र ज़ूम" },
+  'des.affinage.cardB.desc': { fr: "Relance le dé des Maisons : quel domaine de vie éclairer ?", en: "Re-rolls the House die: which life domain to shed light on?", es: "Vuelve a tirar el dado de las Casas: ¿qué ámbito de vida iluminar?", hi: "भाव का पासा दोबारा फेंकता है : किस जीवन-क्षेत्र को स्पष्ट करें?" },
+  'des.affinage.cardB.chip': { fr: "1 dé relancé · Maisons", en: "1 die re-rolled · Houses", es: "1 dado relanzado · Casas", hi: "1 पासा दोबारा · भाव" },
   // ── Dés Simplifié (intention guidée par les 4 Éléments) ──
   'des.simplifie.title': { fr: "Les Dés du Zodiaque", en: "The Zodiac Dice", es: "Los Dados del Zodíaco", hi: "राशिचक्र के पासे" },
   'des.simplifie.subtitle': { fr: "Simplifié — guidé par votre Élément", en: "Simplified — guided by your element", es: "Simplificado — guiado por su Elemento", hi: "सरल — आपके तत्व के मार्गदर्शन में" },

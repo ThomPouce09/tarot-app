@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useT, useLang } from '@/lib/i18n';
 import SpaceTitle from '@/components/space-title';
-import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, PLAN_PRICE_INR, PLAN_PRICE_YEAR_INR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
+import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
 
 // Code BCP-47 pour dates localisées selon la langue de l'app.
@@ -21,11 +21,8 @@ const RANK: Record<PlanId, number> = {
   arkane: 4,
 };
 
-function formatPrice(amount: number, currency: 'EUR' | 'INR'): string {
-  if (currency === 'INR') {
-    return new Intl.NumberFormat('hi-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-  }
-  return `${amount.toFixed(2).replace('.', ',')} €`;
+function formatPrice(eur: number): string {
+  return `${eur.toFixed(2).replace('.', ',')} €`;
 }
 
 function isSubscription(p: PlanId): boolean {
@@ -484,7 +481,7 @@ export default function AbonnementPage() {
                         disabled={locked}
                         className="accent-violet-400"
                       />
-                                            {formatPrice(lang === 'hi' ? PLAN_PRICE_INR[p as 'initie' | 'arkane'] : PLAN_PRICE_EUR[p as 'initie' | 'arkane'], lang === 'hi' ? 'INR' : 'EUR')} {t('sub.perMonth')}
+                      {formatPrice(PLAN_PRICE_EUR[p as 'initie' | 'arkane'])} {t('sub.perMonth')}
                     </label>
                     <label className={`flex items-center gap-1.5 cursor-pointer text-sm ${billing[p as 'initie' | 'arkane'] === 'year' ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}>
                       <input
@@ -495,7 +492,7 @@ export default function AbonnementPage() {
                         disabled={locked}
                         className="accent-violet-400"
                       />
-                                            {formatPrice(lang === 'hi' ? PLAN_PRICE_YEAR_INR[p as 'initie' | 'arkane'] : PLAN_PRICE_YEAR_EUR[p as 'initie' | 'arkane'], lang === 'hi' ? 'INR' : 'EUR')} {t('sub.perYear')}
+                      {formatPrice(PLAN_PRICE_YEAR_EUR[p as 'initie' | 'arkane'])} {t('sub.perYear')}
                     </label>
                   </div>
                 ) : null}
@@ -542,6 +539,12 @@ export default function AbonnementPage() {
           );
         })}
       </div>
+
+      {/* Note devise locale — la conversion est faite par Stripe Checkout
+          (Adaptive Pricing activé côté Dashboard). */}
+      <p className="text-gray-400 text-xs text-center leading-relaxed mt-4 max-w-xl mx-auto">
+        {t('sub.localCurrencyNote')}
+      </p>
 
       {/* Modale de confirmation de résiliation */}
       {confirmCancel && (

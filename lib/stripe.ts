@@ -7,7 +7,7 @@
 // renvoie null et les routes retournent une 503 propre ("paiements désactivés").
 
 import Stripe from 'stripe';
-import { PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, PLAN_PRICE_INR, PLAN_PRICE_YEAR_INR, ONE_SHOT as ONE_SHOT_PRICES, type SubscriptionPlanId } from './plans';
+import { PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, type SubscriptionPlanId } from './plans';
 
 let _stripe: Stripe | null | undefined;
 

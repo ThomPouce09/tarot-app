@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState, ReactNode } from 'react';
 import { initPush } from '@/lib/push';
 
 export type Lang = 'fr' | 'en' | 'es' | 'hi';
@@ -68,10 +68,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   // Source de vérité : localStorage 'tarot_prefs' (langue choisie dans Préférences).
   // Si aucune préférence sauvegardée, on détecte la langue de l'appareil (navigator.language).
-  // Lu APRÈS montage (pas au 1er render) pour éviter un mismatch d'hydratation :
-  // le serveur rend toujours 'fr', le client aussi au 1er render, puis on applique
-  // la langue (sauvegardée OU appareil). Flash FR→EN imperceptible, mais aucune erreur React.
-  useEffect(() => {
+  // useLayoutEffect (et non useEffect) : l'hydratation se fait toujours en 'fr'
+  // (serveur = client → aucun mismatch), puis la langue sauvegardée est appliquée
+  // AVANT la première peinture. Avec useEffect, le texte FR du voile
+  // « Vérification de l'accès » flashait une frame chez les utilisateurs EN/ES/HI.
+  useLayoutEffect(() => {
     initPush();
     try {
       const raw = localStorage.getItem('tarot_prefs');
@@ -91,13 +92,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
-  // Resync si la langue change ailleurs (autre onglet / Préférences)
+  // Resync si la langue change ailleurs (autre onglet / Préférences).
+  // NB : VALID_LANGS complet — l'ancien test n'acceptait que 'en'/'fr', donc
+  // les changements es/hi faits dans un autre onglet n'étaient JAMAIS appliqués.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'tarot_prefs' && e.newValue) {
         try {
           const prefs = JSON.parse(e.newValue);
-          if (prefs.language === 'en' || prefs.language === 'fr') setLangState(prefs.language as Lang);
+          if (VALID_LANGS.includes(prefs.language)) setLangState(prefs.language as Lang);
         } catch {}
       }
     };

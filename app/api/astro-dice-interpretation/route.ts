@@ -236,6 +236,46 @@ Aide la personne à comprendre concrètement la solution. Développe. Réponds S
 Les actions en langage courant, CHACUNE commence par "Action concrète N :", 10-20 mots, vraiment faisables. Réponds UNIQUEMENT avec l'objet JSON.`;
 }
 
+// ── Affinage + secret d'Artémis FONDUS : un SEUL appel IA renvoie
+// l'analyse du dé relancé (texte) ET le chuchotement (artemis, 2-3 phrases).
+// Déclenché par body.withArtemis + body.originalFaces (les autres appelants
+// zoom gardent le texte libre comme avant).
+
+function buildZoomWithArtemisPrompt(
+  faces: Record<string, string | number>,
+  originalFaces: Record<string, string | number>,
+  zoom: 'sign' | 'house',
+  m: Mode,
+  dbInterpretation?: string,
+  question?: string,
+): string {
+  const kinds: DieKind[] = ['planet', 'sign', 'house'];
+  const lines = (f: Record<string, string | number>) =>
+    kinds.map((k) => `• ${k} = ${f[k] ?? '?'} (${nameOf(k, f[k])})`).join('\n');
+  const rolled = zoom === 'sign' ? 'le dé des SIGNES' : 'le dé des MAISONS';
+  const label = zoom === 'sign' ? 'Signe' : 'Maison';
+  const db = dbContextBlock(dbInterpretation);
+  const q = questionBlock(question);
+  const mission = m === 'zoom-action'
+    ? `indique quelle attitude ou action concrète adopter MAINTENANT pour débloquer la situation (150-250 mots, très concret, 2e personne)`
+    : `indique quel(s) autre(s) domaine(s) de la vie va/vent être impacté(s) par cette décision, en lien avec la question (150-250 mots, domaines concrets, 2e personne)`;
+
+  return `Tu es une astrologue d'une grande finesse : lucide, bienveillante, ancrée — une sagesse féminine incarnée, jamais mièvre. Tu ne nommes JAMAIS le « féminin » ni la « féminité » : tu l'incarnes par le ton.
+
+Tirage de base des Dés du Zodiaque (Planète × Signe × Maison) :
+${lines(originalFaces)}
+
+On a relancé ${rolled} — tirage après affinage :
+${lines(faces)}${db}${q}
+
+Deux réponses, dans le même objet JSON :
+1. "texte" : ${mission}.
+2. "artemis" : le CHUCHOTEMENT qui découle UNIQUEMENT de ce changement de ${label}, lu à la lumière du tirage initial. STRICTEMENT 2 à 3 phrases intenses et concrètes (un geste, une posture — rien de général, aucun remplissage), comme une amie clairvoyante qui marche à côté de la personne.
+
+Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
+{ "texte": "...", "artemis": "..." }`;
+}
+
 export async function POST(request: NextRequest) {
   let body: any = {};
   try {
@@ -328,7 +368,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ texte: content.trim() });
   }
 
-  // ── Mode global / zoom ──
+  // ── Mode global / zoom (+ secret d'Artémis FUSIONNÉ dans l'appel zoom) ──
   if (!faces || typeof faces !== 'object') {
     return NextResponse.json({ error: 'faces requis' }, { status: 400 });
   }
@@ -336,15 +376,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'activeKinds vide' }, { status: 400 });
   }
 
-  const prompt = buildPrompt(faces, kinds, m, dbInterpretation, question);
+  // affinage + withArtemis → un seul appel qui renvoie { texte, artemis } :
+  // le chuchotement arrive AVEC l'analyse, jamais en rechargement séparé.
+  const fusedArtemis = (m === 'zoom-action' || m === 'zoom-domaine')
+    && body.withArtemis === true
+    && body.originalFaces && typeof body.originalFaces === 'object';
+  const zoomKind = m === 'zoom-action' ? 'sign' : 'house';
+
+  const prompt = fusedArtemis
+    ? buildZoomWithArtemisPrompt(faces, body.originalFaces, zoomKind, m, dbInterpretation, question)
+    : buildPrompt(faces, kinds, m, dbInterpretation, question);
   // Analyse longue (json ~10 phrases) : délai élargi, sinon abort sur les
   // modèles gratuits → « Les étoiles se voilent » et bouton de relance.
-  const content = (await callOracle(prompt + outputDirective(lang), m === 'global' ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
+  const content = (await callOracle(prompt + outputDirective(lang), m === 'global' || fusedArtemis ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json({
       texte: "Les étoiles se voilent un instant… L'analyse approfondie n'a pas pu être générée. Recommence plus tard.",
     }, { status: 200 });
+  }
+
+  // Réponse fusionnée : extraire { texte, artemis } ; repli texte brut si JSON KO.
+  if (fusedArtemis) {
+    try {
+      const json = extractJson(content);
+      if (json && (json.texte || json.artemis)) {
+        return NextResponse.json({
+          texte: String(json.texte || '').trim(),
+          artemis: String(json.artemis || '').trim(),
+        });
+      }
+    } catch { /* fallback texte libre ci-dessous */ }
+    return NextResponse.json({ texte: content.trim() });
   }
 
   if (m === 'global') {

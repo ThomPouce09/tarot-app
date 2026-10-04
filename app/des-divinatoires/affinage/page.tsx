@@ -44,6 +44,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
 import { useT, useLang, tr , getRuntimeLang} from '@/lib/i18n';
@@ -99,26 +100,6 @@ function AffinagePage() {
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
   const lang = useLang();
-  // Continuité : suggestion = la question du dernier tirage de dés enregistré
-  // (pré-remplit le champ « Garder votre question en mémoire »).
-  const [lastDiceQuestion, setLastDiceQuestion] = useState<string | null>(null);
-  useEffect(() => {
-    let stop = false;
-    try {
-      const email = JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email;
-      if (!email) return;
-      fetch(`/api/readings?userId=${encodeURIComponent(email)}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (stop || !d?.readings) return;
-          const last = (d.readings as Array<{ type: string | null; question: string | null }>).find(
-            (x) => (x.type || '').startsWith('des-') && (x.question || '').trim().length > 2);
-          if (last?.question) setLastDiceQuestion(last.question.trim().slice(0, 120));
-        })
-        .catch(() => { /* historique indisponible : rien de grave */ });
-    } catch { /* ignore */ }
-    return () => { stop = true; };
-  }, []);
   const [faces, setFaces] = useState<TargetFaces>(() =>
     typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
   );
@@ -135,13 +116,17 @@ function AffinagePage() {
   const tutorialRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef<HTMLParagraphElement>(null);
 
-  // Tutoriel : démarre au chargement complet de la page (après un court
-  // délai pour laisser le gobelet s'afficher), puis se masque tout seul
-  // (timer 8 s dans TutorialText) ou au 1er lancer.
+  // Tutoriel sous l'astrodice : visible dès que LE GOBETLET EST À L'ÉCRAN
+  // (avant 1er jet, pendant le 1er lancer, et PENDANT LE JET D'AFFINAGE 1 dé —
+  // le geste reste le même, il reste nécessaire), masqué dès le résultat posé.
   useEffect(() => {
-    const t = window.setTimeout(() => setShowTutorial(true), 500);
-    return () => window.clearTimeout(t);
-  }, []);
+    const arenaVisible = (phase === 'initial' && hasLaunched) || phase === 'firstRoll' || phase === 'refineRoll';
+    if (arenaVisible) {
+      const t = window.setTimeout(() => setShowTutorial(true), 500);
+      return () => window.clearTimeout(t);
+    }
+    setShowTutorial(false);
+  }, [phase, hasLaunched]);
 
   // ── Fenêtre appelante : combien de dés sont lancés ? ──
   // Par défaut les 3 ; peut être réduit à 1 dé (planète / signe / maison).
@@ -158,9 +143,12 @@ function AffinagePage() {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisErrored, setAnalysisErrored] = useState(false);
   const [savedDbInterpretation, setSavedDbInterpretation] = useState(false);
-  // Oracle flash — réponse courte, déclenchée automatiquement après le tirage
-  const [oracleFlash, setOracleFlash] = useState<string | null>(null);
-  const [oracleFlashLoading, setOracleFlashLoading] = useState(false);
+  // ── Le secret d'Artémis : réservé à la FIN de la 2ᵉ phase. PAS d'appel
+  // séparé : il arrive DÈS L'ANALYSE DU DÉ RELANCÉ (payload withArtemis →
+  // réponse { texte, artemis } en un seul appel). Le bouton ne fait que
+  // révéler le texte déjà reçu. ──
+  const [artemisRevealed, setArtemisRevealed] = useState(false);
+  const [artemisAdvice, setArtemisAdvice] = useState<string | null>(null);
 
   // ── Verrouillage immédiat du scroll (pas via React — trop lent) ──
   // Appelé synchrone dans rollFirst/refine AVANT setPhase.
@@ -200,24 +188,11 @@ function AffinagePage() {
   // En mode 1 dé, seule cette carte s'affiche.
   const presentKinds = activeDice;
 
-  // 1er lancer : 3 dés (on remet activeDice au complet au cas où un
-  // affinage précédent l'aurait réduit à 1 dé).
-  const rollFirst = useCallback(() => {
-    // Verrouillage immédiat du scroll avant tout render React
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.touchAction = 'none';
-    setOption(null);
-    setAnalysis(null);
-    setShowTutorial(false);
-    setActiveDice(['planet', 'sign', 'house']);
-    setFaces(randomTargetFaces());
-    setPhase('firstRoll');
-    setResetSignal((n) => n + 1);
-    savedRef.current = false;
-    readingIdRef.current = null;
-    setReadingId(null);
-  }, []);
+  // Le 1er tirage se déclenche par le GESTE sur le gobelet (secousse/push) —
+  // le bouton « Recommencer un tirage » et son encart ont été supprimés
+  // (inutiles) ; un nouveau tirage se reprend depuis le hub des dés.
+  // (Le verrou scroll/geste du lancer est assuré par AstroDiceCup lui-même :
+  // pad touchAction:none + lock page html/body pendant rolling/strike.)
 
   // Relance sélective : on ne relance QUE le dé concerné. On réduit
   // activeDice à 1 dé pour que le gobelet n'affiche/lance que celui-ci.
@@ -228,6 +203,11 @@ function AffinagePage() {
     document.documentElement.style.touchAction = 'none';
     setOption(opt);
     setAnalysis(null);
+    // Purger DÈS L'ICÎ l'analyse précédente : la gate de l'Écho scellé se
+    // base sur (analysis || analysisSynthese) — sinon l'augure du tirage
+    // d'avantage clignote pendant le nouveau lancer.
+    setAnalysisSections(null);
+    setAnalysisSynthese('');
     setShowTutorial(false);
     setActiveDice(opt === 'action' ? ['sign'] : ['house']);
     setFaces((prev) => {
@@ -241,8 +221,6 @@ function AffinagePage() {
     });
     setPhase('refineRoll');
     setResetSignal((n) => n + 1);
-    setOracleFlash(null);
-    setOracleFlashLoading(false);
   }, []);
 
   // Réception du résultat du gobelet (déclenché par le geste secousse+push,
@@ -324,7 +302,7 @@ function AffinagePage() {
     setAnalysisSections(null);
     setAnalysisSynthese('');
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         faces: result,
         activeKinds: presentKinds,
         mode: llmMode(),
@@ -332,6 +310,12 @@ function AffinagePage() {
         question: question || undefined,
         lang,
       };
+      // Affinage → le secret d'Artémis est demandé DANS ce même appel
+      // (réponse { texte, artemis }) : aucun rechargement IA à la révélation.
+      if (option && originalFacesRef.current) {
+        payload.withArtemis = true;
+        payload.originalFaces = originalFacesRef.current;
+      }
       const res = await fetch('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -339,6 +323,11 @@ function AffinagePage() {
       });
       const data = await res.json();
       if (seq !== analysisLastSeqRef.current) return; // réponse obsolète → ignorer
+      // Secret d'Artémis reçu EN MÊME TEMPS que l'analyse (aucun 2e appel).
+      if (data.artemis) {
+        setArtemisAdvice(String(data.artemis));
+        interpAccRef.current.artemis = String(data.artemis);
+      }
       let interpretationText = '';
       if (data.sections && Array.isArray(data.sections)) {
         setAnalysisSections(data.sections);
@@ -368,16 +357,92 @@ function AffinagePage() {
     }
   }, [result, presentKinds, phase, option, question]);
 
+  // Le secret d'Artémis ARRIVE AVEC l'analyse d'affinage (un seul appel IA) :
+  // le bouton ne fait que RÉVÉLER le texte déjà reçu — zéro rechargement.
+  // Filet de sécurité (rare : JSON fusionné malformé côté modèle) : si le
+  // chuchotement manque, on le demande en un petit appel à la révélation.
+  const revealArtemis = useCallback(async () => {
+    setArtemisRevealed(true);
+    if (artemisAdvice) return;
+    const orig = originalFacesRef.current;
+    if (!orig) return;
+    try {
+      const res = await fetch('/api/astro-dice-interpretation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: option === 'action' ? 'zoom-action' : 'zoom-domaine',
+          faces: result,
+          originalFaces: orig,
+          withArtemis: true,
+          activeKinds: ['planet', 'sign', 'house'],
+          dbInterpretation: dbInterpretation || undefined,
+          question: question || undefined,
+          lang,
+        }),
+      });
+      const data = await res.json();
+      setArtemisAdvice(
+        String(data.artemis || data.texte || '') ||
+        tr("Les étoiles se voilent un instant… le secret n'a pas pu être chuchoté. Recommence plus tard.", "The stars veil for a moment… the secret could not be whispered. Try again later.", "Las estrellas se velan un instante… el secreto no pudo susurrarse. Inténtalo más tarde.", "तारे एक पल के लिए आवृत हो गई हैं… रहस्य फुसफुसाया नहीं जा सका। बाद में पुनः प्रयास करें।"),
+      );
+    } catch {
+      setArtemisAdvice(tr("Les étoiles se voilent un instant… le secret n'a pas pu être chuchoté. Recommence plus tard.", "The stars veil for a moment… the secret could not be whispered. Try again later.", "Las estrellas se velan un instante… el secreto no pudo susurrarse. Inténtalo más tarde.", "तारे एक पल के लिए आवृत हो गई हैं… रहस्य फुसफुसाया नहीं जा सका। बाद में पुनः प्रयास करें।"));
+    }
+  }, [artemisAdvice, result, option, question, lang, dbInterpretation]);
+
   const showResult = phase === 'firstDone' || phase === 'refineDone';
+
+  // Analyse approfondie DÉSORMAIS AUTOMATIQUE (bouton supprimé sur demande) :
+  // à chaque nouveau résultat posé (1er tirage + affinage), une seule fois.
+  const analysisAutoRef = useRef(0);
+  useEffect(() => {
+    if (!showResult) return;
+    const epoch = ++analysisAutoRef.current;
+    if (analysis !== null || analysisSections !== null || analysisLoading) return;
+    const t = setTimeout(() => { if (epoch === analysisAutoRef.current) runAnalysis(); }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResult, result.planet, result.sign, result.house, option]);
+
+  // Recentre la vue sur l'analyse approfondie dès qu'elle tombe (repli
+  // d'arène + latence LLM peuvent la laisser hors champ sinon).
+  const oracleBlockRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const landed = analysisSections || analysis;
+    if (!landed || analysisLoading || !showResult) return;
+    const t = setTimeout(() => {
+      const el = oracleBlockRef.current;
+      if (!el) return;
+      // -76 : le titre reste SOUS la barre de navigation.
+      window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 76), behavior: 'smooth' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [analysisSections, analysis, analysisLoading, showResult]);
+
+  // Nouvelle analyse posée (1er tirage ou affinage) → le secret se referme
+  // et se purge : il doit re-naître du NOUVEAU dé relancé, pas de l'ancien.
+  useEffect(() => {
+    setArtemisRevealed(false);
+    setArtemisAdvice(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, analysisSections]);
+
 
   // Amène l'utilisateur au résultat dès qu'il apparaît (après le tirage),
   // en laissant un espace en haut pour le menu (pas de scroll collé au bord).
   useEffect(() => {
-    if (showResult && resultRef.current) {
-      const top = resultRef.current.getBoundingClientRect().top + window.scrollY;
+    if (!showResult) return;
+    // Repli de l'arène animé sur 550 ms : scroller APRÈS, sinon la position
+    // mesurée est fausse (on reste dans le vide intermédiaire).
+    const t = setTimeout(() => {
+      const el = resultRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
       const OFFSET = 80; // laisse un peu d'air pour le menu en haut de l'écran
       window.scrollTo({ top: Math.max(0, top - OFFSET), behavior: 'smooth' });
-    }
+    }, 620);
+    return () => clearTimeout(t);
   }, [showResult]);
 
   // ── Fetch DB interpretation après chaque tirage réussi ──
@@ -424,57 +489,6 @@ function AffinagePage() {
       .finally(() => { if (seq === dbLastSeqRef.current) setDbLoading(false); });
   }, [showResult, result.planet, result.sign, result.house]);
 
-  // ── Oracle flash : déclenché automatiquement dès que les dés sont posés ──
-  // Guard anti-course : si un nouveau tirage arrive pendant que la requête est
-  // en vol, la réponse tardive de l'ancien tirage ne doit pas écraser l'état.
-  const oracleFlashLastSeqRef = useRef(0);
-  useEffect(() => {
-    if (!showResult) return;
-    if (!result.planet || !result.sign || !result.house) return;
-    // Déjà chargé pour ce tirage ? On évite de re-lancer.
-    if (oracleFlash !== null || oracleFlashLoading) return;
-
-    const seq = nextRaceSeq();
-    oracleFlashLastSeqRef.current = seq;
-    setOracleFlashLoading(true);
-    const planetGlyph = result.planet as string;
-    const signGlyph = result.sign as string;
-    const houseNum = result.house;
-
-    const payload: any = {
-      faces: { planet: planetGlyph, sign: signGlyph, house: houseNum },
-      activeKinds: ['planet', 'sign', 'house'],
-      question: question || undefined,
-      lang,
-    };
-    // Si affinage : passer l'option + les faces originales pour comparaison
-    if (option && originalFacesRef.current) {
-      payload.option = option;
-      payload.originalFaces = originalFacesRef.current;
-    }
-
-    fetch('/api/astro-dice-oracle-flash', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (seq !== oracleFlashLastSeqRef.current) return; // réponse obsolète → ignorer
-        if (data.oracle) {
-          setOracleFlash(data.oracle);
-          interpAccRef.current.oracleFlash = data.oracle;
-          if (readingIdRef.current) {
-            updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
-          }
-        }
-      })
-      .catch(() => {
-        // silencieux — l'oracle flash est un bonus
-      })
-      .finally(() => { if (seq === oracleFlashLastSeqRef.current) setOracleFlashLoading(false); });
-  }, [showResult, result, question, oracleFlash, oracleFlashLoading]);
-
   return (
     <><style dangerouslySetInnerHTML={{__html: `
       @keyframes glow-pulse {
@@ -495,29 +509,34 @@ function AffinagePage() {
       <DiceTitle title={t('des.affinage.title')} />
 
       <div className="mx-auto max-w-2xl px-4 pb-0 sm:pb-0">
-        {/* Question avant le premier tirage */}
+        {/* Question à enregistrer — MODALE SEULE posée AVANT le gobelet : rien
+            d'autre n'est visible tant qu'elle n'est pas confirmée. Le champ
+            reste VIDE (pas de pré-remplissage) ; placeholder = exemple type ;
+            validation impossible si < 2 mots. « Enregistrer » ferme la modale,
+            révèle l'astrodice (remonté sous le titre) et le tutoriel. */}
         {phase === 'initial' && !hasLaunched && (
-          <>
+          <div className="fixed inset-0 z-[95] flex items-center justify-center px-4" style={{ background: 'rgba(6,3,8,0.82)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-sm">
             <AskQuestion
-            initial={lastDiceQuestion || undefined}
+            required
+            minWords={2}
             onConfirm={(q) => {
               setQuestion(q);
               setHasLaunched(true);
             }}
-            glowLabel={!question ? "Concentrez-vous sur votre question" : undefined}
-            label={tr("Garder votre question en mémoire (facultatif)", "Keep your question in mind (optional)", "Guardar su pregunta en la memoria (opcional)", "अपने प्रश्न को याद रखें (वैकल्पिक)")}
-            placeholder={tr("Garder votre question en mémoire (facultatif)", "Keep your question in mind (optional)", "Guardar su pregunta en la memoria (opcional)", "अपने प्रश्न को याद रखें (वैकल्पिक)")}
-            confirmLabel="Enregistrer"
-            launchLabel="Lancer les dés zodiacaux !"
+            glowLabel={!question ? tr("Concentrez-vous sur votre question", "Focus on your question", "Concéntrese en su pregunta", "अपने प्रश्न पर ध्यान केंद्रित करें") : undefined}
+            placeholder={tr("Ex. : Comment débloquer ma situation avec mon associé ?", "E.g.: How can I untangle my situation with my business partner?", "P. ej.: ¿Cómo desbloquear mi situación con mi socio?", "उदा.: अपने सहযোগी के साथ मेरी स्थिति कैसे सुधारें?")}
+            confirmLabel={tr("Enregistrer", "Save", "Guardar", "सहेजें")}
             onLaunch={() => {
               setHasLaunched(true);
               setShowTutorial(true);
               setTimeout(() => {
-                tutorialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }, 500);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }, 150);
             }}
           />
-          </>
+          </div>
+          </div>
         )}
 
         {/* Question persistante après enregistrement */}
@@ -538,51 +557,55 @@ function AffinagePage() {
           </p>
         )}
 
-        {/* Gobelet + tutoriel superposé */}
+        {/* Gobelet + tutoriel superposé. L'arène se REPLIE (hauteur animée
+            → 0) dès qu'un tirage est posé : sinon le gobelet fondu laisse un
+            grand vide sous le titre. Elle se rouvre pour l'affinage (refineRoll). */}
         <div
           className="relative overflow-visible"
           style={{
-            marginTop: hasLaunched ? 0 : 0,
-            height: hasLaunched ? 400 : 460,
+            marginTop: 0,
+            height: (hasLaunched && !showResult) ? 400 : 0,
             zIndex: 0,
+            transition: 'height 550ms ease',
           }}>
+          {hasLaunched && !showResult && (
           <div
             style={{
-              height: hasLaunched ? 400 : 460,
+              height: 400,
               opacity: ready ? 1 : 0,
               overflow: 'hidden',
               transition: 'opacity 450ms ease',
               pointerEvents: ready ? 'auto' : 'none',
-              marginTop: hasLaunched ? -1 : -16,
+              marginTop: -1,
             }}
           >
           <AstroDiceCup
             key={resetSignal}
             targetFaces={faces}
             skin={skin}
-            height={hasLaunched ? 400 : 460}
+            height={400}
             activeKinds={activeDice}
             onRest={handleRest}
             onReady={() => { setReady(true); }}
             resetSignal={resetSignal}
             launchSignal={0}
             onShake={() => setShowTutorial(false)}
-            lockScroll={phase === 'firstRoll' || phase === 'refineRoll'}
-            verticalShift={hasLaunched ? 0 : 0}
+            lockScroll={true}
+            verticalShift={0}
             diceHop={0.18}
           />
           </div>
+          )}
         </div>
 
-        {/* Tutoriel en dessous du gobelet */}
+        {/* Tutoriel en dessous du gobelet — DÉMONTÉ (et non plus fondu) une
+            fois masqué : une opacité 0 réservait sa place → grand vide sous
+            le titre après le tirage. */}
+        {showTutorial && (
         <div
           ref={tutorialRef}
-          className="flex flex-col items-center transition-opacity duration-300"
-          style={{
-            marginTop: 24,
-            opacity: showTutorial ? 1 : 0,
-            pointerEvents: showTutorial ? 'auto' : 'none',
-          }}
+          className="flex flex-col items-center"
+          style={{ marginTop: 24 }}
           >
             <style>{`
               @keyframes swipe-shake-affinage {
@@ -614,6 +637,7 @@ function AffinagePage() {
               {tr("Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter", "Shake the cup to mix the dice, then swipe up to cast them", "Agite el vaso para mezclar los dados y deslice hacia arriba para lanzarlos", "गिलास को हिलाकर पाशों को मिलाएँ, फिर फेंकने के लिए ऊपर स्लाइड करें")}
             </p>
           </div>
+        )}
 
         {/* CARTE-RÉSULTAT PROÉMINENTE + ENCART ANALYSE */}
         <AnimatePresence>
@@ -622,78 +646,12 @@ function AffinagePage() {
               ref={resultRef}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
+              className="mt-2"
             >
-              {/* Carte-résultat : chaque dé tiré, glyphe + nom + sens statique */}
-              <div
-                className="mx-auto max-w-2xl rounded-3xl p-5 sm:p-6"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDark} 100%)`,
-                  border: `1.5px solid ${DICE_THEME.gold}66`,
-                  boxShadow: `0 0 40px ${DICE_THEME.gold}22, inset 0 0 30px ${DICE_THEME.gold}10`,
-                }}
-              >
-                <h3
-                  className="mb-4 text-center text-lg font-bold"
-                  style={{
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: DICE_THEME.ocreLight,
-                    textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-                  }}
-                >
-                  {t('des.affinage.yourDice')}
-                </h3>
-                <div
-                  className="grid gap-4"
-                  style={{ gridTemplateColumns: `repeat(${presentKinds.length}, minmax(0, 1fr))` }}
-                >
-                  {presentKinds.map((k) => {
-                    const val = result[k] as string | number;
-                    const dieName =
-                      k === 'planet'
-                        ? planetName(val as string, getRuntimeLang())
-                        : k === 'sign'
-                          ? signName(val as string, getRuntimeLang())
-                          : houseName(val, getRuntimeLang());
-                    return (
-                      <div
-                        key={k}
-                        className="flex flex-col items-center rounded-2xl p-3 text-center"
-                        style={{
-                          background: `${DICE_THEME.gold}0f`,
-                          border: `1px solid ${DICE_THEME.gold}33`,
-                        }}
-                      >
-                        <div
-                          className="text-4xl leading-none bleu-ciel-glyph"
-                        >
-                          {val}
-                        </div>
-                        <div
-                          className="mt-2 text-xs uppercase tracking-widest"
-                          style={{ color: DICE_THEME.glyph, opacity: 0.7 }}
-                        >
-                          {KIND_LABEL[k]}
-                        </div>
-                        <p
-                          className="mt-2 text-base font-semibold leading-snug"
-                          style={{
-                            fontFamily: 'var(--font-cinzel), serif',
-                            color: DICE_THEME.ocreLight,
-                            textShadow: `0 0 10px ${DICE_THEME.gold}44`,
-                          }}
-                        >
-                          {dieName}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* ENCART ANALYSE : statique immédiate + zone LLM en dessous */}
               <div
-                className="mx-auto mt-5 max-w-2xl rounded-3xl p-5 sm:p-6"
+                ref={oracleBlockRef}
+                className="mx-auto mt-1 max-w-2xl rounded-3xl p-5 sm:p-6"
                 style={{
                   background: `linear-gradient(135deg, ${DICE_THEME.ocre}14 0%, ${DICE_THEME.brick} 100%)`,
                   border: `1.5px solid ${DICE_THEME.ocre}55`,
@@ -708,28 +666,13 @@ function AffinagePage() {
                     textShadow: `0 0 12px ${DICE_THEME.gold}44`,
                   }}
                 >
-                  {option ? 'Analyse de l\'affinage' : 'Analyse du tirage'}
+                  {option ? t('des.affinage.analysisRefine') : t('des.affinage.analysisTitle')}
                 </h3>
 
-                {/* Partie statique — instantanée (fait patienter) */}
-                <div className="space-y-3">
-                  {presentKinds.map((k) => {
-                    const val = result[k] as string | number;
-                    return (
-                      <div
-                        key={k}
-                        className="flex gap-3 text-sm leading-relaxed"
-                        style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                      >
-                        <span
-                          className="mt-0.5 text-2xl leading-none bleu-ciel-glyph"
-                        >
-                          {val}
-                        </span>
-                        <span style={{ opacity: 0.92 }}>{meaningFor(k, val)}</span>
-                      </div>
-                    );
-                  })}
+                {/* Pilule des faces (moule /choix & /obstacle-solution) : un tap
+                    ouvre la modale donnant la signification exacte de chaque dé. */}
+                <div className="mb-1">
+                  <ClickableFaces faces={result as TargetFaces} />
                 </div>
 
                 {/* ── Comparaison visuelle pour l'affinage ── */}
@@ -801,70 +744,6 @@ function AffinagePage() {
                     >
                       Le fond du problème ne change pas,<br />
                       c&rsquo;est la sensibilité du microscope qui s&rsquo;ajuste.
-                    </p>
-                  </div>
-                )}
-
-                {/* ── Oracle flash remplace l'interprétation combinée ── */}
-                {/* Si pas de question, on affiche l'interprétation DB comme fallback */}
-                {oracleFlashLoading && (
-                  <div
-                    className="mt-5 rounded-2xl p-4 text-center text-xs italic"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                      border: `1.5px solid ${DICE_THEME.gold}66`,
-                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                      fontFamily: 'var(--font-cinzel), serif',
-                      color: DICE_THEME.glyph,
-                      opacity: 0.6,
-                    }}
-                  >
-                    {question ? 'Les énergies se rassemblent…' : dbLoading ? 'Recherche de l\'interprétation…' : ''}
-                  </div>
-                )}
-                {oracleFlash && (
-                  <div
-                    className="mt-5 rounded-2xl p-4"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                      border: `1.5px solid ${DICE_THEME.gold}66`,
-                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                    }}
-                  >
-                    <p
-                      className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                      style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                    >
-                      {tr("Oracle du tirage", "Reading Oracle", "Oráculo de la tirada", "विन्यास का ओरैकल")}
-                    </p>
-                    <p
-                      className="text-center text-sm leading-relaxed italic"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                    >
-                      « {oracleFlash} »
-                    </p>
-                  </div>
-                )}
-                {!oracleFlash && !oracleFlashLoading && dbInterpretation && (
-                  <div
-                    className="mt-5 rounded-2xl p-4"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                      border: `1.5px solid ${DICE_THEME.gold}66`,
-                      boxShadow: `inset 0 0 24px ${DICE_THEME.gold}14`,
-                    }}
-                  >
-                    <p
-                      className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                      style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                    >
-                      {tr("Résumé du tirage", "Reading summary", "Resumen de la tirada", "विन्यास का सारांश")}
-                    </p>
-                    <p
-                      className="text-center text-sm leading-relaxed"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                    >
-                      {dbInterpretation}
                     </p>
                   </div>
                 )}
@@ -953,16 +832,91 @@ function AffinagePage() {
                     </div>
                   )}
 
-                  {!analysis && !analysisSections && !analysisLoading && (
-                    <div className="text-center">
-                      <DiceButton variant="blue" onClick={runAnalysis}>
-                        {t('des.affinage.analyze')}
-                      </DiceButton>
-                    </div>
-                  )}
 
-                  {/* ✶ L'Écho scellé — prémonction datée née de cette lecture. */}
-                  {readingId && (analysis || analysisSynthese) && (
+
+                  {/* ── Le secret d'Artémis — réservé à la FIN de la 2ᵉ phase :
+                      le chuchotement ARRIVE AVEC l'analyse d'affinage (même
+                      appel IA, payload withArtemis) — le bouton ne fait que le
+                      RÉVÉLER, instantanément. Encart spécial (moule Conseil
+                      d'Odin), fond lunaire provisoire — remplacer par l'image
+                      user (TODO background). */}
+                  {phase === 'refineDone' && !analysisLoading && (analysisSections || analysis) && !!originalFacesRef.current && (() => {
+                    if (!artemisRevealed) {
+                      return (
+                        <div className="mt-6 text-center">
+                          <button
+                            type="button"
+                            onClick={revealArtemis}
+                            className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95"
+                            style={{
+                              background:
+                                'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), #005f6a',
+                              color: '#fff',
+                              fontFamily: 'var(--font-cinzel), serif',
+                              boxShadow:
+                                '0 0 16px rgba(0,95,106,0.5), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -3px 7px rgba(0,0,0,0.35)',
+                            }}
+                          >
+                            <span aria-hidden className="text-base leading-none">☾</span>
+                            {t('des.affinage.artemis.reveal')}
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.97 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative mx-auto mt-6 overflow-hidden rounded-3xl p-6 text-center"
+                        style={{
+                          maxWidth: 560,
+                          background:
+                            'radial-gradient(120% 90% at 50% 0%, #17224a 0%, #0a1430 55%, #050a1c 100%)',
+                          border: '1.5px solid rgba(220,230,245,0.28)',
+                          boxShadow: '0 0 34px rgba(180,200,255,0.16), inset 0 0 30px rgba(10,20,48,0.9)',
+                        }}
+                      >
+                        {/* Halo lunaire (remplacera l'image user à terme) */}
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full"
+                          style={{
+                            background:
+                              'radial-gradient(circle, rgba(226,236,255,0.35), rgba(226,236,255,0.06) 55%, transparent 75%)',
+                          }}
+                        />
+                        <p
+                          className="mb-3 flex items-center justify-center gap-2 text-base font-bold uppercase tracking-[0.14em]"
+                          style={{
+                            fontFamily: 'var(--font-cinzel-deco), serif',
+                            backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #DCE6F5 45%, #9FB4E8 100%)',
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                            filter:
+                              'drop-shadow(0 2px 3px rgba(0,0,0,0.55)) drop-shadow(0 0 14px rgba(200,215,255,0.45))',
+                          }}
+                        >
+                          <span aria-hidden style={{ color: '#DCE6F5', WebkitTextFillColor: '#DCE6F5' }}>✦</span>
+                          {t('des.affinage.artemis.title')}
+                          <span aria-hidden style={{ color: '#DCE6F5', WebkitTextFillColor: '#DCE6F5' }}>✦</span>
+                        </p>
+                        <p
+                          className="text-sm leading-relaxed italic"
+                          style={{ fontFamily: 'var(--font-cinzel), serif', color: '#EAF1FF' }}
+                        >
+                          {artemisAdvice || t('des.affinage.artemis.whispering')}
+                        </p>
+                      </motion.div>
+                    );
+                  })()}
+
+                  {/* ✶ L'Écho scellé — prémonction datée née de cette lecture.
+                      Proposée UNIQUEMENT quand l'affinage est terminé (option
+                      choisie + analyse posée) : avant, la lecture va encore
+                      évoluer (zoom A/B), sceller trop tôt figerait un brouillon. */}
+                  {readingId && phase === 'refineDone' && !analysisLoading && (analysis || analysisSynthese) && (
                     <EchoBox
                       domain="des"
                       readingId={readingId}
@@ -976,9 +930,12 @@ function AffinagePage() {
           )}
         </AnimatePresence>
 
-        {/* Après le 1er tirage : proposer les deux options d'affinage */}
+        {/* Après le 1er tirage : proposer les deux options d'affinage — mais
+            UNIQUEMENT une fois l'analyse IA du tirage initial ENTIÈREMENT
+            affichée (chargement LLM terminé + sections/synthèse posées) :
+            avant, les boutons seraient prématurés. */}
         <AnimatePresence>
-          {phase === 'firstDone' && (
+          {phase === 'firstDone' && !analysisLoading && !!(analysisSections || analysis) && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -994,65 +951,74 @@ function AffinagePage() {
               >
                 {t('des.affinage.choose')}
               </p>
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <DiceButton variant="blue" onClick={() => refine('action')}>
-                                  {t('des.affinage.optA')}
-                                </DiceButton>
-                                <DiceButton variant="blueLight" onClick={() => refine('domaine')}>
-                                  {t('des.affinage.optB')}
-                                </DiceButton>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {[
+                  { opt: 'action' as const, glyph: '♌', title: t('des.affinage.cardA.title'), desc: t('des.affinage.cardA.desc'), chip: t('des.affinage.cardA.chip'), accent: '#D4AF37' },
+                  { opt: 'domaine' as const, glyph: '⌂', title: t('des.affinage.cardB.title'), desc: t('des.affinage.cardB.desc'), chip: t('des.affinage.cardB.chip'), accent: '#8FB8FF' },
+                ].map((c) => (
+                  <motion.button
+                    key={c.opt}
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    whileHover={{ y: -3 }}
+                    onClick={() => refine(c.opt)}
+                    className="group relative overflow-hidden rounded-3xl p-5 text-left transition-all"
+                    style={{
+                      background: `linear-gradient(145deg, ${DICE_THEME.ocre}1f 0%, ${DICE_THEME.brickDark} 90%)`,
+                      border: `1.5px solid ${c.accent}55`,
+                      boxShadow: `inset 0 0 26px ${DICE_THEME.ocre}10, 0 10px 24px rgba(0,0,0,0.35)`,
+                    }}
+                  >
+                    {/* Glyphe filigrane (coin haut-droit) */}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -right-3 -top-7 select-none text-[6.5rem] leading-none opacity-[0.08] transition-opacity group-hover:opacity-[0.16]"
+                      style={{ color: c.accent }}
+                    >
+                      {c.glyph}
+                    </span>
+                    <span className="relative flex items-center gap-2.5">
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl"
+                        style={{
+                          background: `${c.accent}1f`,
+                          border: `1px solid ${c.accent}66`,
+                          color: c.accent,
+                          textShadow: `0 0 10px ${c.accent}66`,
+                        }}
+                      >
+                        {c.glyph}
+                      </span>
+                      <span
+                        className="text-base font-bold uppercase tracking-wider"
+                        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.ocreLight }}
+                      >
+                        {c.title}
+                      </span>
+                    </span>
+                    <span
+                      className="relative mt-3 block text-sm leading-snug"
+                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.85 }}
+                    >
+                      {c.desc}
+                    </span>
+                    <span
+                      className="relative mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] uppercase tracking-widest"
+                      style={{ background: `${c.accent}14`, border: `1px solid ${c.accent}44`, color: c.accent }}
+                    >
+                      ⟳ {c.chip}
+                    </span>
+                  </motion.button>
+                ))}
               </div>
-              <p
-                className="mt-3 text-center text-xs"
-                style={{
-                  fontFamily: 'var(--font-cinzel), serif',
-                  color: DICE_THEME.glyph,
-                  opacity: 0.6,
-                }}
-              >
-                {t('des.affinage.hint')}
-              </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Après l'affinage : question interprétative */}
-        <AnimatePresence>
-          {phase === 'refineDone' && option && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
-            >
-              <div
-                className="mx-auto max-w-2xl rounded-2xl p-5"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.ocre}22 0%, ${DICE_THEME.ocre}11 100%)`,
-                  border: `1.5px solid ${DICE_THEME.ocre}66`,
-                  boxShadow: `inset 0 0 30px ${DICE_THEME.ocre}18`,
-                }}
-              >
-                <h3
-                  className="mb-3 text-center text-lg font-bold"
-                  style={{
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: DICE_THEME.ocreLight,
-                    textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-                  }}
-                >
-                  {option === 'action' ? t('des.affinage.zoomAction') : t('des.affinage.zoomDomaine')}
-                </h3>
-                <p className="text-center italic" style={{ color: DICE_THEME.glyph }}>
-                  {option === 'action' ? t('des.affinage.qAction') : t('des.affinage.qDomaine')}
-                </p>
-              </div>
-
-              <div className="mt-6 text-center">
-                <DiceButton onClick={rollFirst}>{t('runes.retry')}</DiceButton>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Après l'affinage : plus rien d'additionnel — l'encart « Le zoom
+            d'action/domaine » et le bouton « Recommencer un tirage » ont été
+            supprimés (inutiles : l'analyse d'affinage suffit, et un nouveau
+            tirage se reprend depuis le hub). */}
       </div>
     </DiceBackground>
       <link

@@ -71,7 +71,7 @@ const THEMES: Record<StarryVariant, StarryTheme> = {
     stars: ['#fff4d6', '#ffe9b8', '#f5d78a', '#e8c66a', '#ffffff'],
     comets: ['#ffe9b8', '#f5d78a', '#fffdf2'],
     veil: [200, 160, 80],
-    moon: { color: '#f5d78a', halo: '200, 170, 100', x: 0.8, y: 0.18, r: 0.05 },
+    moon: { color: '#f5d78a', halo: '200, 170, 100', x: 0.88, y: 0.11, r: 0.05 },
   },
   silver: {
     night: ['#0a1126', '#070d1d', '#040814', '#02040c', '#010205'],
