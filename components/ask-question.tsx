@@ -43,8 +43,8 @@ interface AskQuestionProps {
   autoFocus?: boolean;
   /** Question obligatoire : le bouton de confirmation reste désactivé tant que le champ est vide. */
   required?: boolean;
-  /** Question suggérée (continuité d'un tirage précédent) — pré-remplit le champ. */
-  initial?: string;
+  /** Nombre minimum de mots pour valider (cumulé avec `required`). */
+  minWords?: number;
   /** Couleur du bouton de confirmation (défaut : teal « Enregistrer »). */
   confirmColor?: string;
 }
@@ -61,18 +61,15 @@ export function AskQuestion({
   questionValueRef,
   autoFocus = true,
   required = false,
-  initial,
+  minWords = 0,
   confirmColor,
 }: AskQuestionProps) {
   const t = useT();
-  const [question, setQuestion] = useState(initial ?? '');
+  // NB : `initial` ne PRÉ-REMPLIT plus le champ (exigence user 2026-10-04 :
+  // « le champ doit rester vide jusqu'à ce que l'utilisateur le remplisse ») ;
+  // il ne sert qu'à l'éventuel rappel visuel via placeholder — ici ignoré.
+  const [question, setQuestion] = useState('');
   const [visible, setVisible] = useState(true);
-  // Pré-remplissage différé (suggestion chargée depuis l'historique) : on ne
-  // l'applique que si le champ est encore vide (pas d'écrasement de la saisie).
-  useEffect(() => {
-    if (initial && !question) setQuestion(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,7 +87,7 @@ export function AskQuestion({
 
   const handleConfirm = () => {
     const q = question.trim();
-    if (required && !q) return; // question obligatoire : rien à enregistrer
+    if (required && wordCount < Math.max(1, minWords)) return; // question obligatoire : trop courte
     onConfirm(q || null);
     setVisible(false);
     onLaunch?.();
@@ -98,13 +95,16 @@ export function AskQuestion({
 
   const handleLaunch = () => {
     const q = question.trim();
-    if (required && !q) return;
+    if (required && wordCount < Math.max(1, minWords)) return;
     onConfirm(q || null);
     setVisible(false);
     onLaunch?.();
   };
 
-  const qEmpty = required && !question.trim();
+  // Validation : vide OU un seul mot → impossible de valider (exigence user
+  // 2026-10-04 pour /affinage : minWords ≥ 2).
+  const wordCount = question.trim().split(/\s+/).filter(Boolean).length;
+  const qEmpty = required && wordCount < Math.max(1, minWords);
 
   // « Enregistrer » : pilule teal glossée fixe (même design que RuneButton
   // variant="save") sur toutes les pages ; accentColor ne teint plus que le
@@ -133,7 +133,7 @@ export function AskQuestion({
           {glowLabel && (
             <p className="mb-3 affinage-glow">{glowLabel}</p>
           )}
-          {required && (
+          {required && !glowLabel && (
             <p
               className="mb-2.5 text-sm"
               style={{

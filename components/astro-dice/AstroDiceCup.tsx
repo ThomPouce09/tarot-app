@@ -462,11 +462,17 @@ export default function AstroDiceCup({
   const handleRest = useCallback(
     (faces: TargetFaces) => {
       setRolling(false);
-      setStrike((s) => { const rl = getRuntimeLang(); return { t: [
-        [String(faces.planet), planetName(String(faces.planet), rl)],
-        [String(faces.sign), signName(String(faces.sign), rl)],
-        [String(faces.house), houseName(faces.house, rl)],
-      ] as [string, string][], n: (s?.n ?? 0) + 1 }; });
+      setStrike((s) => {
+        const rl = getRuntimeLang();
+        // Un seul jet d'affinage (1 dé) → ne frapper QUE les faces présentes :
+        // sur un objet partiel, String(undefined) produisait des tokens
+        // « undefined » pendant la constellation.
+        const t: [string, string][] = [];
+        if (faces.planet) t.push([String(faces.planet), planetName(String(faces.planet), rl)]);
+        if (faces.sign) t.push([String(faces.sign), signName(String(faces.sign), rl)]);
+        if (faces.house) t.push([String(faces.house), houseName(faces.house, rl)]);
+        return { t, n: (s?.n ?? 0) + 1 };
+      });
       setArenaGone(true);
       // Le résultat (scroll + oracle des pages) n'est remonté qu'après la
       // frappe complète : décalage 0,5 s + musique + 2 s de lisibilité +
@@ -490,6 +496,32 @@ export default function AstroDiceCup({
     }
     prevRolling.current = rolling;
   }, [rolling, x, y, rotate]);
+
+  // ── Verrouillage de la page PENDANT le lancer (exigence user 2026-10-04) :
+  // scroll et gestes figés (H+V) dès la bascule du gobelet jusqu'à la fin de
+  // la frappe — dès que les dés sont hors du gobelet, tout est rétabli. ──
+  // NB : le cleanup force '' (et ne restaure PAS la valeur capturée) : pendant
+  // le lancer, la PAGE a déjà posé son propre lock « hidden » ; restaurer la
+  // valeur capturée ré-imposerait hidden APRÈS le déverrouillage de la page →
+  // résultat non scrollable (race observée 2026-10-04).
+  useEffect(() => {
+    if (!rolling && !strike) return;
+    const html = document.documentElement;
+    const body = document.body;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    html.style.touchAction = 'none';
+    const prevent = (e: Event) => e.preventDefault();
+    window.addEventListener('wheel', prevent, { passive: false });
+    window.addEventListener('touchmove', prevent, { passive: false });
+    return () => {
+      html.style.overflow = '';
+      body.style.overflow = '';
+      html.style.touchAction = '';
+      window.removeEventListener('wheel', prevent);
+      window.removeEventListener('touchmove', prevent);
+    };
+  }, [rolling, strike]);
 
   const cupStyle: MotionStyle = {
     position: 'absolute',
@@ -553,7 +585,7 @@ export default function AstroDiceCup({
       {/* ANIM 2 — overlay gobelet transparent au bord bas de l'arène. Non
           interactif : c'est le pad du bas qui capte les gestes ; le gobelet
           réagit visuellement (transform lié aux MotionValue). */}
-      <motion.div style={cupStyle} animate={{ opacity: strike ? 0 : 1 }} transition={{ duration: 0.55 }}>
+      <motion.div style={cupStyle} animate={{ opacity: strike || arenaGone ? 0 : 1 }} transition={{ duration: 0.55 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cupImg}
@@ -607,7 +639,7 @@ export default function AstroDiceCup({
           bottom: 0,
           height: PAD_HEIGHT,
           zIndex: 7,
-          touchAction: lockScroll ? 'none' as const : 'pan-y' as const,
+          touchAction: lockScroll || rolling || strike ? 'none' as const : 'pan-y' as const,
           userSelect: 'none',
           display: 'flex',
           alignItems: 'center',

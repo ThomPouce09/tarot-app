@@ -107,13 +107,19 @@ export function ConstellationStrike({
     return () => window.clearTimeout(t);
   }, [visible, soundKey]);
   if (!visible) return null;
-  const pts = [[34, 122], [122, 60], [70, 12]];                       // points d'impact
-  const from = [[-64, -74], [214, -28], [-34, 218]];                  // départs hors cadre
+  // Voie spécifique par nombre de faces frappées (affinage = 1 dé relancé) :
+  // 1 → une seule étoile centrale (plus grande) sans liens d'or ; 2 → balance ;
+  // 3 → la constellation complète. Les tokens partiels ne produisent plus de
+  // « undefined » (AstroDiceCup ne garde que les faces présentes).
+  const n = Math.max(1, Math.min(3, tokens.length));
+  const pts = n === 1 ? [[78, 76]] : n === 2 ? [[44, 110], [112, 42]] : [[34, 122], [122, 60], [70, 12]];
+  const from = n === 1 ? [[-72, -90]] : n === 2 ? [[-64, -74], [214, -28]] : [[-64, -74], [214, -28], [-34, 218]];
+  const links = pts.slice(0, -1).map((a, i) => [a, pts[i + 1]]);
   return (
     <svg viewBox="0 0 156 148" className="pointer-events-none absolute inset-0 h-full w-full" style={{ zIndex: 30 }} aria-hidden>
       {/* dégradés de traits : fondus aux deux bouts (atténuation près des astres) */}
-      {[[34, 122], [122, 60]].map(([ax, ay], i) => {
-        const [bx, by] = i === 0 ? [122, 60] : [70, 12];
+      {links.map(([a, b], i) => {
+        const [ax, ay] = a; const [bx, by] = b;
         return (
           <defs key={i}>
             <linearGradient id={`cons-fade-${i}`} gradientUnits="userSpaceOnUse" x1={ax} y1={ay} x2={bx} y2={by}>
@@ -133,14 +139,14 @@ export function ConstellationStrike({
         transition={{ duration: total / 1000, times: [0, (musicMs + 2500) / total, 1] }}>
       {/* liens d'or : la constellation se referme — DERRIÈRE les glyphes/noms,
           raccourcis et fondus aux extrémités pour ne jamais les rayer. */}
-      {[[34, 122], [122, 60]].map(([ax, ay], i) => {
-        const b = i === 0 ? [122, 60] : [70, 12];
-        const dx = b[0] - ax, dy = b[1] - ay; const len = Math.hypot(dx, dy) || 1;
+      {links.map(([a, b], i) => {
+        const [ax, ay] = a; const [bx, by] = b;
+        const dx = bx - ax, dy = by - ay; const len = Math.hypot(dx, dy) || 1;
         const gap = 13;
         return (
           <motion.line key={i}
             x1={ax + (dx / len) * gap} y1={ay + (dy / len) * gap}
-            x2={b[0] - (dx / len) * gap} y2={b[1] - (dy / len) * gap}
+            x2={bx - (dx / len) * gap} y2={by - (dy / len) * gap}
             stroke={`url(#cons-fade-${i})`} strokeWidth="1.3" strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: [0, 1], opacity: [0, 0.9] }}
@@ -156,13 +162,13 @@ export function ConstellationStrike({
             animate={{ x: [fx, tx, tx], y: [fy, ty, ty], opacity: [0, 1, 1] }}
             transition={{ duration: 0.6, delay: t0, times: [0, 0.85, 1], ease: 'easeOut' }}>
             {/* traînée de la filante */}
-            <line x1="0" y1="0" x2={dx} y2={dy} stroke={GOLD} strokeWidth="2" strokeLinecap="round" opacity="0.45" />
-            <text x="0" y="0" textAnchor="middle" dominantBaseline="middle" fontSize="26" fill={GOLD}
+            <line x1="0" y1="0" x2={dx} y2={dy} stroke={GOLD} strokeWidth={n === 1 ? 3 : 2} strokeLinecap="round" opacity="0.45" />
+            <text x="0" y="0" textAnchor="middle" dominantBaseline="middle" fontSize={n === 1 ? 38 : 26} fill={GOLD}
               style={{ fontFamily: 'var(--font-cinzel-deco), serif', filter: 'drop-shadow(0 0 10px rgba(233,217,172,0.95))' }}>
               {gly}
             </text>
             {/* le nom gravé sous l'étoile */}
-            <text x="0" y="18" textAnchor="middle" fontSize="7.2" fill={GOLD} opacity="0.95"
+            <text x="0" y={n === 1 ? 26 : 18} textAnchor="middle" fontSize={n === 1 ? 9 : 7.2} fill={GOLD} opacity="0.95"
               style={{ fontFamily: 'var(--font-cinzel), serif', letterSpacing: '0.12em', textTransform: 'uppercase', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}>
               {name}
             </text>

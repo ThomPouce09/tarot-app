@@ -23,7 +23,6 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import {
   DiceBackground,
   DiceTitle,
-  DiceButton,
   DICE_THEME,
   PLANET_NAMES,
   SIGN_NAMES,
@@ -31,17 +30,16 @@ import {
 import { randomTargetFaces, ALL_KINDS, type TargetFaces } from '@/components/astro-dice';
 import { meaningFor } from '@/components/astro-dice/meanings';
 import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
-import { HintLegende, legendeSeen, markLegendeSeen } from '@/components/astro-dice/constellation';
+import { HintLegende, ClickableFaces, legendeSeen, markLegendeSeen } from '@/components/astro-dice/constellation';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
 import { useT, useLang, contentLang, pickContent, tr , getRuntimeLang} from '@/lib/i18n';
-import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
-import OracleWaitAnimation, { setOracleWait } from '@/components/oracle-wait-animation';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
-import { api } from '@/lib/api-client';
+import AnalysisWaitCard from '@/components/analysis-wait-card';
 
 /* « Relancer » — pilule dorée gloss 3D (recette du bouton « Enregistrer », teinte or). */
 function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
@@ -69,9 +67,6 @@ function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onC
 }
 
 /* E-mail de session (localStorage) pour le verrou serveur d'analyse. */
-function readEmailLocal(): string {
-  try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email ?? ''; } catch { return ''; }
-}
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -126,9 +121,6 @@ function SimplifiePage() {
   const [legendeOn, setLegendeOn] = useState(false);
   useEffect(() => { setLegendeOn(!legendeSeen()); }, []);
   const closeLegende = useCallback(() => { setLegendeOn(false); markLegendeSeen(); }, []);
-  // Verrou « Analyser en profondeur » : réservé Initié/Arkane (modale paywall).
-  const { sub, gateReason, closeGate, openGate } = useEntitlement();
-  const canDeep = sub?.level === 'initie' || sub?.level === 'arkane';
   const [phase, setPhase] = useState<Phase>('intention');
   // Question composée « Élément — intention » (le tirage n'apparaît qu'après).
   const [question, setQuestion] = useState<string | null>(null);
@@ -142,14 +134,6 @@ function SimplifiePage() {
   const [result, setResult] = useState<Partial<TargetFaces>>(faces);
   const resultRef = useRef<HTMLDivElement>(null);
 
-  // Analyse LLM approfondie (bouton « Analyser en profondeur »)
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [analysisSections, setAnalysisSections] = useState<
-    { key: string; label: string; text: string }[] | null
-  >(null);
-  const [analysisSynthese, setAnalysisSynthese] = useState<string>('');
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisErrored, setAnalysisErrored] = useState(false);
   // Oracle flash — réponse courte, déclenchée automatiquement après le tirage
   const [oracleFlash, setOracleFlash] = useState<string | null>(null);
   const [oracleFlashLoading, setOracleFlashLoading] = useState(false);
@@ -180,15 +164,24 @@ function SimplifiePage() {
     else unlockScrollImmediate();
   }, [phase, lockScrollImmediate, unlockScrollImmediate]);
 
+  // Tutoriel sous l'astrodice (MOULE /affinage) : affiché au montage du
+  // gobelet, démonté à la première secousse — et il ne réserve AUCUNE place
+  // une fois masqué (démonté, pas fondu).
+  const [showTutorial, setShowTutorial] = useState(false);
+  useEffect(() => {
+    if (phase === 'firstRoll') {
+      const t = window.setTimeout(() => setShowTutorial(true), 500);
+      return () => window.clearTimeout(t);
+    }
+    setShowTutorial(false);
+  }, [phase]);
+
   // Lancer : validé par l'intention → on brasse et on jette.
   const launch = useCallback((q: string) => {
     setQuestion(q);
     setFaces(randomTargetFaces());
     setPhase('firstRoll');
     setResetSignal((n) => n + 1);
-    setAnalysis(null);
-    setAnalysisSections(null);
-    setAnalysisSynthese('');
     setOracleFlash(null);
     setOracleErrored(false);
     setDbInterpretation(null);
@@ -225,10 +218,16 @@ function SimplifiePage() {
 
   // Amener l'utilisateur au résultat dès qu'il apparaît.
   useEffect(() => {
-    if (phase === 'firstDone' && resultRef.current) {
-      const top = resultRef.current.getBoundingClientRect().top + window.scrollY;
+    if (phase !== 'firstDone') return;
+    // Le repli de l'arène du gobelet s'anime sur 550 ms : on scrolle APRÈS,
+    // sinon la position mesurée est fausse (trop haute, vide intermédiaire).
+    const t = setTimeout(() => {
+      const el = resultRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({ top: Math.max(0, top - 80), behavior: 'smooth' });
-    }
+    }, 620);
+    return () => clearTimeout(t);
   }, [phase]);
 
   // ── DB (curated) après chaque tirage ──
@@ -276,6 +275,7 @@ function SimplifiePage() {
     oracleLastSeqRef.current = seq;
     setOracleErrored(false);
     setOracleFlashLoading(true);
+    const startedAt = Date.now();
     api('/api/astro-dice-oracle-flash', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -290,19 +290,34 @@ function SimplifiePage() {
       .then((r) => { if (!r.ok) throw new Error('http'); return r.json(); })
       .then((data) => {
         if (seq !== oracleLastSeqRef.current) return;
-        if (data.oracle) {
-          setOracleFlash(data.oracle);
-          interpAccRef.current.oracleFlash = data.oracle;
-          if (readingIdRef.current) {
-            updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
+        // Fenêtre d'attente garantie ≥ 4 s (exigence user) : la vidéo
+        // d'analyse reste à l'écran même si l'IA répond plus vite.
+        const apply = () => {
+          if (seq !== oracleLastSeqRef.current) return;
+          if (data.oracle) {
+            setOracleFlash(data.oracle);
+            interpAccRef.current.oracleFlash = data.oracle;
+            if (readingIdRef.current) {
+              updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
+            }
+          } else {
+            // Réponse vide (LLM muet) → plantage : bouton de relance.
+            setOracleErrored(true);
           }
-        } else {
-          // Réponse vide (LLM muet) → plantage : bouton de relance.
-          setOracleErrored(true);
-        }
+          setOracleFlashLoading(false);
+        };
+        const hold = Math.max(0, 4000 - (Date.now() - startedAt));
+        if (hold > 0) window.setTimeout(apply, hold);
+        else apply();
       })
-      .catch(() => { if (seq === oracleLastSeqRef.current) setOracleErrored(true); })
-      .finally(() => { if (seq === oracleLastSeqRef.current) setOracleFlashLoading(false); });
+      .catch(() => {
+        const hold = Math.max(0, 4000 - (Date.now() - startedAt));
+        window.setTimeout(() => {
+          if (seq !== oracleLastSeqRef.current) return;
+          setOracleErrored(true);
+          setOracleFlashLoading(false);
+        }, hold);
+      });
   }, [result, question]);
   useEffect(() => {
     if (phase !== 'firstDone') return;
@@ -311,78 +326,19 @@ function SimplifiePage() {
     launchOracle();
   }, [phase, result, oracleFlash, oracleFlashLoading, oracleErrored, launchOracle]);
 
-  // ── Analyse approfondie (bouton) ──
-  const analysisLastSeqRef = useRef(0);
-  const runAnalysis = useCallback(async () => {
-    const seq = nextRaceSeq();
-    analysisLastSeqRef.current = seq;
-    setAnalysisLoading(true);
-    setAnalysisErrored(false);
-    setAnalysis(null);
-    setAnalysisSections(null);
-    setAnalysisSynthese('');
-    try {
-      const res = await api('/api/astro-dice-interpretation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          faces: result,
-          activeKinds: ALL_KINDS,
-          mode: 'global',
-          dbInterpretation: dbInterpretation || undefined,
-          question: question || undefined,
-          requireInitie: true,        // verrou serveur : Initié/Arkane seuls
-          email: sub ? readEmailLocal() : undefined,
-        }),
-      });
-      // 403 tier → l'utilisateur a changé de statut entre-temps : modale paywall.
-      if (res.status === 403) {
-        setAnalysisLoading(false);
-        openGate('limit-grand');
-        return;
-      }
-      // Réponse HTTP en erreur (LLM en panne, timeout serveur) → relance possible.
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (seq !== analysisLastSeqRef.current) return;
-      let interpretationText = '';
-      if (data.sections && Array.isArray(data.sections) && data.sections.length) {
-        setAnalysisSections(data.sections);
-        setAnalysisSynthese(data.synthese || '');
-        interpretationText = JSON.stringify(data);
-      } else if (data.texte && String(data.texte).trim()) {
-        const txt = String(data.texte).trim();
-        // L'API renvoie un texte d'échec (LLM muet) → plantage : relance possible.
-        if (/pas pu .re g.n.r.e|voilent un instant/i.test(txt)) throw new Error('gen');
-        interpretationText = txt;
-        setAnalysis(txt);
-      } else {
-        // Réponse vide/experte (« Analyse indisponible ») → plantage :
-        // on lève l'erreur pour afficher le bouton de relance.
-        throw new Error('empty');
-      }
-      const analysisPayload = data.sections
-        ? { sections: data.sections, synthese: data.synthese || '', mode: 'global' }
-        : { texte: interpretationText, mode: 'global' };
-      interpAccRef.current.analysisGlobal = analysisPayload;
-      if (readingIdRef.current && interpretationText) {
-        updateReading(readingIdRef.current, { interpretation: JSON.stringify(interpAccRef.current) });
-      }
-    } catch {
-      if (seq === analysisLastSeqRef.current) {
-        setAnalysisErrored(true);
-        setAnalysis('Les étoiles se sont voilées… Réessaie l’analyse.');
-      }
-    } finally {
-      if (seq === analysisLastSeqRef.current) setAnalysisLoading(false);
-    }
-  }, [result, question, dbInterpretation]);
+  // Recentre la vue sur l'oracle IA dès qu'il tombe (l'arène qui se
+  // replie + le temps de réponse peuvent le laisser hors champ sinon).
+  const oracleBlockRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!oracleFlash || phase !== 'firstDone') return;
+    const t = setTimeout(() => {
+      const el = oracleBlockRef.current;
+      if (!el) return;
+      window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 76), behavior: 'smooth' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [oracleFlash, phase]);
 
-  // L'overlay d'attente cosmique (au milieu de l'écran) vit pendant la 1ʳᵉ
-  // réflexion IA et pendant l'analyse approfondie : l'animation est partout
-  // où l'oracle travaille, au centre de l'écran, dès le tirage des dés posés.
-  useEffect(() => { setOracleWait(oracleFlashLoading || analysisLoading); }, [oracleFlashLoading, analysisLoading]);
-  useEffect(() => () => setOracleWait(false), []);
 
   const showResult = phase === 'firstDone';
   const intentionLabel = theme ? `${pickContent(theme.theme.label, lang)} — ${theme.sub}` : question;
@@ -412,6 +368,7 @@ function SimplifiePage() {
 
   /* ── ÉTAPE 2 — le tirage des 3 dés (mécanique /affinage, sans affinage) ── */
   return (
+    <>
     <DiceBackground starry starryVariant="gold">
       <YiSlideNav />
       <DiceTitle title={t('des.simplifie.castTitle')} />
@@ -438,7 +395,11 @@ function SimplifiePage() {
             </p>
           </div>
         )}
-        <div className="relative overflow-visible" style={{ height: 460, zIndex: 0 }}>
+        {/* Arène du gobelet : se REPLIE (hauteur animée → 0) dès que le tirage
+            est posé, pour que le résultat remonte sous le titre sans grand
+            vide. Le gobelet est démonté juste après (see below). */}
+        <div className="relative overflow-visible" style={{ height: showResult ? 0 : 460, zIndex: 0, transition: 'height 550ms ease' }}>
+          {!showResult && (
           <div
             style={{
               height: 460,
@@ -459,11 +420,48 @@ function SimplifiePage() {
               onReady={() => setReady(true)}
               resetSignal={resetSignal}
               launchSignal={0}
+              onShake={() => setShowTutorial(false)}
               lockScroll={phase === 'firstRoll'}
               diceHop={0.18}
             />
           </div>
+          )}
         </div>
+
+        {/* Tutoriel en dessous de l'astrodice (le même que /affinage) */}
+        {showTutorial && !showResult && (
+          <div className="flex flex-col items-center" style={{ marginTop: 4 }}>
+            <style>{`
+              @keyframes swipe-shake-simplifie {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-16px); }
+                75% { transform: translateX(16px); }
+              }
+              .swipe-icon-simplifie {
+                animation: swipe-shake-simplifie 0.6s ease-in-out infinite;
+                font-size: 28px;
+                line-height: 1;
+                color: #87CEEB;
+                opacity: 0.5;
+                user-select: none;
+                -webkit-user-select: none;
+              }
+            `}</style>
+            <span className="material-symbols-outlined swipe-icon-simplifie">swipe</span>
+            <p
+              className="text-center leading-tight"
+              style={{
+                fontFamily: 'var(--font-cinzel), serif',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '0.5rem',
+                maxWidth: 120,
+                lineHeight: 1.2,
+              }}
+            >
+              {tr("Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter", "Shake the cup to mix the dice, then swipe up to cast them", "Agite el vaso para mezclar los dados y deslice hacia arriba para lanzarlos", "गिलास को हिलाकर पाशों को मिलाएँ, फिर फेंकने के लिए ऊपर स्लाइड करें")}
+            </p>
+          </div>
+        )}
 
         <AnimatePresence>
           {showResult && (
@@ -477,68 +475,6 @@ function SimplifiePage() {
                   couleur, Maison = le domaine de vie touché. */}
               <div className="relative">
                 <HintLegende open={legendeOn && showResult} onClose={closeLegende} />
-              </div>
-
-              {/* Carte-résultat : les 3 dés, glyphe + nom */}
-              <div
-                className="mx-auto max-w-2xl rounded-3xl p-5 sm:p-6"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDark} 100%)`,
-                  border: `1.5px solid ${DICE_THEME.gold}66`,
-                  boxShadow: `0 0 40px ${DICE_THEME.gold}22, inset 0 0 30px ${DICE_THEME.gold}10`,
-                }}
-              >
-                <h3
-                  className="mb-4 text-center text-lg font-bold"
-                  style={{
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: DICE_THEME.ocreLight,
-                    textShadow: `0 0 12px ${DICE_THEME.gold}44`,
-                  }}
-                >
-                  {t('des.affinage.yourDice')}
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {ALL_KINDS.map((k) => {
-                    const val = result[k] as string | number;
-                    const dieName =
-                      k === 'planet'
-                        ? planetName(val as string, lang)
-                        : k === 'sign'
-                          ? signName(val as string, lang)
-                          : houseName(val, lang);
-                    return (
-                      <div
-                        key={k}
-                        className="flex flex-col items-center rounded-2xl p-3 text-center"
-                        style={{
-                          background: `${DICE_THEME.gold}0f`,
-                          border: `1px solid ${DICE_THEME.gold}33`,
-                        }}
-                      >
-                        <div className="text-4xl leading-none" style={{ color: '#87CEEB' }}>
-                          {val}
-                        </div>
-                        <div
-                          className="mt-2 text-xs uppercase tracking-widest"
-                          style={{ color: DICE_THEME.glyph, opacity: 0.7 }}
-                        >
-                          {KIND_LABEL[k]}
-                        </div>
-                        <p
-                          className="mt-2 text-base font-semibold leading-snug"
-                          style={{
-                            fontFamily: 'var(--font-cinzel), serif',
-                            color: DICE_THEME.ocreLight,
-                            textShadow: `0 0 10px ${DICE_THEME.gold}44`,
-                          }}
-                        >
-                          {dieName}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* Analyse : statique immédiate + oracle flash + approfondie */}
@@ -561,41 +497,23 @@ function SimplifiePage() {
                   {t('des.affinage.analysisTitle')}
                 </h3>
 
-                <div className="space-y-3">
-                  {ALL_KINDS.map((k) => {
-                    const val = result[k] as string | number;
-                    return (
-                      <div
-                        key={k}
-                        className="flex gap-3 text-sm leading-relaxed"
-                        style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                      >
-                        <span className="mt-0.5 text-2xl leading-none" style={{ color: '#87CEEB' }}>
-                          {val}
-                        </span>
-                        <span style={{ opacity: 0.92 }}>{meaningFor(k, val)}</span>
-                      </div>
-                    );
-                  })}
+                {/* Pilule des faces (moule /choix) : un tap ouvre la modale
+                    donnant la signification exacte de chaque dé. */}
+                <div className="mb-1">
+                  <ClickableFaces faces={result as TargetFaces} />
                 </div>
 
                 {oracleFlashLoading && (
-                  <div
-                    className="mt-5 rounded-2xl p-4 text-center text-xs italic"
-                    style={{
-                      background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
-                      border: `1.5px solid ${DICE_THEME.gold}66`,
-                      fontFamily: 'var(--font-cinzel), serif',
-                      color: DICE_THEME.glyph,
-                      opacity: 0.6,
-                    }}
-                  >
-                    {t('des.affinage.thinking')}
-                  </div>
+                  <AnalysisWaitCard
+                    accent={DICE_THEME.gold}
+                    title={t('des.affinage.thinking')}
+                    videoPrefix="analyse-des-zodiaque"
+                    minHeight={220}
+                  />
                 )}
                 {oracleErrored && !oracleFlashLoading && !oracleFlash && (
                   <div
-                    className="mt-5 rounded-2xl p-4 text-center"
+                    className="mt-6 rounded-2xl p-4 text-center"
                     style={{
                       background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
                       border: `1.5px solid ${DICE_THEME.gold}66`,
@@ -616,7 +534,8 @@ function SimplifiePage() {
                 )}
                 {oracleFlash && (
                   <div
-                    className="mt-5 rounded-2xl p-4"
+                    ref={oracleBlockRef}
+                    className="mt-6 rounded-2xl p-4"
                     style={{
                       background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
                       border: `1.5px solid ${DICE_THEME.gold}66`,
@@ -639,7 +558,7 @@ function SimplifiePage() {
                 )}
                 {!oracleFlash && !oracleFlashLoading && dbInterpretation && (
                   <div
-                    className="mt-5 rounded-2xl p-4"
+                    className="mt-6 rounded-2xl p-4"
                     style={{
                       background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
                       border: `1.5px solid ${DICE_THEME.gold}66`,
@@ -660,127 +579,28 @@ function SimplifiePage() {
                   </div>
                 )}
 
-                {/* Zone analyse approfondie — l'attente est montrée par l'overlay
-                    cosmique central (OracleWaitAnimation), plus de carte dedans. */}
-                <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
-                  {analysisSections && !analysisLoading && (
-                    <div className="space-y-3">
-                      {analysisSections.map((s) => (
-                        <div
-                          key={s.key}
-                          className="rounded-2xl p-4"
-                          style={{
-                            background: `linear-gradient(135deg, ${DICE_THEME.ocre}1f 0%, ${DICE_THEME.ocre}0a 100%)`,
-                            border: `1px solid ${DICE_THEME.ocre}44`,
-                          }}
-                        >
-                          <p
-                            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
-                          >
-                            {s.label}
-                          </p>
-                          <p
-                            className="text-center text-sm leading-relaxed italic"
-                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                          >
-                            {s.text}
-                          </p>
-                        </div>
-                      ))}
-                      {analysisSynthese && (
-                        <div
-                          className="mt-4 rounded-2xl p-4"
-                          style={{
-                            background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.ocre}14 100%)`,
-                            border: `1px solid ${DICE_THEME.gold}55`,
-                          }}
-                        >
-                          <p
-                            className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-                            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-                          >
-                            {t('des.simplifie.synthese')}
-                          </p>
-                          <p
-                            className="text-center text-sm leading-relaxed italic"
-                            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                          >
-                            {analysisSynthese}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {analysis && !analysisSections && !analysisLoading && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center text-sm leading-relaxed italic"
-                      style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-                    >
-                      {analysis}
-                    </motion.p>
-                  )}
-                  {analysisErrored && !analysisLoading && (
-                    <div className="mt-4 text-center">
-                      <GoldGlossButton onClick={runAnalysis}>
-                        🔄 {t('des.simplifie.relaunch')}
-                      </GoldGlossButton>
-                    </div>
-                  )}
-                  {!analysis && !analysisSections && !analysisLoading && (
-                    <div className="text-center">
-                      {canDeep ? (
-                        <DiceButton variant="blue" onClick={runAnalysis}>
-                          {t('des.affinage.analyze')}
-                        </DiceButton>
-                      ) : (
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => openGate('limit-grand')}
-                          className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold"
-                          style={{
-                            fontFamily: 'var(--font-cinzel), serif',
-                            background: 'rgba(212,175,55,0.08)',
-                            border: '1.5px dashed rgba(212,175,55,0.45)',
-                            color: DICE_THEME.ocreLight,
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          🔒 {t('des.affinage.analyze')}
-                          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>
-                            {t('des.simplifie.initieOnly')}
-                          </span>
-                        </motion.button>
-                      )}
-                    </div>
-                  )}
-
                   {/* ✶ L'Augure scellé — prémonction née de cette lecture. */}
-                  {readingId && (analysis || analysisSynthese) && (
+                  {readingId && oracleFlash && (
                     <EchoBox
                       domain="des"
                       readingId={readingId}
                       question={question}
-                      summary={(analysisSynthese || analysis || '').slice(0, 1200)}
+                      summary={oracleFlash.slice(0, 1200)}
                     />
                   )}
                 </div>
-              </div>
 
               {/* Recommencer (autre intention) — supprimé sur demande : retour via le menu */}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      {/* Attente cosmique : overlay centré pendant la 1ʳᵉ réflexion de l'oracle. */}
-      <OracleWaitAnimation />
-      {/* Paywall « Analyser en profondeur » (Initié/Arkane). */}
-      <EntitlementGateModal reason={gateReason} onClose={closeGate} />
     </DiceBackground>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=swipe"
+    />
+    </>
   );
 }
 
