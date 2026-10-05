@@ -4,7 +4,6 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { media } from '@/lib/media';
 import Link from 'next/link';
 import { useLang, useT, tr } from '@/lib/i18n';
 import { DEFAULT_BACKGROUND, LANDING_BACKGROUNDS, isVideoBackground, resolveBackgrounds, type BackgroundLevel } from '@/lib/backgrounds';
@@ -210,7 +209,7 @@ export default function HomePage() {
         >
           {isVideoBackground(background) ? (
             <video
-              src={media(background)}
+              src={background}
               autoPlay
               muted
               loop
@@ -223,7 +222,7 @@ export default function HomePage() {
             />
           ) : (
             <Image
-              src={media(background)}
+              src={background}
               alt={tr('Table mystique Tarot & Yi Jing', 'Mystic Tarot & Yi Jing table', 'Mesa mística de Tarot y Yi Jing', 'रहस्यमय टैरो और यी जिंग मेज़')}
               fill
               className="object-cover"
