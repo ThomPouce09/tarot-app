@@ -4,7 +4,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
-import { useT, useLang, pick4, contentLang, pickContent, tr } from '@/lib/i18n';
+import { useT, useLang, pick4, contentLang, pickContent, tr, type Lang } from '@/lib/i18n';
+import { DICT } from '@/lib/i18n/ui';
+import { cardDisplayName } from '@/lib/i18n/cards';
+import { pickEchoText } from '@/lib/i18n/echo-text';
 import { localizePosition } from '@/lib/i18n/positions';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 import SpaceTitle from '@/components/space-title';
@@ -23,7 +26,7 @@ interface Reading {
   interpretation?: string | null;
   createdAt: string;
   /** Augure scellé né de cette lecture (badge horloge). */
-  echo?: { id: string; dueAt: string; verdict: string | null; verdictPct?: number | null; bestCardIndex?: number | null; textFr?: string | null; textEn?: string | null } | null;
+  echo?: { id: string; dueAt: string; verdict: string | null; verdictPct?: number | null; bestCardIndex?: number | null; textFr?: string | null; textEn?: string | null; textEs?: string | null; textHi?: string | null } | null;
 }
 
 // --- Mapping type de tirage -> icône/style (réutilise les tuiles de la landing) ---
@@ -75,6 +78,18 @@ function metaOf(r: Reading) {
   const sub = SUBTYPE_META[r.type] || { group: 'tarot' as const, label: TYPE_META.tarot.label };
   const gm = TYPE_META[sub.group];
   return { ...gm, group: sub.group, label: sub.label };
+}
+
+// Locale BCP-47 par langue (dates/heures de l'historique).
+const LOC: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
+const loc = (l: Lang) => LOC[l] || 'fr-FR';
+
+// Libellé 4 langues du type de tirage (titre de chaque item de la liste).
+function typeLabelOf(r: Reading, lang: Lang): string {
+  const fallback = SUBTYPE_META[r.type]?.label || TYPE_META.tarot.label;
+  const e = (DICT as Record<string, Partial<Record<Lang, string>>>)['htype.' + (r.type || '')];
+  if (!e) return fallback;
+  return pick4(e.fr || fallback, e.en ?? e.fr ?? fallback, e.es, e.hi)(lang);
 }
 
 // --- Icônes SVG inline (charte unifiée, remplace les emojis) ---
@@ -231,6 +246,7 @@ const tarot5Positions = [
 export default function ReadingsPage() {
   const router = useRouter();
   const t = useT();
+  const lang = useLang();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -288,7 +304,7 @@ export default function ReadingsPage() {
     const map = new Map<string, Reading[]>();
     filtered.forEach((r) => {
       const d = new Date(r.createdAt);
-      const dateKey = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+      const dateKey = d.toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
       if (!map.has(dateKey)) map.set(dateKey, []);
       map.get(dateKey)!.push(r);
     });
@@ -296,7 +312,7 @@ export default function ReadingsPage() {
     const groups = Array.from(map.entries()).map(([dateKey, reads]) => ({ dateKey, dateLabel: dateKey, readings: reads }));
     groups.sort((a, b) => new Date(b.readings[0].createdAt).getTime() - new Date(a.readings[0].createdAt).getTime());
     return groups;
-  }, [filtered]);
+  }, [filtered, lang]);
 
   // Ouvrir la première date au chargement
   useEffect(() => {
@@ -308,7 +324,7 @@ export default function ReadingsPage() {
 
   const formatTime = (iso: string) => {
     try {
-      return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
+      return new Date(iso).toLocaleTimeString(loc(lang), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
     } catch { return ''; }
   };
   const dateToYMD = (iso: string) => new Date(iso).toISOString().slice(0, 10);
@@ -319,7 +335,7 @@ export default function ReadingsPage() {
   const generateShareText = useCallback((r: Reading): string => {
     const m = metaOf(r);
     const lines: string[] = [];
-    const app = "L'Oracle des étoiles";
+    const app = t('brand.name');
 
     // Interprétation JSON (null si texte brut)
     let interp: any = null;
@@ -338,7 +354,7 @@ export default function ReadingsPage() {
     lines.push('');
 
     // Date
-    const dateStr = new Date(r.createdAt).toLocaleString('fr-FR', {
+    const dateStr = new Date(r.createdAt).toLocaleString(loc(lang), {
       day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
@@ -361,18 +377,18 @@ export default function ReadingsPage() {
 
     if (m.group === 'tarot') {
       const pos = cards.length === 3
-        ? ['Passé', 'Présent', 'Futur']
-        : ['Situation', 'Défis', 'Soutien', 'Issue', 'Conseil'];
+        ? [t('history.pos.past'), t('history.pos.present'), t('history.pos.future')]
+        : [t('history.block.situation'), t('history.block.defis'), t('history.block.soutien'), t('history.block.issue'), t('history.block.conseil')];
       const keys = cards.length === 3
         ? ['passe', 'present', 'avenir']
         : ['situation', 'defis', 'soutien', 'issue', 'conseil'];
       cards.forEach((c, i) => {
-        lines.push(`${pos[i] || `Carte ${i + 1}`} : ${cardName(c, i)}${c.reversed ? ' (renversée)' : ''}`);
+        lines.push(`${pos[i] || `${t('history.card')} ${i + 1}`} : ${cardName(c, i)}${c.reversed ? ` ${t('history.reversed')}` : ''}`);
         const txt = interp?.[keys[i]] || interp?.[`carte${i + 1}`];
         if (txt) lines.push(`→ ${flat(txt)}`);
         lines.push('');
       });
-      if (interp?.resume) { lines.push(`🌟 Résumé : ${flat(interp.resume)}`); lines.push(''); }
+      if (interp?.resume) { lines.push(`🌟 ${pick4('Résumé', 'Summary', 'Resumen', 'सारांश')(lang)} : ${flat(interp.resume)}`); lines.push(''); }
     } else if (m.group === 'rune') {
       // Sections IA appariées par position (formats nornes2 et nornes versionné)
       const sections: any[] = interp?.sections || interp?.fil?.sections || [];
@@ -393,8 +409,8 @@ export default function ReadingsPage() {
     } else if (m.group === 'yijing') {
       // Clés de structure (situation…conseil ou meditation/conseil/attitude) + résumé
       const LABELS: Record<string, string> = {
-        situation: 'Situation', defis: 'Défis', soutien: 'Soutien', issue: 'Issue',
-        conseil: 'Conseil', resume: 'Résumé', meditation: 'Méditation', attitude: 'Attitude',
+        situation: t('history.block.situation'), defis: t('history.block.defis'), soutien: t('history.block.soutien'), issue: t('history.block.issue'),
+        conseil: t('history.block.conseil'), resume: t('history.synthesis'), meditation: t('history.block.meditation'), attitude: t('history.block.attitude'),
       };
       const seen = new Set<string>();
       Object.entries(interp || {}).forEach(([k, v]) => {
@@ -415,10 +431,10 @@ export default function ReadingsPage() {
         (['A', 'B'] as const).forEach((sfx, i) => {
           const f = interp[`faces${sfx}`];
           if (!f) return;
-          lines.push(`═══ ${isObs ? (i === 0 ? 'Obstacle' : 'Solution') : `Choix ${i + 1}`} ═══`);
+          lines.push(`═══ ${isObs ? (i === 0 ? t('history.block.obstacle') : t('history.block.solution')) : `${pick4('Choix', 'Choice', 'Elección', 'चयन')(lang)} ${i + 1}`} ═══`);
           const pn = PLANET_NAMES[f.planet as string] || f.planet;
           const sn = SIGN_NAMES[f.sign as string] || f.sign;
-          lines.push(`${f.planet} ${pn} · ${f.sign} ${sn} · Maison ${f.house}`);
+          lines.push(`${f.planet} ${pn} · ${f.sign} ${sn} · ${t('history.house')} ${f.house}`);
           if (interp[`short${sfx}`]) lines.push(`→ ${flat(interp[`short${sfx}`])}`);
           if (interp[`deep${sfx}`]) lines.push(flat(interp[`deep${sfx}`]).replace(/^##.*$/gm, '').trim());
           lines.push('');
@@ -441,8 +457,8 @@ export default function ReadingsPage() {
 
     // Echo
     if (r.echo) {
-      lines.push(`🕯️ Augure — ${new Date(r.echo.dueAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} :`);
-      lines.push(r.echo.verdict ? r.echo.verdict.trim() : 'Scellé, en attente de s’ouvrir.');
+      lines.push(`🕯️ ${pick4('Augure', 'Augury', 'Augurio', 'शकुन')(lang)} — ${new Date(r.echo.dueAt).toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric' })} :`);
+      lines.push(r.echo.verdict ? r.echo.verdict.trim() : t('history.sealed'));
       lines.push('');
     }
 
@@ -450,7 +466,7 @@ export default function ReadingsPage() {
     lines.push(`🔮 ${app}`);
 
     return lines.join('\n');
-  }, []);
+  }, [lang, t]);
 
   // Copie dans le presse-papiers avec fallback legacy (contexte non sécurisé / clipboard refusé)
   const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
@@ -480,7 +496,7 @@ export default function ReadingsPage() {
     // on retombe sur la copie presse-papiers au lieu de ne rien faire.
     if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
       try {
-        await navigator.share({ title: "L'Oracle des étoiles", text });
+        await navigator.share({ title: t('brand.name'), text });
         return;
       } catch (e: any) {
         if (e?.name === 'AbortError') return; // l'utilisateur a annulé volontairement
@@ -492,7 +508,7 @@ export default function ReadingsPage() {
       setShareCopied(r.id);
       setTimeout(() => setShareCopied(null), 2000);
     }
-  }, [generateShareText, copyToClipboard]);
+  }, [generateShareText, copyToClipboard, t]);
 
   // --- Parsers d'interprétation ---
   const parseTarot3 = (raw: string) => {
@@ -520,8 +536,7 @@ export default function ReadingsPage() {
 
   // --- Suppression ---
   const askDeleteOne = (r: Reading) => {
-    const m = metaOf(r);
-    setConfirm({ mode: 'one', id: r.id, label: `${m.label} du ${formatTime(r.createdAt)}` });
+    setConfirm({ mode: 'one', id: r.id, label: `${typeLabelOf(r, lang)} ${pick4('du', 'of', 'del', '—')(lang)} ${formatTime(r.createdAt)}` });
   };
   const askDeleteDate = (g: { dateKey: string; dateLabel: string }) => {
     setConfirm({ mode: 'date', dateKey: g.dateKey, label: g.dateLabel });
@@ -533,7 +548,7 @@ export default function ReadingsPage() {
     try {
       const body: any = { userId: user.email };
       if (confirm.mode === 'one') body.id = confirm.id;
-      else body.date = dateToYMD(readings.find((r) => new Date(r.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) === confirm.dateKey)!.createdAt);
+      else body.date = dateToYMD(readings.find((r) => new Date(r.createdAt).toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) === confirm.dateKey)!.createdAt);
 
       const res = await fetch('/api/readings', {
         method: 'DELETE',
@@ -686,7 +701,7 @@ export default function ReadingsPage() {
                                 {/* Hiérarchie 2 niveaux : libellé doré fort, méta discrète */}
                                 <span className="min-w-0 flex-1">
                                   <span className="flex items-center gap-1.5">
-                                    <span className="text-[13px] font-semibold truncate" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>{m.label}</span>
+                                    <span className="text-[13px] font-semibold truncate" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>{typeLabelOf(r, lang)}</span>
                                     {r.echo && <EchoDot echo={r.echo} t={t} />}
                                   </span>
                                   {spreadInfo && (
@@ -836,6 +851,7 @@ function EmptyState() {
 // ── Le Double Hexagramme (zhi gua) : vue « présent → futur » ──────────
 function DoubleHexView({ r }: { r: Reading }) {
   const lang = useLang();
+  const t = useT();
   const en = lang === 'en';
   const GOLD = '#F3C969';
   const IVORY = '#F5EAD6';
@@ -887,20 +903,20 @@ function DoubleHexView({ r }: { r: Reading }) {
     <div className="mt-4 space-y-4">
       {r.question && (
         <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3 text-center">
-          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{en ? 'Your question' : 'Votre question'}</p>
+          <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.yourQuestion')}</p>
           <p className="text-amber-200 italic text-sm">&laquo; {r.question} &raquo;</p>
         </div>
       )}
       <div className="flex items-start justify-center gap-8 rounded-2xl p-4" style={{ background: 'rgba(10,5,7,0.6)', border: `1px solid ${GOLD}33` }}>
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}aa` }}>{en ? 'Present' : 'Présent'}</p>
+          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}aa` }}>{pick4('Présent', 'Present', 'Presente', 'वर्तमान')(lang)}</p>
           <p className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: GOLD }}>#{st.hexPresent} {gp?.c}</p>
           <p className="text-[10px] italic text-center max-w-[130px]" style={{ color: IVORY }}>{st.names ? (en ? st.names.pEn : st.names.pFr) : ''}</p>
           <Column numero={st.hexPresent} />
         </div>
         <p className="self-center text-lg" style={{ color: `${GOLD}cc` }}>➔</p>
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: '#FF6B5Ecc' }}>{en ? 'Becoming' : 'En devenir'}</p>
+          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: '#FF6B5Ecc' }}>{pick4('En devenir', 'Becoming', 'En camino', 'बनते हुए')(lang)}</p>
           <p className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: GOLD }}>#{st.hexFutur} {gf?.c}</p>
           <p className="text-[10px] italic text-center max-w-[130px]" style={{ color: IVORY }}>{st.names ? (en ? st.names.fEn : st.names.fFr) : ''}</p>
           <Column numero={st.hexFutur} future />
@@ -908,8 +924,8 @@ function DoubleHexView({ r }: { r: Reading }) {
       </div>
       <p className="text-center text-[10px]" style={{ color: `${GOLD}99` }}>
         {mutSet.size
-          ? (en ? `moving lines: ${[...mutSet].map((i) => i + 1).join('·')}` : `lignes mutantes : ${[...mutSet].map((i) => i + 1).join('·')} ✦`)
-          : (en ? 'no moving line — stable situation' : 'aucune ligne mutante — situation stable')}
+          ? `${t('history.movingLines')} : ${[...mutSet].map((i) => i + 1).join('·')} ✦`
+          : t('history.stableLines')}
       </p>
       {st.read?.sections?.map((s) => (
         <div key={s.key} className="rounded-xl p-3" style={{ background: 'rgba(142,28,34,0.10)', border: '1px solid rgba(243,201,105,0.15)' }}>
@@ -919,14 +935,14 @@ function DoubleHexView({ r }: { r: Reading }) {
       ))}
       {r.echo && (
         <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(243,201,105,0.06)', border: `1px solid ${GOLD}44` }}>
-          <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{en ? 'Dare to challenge the Oracle?' : "Envie de défier l'Oracle ?"}</p>
+          <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{t('echo.title')}</p>
           <p className="mt-1 text-xs italic" style={{ color: IVORY }}>
-            {en && (r.echo as any).textEn ? (r.echo as any).textEn : (r.echo as any).textFr || ''}
+            {pickEchoText(r.echo, lang)}
           </p>
           <p className="mt-1 text-[11px]" style={{ color: r.echo.verdict ? GOLD : '#FF6B5E' }}>
             {r.echo.verdict
               ? `✓ ${r.echo.verdictPct ?? (r.echo.verdict === 'oui' ? 100 : r.echo.verdict === 'partiel' ? 50 : 0)}%`
-              : `${en ? 'due' : 'échéance'} ${new Date(r.echo.dueAt).toLocaleDateString(en ? 'en-GB' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+              : `${t('history.due')} ${new Date(r.echo.dueAt).toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric' })}`}
           </p>
         </div>
       )}
@@ -989,7 +1005,12 @@ function WheelView({ r }: { r: Reading }) {
     return <p className="text-gray-500 text-xs italic mt-3">—</p>;
   }
   const castWd = new Date(st.castAt || r.createdAt).getDay();
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const DAY_SHORT: Record<Lang, string[]> = {
+    fr: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+    en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    es: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+    hi: ['रवि', 'सोम', 'मंगल', 'बुध', 'गुरु', 'शुक्र', 'शनि'],
+  };
   const DAY_FULL = [
     { fr: 'Dimanche', en: 'Sunday' , es: "Domingo", hi: "रविवार"}, { fr: 'Lundi', en: 'Monday' , es: "Lunes", hi: "सोमवार"}, { fr: 'Mardi', en: 'Tuesday' , es: "Martes", hi: "मंगलवार"},
     { fr: 'Mercredi', en: 'Wednesday' , es: "Miércoles", hi: "बुधवार"}, { fr: 'Jeudi', en: 'Thursday' , es: "Jueves", hi: "गुरुवार"}, { fr: 'Vendredi', en: 'Friday' , es: "Viernes", hi: "शुक्रवार"}, { fr: 'Samedi', en: 'Saturday' , es: "Sábado", hi: "शनिवार"},
@@ -1028,7 +1049,7 @@ function WheelView({ r }: { r: Reading }) {
                   )}
                   {best === d && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px]" style={{ color: '#F0C75E' }}>✦</span>}
                 </span>
-                <span className="text-[8px] uppercase tracking-wide" style={{ color: active === d ? '#F0C75E' : 'rgba(251,191,36,0.5)' }}>{days[(castWd + d) % 7]}</span>
+                <span className="text-[8px] uppercase tracking-wide" style={{ color: active === d ? '#F0C75E' : 'rgba(251,191,36,0.5)' }}>{DAY_SHORT[lang][(castWd + d) % 7]}</span>
               </button>
             );
           })}
@@ -1041,7 +1062,7 @@ function WheelView({ r }: { r: Reading }) {
           border: '1px solid rgba(218,165,32,0.45)',
         }}>
           <p className="text-[9px] uppercase tracking-[0.25em]" style={{ color: 'rgba(218,165,32,0.75)' }}>
-            {pick4('L’éclat du jour —', 'The card’s light —', "El fulgor del día —", "दिन की ज्योति —")(lang)} {DAY_FULL[(castWd + active) % 7][lang as 'fr' | 'en']} · {TAROT_CARDS[st.cards[active]]?.[lang === 'en' ? 'nameEn' : 'name']}
+            {pick4('L’éclat du jour —', 'The card’s light —', "El fulgor del día —", "दिन की ज्योति —")(lang)} {DAY_FULL[(castWd + active) % 7][lang]} · {TAROT_CARDS[st.cards[active]] ? cardDisplayName(TAROT_CARDS[st.cards[active]], lang) : ''}
           </p>
           {selInsight
             ? <p className="mt-1.5 text-[13px] italic leading-relaxed text-amber-100/95" style={{ fontFamily: 'var(--font-cinzel), serif' }}>« {selInsight[contentLang(lang)]} »</p>
@@ -1063,7 +1084,7 @@ function WheelView({ r }: { r: Reading }) {
         <p className="text-center text-[11px]" style={{ color: '#F0C75E' }}>
           {pick4('Semaine tenue à', 'Week kept at', "Semana fijada en", "सप्ताह का स्तर:")(lang)} {echo.verdictPct ?? (echo.verdict === 'oui' ? 100 : echo.verdict === 'partiel' ? 50 : 0)}%
           {best !== null && best !== undefined && best >= 0 && st.cards[best] !== undefined && (
-            <> · {pick4('carte tenue', 'best card', "mejor carta", "श्रेष्ठ पत्र")(lang)} : {TAROT_CARDS[st.cards[best]]?.name}</>
+            <> · {pick4('carte tenue', 'best card', "mejor carta", "श्रेष्ठ पत्र")(lang)} : {TAROT_CARDS[st.cards[best]] ? cardDisplayName(TAROT_CARDS[st.cards[best]], lang) : ''}</>
           )}
         </p>
       )}
@@ -1433,7 +1454,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       {synthese && (
         <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
           <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-            <span>📜</span>Synthèse
+            <span>📜</span>{t('readings.synthese')}
           </h4>
           <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={synthese} query={query} /></p>
         </div>
@@ -1468,14 +1489,14 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       {/* ── Format des-choix / des-obstacle-solution : 2 sections avec tuiles inline ── */}
       {(interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution') && (() => {
         const isObstacle = interpData.version === 'des-obstacle-solution';
-        const labelA = isObstacle ? '═══ Obstacle ═══' : '═══ Premier Choix ═══';
-        const labelB = isObstacle ? '═══ Solution ═══' : '═══ Second Choix ═══';
+        const labelA = `═══ ${isObstacle ? t('history.block.obstacle') : t('history.block.firstChoice')} ═══`;
+        const labelB = `═══ ${isObstacle ? t('history.block.solution') : t('history.block.secondChoice')} ═══`;
         const colorA = isObstacle ? '#D4A574' : '#7FB3D5';
         const colorB = isObstacle ? '#87CEEB' : '#7FB3D5';
         const facesA = interpData.facesA as Record<string, any>;
         const facesB = interpData.facesB as Record<string, any>;
-        const cardA = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesA[k], label: k === 'planet' ? PLANET_NAMES[facesA[k] as string] : k === 'sign' ? SIGN_NAMES[facesA[k] as string] : `Maison ${facesA[k]}` }));
-        const cardB = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesB[k], label: k === 'planet' ? PLANET_NAMES[facesB[k] as string] : k === 'sign' ? SIGN_NAMES[facesB[k] as string] : `Maison ${facesB[k]}` }));
+        const cardA = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesA[k], label: k === 'planet' ? PLANET_NAMES[facesA[k] as string] : k === 'sign' ? SIGN_NAMES[facesA[k] as string] : `${t('history.house')} ${facesA[k]}` }));
+        const cardB = DES_CHOIX_KINDS.map(k => ({ kind: k, value: facesB[k], label: k === 'planet' ? PLANET_NAMES[facesB[k] as string] : k === 'sign' ? SIGN_NAMES[facesB[k] as string] : `${t('history.house')} ${facesB[k]}` }));
         const renderDiceGrid = (items: any[]) => (
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(items.length, 3)}, minmax(0, 1fr))` }}>
             {items.map((c, i) => (
@@ -1538,7 +1559,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {/* Interprétation statique */}
           {interpData.static && (
             <div className="bg-gray-800/40 rounded-lg p-3">
-              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>Signification</h4>
+              <h4 className="text-blue-300 font-semibold text-xs mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.block.meaning')}</h4>
               <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={interpData.static} query={query} /></p>
             </div>
           )}
@@ -1547,7 +1568,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.oracleFlash && (
             <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
               <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>🔮</span>Oracle du tirage
+                <span>🔮</span>{t('history.block.oracleTitle')}
               </h4>
               <p className="text-gray-200 text-sm italic leading-relaxed">« <Highlight text={interpData.oracleFlash} query={query} /> »</p>
             </div>
@@ -1557,7 +1578,7 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.dbInterpretation && (
             <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3">
               <h4 className="text-amber-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>📖</span>Interprétation combinée
+                <span>📖</span>{t('history.block.combined')}
               </h4>
               <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.dbInterpretation} query={query} /></p>
             </div>
@@ -1568,13 +1589,13 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
             <div className="bg-blue-950/20 border border-blue-800/30 rounded-lg p-3">
               <h4 className="text-blue-300 font-semibold text-sm mb-1 flex items-center gap-2">
                 <span>🔎</span>
-                Affinage {interpData.refine.option === 'action' ? 'du Signe' : 'de la Maison'}
+                {interpData.refine.option === 'action' ? t('history.block.refineSign') : t('history.block.refineHouse')}
               </h4>
               {interpData.refine.originalFaces && (
                 <p className="text-gray-400 text-xs italic mb-2">
-                  Valeur initiale : {interpData.refine.option === 'action'
+                  {t('history.block.initialValue')} : {interpData.refine.option === 'action'
                     ? `${interpData.refine.originalFaces.sign} → ${cards.find((c: any) => c.kind === 'sign')?.value || '?'}`
-                    : `Maison ${interpData.refine.originalFaces.house} → ${cards.find((c: any) => c.kind === 'house')?.value || '?'}`}
+                    : `${t('history.house')} ${interpData.refine.originalFaces.house} → ${cards.find((c: any) => c.kind === 'house')?.value || '?'}`}
                 </p>
               )}
             </div>
@@ -1584,14 +1605,14 @@ function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.analysisGlobal && renderSections(
             interpData.analysisGlobal.sections || [],
             interpData.analysisGlobal.synthese || '',
-            'Analyse complète'
+            t('history.block.fullAnalysis')
           )}
 
           {/* Analyse LLM d'affinage */}
           {interpData.analysisRefine && renderSections(
             interpData.analysisRefine.sections || [],
             interpData.analysisRefine.synthese || '',
-            'Analyse affinée'
+            t('history.block.refinedAnalysis')
           )}
 
           {/* Analyse LLM en texte brut (non structurée) */}

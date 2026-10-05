@@ -190,4 +190,18 @@ export const MJG_POSE_LINE = {
     '4th rune — the Weapon: what you strike with',
     '5th rune — the Strike: the blow to deliver',
   ],
+  es: [
+    '1.ª runa — el Anclaje: lo que te sostiene',
+    '2.ª runa — el Obstáculo: lo que de verdad bloquea',
+    '3.ª runa — la Amenaza: lo que hay que soltar',
+    '4.ª runa — el Arma: con qué golpeas',
+    '5.ª runa — el Golpe: el impacto a asestar',
+  ],
+  hi: [
+    'पहला रून — स्थिरता: जो तुम्हें खड़ा रखता है',
+    'दूसरा रून — बाधा: जो सचमुच रोकता है',
+    'तीसरा रून — ख़तरा: जिसे छोड़ना है',
+    'चौथा रून — हथियार: जिससे तुम प्रहार करते हो',
+    'पाँचवाँ रून — प्रहार: जो वार करना है',
+  ],
 } as const;

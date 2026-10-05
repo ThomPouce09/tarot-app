@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useLang, useT, contentLang } from '@/lib/i18n';
+import { pickEchoText } from '@/lib/i18n/echo-text';
 import SpaceTitle from '@/components/space-title';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { RuneButton } from '@/app/runes/_shared';
@@ -137,7 +138,7 @@ export default function AuguresPage() {
                         <div className="text-center">
                           <p className="text-amber-100 italic text-[15px] leading-relaxed"
                              style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-                            « {lang === 'en' && e.textEn ? e.textEn : e.textFr} »
+                            « {pickEchoText(e, lang)} »
                           </p>
                           <p className="text-sm text-gray-300 mt-3 mb-2">{t('echo.verdictAsk')}</p>
                           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -189,7 +190,7 @@ export default function AuguresPage() {
                       </span>
                     </div>
                     <p className="text-gray-300 italic text-[14px] leading-relaxed">
-                      « {lang === 'en' && e.textEn ? e.textEn : e.textFr} »
+                      « {pickEchoText(e, lang)} »
                     </p>
                   </div>
                 ))}

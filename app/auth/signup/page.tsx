@@ -1,37 +1,41 @@
 'use client';
 
-import { tr } from '@/lib/i18n';
+import { tr, useLang } from '@/lib/i18n';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 // Turnstile désactivé en dev
 // import { Turnstile } from 'react-turnstile';
 
-// Schéma de validation avec règles strictes
-const passwordSchema = z.string()
-  .min(8, "8 caractères minimum")
-  .max(20, "20 caractères maximum")
-  .regex(/[a-z]/, "1 minuscule obligatoire")
-  .regex(/[A-Z]/, "1 majuscule obligatoire")
-  .regex(/[0-9]/, "1 chiffre obligatoire");
+// Schéma de validation — reconstruit à chaque soumission pour que les messages
+// suivent la langue courante (tr() lit la langue runtime au moment du parse).
+const buildSignupSchema = () => {
+  const passwordSchema = z.string()
+    .min(8, tr("8 caractères minimum", "At least 8 characters", "Mínimo 8 caracteres", "कम से कम 8 अक्षर"))
+    .max(20, tr("20 caractères maximum", "At most 20 characters", "Máximo 20 caracteres", "अधिकतम 20 अक्षर"))
+    .regex(/[a-z]/, tr("1 minuscule obligatoire", "1 lowercase letter required", "1 minúscula obligatoria", "1 छोटा अक्षर आवश्यक"))
+    .regex(/[A-Z]/, tr("1 majuscule obligatoire", "1 uppercase letter required", "1 mayúscula obligatoria", "1 बड़ा अक्षर आवश्यक"))
+    .regex(/[0-9]/, tr("1 chiffre obligatoire", "1 digit required", "1 cifra obligatoria", "1 अंक आवश्यक"));
 
-const signupSchema = z.object({
-  email: z.string().email("Format email invalide").min(1, "L'email est obligatoire"),
-  firstName: z.string().min(2, "2 lettres minimum requises pour le prénom"),
-  lastName: z.string().optional().or(z.literal('')),
-  password: passwordSchema,
-  confirmPassword: z.string(),
-  gender: z.enum(["male", "female", "other"]).optional(),
-  dateOfBirth: z.string().optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  comment: z.string().optional().or(z.literal('')),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas",
-  path: ["confirmPassword"],
-});
+  return z.object({
+    email: z.string().email(tr("Format email invalide", "Invalid email format", "Formato de email no válido", "ईमेल प्रारूप अमान्य")).min(1, tr("L'email est obligatoire", "Email is required", "El email es obligatorio", "ईमेल आवश्यक है")),
+    firstName: z.string().min(2, tr("2 lettres minimum requises pour le prénom", "First name needs at least 2 letters", "El nombre requiere al menos 2 letras", "नाम में कम से कम 2 अक्षर आवश्यक")),
+    lastName: z.string().optional().or(z.literal('')),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+    gender: z.enum(["male", "female", "other"]).optional(),
+    dateOfBirth: z.string().optional().or(z.literal('')),
+    phone: z.string().optional().or(z.literal('')),
+    comment: z.string().optional().or(z.literal('')),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: tr("Les mots de passe ne correspondent pas", "Passwords do not match", "Las contraseñas no coinciden", "पासवर्ड मेल नहीं खाते"),
+    path: ["confirmPassword"],
+  });
+};
 
 export default function SignUpPage() {
   const router = useRouter();
+  const lang = useLang();
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -80,7 +84,7 @@ export default function SignUpPage() {
     };
 
     try {
-      signupSchema.parse(dataToValidate);
+      buildSignupSchema().parse(dataToValidate);
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -104,7 +108,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...dataToValidate, turnstileToken }),
+        body: JSON.stringify({ ...dataToValidate, turnstileToken, lang }),
       });
 
       if (res.ok) {
@@ -114,11 +118,11 @@ export default function SignUpPage() {
         setTimeout(() => router.push('/dashboard/account'), 3000);
       } else {
         const data = await res.json();
-        setApiError(data.error || "Erreur lors de la création du compte.");
+        setApiError(data.error || tr("Erreur lors de la création du compte.", "Error while creating the account.", "Error al crear la cuenta.", "खाता बनाते समय त्रुटि।"));
       }
     } catch (err) {
       console.error("Erreur API:", err);
-      setApiError("Une erreur inattendue est survenue. Veuillez réessayer.");
+      setApiError(tr("Une erreur inattendue est survenue. Veuillez réessayer.", "An unexpected error occurred. Please try again.", "Ocurrió un error inesperado. Inténtelo de nuevo.", "एक अप्रत्याशित त्रुटि हुई। कृपया फिर प्रयास करें।"));
     } finally {
       setIsLoading(false);
     }
@@ -278,7 +282,7 @@ export default function SignUpPage() {
                   
                   {/* Cohérence visuelle */}
                   {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                    <p className="text-green-400 text-[10px] mt-1">✓ Mots de passe identiques</p>
+                    <p className="text-green-400 text-[10px] mt-1">{tr("✓ Mots de passe identiques", "✓ Passwords match", "✓ Contraseñas idénticas", "✓ पासवर्ड समान हैं")}</p>
                   )}
                   {formData.confirmPassword && formData.password !== formData.confirmPassword && (
                     <p className="text-red-400 text-[10px] mt-1">{tr("✗ Mots de passe différents", "✗ Passwords don't match", "✗ Contraseñas diferentes", "✗ पासवर्ड अलग-अलग हैं")}</p>
@@ -289,7 +293,7 @@ export default function SignUpPage() {
                   <div>
                     <label htmlFor="lastName" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">🏷️</span>
-                      Nom
+                      {tr("Nom", "Last name", "Apellido", "उपनाम")}
                     </label>
                     <input
                       type="text"
@@ -299,14 +303,14 @@ export default function SignUpPage() {
                       onChange={handleChange}
                       autoComplete="family-name"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                      placeholder="Nom"
+                      placeholder={tr("Nom", "Last name", "Apellido", "उपनाम")}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="gender" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">♂♀</span>
-                      Sexe
+                      {tr("Sexe", "Gender", "Sexo", "लिंग")}
                     </label>
                     <select
                       id="gender"
@@ -315,9 +319,9 @@ export default function SignUpPage() {
                       onChange={handleChange}
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 appearance-none"
                     >
-                      <option value="male" className="bg-gray-800">Homme ♂</option>
-                      <option value="female" className="bg-gray-800">Femme ♀</option>
-                      <option value="other" className="bg-gray-800">Autre ☯</option>
+                      <option value="male" className="bg-gray-800">{tr("Homme ♂", "Male ♂", "Hombre ♂", "पुरुष ♂")}</option>
+                      <option value="female" className="bg-gray-800">{tr("Femme ♀", "Female ♀", "Mujer ♀", "महिला ♀")}</option>
+                      <option value="other" className="bg-gray-800">{tr("Autre ☯", "Other ☯", "Otro ☯", "अन्य ☯")}</option>
                     </select>
                   </div>
                 </div>
@@ -326,7 +330,7 @@ export default function SignUpPage() {
                   <div>
                     <label htmlFor="dateOfBirth" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">🎂</span>
-                      Date de naissance
+                      {tr("Date de naissance", "Date of birth", "Fecha de nacimiento", "जन्म तिथि")}
                     </label>
                     <input
                       type="date"
@@ -361,7 +365,7 @@ export default function SignUpPage() {
                 <div>
                   <label htmlFor="comment" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                     <span className="text-amber-500">💭</span>
-                    Commentaire
+                    {tr("Commentaire", "Comment", "Comentario", "टिप्पणी")}
                   </label>
                   <textarea
                     id="comment"

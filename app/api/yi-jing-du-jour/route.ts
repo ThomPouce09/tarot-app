@@ -25,7 +25,13 @@ type HexRow = {
   synthese: string | null;
 };
 
-function shape(h: HexRow, en?: { nameEn: string | null; syntheseEn: string | null } | null) {
+type HexSiblings = {
+  nameEn?: string | null; syntheseEn?: string | null;
+  nameEs?: string | null; syntheseEs?: string | null;
+  nameHi?: string | null; syntheseHi?: string | null;
+};
+
+function shape(h: HexRow, en?: HexSiblings | null) {
   return {
     numero: h.numero,
     caractere: h.caractere,
@@ -38,6 +44,10 @@ function shape(h: HexRow, en?: { nameEn: string | null; syntheseEn: string | nul
     lignes: hexagramLines(h.numero),
     nameEn: en?.nameEn ?? null,
     syntheseEn: en?.syntheseEn ?? null,
+    nameEs: en?.nameEs ?? null,
+    syntheseEs: en?.syntheseEs ?? null,
+    nameHi: en?.nameHi ?? null,
+    syntheseHi: en?.syntheseHi ?? null,
   };
 }
 
@@ -87,14 +97,21 @@ export async function GET(req: NextRequest) {
     nums.add(yesterdayNum);
     nums.add(tomorrowNum);
 
-    const [hexas, ens] = await Promise.all([
-      prisma.hexagram.findMany({ where: { numero: { in: Array.from(nums) } } }),
-      prisma.hexagramEn.findMany({ where: { numero: { in: Array.from(nums) } } }),
+    const numList = Array.from(nums);
+    const [hexas, ens, ess, his] = await Promise.all([
+      prisma.hexagram.findMany({ where: { numero: { in: numList } } }),
+      prisma.hexagramEn.findMany({ where: { numero: { in: numList } } }),
+      prisma.hexagramEs.findMany({ where: { numero: { in: numList } } }),
+      prisma.hexagramHi.findMany({ where: { numero: { in: numList } } }),
     ]);
     const byNum = new Map<number, HexRow>(hexas.map((h) => [h.numero, h as HexRow]));
-    const byNumEn = new Map<number, { nameEn: string | null; syntheseEn: string | null }>(
-      ens.map((e) => [e.numero, { nameEn: e.nameEn, syntheseEn: e.syntheseEn }]),
-    );
+    // Sœurs _en/_es/_hi fusionnées par numéro (une seule map passée à shape()).
+    const byNumEn = new Map<number, HexSiblings>();
+    const merge = (numero: number, patch: HexSiblings) =>
+      byNumEn.set(numero, { ...(byNumEn.get(numero) || {}), ...patch });
+    ens.forEach((e) => merge(e.numero, { nameEn: e.nameEn, syntheseEn: e.syntheseEn }));
+    ess.forEach((e) => merge(e.numero, { nameEs: e.nameEs, syntheseEs: e.syntheseEs }));
+    his.forEach((e) => merge(e.numero, { nameHi: e.nameHi, syntheseHi: e.syntheseHi }));
 
     const main = byNum.get(numero);
     if (!main) {

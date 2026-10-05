@@ -2,8 +2,9 @@
 
 // components/speaker-toggle.tsx — Enceinte flottante (landing + hubs d'oracles).
 // Réflette les préférences son (Voix / Effets sonores) et les pilote d'un tap :
-//   1 clic : coupe les voix   2e clic : coupe aussi les effets   3e clic : tout réactive.
-// Couleurs : blanc légèrement opaque = voix + effets ; orange = effets seuls ; rouge = tout coupé.
+//   1 clic : coupe la MUSIQUE (voix et effets conservés)   2e clic : coupe aussi
+//   les voix et les effets   3e clic : tout réactive.
+// Couleurs : blanc = voix + effets + musique ; orange = voix + effets, sans musique ; rouge = tout coupé.
 // Position : fixée en haut à droite, SOUS le bouton menu (YiSlideNav : right-1, 32px de haut).
 
 import { useEffect, useRef, useState } from 'react';
@@ -55,13 +56,14 @@ export default function SpeakerToggle({ top = 38, right = 7, z = 55 }: { top?: n
     // faire bouger les interrupteurs « Voix » / « Effets » des Préférences.
     // Coupe IMMÉDIATEMENT les pistes déjà en cours : sans ça, un jingle de page
     // (jusqu'à 11 s) continue alors que la préférence vient de passer à off.
-    if (next === 'effects') stopVoices();
-    else if (next === 'muted') stopAllExceptMusic(); // rouge = tout coupé, mais
-    // la musique est seulement MIS EN PAUSE (pas rembobinée) → au retour blanc
-    // elle reprend où elle s'était arrêtée (continuité).
-    else unlockAllSounds();
-    // Acquittement « micro » : le clic qui COUPE les voix (all→effects) et
-    // celui qui les REPLACE (muted→all) jouent mute-unmute. « Tout couper »
+    // Clic 1 (→ effects) : la MUSIQUE se coupe seule (musicGloballyAllowed),
+    // les voix et les effets restent actifs. Clic 2 (→ muted) : tout est coupé,
+    // la musique en pause SÈCHE (pas rembobinée) → au retour blanc elle reprend
+    // où elle s'était arrêtée (continuité).
+    if (next === 'muted') { stopVoices(); stopAllExceptMusic(); }
+    else if (next === 'all') unlockAllSounds();
+    // Acquittement « micro » : le clic qui COUPE la musique (all→effects) et
+    // celui qui REMET tout (muted→all) jouent mute-unmute. « Tout couper »
     // (→muted) reste silencieux, par cohérence avec l'état muet.
     if (next === 'effects' || next === 'all') playSound('mute-unmute', 0.8);
     // Bulle : texte du NOUVEL état.

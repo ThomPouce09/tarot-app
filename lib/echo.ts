@@ -47,7 +47,8 @@ Synthèse de la lecture : « ${summary.slice(0, 900)} »
 (événement, rencontre, nouvelle, retournement — pas une généralité vague ni un conseil).
 Ton : solennel, bienveillant, poétique mais factuel. Une seule phrase fluide de 140 à 260
 caractères en français, sans promettre de date précise dans le texte.
-Écris le MÊME augure en anglais (textEn), fidèle et naturel.
+Écris le MÊME augure en anglais (textEn), en espagnol (textEs) et en hindi (textHi) —
+fidèles et naturels, jamais une traduction mot à mot ; le hindi s'écrit en devanagari.
 Choisis dueInDays : un entier entre ${ECHO_MIN_DAYS} et ${ECHO_MAX_DAYS} — le moment où
 l'augure pourra être vérifié (plus l'horizon de la lecture est long, plus dueInDays est grand).
 
@@ -55,6 +56,8 @@ Réponds UNIQUEMENT avec cet objet JSON valide, sans texte avant ni après :
 {
   "textFr": "…",
   "textEn": "…",
+  "textEs": "…",
+  "textHi": "…",
   "dueInDays": 28
 }`;
 }
@@ -62,6 +65,8 @@ Réponds UNIQUEMENT avec cet objet JSON valide, sans texte avant ni après :
 export interface ParsedEcho {
   textFr: string;
   textEn: string;
+  textEs: string;
+  textHi: string;
   dueInDays: number;
 }
 
@@ -69,13 +74,18 @@ export interface ParsedEcho {
 export function parseEchoJson(json: Record<string, any> | null | undefined): ParsedEcho | null {
   const textFr = String(json?.textFr || '').trim();
   const textEn = String(json?.textEn || '').trim();
+  const textEs = String(json?.textEs || '').trim();
+  const textHi = String(json?.textHi || '').trim();
   const d = Number(json?.dueInDays);
   if (textFr.length < 40 || textFr.length > 600) return null;
   if (!Number.isFinite(d)) return null;
   const dueInDays = Math.min(ECHO_MAX_DAYS, Math.max(ECHO_MIN_DAYS, Math.round(d)));
   return {
     textFr,
-    textEn: textEn.length >= 20 ? textEn : '', // l'EN est un parallèle ; vide = fallback FR côté UI
+    // Les parallèles sont optionnels ; vide = repli FR côté UI (voir pickEchoText).
+    textEn: textEn.length >= 20 ? textEn : '',
+    textEs: String(json?.textEs || '').trim().length >= 20 ? String(json?.textEs || '').trim() : '',
+    textHi: String(json?.textHi || '').trim().length >= 20 ? String(json?.textHi || '').trim() : '',
     dueInDays,
   };
 }
@@ -116,6 +126,8 @@ export interface SerializedEcho {
   readingId: string | null;
   textFr: string;
   textEn: string | null;
+  textEs: string | null;
+  textHi: string | null;
   domain: string;
   dueAt: string; // ISO
   verdict: string | null;
@@ -127,6 +139,7 @@ export interface SerializedEcho {
 
 export function serializeEcho(e: {
   id: string; readingId: string | null; textFr: string; textEn: string | null;
+  textEs?: string | null; textHi?: string | null;
   domain: string; dueAt: Date; verdict: string | null; verdictAt: Date | null; createdAt: Date;
   verdictPct?: number | null; bestCardIndex?: number | null;
 }): SerializedEcho {
@@ -135,6 +148,8 @@ export function serializeEcho(e: {
     readingId: e.readingId,
     textFr: e.textFr,
     textEn: e.textEn,
+    textEs: e.textEs ?? null,
+    textHi: e.textHi ?? null,
     domain: e.domain,
     dueAt: e.dueAt.toISOString(),
     verdict: e.verdict,
@@ -170,7 +185,7 @@ export async function generateAndSaveEcho(opts: {
   if (!parsed) {
     // Les modèles de secours omettent parfois une clé → une seule relance explicite.
     const retry = (await callOracle(
-      prompt + '\n\nRAPPEL ABSOLU : renvoie UN objet JSON complet avec les trois clés "textFr", "textEn" et "dueInDays". Rien d\'autre.',
+      prompt + '\n\nRAPPEL ABSOLU : renvoie UN objet JSON complet avec les clés "textFr", "textEn", "textEs", "textHi" et "dueInDays". Rien d\'autre.',
     )) || '';
     parsed = parseEchoJson(extractJsonObject(retry));
   }
@@ -183,6 +198,8 @@ export async function generateAndSaveEcho(opts: {
       readingId: opts.readingId ?? null,
       textFr: parsed.textFr,
       textEn: parsed.textEn || null,
+      textEs: parsed.textEs || null,
+      textHi: parsed.textHi || null,
       domain: opts.domain,
       dueAt,
     },

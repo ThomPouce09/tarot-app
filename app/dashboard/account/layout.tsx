@@ -58,7 +58,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         <div className="cosmos-veil" aria-hidden /><div className="cosmos-nebula3" aria-hidden /><div className="cosmos-stars" aria-hidden /><div className="cosmos-stars2" aria-hidden />
         <span className="text-5xl">🔒</span>
         <p className="mystic-title text-xl">{tr("Accès réservé aux initiés", "Access reserved for the Initiates", "Acceso reservado a los iniciados", "प्रवेश केवल इनिशिए के लिए")}</p>
-        <button type="button" onClick={() => router.replace('/login')} className="mystic-btn">Se connecter</button>
+        <button type="button" onClick={() => router.replace('/login')} className="mystic-btn">{tr("Se connecter", "Sign in", "Iniciar sesión", "प्रवेश करें")}</button>
       </div>
     );
   }

@@ -90,6 +90,9 @@ export default function PreferencesPage() {
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
           setSoundPrefs(next.soundEffects, next.voices);
+          // Langue choisie ailleurs (autre appareil) : on la reprend, sans boucle
+          // (setLang n'écrit qu'en local, il ne rappelle pas le serveur).
+          if (['fr', 'en', 'es', 'hi'].includes(String(d.language))) setLang(d.language as Lang);
           // Le player musique lit tarot_prefs → on le resynchronise.
           window.dispatchEvent(new Event('musicprefs-changed'));
           return next;
@@ -110,7 +113,7 @@ export default function PreferencesPage() {
     fetch('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language }),
     }).catch(() => {});
   };
 
@@ -301,7 +304,7 @@ export default function PreferencesPage() {
               <button
                 key={l.key}
                 type="button"
-                onClick={() => setLang(l.key)}
+                onClick={() => { setLang(l.key); update({ language: l.key }); }}
                 aria-pressed={on}
                 className="rounded-[0.6rem] py-2.5 text-sm font-semibold transition-all duration-200 hover:brightness-110"
                 style={

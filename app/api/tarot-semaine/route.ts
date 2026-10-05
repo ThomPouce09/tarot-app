@@ -132,7 +132,7 @@ function wheelView(reading: { id: string; createdAt: Date; cards: string; interp
     filRouge: nowDay >= 7 || echo ? (st.filRouge || null) : null,
     woven: Array.isArray(st.days) && st.days.length === 7,
     echo: echo ? {
-      id: echo.id, textFr: echo.textFr, textEn: echo.textEn,
+      id: echo.id, textFr: echo.textFr, textEn: echo.textEn, textEs: echo.textEs ?? null, textHi: echo.textHi ?? null,
       dueAt: echo.dueAt.toISOString(), verdict: echo.verdict,
       verdictPct: echo.verdictPct, bestCardIndex: echo.bestCardIndex,
     } : null,

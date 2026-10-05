@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     musicOn: user.musicOn,
     musicTrack: user.musicTrack,
     seenTutorials: user.seenTutorials,
+    language: user.language,
     lastLetterSentAt: user.lastLetterSentAt ? user.lastLetterSentAt.toISOString() : null,
   });
 }
@@ -46,6 +47,8 @@ export async function POST(request: NextRequest) {
     }
     // Musique d'accueil (interrupteur + piste). Normalise les anciens ids.
     if (typeof body.musicOn === 'boolean') data.musicOn = body.musicOn;
+    // Langue d'interface (fr/en/es/hi) — sert la lettre hebdo et les emails serveur.
+    if (['fr', 'en', 'es', 'hi'].includes(String(body.language))) data.language = String(body.language);
     const LEGACY: Record<string, string> = { classique: 'vibrations', premium: 'promenades' };
     const mt = LEGACY[body.musicTrack] ?? body.musicTrack;
     if (mt === 'vibrations' || mt === 'promenades' || mt === 'constellations' || mt === 'silverwell') data.musicTrack = mt;

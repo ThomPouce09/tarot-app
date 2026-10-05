@@ -16,7 +16,7 @@ export default function YggQuestion({ open, onConfirm, copy }: {
   open: boolean;
   onConfirm: (q: string) => void;
   /** Habillage textuel local (défaut : l'Arbre). Mjölnir passe les siens. */
-  copy?: { title: string; titleEn: string; sub: string; subEn: string; cta: string; ctaEn: string; titleEs?: string; titleHi?: string };
+  copy?: { title: string; titleEn: string; sub: string; subEn: string; cta: string; ctaEn: string; titleEs?: string; titleHi?: string; subEs?: string; subHi?: string; ctaEs?: string; ctaHi?: string };
 }) {
   const t = useT();
   const lang = useLang();
@@ -26,6 +26,10 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
     sub: 'Confie ta question — ou choisis un thème pour orienter la lecture si tu préfères rester abstrait.',
     subEn: 'Entrust your question — or pick a theme to orient the reading if you prefer to stay abstract.',
     cta: 'Planter la question', ctaEn: 'Plant the question',
+    subEs: 'Confía tu pregunta — o elige un tema para orientar la lectura si prefieres mantenerte abstracto.',
+    subHi: 'अपना प्रश्न सौंपो — या यदि अमूर्त रहना पसंद हो तो वाचन को दिशा देने के लिए कोई विषय चुनो।',
+    ctaEs: 'Plantear la pregunta',
+    ctaHi: 'प्रश्न रखो',
     ...(copy ?? {}),
   };
   const L = (fr: string, en: string, es?: string, hi?: string) =>
@@ -70,7 +74,7 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
               {lang === 'en' ? (C.titleEn || C.title) : lang === 'es' ? (C.titleEs || C.title) : lang === 'hi' ? (C.titleHi || C.title) : C.title}
             </h3>
             <p className="mx-auto mt-1.5 max-w-sm text-center text-[12px] italic leading-relaxed" style={{ color: RUNE_THEME.sage }}>
-              {lang === 'en' ? C.subEn : C.sub}
+              {L(C.sub, C.subEn, C.subEs, C.subHi)}
             </p>
 
             {/* Chemin 1 : question libre */}
@@ -98,7 +102,7 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
                   disabled={!free.trim()}
                   onClick={() => free.trim() && onConfirm(free.trim())}
                 >
-                  {lang === 'en' ? C.ctaEn : C.cta}
+                  {L(C.cta, C.ctaEn, C.ctaEs, C.ctaHi)}
                 </RuneButton>
               </div>
             </div>

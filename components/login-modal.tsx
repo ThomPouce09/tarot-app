@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT, tr } from '@/lib/i18n';
+import { useT, useLang, tr } from '@/lib/i18n';
 import { onAccountChanged } from '@/lib/tutorials';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
@@ -16,6 +16,7 @@ export const OPEN_LOGIN_EVENT = 'open-login';
 export function LoginModal() {
   const router = useRouter();
   const t = useT();
+  const lang = useLang();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +33,7 @@ export function LoginModal() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, lang }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -41,10 +42,10 @@ export function LoginModal() {
         setOpen(false);
         router.push('/dashboard/account');
       } else {
-        alert(data.error || 'Email ou mot de passe incorrect');
+        alert(data.error || tr('Email ou mot de passe incorrect', 'Incorrect email or password', 'Email o contraseña incorrectos', 'ईमेल या पासवर्ड गलत है'));
       }
     } catch {
-      alert('Erreur de connexion');
+      alert(tr('Erreur de connexion', 'Connection error', 'Error de conexión', 'कनेक्शन त्रुटि'));
     }
   };
 

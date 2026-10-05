@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendConfirmationEmail } from '@/lib/mailer';
 import { calcAge, daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
+import { resolveLang, authMsg, localDate, durationPhrase } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password, firstName, lastName, gender, dateOfBirth, phone, comment } = body;
+    const lang = resolveLang(body.lang);
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
+      return NextResponse.json({ error: authMsg('missing', lang) }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({
@@ -26,12 +28,10 @@ export async function POST(request: NextRequest) {
         const elapsed = daysSince(existing.deletedAt);
         if (elapsed < DELETION_GRACE_DAYS) {
           const remaining = DELETION_GRACE_DAYS - elapsed;
-          const untilLabel = new Date(
-            existing.deletedAt.getTime() + DELETION_GRACE_DAYS * 86400000
-          ).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          const untilLabel = localDate(existing.deletedAt.getTime() + DELETION_GRACE_DAYS * 86400000, lang);
           return NextResponse.json(
             {
-              error: `Cet email a été utilisé par un compte supprimé. Vous pourrez le réutiliser à partir du ${untilLabel} (dans ${remaining} jour${remaining > 1 ? 's' : ''}).`,
+              error: authMsg('deletedSignup', lang, { date: untilLabel, n: durationPhrase(remaining, lang) }),
               code: 'ACCOUNT_DELETED',
             },
             { status: 403 }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
           prisma.user.delete({ where: { id: existing.id } }),
         ]);
       } else {
-        return NextResponse.json({ error: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.' }, { status: 400 });
+        return NextResponse.json({ error: authMsg('emailTaken', lang) }, { status: 400 });
       }
     }
 

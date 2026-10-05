@@ -308,7 +308,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-                <img src="/images/tirage-3-cartes.png" alt="3 Cartes Simplifié" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Simplifié', '3 Cards Simplified', '3 cartas simplificado', '3 पत्ते सरल')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -379,7 +379,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-                <img src="/images/tirage-3-cartes.png" alt="3 Cartes Précis" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Précis', '3 Cards Precise', '3 cartas preciso', '3 पत्ते सटीक')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -450,7 +450,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-              <img src="/images/roue-semaine.svg" alt="Roue des sept arcanes" className="w-16 h-16 mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+              <img src="/images/roue-semaine.svg" alt={tr('Roue des sept arcanes', 'Wheel of the seven arcana', 'Rueda de los siete arcanos', 'सात अर्कानों का चक्र')} className="w-16 h-16 mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
                 style={{
@@ -522,7 +522,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
-                <img src="/images/5 cartes manuelles.png" alt="5 cartes manuelles" className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                <img src="/images/5 cartes manuelles.png" alt={tr('5 cartes manuelles', '5 manual cards', '5 cartas manuales', '5 पत्ते, हाथ से चुने')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1"
                   style={{
@@ -570,7 +570,7 @@ export default function TarotHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-amber-600/25 rounded-lg pointer-events-none" />
-                <img src="/images/5 cartes manuelles.png" alt="5 cartes manuelles" className="w-16 h-auto mb-1 object-contain opacity-50" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
+                <img src="/images/5 cartes manuelles.png" alt={tr('5 cartes manuelles', '5 manual cards', '5 cartas manuales', '5 पत्ते, हाथ से चुने')} className="w-16 h-auto mb-1 object-contain opacity-50" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1 opacity-50"
                   style={{

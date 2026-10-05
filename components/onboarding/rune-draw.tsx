@@ -145,7 +145,7 @@ export default function RuneDraw({
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: `${GOLD_PALE}dd` }}
               >
                 {rune.name}
-                {rune.rev ? (lang === 'en' ? ' · reversed' : ' · renversée') : ''}
+                {rune.rev ? pick4(' · renversée', ' · reversed', ' · invertida', ' · उल्टी')(lang) : ''}
               </motion.p>
             )}
           </div>

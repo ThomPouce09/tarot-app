@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, tr } from '@/lib/i18n';
+import { pickEchoText } from '@/lib/i18n/echo-text';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -62,7 +63,7 @@ interface DoubleView {
   hexPresent: number; hexFutur: number;
   names: { pFr: string; pEn: string; fFr: string; fEn: string };
   read: DoubleRead | null;
-  echo: { id: string; textFr: string; textEn: string | null; dueAt: string; verdict: string | null; verdictPct: number | null } | null;
+  echo: { id: string; textFr: string; textEn: string | null; textEs?: string | null; textHi?: string | null; dueAt: string; verdict: string | null; verdictPct: number | null } | null;
 }
 
 function emailLocal(): string {
@@ -591,7 +592,7 @@ function DoublePage() {
             {db.echo && !db.echo.verdict && !echoDue && (
               <div className="mt-4 rounded-2xl p-5 text-center" style={{ background: 'linear-gradient(160deg,#4A2C1A 0%,#2A1408 60%,#180B05 100%)', border: '1.5px solid rgba(218,165,32,0.45)' }}>
                 <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{tr("Envie de défier l'Oracle ?", "Dare to challenge the Oracle?", "¿Te atreves a desafiar al Oráculo?", "ओरैकल को चुनौती दोगे?")}</p>
-                <p className="mt-2 text-sm italic leading-relaxed" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {en && db.echo.textEn ? db.echo.textEn : db.echo.textFr} »</p>
+                <p className="mt-2 text-sm italic leading-relaxed" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {pickEchoText(db.echo, lang)} »</p>
                 <p className="mt-3 text-xs" style={{ color: GOLD_PALE_SAFE }}>
                   {L(`le retournement s’observe dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`, `the turn ripens in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`)}
                 </p>
@@ -601,7 +602,7 @@ function DoublePage() {
             {echoDue && db.echo && (
               <div className="mt-4 rounded-2xl p-5" style={{ background: 'linear-gradient(160deg,#4A2C1A 0%,#2A1408 60%,#180B05 100%)', border: '1.5px solid rgba(218,165,32,0.6)', boxShadow: '0 0 26px rgba(218,165,32,0.25)' }}>
                 <p className="text-center text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{tr("L’échéance est là", "The day has come", "La fecha ha llegado", "नियत समय आ गया है")}</p>
-                <p className="mt-2 text-center text-sm italic" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {en && db.echo.textEn ? db.echo.textEn : db.echo.textFr} »</p>
+                <p className="mt-2 text-center text-sm italic" style={{ color: LILAC, fontFamily: 'var(--font-cinzel), serif' }}>« {pickEchoText(db.echo, lang)} »</p>
                 <p className="mt-3 text-center text-[11px]" style={{ color: `${LILAC}aa` }}>{tr("Le retournement promis a-t-il eu lieu ?", "Did the promised turn come to pass?", "¿Ha tenido lugar el vuelco prometido?", "क्या वादा किया गया मोड़ आया है?")}</p>
                 <div className="mt-3 flex justify-center gap-2">
                   {[0, 25, 50, 75, 100].map((p) => (

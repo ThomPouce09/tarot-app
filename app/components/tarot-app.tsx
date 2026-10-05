@@ -860,7 +860,7 @@ export default function TarotApp({
           ) : (
             <Image
               src={TABLE_BG_WITH_VERSION}
-              alt="Table en bois rustique"
+              alt={tr('Table en bois rustique', 'Rustic wooden table', 'Mesa de madera rústica', 'लकड़ी की देसी मेज़')}
               fill
               className="object-cover"
               style={{ objectPosition: 'center 50%', transform: 'scale(1.1) translateY(-13%)', filter: 'brightness(1.08) contrast(1.06) saturate(1.08)' }}

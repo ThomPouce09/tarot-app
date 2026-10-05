@@ -70,7 +70,7 @@ async function hexInfo(n: number) {
 }
 
 /** Vue publique du double actif (+ état de l'augure lié). */
-function doubleView(reading: { id: string; createdAt: Date; interpretation: string | null }, echo: { id: string; textFr: string; textEn: string | null; dueAt: Date; verdict: string | null; verdictPct: number | null } | null) {
+function doubleView(reading: { id: string; createdAt: Date; interpretation: string | null }, echo: { id: string; textFr: string; textEn: string | null; textEs?: string | null; textHi?: string | null; dueAt: Date; verdict: string | null; verdictPct: number | null } | null) {
   let st: DoubleState;
   try { st = JSON.parse(reading.interpretation || '{}'); } catch { return null; }
   if (!st.castAt || !Array.isArray(st.lignes)) return null;
@@ -85,7 +85,7 @@ function doubleView(reading: { id: string; createdAt: Date; interpretation: stri
     names: st.names,
     read: st.read ?? null,
     echo: echo ? {
-      id: echo.id, textFr: echo.textFr, textEn: echo.textEn,
+      id: echo.id, textFr: echo.textFr, textEn: echo.textEn, textEs: echo.textEs ?? null, textHi: echo.textHi ?? null,
       dueAt: echo.dueAt.toISOString(), verdict: echo.verdict, verdictPct: echo.verdictPct,
     } : null,
   };

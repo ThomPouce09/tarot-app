@@ -34,7 +34,16 @@ type HexShape = {
   lignes: boolean[]; // base → sommet
   nameEn: string | null;
   syntheseEn: string | null;
+  nameEs?: string | null;
+  syntheseEs?: string | null;
+  nameHi?: string | null;
+  syntheseHi?: string | null;
 };
+
+/** Variante linguistique d'un champ d'hexagramme (tables sœurs _en/_es/_hi),
+ *  repli sur la valeur FR. */
+const hexVariant = (lang: string, en?: string | null, es?: string | null, hi?: string | null, fr?: string | null) =>
+  ((lang === 'en' ? en : lang === 'es' ? es : lang === 'hi' ? hi : null) || fr || '');
 
 type ApiResponse = {
   found: boolean;
@@ -359,7 +368,7 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
   ctx.fillStyle = '#f3c969';
   ctx.font = '170px serif';
   ctx.fillText(data.hexagram.caractere, W / 2, y + totalH + 230);
-  const name = lang === 'en' && data.hexagram.nameEn ? data.hexagram.nameEn : data.hexagram.element;
+  const name = hexVariant(lang, data.hexagram.nameEn, data.hexagram.nameEs, data.hexagram.nameHi, data.hexagram.element);
   ctx.font = '52px Georgia, serif';
   ctx.fillStyle = '#f5ead6';
   ctx.fillText(`#${data.hexagram.numero} — ${name}`, W / 2, y + totalH + 315);
@@ -368,7 +377,7 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
   ctx.fillText(data.hexagram.pinyin, W / 2, y + totalH + 365);
 
   // conseil
-  const advice = lang === 'en' && data.hexagram.syntheseEn ? data.hexagram.syntheseEn : data.hexagram.conseil;
+  const advice = hexVariant(lang, data.hexagram.syntheseEn, data.hexagram.syntheseEs, data.hexagram.syntheseHi, data.hexagram.conseil);
   ctx.font = '36px Georgia, serif';
   ctx.fillStyle = '#f5ead6';
   const lines = wrapText(ctx, advice, W - 260).slice(0, 6);
@@ -475,15 +484,15 @@ function YiJingDuJourPage() {
   }, [data?.date, lang]);
 
   const hex = data?.hexagram;
-  const displayName = hex ? (lang === 'en' && hex.nameEn ? hex.nameEn : hex.element) : '';
+  const displayName = hex ? hexVariant(lang, hex.nameEn, hex.nameEs, hex.nameHi, hex.element) : '';
   // En lecture personnelle, l'IA a réécrit le conseil du jour selon l'âge ;
   // sans date de naissance (ou IA muette), on garde le conseil standard.
   const displayAdvice = hex
     ? (data?.personal && data.personalAdvice)
       ? data.personalAdvice
-      : (lang === 'en' && hex.syntheseEn ? hex.syntheseEn : hex.conseil)
+      : hexVariant(lang, hex.syntheseEn, hex.syntheseEs, hex.syntheseHi, hex.conseil)
     : '';
-  const displaySynth = hex ? (lang === 'en' && hex.syntheseEn ? hex.syntheseEn : hex.synthese) : '';
+  const displaySynth = hex ? hexVariant(lang, hex.syntheseEn, hex.syntheseEs, hex.syntheseHi, hex.synthese) : '';
 
   return (
     <div className="relative min-h-dvh overflow-hidden" style={{ background: `radial-gradient(120% 80% at 50% 0%, ${L.panel} 0%, ${L.panelDeep} 55%, ${L.noir} 100%)` }}>
@@ -568,7 +577,7 @@ function YiJingDuJourPage() {
                   <div className="min-w-0">
                     <p className="text-[10px] tracking-[0.3em]" style={{ color: L.orDim }}>#{hex.numero} · {hex.pinyin}</p>
                     <h2 className="mt-1 truncate font-[family-name:var(--font-cinzel-deco)] text-xl" style={{ color: L.or }}>{displayName}</h2>
-                    <p className="mt-0.5 text-xs italic" style={{ color: `${L.ivoire}88` }}>{hex.caractere} · {lang === 'fr' ? 'élément' : 'element'} {hex.element}</p>
+                    <p className="mt-0.5 text-xs italic" style={{ color: `${L.ivoire}88` }}>{hex.caractere} · {pick4('élément', 'element', 'elemento', 'तत्व')(lang)} {hex.element}</p>
                   </div>
                   <div className="shrink-0 pt-1">
                     <HexLines lignes={hex.lignes} mutating={data.mutating} />

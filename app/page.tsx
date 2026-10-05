@@ -223,7 +223,7 @@ export default function HomePage() {
           ) : (
             <Image
               src={background}
-              alt="Table mystique Tarot & Yi Jing"
+              alt={tr('Table mystique Tarot & Yi Jing', 'Mystic Tarot & Yi Jing table', 'Mesa mística de Tarot y Yi Jing', 'रहस्यमय टैरो और यी जिंग मेज़')}
               fill
               className="object-cover"
               priority
@@ -425,7 +425,7 @@ export default function HomePage() {
               <div className="absolute inset-1.5 border border-amber-600/30 rounded-lg pointer-events-none" />
               <img
                 src="/images/runes-icon.png"
-                alt="Runes Scandinaves"
+                alt={tr('Runes Scandinaves', 'Norse Runes', 'Runas escandinavas', 'स्कैंडिनेवियाई रून')}
                 className="w-11 h-11 mb-2 object-contain"
                 style={{ filter: 'drop-shadow(0 0 10px rgba(138,109,59,0.5))' }}
               />
@@ -481,7 +481,7 @@ export default function HomePage() {
               <div className="absolute inset-1.5 border border-amber-300/25 rounded-lg pointer-events-none" />
               <img
                 src="/images/des-zodiaque.png"
-                alt="Les dés du zodiaque"
+                alt={tr('Les dés du zodiaque', 'Zodiac dice', 'Los dados del zodíaco', 'राशि चक्र के पासे')}
                 className="w-11 h-11 mb-2 object-contain"
                 style={{ filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.55))' }}
               />

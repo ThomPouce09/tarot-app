@@ -35,6 +35,9 @@ model User {
   dailyReminder     Boolean   @default(false)
   dailyReminderHour Int       @default(18)   // 0-23, heure locale
   lastLetterSentAt  DateTime?
+  // Langue d'interface choisie par l'utilisateur (fr/en/es/hi) — sert la lettre
+  // hebdo et les emails serveur. Null = jamais synchronisé → repli fr.
+  language          String?
   // Fonds d'écran de la landing sélectionnés par l'utilisateur (chemins publics).
   // Vide = tous les fonds en mode aléatoire (défaut).
   backgrounds       String[]
@@ -132,6 +135,8 @@ model Echo {
   readingId String?   @unique
   textFr    String    // l'écho scellé (FR)
   textEn    String?   // l'écho scellé (EN, parallèle)
+  textEs    String?   // l'écho scellé (ES, parallèle)
+  textHi    String?   // l'écho scellé (HI, parallèle)
   domain    String    // 'tarot' | 'yi-jing' | 'runes' | 'des'
   dueAt     DateTime  // échéance de vérification
   verdict   String?   // 'oui' | 'partiel' | 'non' — null = encore scellé/non clos
@@ -260,6 +265,22 @@ model HexagramEn {
   nameEn      String? @map("name_en")
   syntheseEn  String? @map("synthese_en")
   @@map("hexagrams_en")
+}
+
+// Noms + synthèses des 64 hexagrammes en espagnol et en hindi (tables sœurs :
+// `hexagrams` n'est JAMAIS modifiée). Alimentées par scripts/seed-hexagrams-es-hi.js.
+model HexagramEs {
+  numero      Int    @id
+  nameEs      String? @map("name_es")
+  syntheseEs  String? @map("synthese_es")
+  @@map("hexagrams_es")
+}
+
+model HexagramHi {
+  numero      Int    @id
+  nameHi      String? @map("name_hi")
+  syntheseHi  String? @map("synthese_hi")
+  @@map("hexagrams_hi")
 }
 
 // ─── Hexagramme du Jour : vues quotidiennes (collection + streak) ──

@@ -1,6 +1,6 @@
 'use client';
 
-import { useLang, pick4 } from '@/lib/i18n';
+import { useLang, pick4, tr} from '@/lib/i18n';
 import Firefly from '@/components/firefly';
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -377,7 +377,7 @@ export default function YiJingHubPage() {
                 </button>
               <img
                 src="/images/yi-jing-simple.png"
-                alt="Yi Jing Simple"
+                alt={tr('Yi Jing Simple', 'Simplified I Ching', 'Yi Jing simple', 'सरल यी जिंग')}
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
                 style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
               />
@@ -453,7 +453,7 @@ export default function YiJingHubPage() {
                 </button>
               <img
                 src="/images/yi-jing-du-jour.png"
-                alt="Hexagramme du Jour"
+                alt={tr('Hexagramme du Jour', 'Hexagram of the Day', 'Hexagrama del Día', 'आज का हैक्सग्राम')}
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
                 style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
               />

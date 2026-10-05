@@ -16,6 +16,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, contentLang, pick4, pickContent } from '@/lib/i18n';
+import { TAROT_CARDS } from '@/lib/tarot-data';
+import { cardDisplayName } from '@/lib/i18n/cards';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -28,13 +30,13 @@ const GOLD_PALE = '#F0C75E';
 const IVORY = '#F5EAD6';
 
 const DAYS = [
-  { fr: 'Dimanche', en: 'Sunday', planet: '☉' },
-  { fr: 'Lundi', en: 'Monday', planet: '☽' },
-  { fr: 'Mardi', en: 'Tuesday', planet: '♂' },
-  { fr: 'Mercredi', en: 'Wednesday', planet: '☿' },
-  { fr: 'Jeudi', en: 'Thursday', planet: '♃' },
-  { fr: 'Vendredi', en: 'Friday', planet: '♀' },
-  { fr: 'Samedi', en: 'Saturday', planet: '♄' },
+  { fr: 'Dimanche', en: 'Sunday', es: 'Domingo', hi: 'रविवार', planet: '☉' },
+  { fr: 'Lundi', en: 'Monday', es: 'Lunes', hi: 'सोमवार', planet: '☽' },
+  { fr: 'Mardi', en: 'Tuesday', es: 'Martes', hi: 'मंगलवार', planet: '♂' },
+  { fr: 'Mercredi', en: 'Wednesday', es: 'Miércoles', hi: 'बुधवार', planet: '☿' },
+  { fr: 'Jeudi', en: 'Thursday', es: 'Jueves', hi: 'गुरुवार', planet: '♃' },
+  { fr: 'Vendredi', en: 'Friday', es: 'Viernes', hi: 'शुक्रवार', planet: '♀' },
+  { fr: 'Samedi', en: 'Saturday', es: 'Sábado', hi: 'शनिवार', planet: '♄' },
 ];
 
 interface CardView {
@@ -51,7 +53,7 @@ interface Wheel {
   // peut être posée (l'ancienne reste dans l'historique), augure scellée ou non.
   archived: boolean;
   canCastNext: boolean;
-  echo: { id: string; textFr: string; textEn: string | null; dueAt: string; verdict: string | null; verdictPct: number | null; bestCardIndex: number | null } | null;
+  echo: { id: string; textFr: string; textEn: string | null; textEs?: string | null; textHi?: string | null; dueAt: string; verdict: string | null; verdictPct: number | null; bestCardIndex: number | null } | null;
 }
 
 function emailLocal(): string {
@@ -77,6 +79,13 @@ function wheelDayLabel(castAt: string, day: number, lang: string): string {
 
 function SemainePage() {
   const lang = useLang();
+  // Nom de carte dans la langue courante (la table i18n couvre fr/en/es/hi).
+  const wheelCardName = (card: number | { id?: number; name?: string } | undefined): string => {
+    const id = typeof card === 'number' ? card : card?.id;
+    const found = typeof id === 'number' ? TAROT_CARDS.find((c) => c.id === id) : undefined;
+    if (found) return cardDisplayName(found, lang);
+    return typeof card === 'object' && card ? (card.name || '') : '';
+  };
   const { gateReason, closeGate, openGate } = useEntitlement();
   const [wheel, setWheel] = useState<Wheel | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -307,9 +316,9 @@ function SemainePage() {
                             {open ? (
                               <motion.div key="face" initial={{ opacity: 0, rotateY: -70, scale: 0.94 }} animate={{ opacity: idx < wheel.nowDay ? 0.85 : 1, rotateY: 0, scale: 1 }} exit={{ opacity: 0 }}
                                 transition={{ duration: 0.55, ease: 'easeInOut' }} className="absolute inset-0 overflow-hidden rounded-lg" style={{ transformStyle: 'preserve-3d', borderColor: `${GOLD}88` }}>
-                                <img src={`/cards/arcana/${c.id}.jpg`} alt={c.name} className="h-full w-full object-cover" />
+                                <img src={`/cards/arcana/${c.id}.jpg`} alt={wheelCardName(c)} className="h-full w-full object-cover" />
                                 <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-center text-[8px] font-bold sm:text-[10px]" style={{ color: GOLD_PALE, fontFamily: 'var(--font-cinzel-deco), serif' }}>
-                                  {c.name}{c.resonant && ' ✦'}
+                                  {wheelCardName(c)}{c.resonant && ' ✦'}
                                 </div>
                               </motion.div>
                             ) : (
@@ -324,7 +333,7 @@ function SemainePage() {
                         <div className="mt-1.5 text-center">
                           <div className="text-sm" style={{ color: isToday ? GOLD_PALE : `${GOLD}99` }}>{DAYS[c.weekday].planet}</div>
                           <div className="text-[9px] uppercase tracking-widest" style={{ color: IVORY, opacity: isToday ? 0.95 : 0.5 }}>
-                            {DAYS[c.weekday][lang as 'fr' | 'en']}
+                            {DAYS[c.weekday][lang]}
                           </div>
                           {/* Date du jour de la roue — discrète, pour situer le tirage
                               dans le calendrier (jour local). */}
@@ -387,12 +396,12 @@ function SemainePage() {
                         boxShadow: `inset 0 0 8px rgba(218,165,32,0.15)`,
                       }}
                     >
-                      {DAYS[shown.weekday].planet} {DAYS[shown.weekday][lang as 'fr' | 'en']}
+                      {DAYS[shown.weekday].planet} {DAYS[shown.weekday][lang]}
                     </span>
                     <p className="font-[family-name:var(--font-cinzel-deco)] text-base font-semibold uppercase tracking-[0.12em]" style={{
                       color: GOLD_PALE, textShadow: `0 0 14px ${GOLD}88, 0 1px 2px rgba(0,0,0,0.8)`,
                     }}>
-                      {shown[lang === 'en' ? 'nameEn' : 'name']}{shown.resonant && ' ✦'}
+                      {wheelCardName(shown)}{shown.resonant && ' ✦'}
                     </p>
                   </div>
                   <p className="mt-2 text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>
@@ -489,7 +498,7 @@ function SemainePage() {
                       <p className="text-xs" style={{ color: GOLD_PALE }}>
                         ✓ {wheel.echo.verdictPct ?? (wheel.echo.verdict === 'oui' ? 100 : wheel.echo.verdict === 'partiel' ? 50 : 0)}%
                         {wheel.echo.bestCardIndex !== null && wheel.echo.bestCardIndex !== undefined && (
-                          <> · {pick4('tenue', 'best', "cumplida", "निभाई गई")(lang)} : {wheel.cards[wheel.echo.bestCardIndex]?.[lang === 'en' ? 'nameEn' : 'name']}</>
+                          <> · {pick4('tenue', 'best', "cumplida", "निभाई गई")(lang)} : {wheelCardName(wheel.cards[wheel.echo.bestCardIndex])}</>
                         )}
                       </p>
                     </div>
