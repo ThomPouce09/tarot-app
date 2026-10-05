@@ -1,6 +1,7 @@
-import { Cinzel, Cinzel_Decorative, MedievalSharp, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import './fonts-local.css'
+// Polices Google auto-hebergees : plus aucune requete reseau au build.
+import './fonts-google-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
 import { LanguageProvider } from '@/lib/i18n'
@@ -11,10 +12,11 @@ import SpeakerAmbience from '@/components/speaker-ambience'
 
 export const dynamic = 'force-dynamic';
 
-const cinzel = Cinzel({ subsets: ['latin'], variable: '--font-cinzel', weight: ['400', '500', '600', '700'] })
-const cinzelDeco = Cinzel_Decorative({ subsets: ['latin'], variable: '--font-cinzel-deco', weight: ['400', '700'] })
-const medieval = MedievalSharp({ subsets: ['latin'], variable: '--font-medieval', weight: '400' })
-const cormorant = Cormorant_Garamond({ subsets: ['latin'], variable: '--font-cormorant', weight: ['400', '500', '600', '700'] })
+// Les polices Cinzel / Cinzel Decorative / MedievalSharp / Cormorant Garamond sont
+// declarees en @font-face dans app/fonts-google-local.css (fichiers dans public/fonts),
+// et exposees via :root (--font-cinzel, --font-cinzel-deco, --font-medieval,
+// --font-cormorant). Avant, `next/font/google` les telechargeait a chaque build :
+// une panne reseau vers Google faisait echouer le build de facon aleatoire.
 
 export const metadata = {
   title: 'Oracle des Etoiles',
@@ -74,7 +76,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={`${cinzel.variable} ${cinzelDeco.variable} ${medieval.variable} ${cormorant.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {/* Voile « Chargement … » rendu côté SERVEUR : peint dès la réponse HTML,
             avant toute hydratation — la landing ne peut plus transparaître une
             fraction de seconde. Le <AppLoader /> de la landing prend le relais
