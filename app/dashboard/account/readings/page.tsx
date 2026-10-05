@@ -1,31 +1,22 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TAROT_CARDS } from '@/lib/tarot-data';
-import { useT, useLang, pick4, contentLang, pickContent, tr, type Lang } from '@/lib/i18n';
-import { cardDisplayName } from '@/lib/i18n/cards';
-import { pickEchoText } from '@/lib/i18n/echo-text';
+import { useT, useLang, pick4, tr } from '@/lib/i18n';
 import { localizePosition } from '@/lib/i18n/positions';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
 import SpaceTitle from '@/components/space-title';
 
-// Donnees + helpers durables, extraits a l'etape 1 du decoupage.
-import {
-  DES_CHOIX_KINDS, TYPE_META, classifyType, SUBTYPE_META, metaOf, loc, typeLabelOf,
-  FILTERS, tarot3Positions, tarot5Positions,
-  type Reading,
-} from './readings-data';
-import HEX_J from '@/lib/yj-hexagrams.json';
+// Donnees + helpers durables (etape 1 du decoupage).
+import { TYPE_META, metaOf, loc, typeLabelOf, FILTERS, type Reading } from './readings-data';
 
-// Primitives visuelles extraites a l'etape 2 du decoupage.
-import { ChevronIcon, TrashIcon, ShareIcon, EchoDot, ReadingThumbs, Highlight } from './readings-parts';
+// Primitives visuelles (etape 2 du decoupage).
+import { ChevronIcon, TrashIcon, ShareIcon, EchoDot, ReadingThumbs } from './readings-parts';
 
-// Vues de rendu par univers, extraites a l'etape 3 du decoupage.
-import {
-  EmptyState, DoubleHexView, YiJingView, WheelView, TarotView, RuneView, AstroView,
-} from './readings-views';
+// Vues de rendu par univers (etape 3 du decoupage).
+import { EmptyState, DoubleHexView, YiJingView, WheelView, TarotView, RuneView, AstroView } from './readings-views';
+
 export default function ReadingsPage() {
   const router = useRouter();
   const t = useT();
