@@ -5,6 +5,9 @@ node_modules/
 
 # Build outputs
 .next/
+# Dossier de build LOCAL distinct de `.next` (voir next.config.js) : permet de
+# builder pendant que `next dev` tourne, sans collision ni purge de cache.
+.next-build/
 out/
 build/
 dist/

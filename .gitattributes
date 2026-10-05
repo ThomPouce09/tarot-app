@@ -1,0 +1,35 @@
+# Fins de ligne — politique UNIQUE, valable pour toutes les machines et tous les outils.
+#
+# Contexte : `core.autocrlf=true` (réglage LOCAL à Windows) faisait écrire du CRLF
+# dans l'arbre de travail alors que git stocke du LF. Résultat : va-et-vient
+# CRLF/LF, diffs gonflés (un fichier de 700 lignes réécrit pour une ligne changée)
+# et avertissements « LF will be replaced by CRLF » à chaque commit.
+#
+# `.gitattributes` est versionné : il s'applique identiquement pour tous les
+# agents et toutes les machines, contrairement à core.autocrlf.
+* text=auto eol=lf
+
+# Binaires : jamais normalisés, jamais « diffés » en texte.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.gif    binary
+*.ico    binary
+*.svg    text eol=lf
+*.mp3    binary
+*.wav    binary
+*.mp4    binary
+*.webm   binary
+*.apk    binary
+*.aab    binary
+*.zip    binary
+*.jar    binary
+*.keystore binary
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+
+# Fichiers de verrouillage / générés : pas de bruit dans les revues
+package-lock.json  -diff linguist-generated
