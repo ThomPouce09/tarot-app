@@ -612,7 +612,7 @@ function YiJingQuestionRig({ questionAsked, onProgress }: { questionAsked: boole
             transition: "opacity 2s linear",
           }}
         >
-          <Image src={BOX_IMG} alt="Boîte" fill draggable={false} style={{ objectFit: "contain" }} />
+          <Image src={BOX_IMG} alt={tr('Boîte', 'Box', 'Caja', 'डिब्बा')} fill draggable={false} style={{ objectFit: "contain" }} />
         </div>
       </div>
 
@@ -942,7 +942,11 @@ function YiJingQuestionPage() {
               whileHover={question.trim() ? { scale: 1.03 } : {}}
               whileTap={question.trim() ? { scale: 0.97 } : {}}
             >
-              ✨ {lang === 'en' ? <>Validate and draw<br />a yarrow stalk</> : 'Valider et tirer une baguette'}
+              ✨ {lang === 'fr'
+                ? 'Valider et tirer une baguette'
+                : lang === 'en' ? <>Validate and draw<br />a yarrow stalk</>
+                : lang === 'es' ? <>Validar y sacar<br />una varilla</>
+                : <>सत्यापित करें और<br />एक डंडी निकालें</>}
             </motion.button>
           </div>
         </motion.div>

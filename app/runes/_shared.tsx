@@ -501,7 +501,9 @@ export function RuneReading({
           type="button"
           onClick={() => setInfoOpen((o) => !o)}
           aria-expanded={infoOpen}
-          aria-label={infoOpen ? 'Masquer l’explication' : 'En savoir plus sur cette position'}
+          aria-label={infoOpen
+            ? tr('Masquer l’explication', 'Hide the explanation', 'Ocultar la explicación', 'व्याख्या छिपाएँ')
+            : tr('En savoir plus sur cette position', 'Learn more about this position', 'Más información sobre esta posición', 'इस स्थिति के बारे में और जानें')}
           className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
           style={{
             color: light ? '#8a6a2b' : RUNE_THEME.goldPale,

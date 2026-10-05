@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, useT, contentLang } from '@/lib/i18n';
+import { pickEchoText } from '@/lib/i18n/echo-text';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
@@ -157,7 +158,7 @@ export default function EchoBox({
   );
 
   const email = typeof window !== 'undefined' ? readEmail() : '';
-  const text = current ? (lang === 'en' && current.textEn ? current.textEn : current.textFr) : '';
+  const text = current ? pickEchoText(current, lang) : '';
   const dueMs = current ? new Date(current.dueAt).getTime() : 0;
   const now = Date.now();
   const daysLeft = current ? Math.ceil((dueMs - now) / 86400000) : 0;

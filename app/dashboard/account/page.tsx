@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT, tr } from '@/lib/i18n';
+import { useT, useLang, tr, type Lang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+const LOC: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
 import SpaceTitle from '@/components/space-title';
 
 export default function AccountPage() {
   const router = useRouter();
   const t = useT();
+  const lang = useLang();
   const [user, setUser] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', gender: 'other', comment: '' });
@@ -67,7 +69,7 @@ export default function AccountPage() {
   const initial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
 
   const memberSince = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? new Date(user.createdAt).toLocaleDateString(LOC[lang], { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '—';
   const genderLabel = user.gender === 'male' ? t('account.gender.male') : user.gender === 'female' ? t('account.gender.female') : user.gender === 'other' ? t('account.gender.other') : user.gender || '—';
 
@@ -145,7 +147,7 @@ export default function AccountPage() {
       {/* Détails du profil */}
       <div className="mystic-panel p-5 sm:p-7">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="mystic-subtitle text-sm">Informations personnelles</h2>
+          <h2 className="mystic-subtitle text-sm">{t('account.personalInfo')}</h2>
           {!editMode && (
             <button
               onClick={() => {
@@ -170,20 +172,20 @@ export default function AccountPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="firstName" label={tr("Prénom", "First name", "Nombre", "नाम")} value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
-              <Field id="lastName" label="Nom" value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
+              <Field id="lastName" label={t('account.lastName')} value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
               <Field id="phone" label={tr("Téléphone", "Phone", "Teléfono", "फ़ोन")} value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
-              <Field id="dateOfBirth" label="Date de naissance" value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
+              <Field id="dateOfBirth" label={t('account.birthDate')} value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
             </div>
             <div>
-              <label htmlFor="gender" className="mystic-label block mb-1">Genre</label>
+              <label htmlFor="gender" className="mystic-label block mb-1">{t('account.gender')}</label>
               <select id="gender" value={form.gender} onChange={(e: any) => setForm({ ...form, gender: e.target.value })} className="mystic-input">
-                <option value="male">Homme</option>
-                <option value="female">Femme</option>
-                <option value="other">Autre</option>
+                <option value="male">{t('account.gender.male')}</option>
+                <option value="female">{t('account.gender.female')}</option>
+                <option value="other">{t('account.gender.other')}</option>
               </select>
             </div>
             <div>
-              <label htmlFor="comment" className="mystic-label block mb-1">Commentaires</label>
+              <label htmlFor="comment" className="mystic-label block mb-1">{t('account.comment')}</label>
               <textarea id="comment" value={form.comment} onChange={(e: any) => setForm({ ...form, comment: e.target.value })} rows={3} className="mystic-input resize-none" />
             </div>
             <div className="flex gap-3 pt-1">
@@ -199,8 +201,8 @@ export default function AccountPage() {
             <Row label={t('account.lastName')} value={user.lastName} />
             <Row label={t('account.phone')} value={user.phone} />
             <Row label={t('account.birthDate')} value={user.dateOfBirth
-              ? new Date(user.dateOfBirth).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-              : user.age != null ? `(${user.age} ans)` : null} />
+              ? new Date(user.dateOfBirth).toLocaleDateString(LOC[lang], { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : user.age != null ? `(${t('account.yearsOld').replace('{n}', String(user.age))})` : null} />
             <Row label={t('account.gender')} value={genderLabel} />
             <Row label={t('account.comment')} value={user.comment} />
           </dl>

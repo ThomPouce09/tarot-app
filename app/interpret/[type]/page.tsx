@@ -50,6 +50,8 @@ function InterpretationInner() {
     name?: string;
     frenchName?: string;
     name_en?: string;
+    name_es?: string;
+    name_hi?: string;
     glyph?: string;
     ideogram?: string;
     pinyin?: string;
@@ -58,6 +60,8 @@ function InterpretationInner() {
     semanticEssence?: string;
     synthese?: string;
     synthese_en?: string;
+    synthese_es?: string;
+    synthese_hi?: string;
   } | null>(null);
   const doneRef = useRef<string | null>(null);
   // Domaine & intention choisis au sélecteur (question « Domaine — intention »)
@@ -217,6 +221,17 @@ function InterpretationInner() {
   // Hoshiko Satsuki (calligraphie) pour le Yi Jing.
   const titleFont = isTarot ? "'Allura', cursive" : "'Hoshiko Satsuki', serif";
   const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
+  // Nom + synthèse de l'hexagramme dans la langue courante : tables sœurs
+  // hexagrams_en / _es / _hi (la table FR `hexagrams` reste la source).
+  const hexVariant = (en?: string, es?: string, hi?: string) =>
+    lang === 'en' ? en : lang === 'es' ? es : lang === 'hi' ? hi : undefined;
+  const hexName = hexagram
+    ? hexVariant(hexagram.name_en, hexagram.name_es, hexagram.name_hi)
+      || hexagram.frenchName || hexagram.name || (lang === 'fr' ? 'Hexagramme' : 'Hexagram')
+    : '';
+  const hexSyn = hexagram
+    ? hexVariant(hexagram.synthese_en, hexagram.synthese_es, hexagram.synthese_hi) || hexagram.synthese || ''
+    : '';
   // Cartes tirées (Tarot) : id + nom + position, pour le récap visuel en haut de page
   const tarotCards = isTarot
     ? (searchParams.get('cartes') || '')
@@ -308,7 +323,7 @@ function InterpretationInner() {
                   </span>
                   {hexagram && (
                     <span className="text-sm leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", color: YI_LACQUER.lilac, textTransform: 'capitalize' }}>
-                      {lang === 'en' ? (hexagram.name_en || hexagram.frenchName || '') : (hexagram.frenchName || hexagram.name || '')}
+                      {hexName}
                     </span>
                   )}
                   <span className="h-px w-6 bg-gradient-to-l from-transparent to-yellow-400/50" />
@@ -459,7 +474,7 @@ function InterpretationInner() {
                       {t('interpret.baguette')} : {String(hexagram.numero).padStart(2, '0')}
                     </p>
                     <p className="text-yellow-400 font-semibold text-2xl leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>
-                      {lang === 'en' ? (hexagram.name_en || hexagram.frenchName || hexagram.name || 'Hexagram') : (hexagram.frenchName || hexagram.name || 'Hexagramme')}
+                      {hexName}
                     </p>
                     {hexagram.pinyin && (
                       <p className="text-yellow-400/90 text-sm italic mt-0.5">
@@ -505,9 +520,9 @@ function InterpretationInner() {
                 )}
 
                 {/* Synthèse de l'hexagramme — police réduite sur mobile */}
-                {(lang === 'en' ? hexagram.synthese_en : hexagram.synthese) && (
+                {hexSyn && (
                   <p className="mt-5 pt-4 border-t border-yellow-500/15 text-gray-300/90 text-xs sm:text-sm leading-relaxed" style={{ fontFamily: 'Arial, sans-serif', fontStyle: 'italic' }}>
-                    {lang === 'en' ? (hexagram.synthese_en || hexagram.synthese) : hexagram.synthese}
+                    {hexSyn}
                   </p>
                 )}
               </div>

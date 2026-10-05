@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useLang, pick4 } from '@/lib/i18n';
+import { useLang, pick4, tr} from '@/lib/i18n';
 import { isEffectsEnabled } from '@/lib/sounds';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
@@ -662,7 +662,7 @@ function YiQingRig({ question }: { question: string }) {
             transition: "opacity 2s linear",
           }}
         >
-          <Image src={BOX_IMG} alt="Boîte" fill draggable={false} style={{ objectFit: "contain" }} />
+          <Image src={BOX_IMG} alt={tr('Boîte', 'Box', 'Caja', 'डिब्बा')} fill draggable={false} style={{ objectFit: "contain" }} />
         </div>
 
       </div>

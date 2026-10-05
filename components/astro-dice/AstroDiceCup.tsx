@@ -44,7 +44,7 @@ import { installSoundUnlock, playRandom, playSound, stopSound } from '@/lib/soun
 const SHAKE_KEYS = ['dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1', 'dices-cup-2', 'dices-cup-3'];
 function cutShake() { for (const k of SHAKE_KEYS) stopSound(k); }
 import { PLANET_NAMES, SIGN_NAMES, planetName, signName, houseName } from './names';
-import { getRuntimeLang } from '@/lib/i18n';
+import { getRuntimeLang, tr} from '@/lib/i18n';
 import { ConstellationStrike } from './constellation';
 
 /* -------------------------------------------------------------------------- */
@@ -589,7 +589,7 @@ export default function AstroDiceCup({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cupImg}
-          alt="Gobelet du zodiaque"
+          alt={tr('Gobelet du zodiaque', 'Zodiac cup', 'Copa del zodíaco', 'राशि चक्र का प्याला')}
           draggable={false}
           style={{
             width: '100%',

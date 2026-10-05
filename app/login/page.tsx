@@ -7,13 +7,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useT, tr } from '@/lib/i18n';
+import { useT, useLang, tr } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import { onAccountChanged } from '@/lib/tutorials';
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
+  const lang = useLang();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,10 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (isBlocked) {
-      setError(`Trop d'essais. Réessayez plus tard ou utilisez "Mot de passe oublié".`);
+      setError(tr('Trop d\'essais. Réessayez plus tard ou utilisez "Mot de passe oublié".',
+        'Too many attempts. Try again later or use "Forgot password".',
+        'Demasiados intentos. Inténtelo más tarde o use "Contraseña olvidada".',
+        'बहुत अधिक प्रयास। बाद में प्रयास करें या "पासवर्ड भूल गए" का उपयोग करें।'));
       return;
     }
 
@@ -38,7 +42,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     if (!email || !password) {
-      setError('Email et mot de passe requis');
+      setError(tr('Email et mot de passe requis', 'Email and password required', 'Email y contraseña obligatorios', 'ईमेल और पासवर्ड आवश्यक हैं'));
       setIsLoading(false);
       return;
     }
@@ -47,7 +51,7 @@ export default function LoginPage() {
       const res = await api('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, lang }),
       });
 
       const data = await res.json();
@@ -58,13 +62,20 @@ export default function LoginPage() {
         router.push('/dashboard/account');
       } else {
         setFailedAttempts(prev => prev + 1);
-        setError(failedAttempts + 1 >= maxAttempts
-          ? "Trop d'essais infructueux. Utilisez 'Mot de passe oublié'."
-          : "Email ou mot de passe incorrect");
+        if (data?.code === 'ACCOUNT_DELETED' && typeof data?.error === 'string') {
+          setError(data.error); // message déjà localisé côté serveur
+        } else {
+          setError(failedAttempts + 1 >= maxAttempts
+            ? tr("Trop d'essais infructueux. Utilisez 'Mot de passe oublié'.",
+                'Too many failed attempts. Use "Forgot password".',
+                'Demasiados intentos fallidos. Use "Contraseña olvidada".',
+                'बहुत अधिक असफल प्रयास। "पासवर्ड भूल गए" का उपयोग करें।')
+            : tr('Email ou mot de passe incorrect', 'Incorrect email or password', 'Email o contraseña incorrectos', 'ईमेल या पासवर्ड गलत है'));
+        }
       }
     } catch (err) {
       setFailedAttempts(prev => prev + 1);
-      setError('Erreur de connexion');
+      setError(tr('Erreur de connexion', 'Connection error', 'Error de conexión', 'कनेक्शन त्रुटि'));
     }
 
     setIsLoading(false);
@@ -82,7 +93,7 @@ export default function LoginPage() {
       });
       setMsg(tr("Email envoyé !", "Email sent!", "¡Correo enviado!", "ईमेल भेज दिया गया!"));
     } catch {
-      setMsg('Erreur lors de l\'envoi');
+      setMsg(tr("Erreur lors de l'envoi", 'Sending error', 'Error al enviar', 'भेजने में त्रुटि'));
     }
   };
 
@@ -221,7 +232,11 @@ export default function LoginPage() {
             disabled={isLoading || isBlocked}
             className="w-full mystic-btn disabled:opacity-50"
           >
-            {isLoading ? 'Connexion...' : isBlocked ? 'Bloqué' : t('login.submit')}
+            {isLoading
+              ? tr('Connexion...', 'Signing in...', 'Iniciando sesión...', 'प्रवेश हो रहा है...')
+              : isBlocked
+                ? tr('Bloqué', 'Locked', 'Bloqueado', 'अवरोधित')
+                : t('login.submit')}
           </button>
         </form>
 
@@ -301,7 +316,7 @@ export default function LoginPage() {
                     onClick={() => setShowForgotPassword(false)}
                     className="flex-1 mystic-btn-ghost"
                   >
-                    Annuler
+                    {tr('Annuler', 'Cancel', 'Cancelar', 'रद्द करें')}
                   </button>
                   <button
                     type="submit"

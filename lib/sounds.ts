@@ -11,7 +11,10 @@
 // TOUS les sons, muets (volume 0), au premier pointerdown/touchstart/keydown,
 // puis chaque son joue à plein volume à son moment de déclenchement.
 
+import { getRuntimeLang } from '@/lib/i18n';
+
 export type SoundCategory = 'dice' | 'runes' | 'cards' | 'ambient' | 'ui' | 'yi-jing';
+export type SoundLang = 'fr' | 'en' | 'es' | 'hi';
 
 export interface SoundEntry {
   /** Clé unique utilisée par playSound(). */
@@ -33,6 +36,10 @@ export interface SoundEntry {
    *  l'interrupteur « Musique » des Préférences qui la régit, vérifié par
    *  l'appelant). stopVoices/stopAllSounds ne touchent jamais ces pistes. */
   music?: boolean;
+  /** Variantes de langue du fichier — jingles « voix » enregistrés en
+   *  fr/en/es/hi. Absent = un seul fichier pour toutes les langues ;
+   *  `fr` sert toujours de repli. */
+  files?: Partial<Record<SoundLang, string>>;
 }
 
 export const SOUNDS: SoundEntry[] = [
@@ -71,10 +78,10 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'spell', file: '/audio/spell.mp3', category: 'yi-jing', label: 'Sort (révélation)', duration: 2.10, usage: 'Révélation / effet magique' },
 
   // ── Ambiance / UI ──────────────────────────────────────────────────────
-  { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires', voice: true },
-  { key: 'runes', file: '/audio/runes.mp3', category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes', voice: true },
-  { key: 'tarot2', file: '/audio/tarot2.mp3', category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot', voice: true },
-  { key: 'yi-jing', file: '/audio/yi-jing.mp3', category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
+  { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', files: { fr: '/audio/des-divinatoires.mp3', en: '/audio/des-divinatoires-en.mp3', es: '/audio/des-divinatoires-es.mp3', hi: '/audio/des-divinatoires-hi.mp3' }, category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires', voice: true },
+  { key: 'runes', file: '/audio/runes.mp3', files: { fr: '/audio/runes.mp3', en: '/audio/runes-en.mp3', es: '/audio/runes-es.mp3', hi: '/audio/runes-hi.mp3' }, category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes', voice: true },
+  { key: 'tarot2', file: '/audio/tarot2.mp3', files: { fr: '/audio/tarot2.mp3', en: '/audio/tarot-en.mp3', es: '/audio/tarot-es.mp3', hi: '/audio/tarot-hi.mp3' }, category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot', voice: true },
+  { key: 'yi-jing', file: '/audio/yi-jing.mp3', files: { fr: '/audio/yi-jing.mp3', en: '/audio/yi-jing-en.mp3', es: '/audio/yi-jing-es.mp3', hi: '/audio/yi-jing-hi.mp3' }, category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'flip-day-card', file: '/audio/flip-day-card.mp3', category: 'cards', label: 'Retourner la carte du jour', duration: 2.35, usage: 'Semaine — clic pour révéler la carte du jour' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
@@ -183,9 +190,11 @@ export function isEffectsEnabled() {
 }
 
 /** Voix activées ? (jingles « voix » des pages, contrôlés par la préférence Voix ;
- *  l'enceinte orange/rouge les coupe également SANS modifier la préférence.) */
+ *  l'enceinte ROUGE les coupe également SANS modifier la préférence.)
+ *  Le clic intermédiaire (orange) ne coupe QUE la musique : les voix y restent
+ *  actives, elles ne s'arrêtent qu'au rouge. */
 export function isVoicesEnabled() {
-  return getSoundPrefs().voices && getSpeakerState() === 'all';
+  return getSoundPrefs().voices && getSpeakerState() !== 'muted';
 }
 
 /* ── État explicite de l'ENCEINTE (blanc/orange/rouge) ───────────────────
@@ -236,6 +245,63 @@ export function musicGloballyAllowed(): boolean {
 /** Éléments audio pré-déverrouillés (un par son). */
 const unlocked = new Map<string, HTMLAudioElement>();
 
+/** Fichier réellement chargé par clé (pour détecter un changement de langue). */
+const loadedFile = new Map<string, string>();
+
+/** Langue courante du jeu : miroir i18n (getRuntimeLang) si le provider est
+ *  monté, sinon tarot_prefs.language en localStorage, sinon fr. */
+function currentSoundLang(): SoundLang {
+  try {
+    const l = getRuntimeLang();
+    if (l === 'en' || l === 'es' || l === 'hi') return l;
+  } catch { /* hors provider (SSR) */ }
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('tarot_prefs') : null;
+    const l = raw ? (JSON.parse(raw) as { language?: string }).language : null;
+    if (l === 'en' || l === 'es' || l === 'hi') return l;
+  } catch { /* stockage indisponible */ }
+  return 'fr';
+}
+
+/** Fichier à jouer pour une entrée : variante de langue si elle existe. */
+export function soundFileFor(entry: SoundEntry, lang: SoundLang = currentSoundLang()): string {
+  return entry.files?.[lang] || entry.files?.fr || entry.file;
+}
+
+/** Libère un élément audio (coupe + détache la source) : un élément remplacé ne
+ *  doit JAMAIS rester en lecture orpheline, sinon l'enceinte ne peut plus le
+ *  couper (régression « l'enceinte ne stoppe plus le son »). */
+function releaseElement(el: HTMLAudioElement) {
+  try {
+    el.pause();
+    el.currentTime = 0;
+    el.removeAttribute('src');
+    el.load();
+  } catch { /* élément non jouable — on ignore */ }
+}
+
+/** Enregistre l'élément d'une clé, en libérant le précédent s'il change de
+ *  variante de langue. UN SEUL élément vivant par clé : playSound, playLoop,
+ *  stopVoices et l'enceinte travaillent tous sur le même — comme en français. */
+function registerElement(key: string, file: string, el: HTMLAudioElement) {
+  const prev = unlocked.get(key);
+  if (prev && prev !== el) releaseElement(prev);
+  unlocked.set(key, el);
+  loadedFile.set(key, file);
+}
+
+/** Élément audio d'une clé. Reconstruit uniquement si la VARIANTE DE LANGUE a
+ *  changé (basculer de langue en session joue la nouvelle voix, pas l'ancienne) ;
+ *  sinon on réutilise l'élément pré-déverrouillé, exactement comme en FR. */
+function elementFor(entry: SoundEntry): HTMLAudioElement {
+  const file = soundFileFor(entry);
+  const current = unlocked.get(entry.key);
+  if (current && loadedFile.get(entry.key) === file) return current;
+  const a = new Audio(file);
+  registerElement(entry.key, file, a);
+  return a;
+}
+
 /** Pré-déverrouille TOUS les sons, muets, à un geste utilisateur réel.
  *  Appeler au montage : window.addEventListener('pointerdown', unlockAll, { once:true }). */
 export function unlockAllSounds() {
@@ -247,19 +313,20 @@ export function unlockAllSounds() {
       continue;
     }
     try {
-      if (unlocked.has(s.key)) continue;
-      const a = new Audio(s.file);
+      const file = soundFileFor(s);
+      // Déjà déverrouillé POUR CETTE variante → rien à faire (pas de doublon).
+      if (unlocked.has(s.key) && loadedFile.get(s.key) === file) continue;
+      const a = new Audio(file);
       a.volume = 0;
       a.play()
         .then(() => {
           a.pause();
           a.currentTime = 0;
-          // NE JAMAIS écraser un élément déjà enregistré : si playLoop() a créé
-          // son élément entre-temps (le même premier geste déclenche le pré-
-          // déverrouillage ET le démarrage de la musique), écraser la map laisse
-          // un élément ORPHELIN en lecture que plus personne ne peut couper —
-          // c'était le « l'enceinte ne stoppe plus la musique » sur l'APK.
-          if (!unlocked.has(s.key)) unlocked.set(s.key, a);
+          // Un autre chemin a-t-il déjà posé un élément POUR CETTE variante ?
+          // (le même geste déclenche le pré-déverrouillage ET le jingle) → le
+          // nôtre est superflu : on le LIBÈRE au lieu de l'orpheliner.
+          if (loadedFile.get(s.key) === file) { releaseElement(a); return; }
+          registerElement(s.key, file, a);
         })
         .catch(() => {
           // Autoplay encore bloqué — on retentera au déclenchement réel.
@@ -286,9 +353,7 @@ export function playSound(key: string, volume = 0.8) {
   // (lib/music), vérifié par l'appelant avant playLoop().
   if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
   try {
-    const existing = unlocked.get(key);
-    const snd = existing || new Audio(entry.file);
-    if (!existing) unlocked.set(key, snd);
+    const snd = elementFor(entry);
     snd.volume = volume;
     snd.currentTime = 0;
     snd.play().catch(() => {
@@ -327,8 +392,7 @@ export function playLoop(key: string, volume = 0.5, opts?: { ignoreVoices?: bool
   // piste choisie s'entend même enceinte coupée ; seul le maître Musique régit.
   if (!opts?.ignoreVoices && (entry.music ? !musicGloballyAllowed() : (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()))) return;
   try {
-    let snd = unlocked.get(key);
-    if (!snd) { snd = new Audio(entry.file); unlocked.set(key, snd); }
+    const snd = elementFor(entry);
     snd.loop = true;
     snd.volume = volume;
     snd.play().then(() => {

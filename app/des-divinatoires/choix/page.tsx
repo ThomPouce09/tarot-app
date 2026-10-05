@@ -699,7 +699,12 @@ function ChoixPage() {
 
       {/* Fil d'étapes : Confier › Chemin A › Chemin B › Comparaison */}
       <DiceSteps
-        steps={lang === 'en' ? ['Entrust', 'Path A', 'Path B', 'Compare'] : ['Confier', 'Chemin A', 'Chemin B', 'Comparaison']}
+        steps={
+          lang === 'en' ? ['Entrust', 'Path A', 'Path B', 'Compare']
+          : lang === 'es' ? ['Confiar', 'Camino A', 'Camino B', 'Comparación']
+          : lang === 'hi' ? ['सौंपें', 'मार्ग A', 'मार्ग B', 'तुलना']
+          : ['Confier', 'Chemin A', 'Chemin B', 'Comparaison']
+        }
         current={step === 'A_intro' ? 0 : step === 'A_roll' || step === 'A_done' ? 1 : step === 'B_roll' ? 2 : 3}
       />
 

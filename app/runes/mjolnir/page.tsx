@@ -155,7 +155,7 @@ function MjolnirPage() {
   };
 
   const drawing = phase === 'draw' || phase === 'read';
-  const STEPS = lang === 'en' ? MJG_POSE_LINE.en : MJG_POSE_LINE.fr;
+  const STEPS = pickPos(MJG_POSE_LINE);
 
   return (
     <RuneBackground>
@@ -215,7 +215,11 @@ function MjolnirPage() {
 titleEs: "¿Qué obstáculo golpear?", titleHi: "किस अवरोध पर प्रहार करें?",
           sub: 'Nomme le blocage — ou choisis un thème si tu préfères rester abstrait.',
           subEn: 'Name the block — or pick a theme if you prefer to stay abstract.',
+          subEs: 'Nombra el bloqueo — o elige un tema si prefieres mantenerte abstracto.',
+          subHi: 'अवरोध को नाम दो — या यदि अमूर्त रहना पसंद हो तो कोई विषय चुनो।',
           cta: 'Armer le marteau', ctaEn: 'Arm the hammer',
+          ctaEs: 'Armar el martillo',
+          ctaHi: 'हथौड़ा सज्ज करो',
         }}
       />
 

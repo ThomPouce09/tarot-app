@@ -441,7 +441,7 @@ function YiQingRig() {
             pointerEvents: "none",
           }}
         >
-          <Image src={BOX_IMG} alt="Boîte" fill draggable={false} style={{ objectFit: "contain" }} />
+          <Image src={BOX_IMG} alt={tr('Boîte', 'Box', 'Caja', 'डिब्बा')} fill draggable={false} style={{ objectFit: "contain" }} />
         </div>
 
         {jumping && (

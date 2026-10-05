@@ -1,8 +1,28 @@
 import { prisma } from '@/lib/prisma';
+import { collectiveHexNumber } from '@/lib/yi-daily';
+import { DICT } from '@/lib/i18n/ui';
 
 // ── Génération de la "Lettre mystique" hebdo (aperçu / envoi) ─────────────
 // Calcule les stats réelles de la semaine à partir des readings d'un user,
 // puis rend un email HTML au thème mystique de l'app.
+// Langue : `User.language` (synchronisée depuis les Préférences) — repli fr.
+
+export type LetterLang = 'fr' | 'en' | 'es' | 'hi';
+const LANGS: LetterLang[] = ['fr', 'en', 'es', 'hi'];
+export const normLetterLang = (v: unknown): LetterLang => {
+  const l = String(v ?? '').slice(0, 2).toLowerCase() as LetterLang;
+  return LANGS.includes(l) ? l : 'fr';
+};
+
+const DATE_LOCALE: Record<LetterLang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
+
+/** Libellé du dictionnaire UI dans la langue de la lettre (repli fr). */
+function tt(lang: LetterLang, key: string, vars?: Record<string, string | number>): string {
+  const entry = (DICT as Record<string, Partial<Record<LetterLang, string>>>)[key];
+  let out = entry?.[lang] ?? entry?.fr ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) out = out.replace(`{${k}}`, String(v));
+  return out;
+}
 
 interface ReadingLike {
   type: string | null;
@@ -21,9 +41,8 @@ function classifyType(t: string | null): 'tarot' | 'yijing' | 'rune' | 'des' {
 
 function startOfDay(d: Date): Date { const x = new Date(d); x.setHours(0,0,0,0); return x; }
 function dayKey(d: Date): string { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
-function fmtDate(iso: string | Date): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+function fmtDate(iso: string | Date, lang: LetterLang): string {
+  return new Date(iso).toLocaleDateString(DATE_LOCALE[lang], { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 function computeStreak(counts: Map<string, number>): number {
@@ -46,24 +65,49 @@ function bestStreak(counts: Map<string, number>): number {
   return best;
 }
 
-// Tirage du jour : hexagramme dérivé du jour de l'année (déterministe), + nom/synthèse depuis la DB.
-function hexOfDay(): Promise<{ numero: number; name: string | null; glyph: string | null; desc: string | null }> {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-  const numero = (dayOfYear % 64) + 1;
-  return prisma.$queryRawUnsafe(
-    `SELECT numero, element as name, caractere as glyph, synthese FROM "hexagrams" WHERE numero = $1 LIMIT 1`,
-    numero
-  ).then((rows: unknown) => {
-    const h = (Array.isArray(rows) ? rows : [])[0] as Record<string, any> | undefined;
-    return { numero, name: h?.name || null, glyph: h?.glyph || null, desc: h?.synthese || null };
-  }).catch(() => ({ numero, name: null, glyph: null, desc: null }));
+// Tirage du jour : hexagramme collectif derive du jour de l'annee (deterministe,
+// meme source que /api/yi-jing-du-jour), nom/synthese dans la langue de la lettre.
+// APK : SQL brut, car le client Prisma de l'APK n'embarque pas les modeles soeurs.
+async function hexOfDay(
+  lang: LetterLang,
+): Promise<{ numero: number; name: string | null; glyph: string | null; desc: string | null }> {
+  const numero = collectiveHexNumber();
+  const one = (rows: unknown) =>
+    (Array.isArray(rows) ? rows[0] : undefined) as Record<string, any> | undefined;
+  try {
+    const fr = one(
+      await prisma.$queryRawUnsafe(
+        `SELECT numero, element as name, caractere as glyph, synthese FROM "hexagrams" WHERE numero = $1 LIMIT 1`,
+        numero,
+      ),
+    );
+    let name = fr?.name ?? null;
+    let desc = fr?.synthese ?? null;
+    if (lang !== 'fr') {
+      const [table, cName, cDesc] =
+        lang === 'en' ? ['hexagrams_en', 'name_en', 'synthese_en']
+        : lang === 'es' ? ['hexagrams_es', 'name_es', 'synthese_es']
+        : ['hexagrams_hi', 'name_hi', 'synthese_hi'];
+      const row = one(
+        await prisma.$queryRawUnsafe(
+          `SELECT "${cName}" as name, "${cDesc}" as desc FROM "${table}" WHERE numero = $1 LIMIT 1`,
+          numero,
+        ),
+      );
+      name = row?.name || name;
+      desc = row?.desc || desc;
+    }
+    return { numero, name, glyph: fr?.glyph ?? null, desc };
+  } catch {
+    return { numero, name: null, glyph: null, desc: null };
+  }
 }
 
 export interface LetterData {
   firstName: string;
   email: string;
+  /** Langue de la lettre (User.language, repli fr). */
+  lang: LetterLang;
   weekTotal: number;
   weekDays: number;
   streak: number;
@@ -75,9 +119,23 @@ export interface LetterData {
   echoes: { dus: number; pending: number };
 }
 
+const DOMINANT_KEY: Record<string, string> = {
+  tarot: 'letter.dominantTarot',
+  yijing: 'letter.dominantYijing',
+  rune: 'letter.dominantRunes',
+  des: 'letter.dominantDes',
+};
+const READING_KEY: Record<string, string> = {
+  tarot: 'letter.readingTarot',
+  yijing: 'letter.readingYijing',
+  rune: 'letter.readingRunes',
+  des: 'letter.readingDes',
+};
+
 export async function buildLetterData(email: string): Promise<LetterData | null> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return null;
+  const lang = normLetterLang(user.language);
 
   const readings = await prisma.reading.findMany({
     where: { userId: user.id },
@@ -99,32 +157,27 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
   // Types dominants de la semaine
   const typeCount: Record<string, number> = { tarot: 0, yijing: 0, rune: 0, des: 0 };
   weekReadings.forEach((r: any) => typeCount[classifyType(r.type)]++);
-  const labels: Record<string, string> = { tarot: 'Tarot', yijing: 'Yi Jing', rune: 'Runes', des: 'Dés Zod.' };
   const dominant = Object.entries(typeCount)
     .filter(([, c]) => c > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([key, count]) => ({ key, label: labels[key], count }));
+    .map(([key, count]) => ({ key, label: tt(lang, DOMINANT_KEY[key]), count }));
 
   // Moment fort = tirage de la semaine le plus récent avec question, sinon le plus récent
   const withQ = weekReadings.find((r: any) => r.question && r.question.trim());
   const momentR = withQ || weekReadings[0] || null;
   let moment: LetterData['moment'] = null;
   if (momentR) {
-    const g = classifyType(momentR.type);
-    const gLabel: Record<string, string> = { tarot: 'Tirage Tarot', yijing: 'Tirage Yi Jing', rune: 'Tirage Runes', des: 'Tirage des Dés' };
     moment = {
       type: momentR.type || '',
-      label: gLabel[g],
-      date: fmtDate(momentR.createdAt),
+      label: tt(lang, READING_KEY[classifyType(momentR.type)]),
+      date: fmtDate(momentR.createdAt, lang),
       question: momentR.question || null,
-      comment: withQ
-        ? 'Une question qui vous habite — l’oracle y a répondu, relisez-la sous un jour nouveau.'
-        : 'Votre consultation la plus récente cette semaine.',
+      comment: withQ ? tt(lang, 'letter.momentWithQ') : tt(lang, 'letter.momentNoQ'),
     };
   }
 
-  const daily = await hexOfDay();
+  const daily = await hexOfDay(lang);
 
   // Échos : échus à vérifier / encore scellés (ligne conditionnelle de la lettre).
   const [echoDus, echoPending] = await Promise.all([
@@ -133,8 +186,9 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
   ]);
 
   return {
-    firstName: user.firstName || 'cher·ère consultante',
+    firstName: user.firstName || tt(lang, 'letter.guestName'),
     email: user.email,
+    lang,
     weekTotal: weekReadings.length,
     weekDays,
     streak,
@@ -147,13 +201,26 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
 }
 
 export function renderLetter(d: LetterData): string {
-  const weekLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const L = d.lang;
+  const t = (key: string, vars?: Record<string, string | number>) => tt(L, key, vars);
+  const weekLabel = fmtDate(new Date(), L);
   const pct = d.bestStreak > 1 ? Math.round((d.streak / d.bestStreak) * 100) : (d.streak > 0 ? 100 : 0);
-  const domSpan = d.dominant.map((x) => `${x.label} (${x.count})`).join(' · ') || 'Aucun tirage cette semaine';
+  const domSpan = d.dominant.map((x) => `${x.label} (${x.count})`).join(' · ')
+    || t('letter.noDraws');
+  const base = 'https://tarot-app-one-sage.vercel.app';
+
+  const echoBlock = d.echoes.dus > 0
+    ? `<div class="card" style="border-color:rgba(255,215,0,.35);"><div class="card-title"><span class="ic">🕐</span>${t('letter.echoDueTitle')}</div>
+    <p class="p-muted">${t('letter.echoDueBody', { dus: d.echoes.dus })}${d.echoes.pending > 0 ? t('letter.echoMore', { n: d.echoes.pending }) : ''}${t('letter.echoDueCta')}</p>
+    <p style="margin-top:10px;"><a href="${base}/dashboard/account/readings" style="color:var(--gold);font-family:'Cinzel',Georgia,serif;font-size:13px;text-decoration:none;">${t('letter.echoLink')}</a></p>
+  </div>`
+    : d.echoes.pending > 0
+      ? `<p class="p-muted" style="text-align:center;margin-top:14px;font-style:italic;">🕐 ${t('letter.echoPending', { n: d.echoes.pending })}</p>`
+      : '';
 
   return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="dark">
-<title>Lettre mystique — Votre semaine avec l'Oracle</title>
+<html lang="${L}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="dark">
+<title>${t('letter.mailTitle')}</title>
 <style>
   :root{--gold:#FFD700;--gold-soft:#DAA520;--amber:#F5B450;--ink:#0a0510;--bg:#140b1e;--panel:#1c1228;--panel2:#241730;--text:#e8dcc8;--muted:#9b8f7a;}
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -190,38 +257,35 @@ export function renderLetter(d: LetterData): string {
   .foot .sep{margin:14px 0;} .foot a{color:var(--gold-soft);text-decoration:none;}
 </style></head>
 <body><div class="wrap">
-  <div class="hero"><div class="crest">🔮</div><h1>Lettre Mystique</h1><div class="sub">Votre semaine avec l'Oracle</div><div class="date">${weekLabel}</div></div>
-  <div class="card" style="margin-top:18px;"><p class="greet">Bonjour <b>${d.firstName}</b>,</p><p class="p-muted">Les cartes ont parlé — voici ce que votre semaine révèle.</p></div>
+  <div class="hero"><div class="crest">🔮</div><h1>${t('letter.title')}</h1><div class="sub">${t('letter.subtitle')}</div><div class="date">${weekLabel}</div></div>
+  <div class="card" style="margin-top:18px;"><p class="greet">${t('letter.hello', { name: d.firstName })}</p><p class="p-muted">${t('letter.intro')}</p></div>
 
-  <div class="card"><div class="card-title"><span class="ic">📊</span>Votre semaine en chiffres</div>
+  <div class="card"><div class="card-title"><span class="ic">📊</span>${t('letter.statsTitle')}</div>
     <div class="stat-grid">
-      <div class="stat"><div class="n">${d.weekTotal}</div><div class="l">Tirages</div></div>
-      <div class="stat"><div class="n">${d.weekDays}</div><div class="l">Jours actifs</div></div>
-      <div class="stat"><div class="n">${d.streak}</div><div class="l">Série 🔥</div></div>
+      <div class="stat"><div class="n">${d.weekTotal}</div><div class="l">${t('letter.draws')}</div></div>
+      <div class="stat"><div class="n">${d.weekDays}</div><div class="l">${t('letter.activeDays')}</div></div>
+      <div class="stat"><div class="n">${d.streak}</div><div class="l">${t('letter.streak')}</div></div>
     </div>
-    <div class="streak-box"><div class="flame">🔥</div><div class="txt"><div class="big">${d.streak} jour(s) d'affilée</div><div class="small">Vous êtes à <b style="color:var(--amber)">${pct}%</b> de votre record (${d.bestStreak} j) — l'Oracle vous sent concentré.</div></div></div>
-    <p class="p-muted" style="margin-top:12px;">Vos tirages dominants : <b style="color:var(--gold)">${domSpan}</b></p>
+    <div class="streak-box"><div class="flame">🔥</div><div class="txt"><div class="big">${t('letter.streakBig', { n: d.streak })}</div><div class="small">${t('letter.streakSmall', { pct, best: d.bestStreak })}</div></div></div>
+    <p class="p-muted" style="margin-top:12px;">${t('letter.dominant', { list: domSpan })}</p>
   </div>
 
-  ${d.moment ? `<div class="card"><div class="card-title"><span class="ic">🔮</span>Le moment fort de votre semaine</div><div class="moment">
+  ${d.moment ? `<div class="card"><div class="card-title"><span class="ic">🔮</span>${t('letter.momentTitle')}</div><div class="moment">
     <div class="q">${d.moment.question ? `« ${d.moment.question} »` : d.moment.comment}</div>
     <div class="r">${d.moment.label} · ${d.moment.date}</div>
   </div></div>` : ''}
 
-  ${d.echoes.dus > 0 ? `<div class="card" style="border-color:rgba(255,215,0,.35);"><div class="card-title"><span class="ic">🕐</span>Vos échos sont parvenus à leur heure</div>
-    <p class="p-muted">${d.echoes.dus} prémonction(s) scellée(s) attendent votre verdict — ${d.echoes.pending > 0 ? `et ${d.echoes.pending} autre(s) mûrissent encore. ` : ''}Brissez le sceau et dites si l'oracle a vu juste.</p>
-    <p style="margin-top:10px;"><a href="https://tarot-app-one-sage.vercel.app/dashboard/account/readings" style="color:var(--gold);font-family:'Cinzel',Georgia,serif;font-size:13px;text-decoration:none;">✦ Vérifier mes échos ✦</a></p>
-  </div>` : d.echoes.pending > 0 ? `<p class="p-muted" style="text-align:center;margin-top:14px;font-style:italic;">🕐 ${d.echoes.pending} écho(s) scellé(s) mûrissent encore — l'heure de la vérification approche.</p>` : ''}
+  ${echoBlock}
 
-  <div class="card"><div class="card-title"><span class="ic">🎴</span>Votre tirage du jour</div><div class="daily">
+  <div class="card"><div class="card-title"><span class="ic">🎴</span>${t('letter.dailyTitle')}</div><div class="daily">
     <div class="glyph">${d.daily.glyph || '☯'}</div>
-    <div class="name">Hexagramme ${String(d.daily.numero).padStart(2, '0')}${d.daily.name ? ' — ' + d.daily.name : ''}</div>
+    <div class="name">${t('letter.hexagram', { n: String(d.daily.numero).padStart(2, '0') })}${d.daily.name ? ' — ' + d.daily.name : ''}</div>
     ${d.daily.desc ? `<div class="desc">« ${d.daily.desc.slice(0, 160)}… »</div>` : ''}
   </div></div>
 
-  <div class="cta-wrap"><a class="cta" href="https://tarot-app-one-sage.vercel.app/yi-jing-du-jour" style="color:#2a1700;">✦ Tirer maintenant ✦</a></div>
-  <p class="adv">L'Oracle vous attend — un tirage par jour suffit à entretenir la flamme.</p>
+  <div class="cta-wrap"><a class="cta" href="${base}/yi-jing-du-jour" style="color:#2a1700;">${t('letter.cta')}</a></div>
+  <p class="adv">${t('letter.advice')}</p>
 
-  <div class="foot"><div class="sep">─── ✦ ───</div><p>Vous recevez cette lettre chaque semaine.</p><p>Gérez vos <a href="https://tarot-app-one-sage.vercel.app/dashboard/account/preferences">préférences</a>.</p><p style="margin-top:8px;">Oracle des Etoiles · L'art de lire votre chemin</p></div>
+  <div class="foot"><div class="sep">─── ✦ ───</div><p>${t('letter.footWeekly')}</p><p><a href="${base}/dashboard/account/preferences">${t('letter.footPrefs')}</a></p><p style="margin-top:8px;">${t('letter.footTagline')}</p></div>
 </div></body></html>`;
 }

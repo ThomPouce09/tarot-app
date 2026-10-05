@@ -96,7 +96,7 @@ function PouchImage({ size = BAG_SIZE }: { size?: number }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src="/images/pochon.png"
-      alt="Pochon de runes"
+      alt={tr('Pochon de runes', 'Rune pouch', 'Bolsa de runas', 'रून की थैली')}
       draggable={false}
       style={{
         width: size,
