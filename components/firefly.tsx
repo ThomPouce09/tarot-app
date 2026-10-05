@@ -9,7 +9,7 @@ import CreaturePopup from './creature-popup';
 import { api } from '@/lib/api-client';
 
 type Creature = { id: string; slug: string; name: string; image: string; color: string | null };
-type PopupData = { creature: Creature; text: string; category: string; giftClaimable?: boolean; lang: string };
+type PopupData = { creature: Creature; text: string; category: string; giftClaimable?: boolean; giftKind?: 'base' | 'grand'; lang: string };
 
 /** Email courant depuis localStorage (tarot_user) — identique à lib/use-entitlement. */
 function readEmailLocal(): string {
@@ -79,6 +79,7 @@ export default function Firefly({ page }: { page: string }) {
                 text: data.message.text,
                 category: data.message.category,
                 giftClaimable: data.message.giftClaimable === true,
+                giftKind: data.message.giftKind === 'grand' ? 'grand' : data.message.giftClaimable === true ? 'base' : undefined,
                 lang,
               }
             : { creature: data.creature, text: '', category: '', lang },
@@ -165,9 +166,9 @@ export default function Firefly({ page }: { page: string }) {
             title={creature.name}
             onClick={() => {
               if (!pending) return;
-              // Jongle : un des 5 sons creature1..5 au hasard à chaque tap.
+              // Jongle : un des 8 sons creature1..8 au hasard à chaque tap.
               // playSound respecte la préférence « Effets sonores ».
-              const n = 1 + Math.floor(Math.random() * 5);
+              const n = 1 + Math.floor(Math.random() * 8);
               playSound(`creatures${n}`, 0.7);
               // Explosion de la luciole en petites particules qui fondent dans le fond
               const parts = Array.from({ length: 42 }).map((_, i) => ({

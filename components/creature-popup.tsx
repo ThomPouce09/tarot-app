@@ -10,6 +10,9 @@ type Props = {
     text: string;
     category: string;
     giftClaimable?: boolean;
+    /** Type de tirage annoncé par le message cadeau : base → cadeau.mp3,
+     *  grand → you-win.mp3 (défaut : base). */
+    giftKind?: 'base' | 'grand';
     lang?: string;
   };
   onClose: () => void;
@@ -260,8 +263,9 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
     const ok = await onClaim().catch(() => false);
     if (ok) {
       setClaimState('claimed');
-      // Carillon magique du cadeau : l'instant où le tirage offert est crédité.
-      playSound('cadeau', 1);
+      // Tirage offert crédité : carillon « cadeau » pour un tirage de base,
+      // « you-win » pour un grand tirage (type porté par le message).
+      playSound(data.giftKind === 'grand' ? 'you-win' : 'cadeau', 1);
       scheduleClose(3000, 3000 + 1400); // laisse la célébration se jouer
     } else {
       setClaimState('failed');
@@ -353,9 +357,9 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
               {text.toLowerCase()}
             </div>
 
-            {/* Cadeau d'une créature (message « credits » réclamable) : bouton de
-                réclamation → célébration dorée quand le tirage offert est crédité. */}
-            {data.category === 'credits' && data.giftClaimable && (
+            {/* Cadeau d'une créature (message de la famille « credits » réclamable) :
+                bouton de réclamation → célébration dorée quand le tirage offert est crédité. */}
+            {data.giftClaimable && (
               <div className="relative mt-3 flex items-center justify-center">
                 {claimState === 'claimed' && <GiftBurst glow={glow} />}
                 {claimState === 'idle' && (

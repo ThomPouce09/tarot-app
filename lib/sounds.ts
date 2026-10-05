@@ -12,6 +12,7 @@
 // puis chaque son joue à plein volume à son moment de déclenchement.
 
 import { getRuntimeLang } from '@/lib/i18n';
+import { media } from '@/lib/media';
 
 export type SoundCategory = 'dice' | 'runes' | 'cards' | 'ambient' | 'ui' | 'yi-jing';
 export type SoundLang = 'fr' | 'en' | 'es' | 'hi';
@@ -81,10 +82,13 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'des-divinatoires', file: '/audio/des-divinatoires.mp3', files: { fr: '/audio/des-divinatoires.mp3', en: '/audio/des-divinatoires-en.mp3', es: '/audio/des-divinatoires-es.mp3', hi: '/audio/des-divinatoires-hi.mp3' }, category: 'ambient', label: 'Ouverture Dés du Zodiaque', duration: 4.86, usage: 'Jingle à l\'ouverture de la page /des-divinatoires', voice: true },
   { key: 'runes', file: '/audio/runes.mp3', files: { fr: '/audio/runes.mp3', en: '/audio/runes-en.mp3', es: '/audio/runes-es.mp3', hi: '/audio/runes-hi.mp3' }, category: 'ambient', label: 'Ouverture Runes', duration: 11.52, usage: 'Jingle à l\'ouverture de la page /runes', voice: true },
   { key: 'tarot2', file: '/audio/tarot2.mp3', files: { fr: '/audio/tarot2.mp3', en: '/audio/tarot-en.mp3', es: '/audio/tarot-es.mp3', hi: '/audio/tarot-hi.mp3' }, category: 'ambient', label: 'Ouverture Tarot', duration: 10.29, usage: 'Jingle à l\'ouverture de la page /tarot', voice: true },
+  { key: 'tarot', file: '/audio/tarot.mp3', category: 'ambient', label: 'Ouverture Tarot (variante FR)', duration: 6.22, usage: 'Jingle alternatif de /tarot — français uniquement (pas de variante en/es/hi)', voice: true },
   { key: 'yi-jing', file: '/audio/yi-jing.mp3', files: { fr: '/audio/yi-jing.mp3', en: '/audio/yi-jing-en.mp3', es: '/audio/yi-jing-es.mp3', hi: '/audio/yi-jing-hi.mp3' }, category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'flip-day-card', file: '/audio/flip-day-card.mp3', category: 'cards', label: 'Retourner la carte du jour', duration: 2.35, usage: 'Semaine — clic pour révéler la carte du jour' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
+  { key: 'you-win', file: '/audio/you-win.mp3', category: 'ui', label: 'Grand tirage gagné', duration: 5.04, usage: 'Créature — cadeau d\'un GRAND tirage réclamé' },
+  { key: 'artemis-secret', file: '/audio/artemis-secret.mp3', category: 'ui', label: 'Secret d\'Artémis', duration: 3.74, usage: 'Dés zodiacaux — révélation du secret d\'Artémis' },
   { key: 'tonnerre', file: '/audio/tonnerre.mp3', category: 'ui', label: 'Tonnerre (frappe)', duration: 2.3, usage: 'Mjölnir — éclair de la Frappe' },
   { key: 'anvil', file: '/audio/anvil.mp3', category: 'ui', label: 'Impact enclume (clic sceller)', duration: 2.0, usage: 'Augure — clic sur « Sceller » (impact du cachet)' },
   { key: 'seal', file: '/audio/seal.mp3', category: 'ui', label: 'Sceau acté', duration: 3.0, usage: 'Augure — confirmation affichée : le sceau est posé' },
@@ -106,6 +110,9 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'creatures3', file: '/audio/creatures3.mp3', category: 'ambient', label: 'Créature 3', duration: 1.10, usage: 'Tap sur la luciole — variant 3' },
   { key: 'creatures4', file: '/audio/creatures4.mp3', category: 'ambient', label: 'Créature 4', duration: 1.00, usage: 'Tap sur la luciole — variant 4' },
   { key: 'creatures5', file: '/audio/creatures5.mp3', category: 'ambient', label: 'Créature 5', duration: 1.60, usage: 'Tap sur la luciole — variant 5' },
+  { key: 'creatures6', file: '/audio/creatures6.mp3', category: 'ambient', label: 'Créature 6', duration: 3.08, usage: 'Tap sur la luciole — variant 6' },
+  { key: 'creatures7', file: '/audio/creatures7.mp3', category: 'ambient', label: 'Créature 7', duration: 2.04, usage: 'Tap sur la luciole — variant 7' },
+  { key: 'creatures8', file: '/audio/creatures8.mp3', category: 'ambient', label: 'Créature 8', duration: 2.25, usage: 'Tap sur la luciole — variant 8' },
   { key: 'cadeau', file: '/audio/cadeau.mp3', category: 'ambient', label: 'Cadeau magique', duration: 2.00, usage: 'Cadeau des créatures — message offert réclamé' },
 
   // ── Sons magiques (propositions pour la révélation /nornes2, page /son-a-supprimer)
@@ -265,7 +272,8 @@ function currentSoundLang(): SoundLang {
 
 /** Fichier à jouer pour une entrée : variante de langue si elle existe. */
 export function soundFileFor(entry: SoundEntry, lang: SoundLang = currentSoundLang()): string {
-  return entry.files?.[lang] || entry.files?.fr || entry.file;
+  // Reroutage temporaire éventuel vers public/media-opt/ (cf. lib/media.ts).
+  return media(entry.files?.[lang] || entry.files?.fr || entry.file);
 }
 
 /** Libère un élément audio (coupe + détache la source) : un élément remplacé ne

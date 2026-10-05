@@ -45,6 +45,7 @@ import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
+import { playSound } from '@/lib/sounds';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
 import { api } from '@/lib/api-client';
@@ -364,6 +365,9 @@ function AffinagePage() {
   // chuchotement manque, on le demande en un petit appel à la révélation.
   const revealArtemis = useCallback(async () => {
     setArtemisRevealed(true);
+    // Révélation du secret d'Artémis : le bouton ne s'affiche qu'une fois
+    // (!artemisRevealed) → un seul déclenchement sonore par tirage.
+    playSound('artemis-secret', 1);
     if (artemisAdvice) return;
     const orig = originalFacesRef.current;
     if (!orig) return;

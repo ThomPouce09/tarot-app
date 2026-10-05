@@ -2,8 +2,8 @@
   "name": "tarot-apk",
   "private": true,
   "scripts": {
-    "predev": "node scripts/gen-backdrops.cjs",
-    "prebuild": "node scripts/gen-backdrops.cjs",
+    "predev": "node scripts/gen-backdrops.cjs && node scripts/gen-media-manifest.cjs",
+    "prebuild": "node scripts/gen-backdrops.cjs && node scripts/gen-media-manifest.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
