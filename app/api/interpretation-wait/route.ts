@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { pick4, pickContent } from '@/lib/i18n';
+import { media } from '@/lib/media';
 import { resolveLang } from '@/lib/lang';
 
 // ── Vidéos d'attente : détection dynamique par préfixe ────────────────────
@@ -17,7 +18,7 @@ function listVideos(prefix: string): string[] {
     const files = readdirSync(dir);
     for (let n = 1; n <= 9; n++) {
       if (files.includes(`${prefix}${n}.mp4`)) {
-        out.push(`/images/${prefix}${n}.mp4`);
+        out.push(media(`/images/${prefix}${n}.mp4`));
       }
     }
   } catch {
@@ -25,11 +26,11 @@ function listVideos(prefix: string): string[] {
     // statique connue.
     for (let n = 1; n <= 9; n++) {
       if (existsSync(join(dir, `${prefix}${n}.mp4`))) {
-        out.push(`/images/${prefix}${n}.mp4`);
+        out.push(media(`/images/${prefix}${n}.mp4`));
       }
     }
   }
-  if (out.length === 0) return [`/images/${prefix}1.mp4`];
+  if (out.length === 0) return [media(`/images/${prefix}1.mp4`)];
   // Fisher-Yates : mélange aléatoire de l'ordre des vidéos à chaque appel.
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

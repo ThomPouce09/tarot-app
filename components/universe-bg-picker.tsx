@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n';
 import { isVideoBackground, type BackgroundLevel } from '@/lib/backgrounds';
+import { media } from '@/lib/media';
 
 type Props = {
   pools: Record<BackgroundLevel, string[]>;
@@ -122,10 +123,10 @@ export default function UniverseBgPicker({ pools, level, current, onPreview, onR
                       className={`relative aspect-video w-full overflow-hidden rounded-lg border transition-all ${picked ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-white/10 opacity-70 hover:opacity-100'}`}
                       style={{ background: '#0a0604' }}>
                       {isVideoBackground(bg) ? (
-                        <video src={bg} muted loop playsInline autoPlay className="absolute inset-0 h-full w-full object-cover" />
+                        <video src={media(bg)} muted loop playsInline autoPlay className="absolute inset-0 h-full w-full object-cover" />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={bg} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                        <img src={media(bg)} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
                       )}
                       <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
                         style={{ background: picked ? 'rgba(218,165,32,0.95)' : 'rgba(0,0,0,0.55)', color: picked ? '#1a0e0a' : 'transparent' }}>

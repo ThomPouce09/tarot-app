@@ -204,16 +204,20 @@ export default function TarotHubPage() {
   // (navigation, onglet fermé, arrière-plan) via stopSound().
   useEffect(() => {
     installSoundUnlock();
-    const t = window.setTimeout(() => playSound('tarot2', 0.75), 150);
+    // French only: alternates between the two opening jingles (tarot.mp3 has no
+    // en/es/hi variant, so the other languages always keep tarot2).
+    const jingle = lang === 'fr' && Math.random() < 0.5 ? 'tarot' : 'tarot2';
+    const t = window.setTimeout(() => playSound(jingle, 0.75), 150);
     const onVisibility = () => {
-      if (document.hidden) stopSound('tarot2');
+      if (document.hidden) stopSound(jingle);
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.clearTimeout(t);
       document.removeEventListener('visibilitychange', onVisibility);
-      stopSound('tarot2');
+      stopSound(jingle);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLockedClick = (e: React.MouseEvent) => {

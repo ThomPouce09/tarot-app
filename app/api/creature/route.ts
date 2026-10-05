@@ -8,6 +8,14 @@ export const dynamic = 'force-dynamic';
 type CreatureRow = { id: string; slug: string; name: string; image: string; color: string | null };
 type MessageRow = { category: string; textFr: string; textEn: string | null };
 
+/** Famille « cadeau » : le message annonce un tirage offert. `credits` = les
+ *  messages historiques (tirages de base) ; `credits_base` / `credits_grand` =
+ *  les deux types explicites (4 messages de chaque, à venir). */
+const isGiftCategory = (c: string) =>
+  c === 'credits' || c === 'credits_base' || c === 'credits_grand';
+/** Type de tirage annoncé par le message cadeau (défaut : base). */
+const giftKindOf = (c: string): 'base' | 'grand' => (c === 'credits_grand' ? 'grand' : 'base');
+
 export async function GET(req: NextRequest) {
   const page = req.nextUrl.searchParams.get('page') || 'landing';
   const lang = req.nextUrl.searchParams.get('lang') === 'en' ? 'en' : 'fr';
@@ -52,15 +60,23 @@ export async function GET(req: NextRequest) {
     if (!all.length) {
       return NextResponse.json({ creature: null, message: null });
     }
-    const pool = giftOfferable ? all : all.filter((m) => m.category !== 'credits');
+    const pool = giftOfferable ? all : all.filter((m) => !isGiftCategory(m.category));
     const m = (pool.length ? pool : all)[0];
-    const giftClaimable = giftOfferable && m.category === 'credits';
+    const giftClaimable = giftOfferable && isGiftCategory(m.category);
 
     const text = lang === 'en' ? (m?.textEn || m?.textFr || '') : (m?.textFr || '');
 
     return NextResponse.json({
       creature: { id: c.id, slug: c.slug, name: c.name, image: c.image, color: c.color },
-      message: m ? { category: m.category, text, giftClaimable: giftClaimable || undefined } : null,
+      message: m
+        ? {
+            category: m.category,
+            text,
+            giftClaimable: giftClaimable || undefined,
+            // Type de tirage offert → son de gain : cadeau (base) / you-win (grand).
+            giftKind: giftClaimable ? giftKindOf(m.category) : undefined,
+          }
+        : null,
     });
   } catch (e) {
     console.error('[api/creature]', e);
