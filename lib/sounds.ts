@@ -12,7 +12,6 @@
 // puis chaque son joue à plein volume à son moment de déclenchement.
 
 import { getRuntimeLang } from '@/lib/i18n';
-import { media } from '@/lib/media';
 
 export type SoundCategory = 'dice' | 'runes' | 'cards' | 'ambient' | 'ui' | 'yi-jing';
 export type SoundLang = 'fr' | 'en' | 'es' | 'hi';
@@ -272,8 +271,7 @@ function currentSoundLang(): SoundLang {
 
 /** Fichier à jouer pour une entrée : variante de langue si elle existe. */
 export function soundFileFor(entry: SoundEntry, lang: SoundLang = currentSoundLang()): string {
-  // Reroutage temporaire éventuel vers public/media-opt/ (cf. lib/media.ts).
-  return media(entry.files?.[lang] || entry.files?.fr || entry.file);
+  return entry.files?.[lang] || entry.files?.fr || entry.file;
 }
 
 /** Libère un élément audio (coupe + détache la source) : un élément remplacé ne

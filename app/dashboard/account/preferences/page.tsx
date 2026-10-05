@@ -5,7 +5,6 @@ import { useLang, useSetLang, useT, tr, type Lang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 import SpaceTitle from '@/components/space-title';
 import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib/sounds';
-import { media } from '@/lib/media';
 import MusicPlayer from '@/components/music-player';
 import { getMusicPrefs, type MusicTrackId } from '@/lib/music';
 import { resetAllTutorials } from '@/lib/tutorials';
@@ -253,10 +252,10 @@ export default function PreferencesPage() {
                 style={{ background: '#0a0604' }}
               >
                 {isVideoBackground(bg) ? (
-                  <video src={media(bg)} muted loop playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
+                  <video src={bg} muted loop playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media(bg)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={bg} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 )}
                 <span className="absolute bottom-0.5 right-0.5 text-[10px] font-semibold px-1 py-px rounded"
                   style={{ background: selected ? 'rgba(218,165,32,0.9)' : 'rgba(0,0,0,0.55)', color: selected ? '#1a0e0a' : '#fff' }}>
