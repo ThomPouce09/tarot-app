@@ -25,8 +25,6 @@ import {
   SIGN_NAMES,
 } from '../_shared';
 import { randomTargetFaces, type TargetFaces } from '@/components/astro-dice';
-import { meaningFor } from '@/components/astro-dice/meanings';
-import { houseName } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
@@ -40,6 +38,8 @@ import { api } from '@/lib/api-client';
 import { DiceSteps, ClickableFaces } from '@/components/astro-dice/constellation';
 import { DiceLaunchCard } from '@/app/des-divinatoires/launch-card';
 import AuthGate from '@/components/auth-gate';
+// Helpers purs extraits a l'etape 1 du decoupage.
+import { diceCards, diceStaticText, md, VOIE_TINT, type Step } from './helpers';
 
 const AstroDiceCup = dynamic(
   () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
@@ -58,56 +58,6 @@ const AstroDiceCup = dynamic(
   },
 );
 
-type Step = 'intro' | 'obstacle_roll' | 'obstacle_done' | 'solution_roll' | 'solution_done';
-
-function diceCards(f: TargetFaces) {
-  return (['planet', 'sign', 'house'] as const).map((k) => ({
-    kind: k,
-    value: f[k],
-    label: k === 'house' ? houseName(f[k], getRuntimeLang()) : String(f[k]),
-  }));
-}
-function diceStaticText(f: TargetFaces) {
-  return (['planet', 'sign', 'house'] as const)
-    .map((k) => `${k === 'planet' ? 'Planète' : k === 'sign' ? 'Signe' : 'Maison'} ${f[k]} : ${meaningFor(k, f[k])}`)
-    .join('\n');
-}
-
-// Rendu markdown simplifié (**bold**, ## titres) — comme /choix.
-function inlineMd(s: string): React.ReactNode {
-  const parts = s.split(/(\*\*[^*]+\*\*)/);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: DICE_THEME.ocreLight }}>{part.slice(2, -2)}</strong>;
-    }
-    return italicParts(part);
-  });
-}
-function italicParts(s: string): React.ReactNode {
-  const parts = s.split(/(\*[^*]+\*)/);
-  return parts.map((part, i) => {
-    if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={i} style={{ fontStyle: 'italic', opacity: 0.85 }}>{part.slice(1, -1)}</em>;
-    }
-    return part;
-  });
-}
-function md(text: string) {
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
-  let key = 0;
-  for (const raw of lines) {
-    const trimmed = raw.trim();
-    if (trimmed.startsWith('## ')) {
-      elements.push(<h3 key={key++} className="text-sm font-bold uppercase tracking-wider mt-4 mb-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: '0 0 8px rgba(201,167,91,0.2)', letterSpacing: '0.08em' }}>{inlineMd(trimmed.slice(3))}</h3>);
-    } else if (trimmed.startsWith('# ')) {
-      elements.push(<h4 key={key++} className="text-sm font-bold mt-3 mb-1" style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}>{inlineMd(trimmed.slice(2))}</h4>);
-    } else {
-      elements.push(<p key={key++} className="mb-1 leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.7 }}>{inlineMd(trimmed || '\u00A0')}</p>);
-    }
-  }
-  return elements;
-}
 
 // ── Analyse courte (LLM, fallback DB) + approfondie — moule /choix ──
 function DiceAnalysis({
@@ -477,9 +427,6 @@ function VoiesCharged({ lang }: { lang: Lang }) {
 // Les Voies — carte : constellation personnelle (3 piliers reliés au nom),
 // pulsation dorée au survol/tap, empreinte de l'élément en filigrane.
 // ──────────────────────────────────────────────
-const VOIE_TINT: Record<string, string> = {
-  fire: '#f28a5c', water: '#6fb6d9', air: '#cfe3f5', earth: '#c9a86a',
-};
 
 function VoieCard({ voie, i, onPick, chosen, dimmed, reason }: { voie: { id: string; glyph: string; name: string; motto: string }; i: number; onPick: () => void; chosen?: boolean; dimmed?: boolean; reason?: string | null }) {
   const tint = VOIE_TINT[voie.id] ?? DICE_THEME.gold;
