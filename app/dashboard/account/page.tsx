@@ -108,7 +108,7 @@ export default function AccountPage() {
       {/* En-tête profil : bandeau dégradé harmonisé (modèle /readings) */}
       <SpaceTitle
         icon={
-          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center relative text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
             {initial}
             <span className="avatar-glass" aria-hidden />
           </span>
