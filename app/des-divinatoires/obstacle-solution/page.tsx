@@ -188,36 +188,22 @@ function ObstacleSolutionPage() {
     }
   }, [readingId, obstacle, solution]);
 
-  // ── Sauvegarde centralisée : interprétations courtes + approfondies ──
+  // ── Sauvegarde centralisée : analyses (approfondie auto ; court = repli) ──
   useEffect(() => {
-    if (step === 'solution_done' && shortObstacle && shortSolution && readingId) {
-      updateReading(readingId, { interpretation: JSON.stringify({
-        version: 'des-obstacle-solution',
-        facesA: obstacle,
-        facesB: solution,
-        shortA: shortObstacle,
-        shortB: shortSolution,
-        deepA: deepObstacle,
-        deepB: deepSolution,
-      }) });
-    }
-  }, [step, shortObstacle, shortSolution, readingId, obstacle, solution, deepObstacle, deepSolution]);
-
-  useEffect(() => {
-    if (!readingId) return;
-    if (deepObstacle && deepSolution) {
-      const payload = {
-        version: 'des-obstacle-solution',
-        facesA: obstacle,
-        facesB: solution,
-        shortA: shortObstacle,
-        shortB: shortSolution,
-        deepA: deepObstacle,
-        deepB: deepSolution,
-      };
-      updateReading(readingId, { interpretation: JSON.stringify(payload) });
-    }
-  }, [deepObstacle, deepSolution, shortObstacle, shortSolution, readingId, obstacle, solution]);
+    if (step !== 'solution_done' || !readingId) return;
+    const obst = deepObstacle || shortObstacle;
+    const solu = deepSolution || shortSolution;
+    if (!obst || !solu) return;
+    updateReading(readingId, { interpretation: JSON.stringify({
+      version: 'des-obstacle-solution',
+      facesA: obstacle,
+      facesB: solution,
+      shortA: shortObstacle,
+      shortB: shortSolution,
+      deepA: deepObstacle,
+      deepB: deepSolution,
+    }) });
+  }, [step, shortObstacle, shortSolution, deepObstacle, deepSolution, readingId, obstacle, solution]);
 
   // ── Les Voies : dès que l'Obstacle est posé, l'oracle trace 4 attitudes ──
   useEffect(() => {
@@ -533,7 +519,7 @@ function ObstacleSolutionPage() {
                       label={t('des.obstacle.readObstacle')}
                       faces={obstacle}
                       question={questionRef.current}
-                      shortInterpretation={shortObstacle}
+                      shortInterpretation={deepObstacle || shortObstacle}
                     />
                   )}
                   {solution && (
@@ -541,7 +527,7 @@ function ObstacleSolutionPage() {
                       label={t('des.obstacle.readSolution')}
                       faces={solution}
                       question={questionBRef.current}
-                      shortInterpretation={shortSolution}
+                      shortInterpretation={deepSolution || shortSolution}
                     />
                   )}
                 </div>

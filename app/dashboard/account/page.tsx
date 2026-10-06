@@ -1,9 +1,9 @@
 'use client';
+import { api } from '@/lib/api-client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT, useLang, tr, type Lang } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 const LOC: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
 import SpaceTitle from '@/components/space-title';
 
@@ -109,7 +109,7 @@ export default function AccountPage() {
       {/* En-tête profil : bandeau dégradé harmonisé (modèle /readings) */}
       <SpaceTitle
         icon={
-          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center relative text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
             {initial}
             <span className="avatar-glass" aria-hidden />
           </span>
@@ -227,7 +227,7 @@ function Field({ id, label, value, onChange, type = 'text' }: { id: string; labe
         type={type}
         value={value}
         onChange={onChange}
-        autoComplete={type === 'email' ? 'email' : type === 'tel' ? 'tel' : type === 'password' ? 'current-password' : 'off'}
+        autoComplete={type === "email" ? "email" : type === "tel" ? "tel" : type === "password" ? "current-password" : "off"}
         className="mystic-input"
       />
     </div>
