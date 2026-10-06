@@ -22,11 +22,14 @@ export interface Reading {
 }
 
 // --- Mapping type de tirage -> icône/style (réutilise les tuiles de la landing) ---
+// Codes couleur des univers, alignes sur les teintes vecues dans les hubs
+// (tarot=or, Yi Jing=rouge laque, runes=teal, des=bleu celeste) pour un tri
+// visuel immediat dans l'historique.
 export const TYPE_META: Record<string, { key: string; label: string; icon: string; color: string; bg: string; border: string; glow: string }> = {
-  tarot:  { key: 'tarot',  label: 'Tarot',            icon: '/images/tarot-icon.png',   color: '#FFD700', bg: 'rgba(218,165,32,0.12)',  border: 'rgba(218,165,32,0.35)',  glow: 'rgba(255,215,0,0.45)' },
-  yijing: { key: 'yijing', label: 'Yi Jing',          icon: '/images/yi-jing-icon.png', color: '#E0CFF0', bg: 'rgba(180,140,220,0.12)', border: 'rgba(180,140,220,0.35)', glow: 'rgba(180,140,220,0.5)' },
-  rune:   { key: 'rune',   label: 'Runes',            icon: '/images/runes-icon.png',   color: '#D4B483', bg: 'rgba(138,109,59,0.12)',  border: 'rgba(138,109,59,0.35)',  glow: 'rgba(138,109,59,0.45)' },
-  des:    { key: 'des',    label: 'Dés',               icon: '/images/des-zodiaque.png', color: '#7FB3D5', bg: 'rgba(46,134,193,0.12)', border: 'rgba(46,134,193,0.35)', glow: 'rgba(46,134,193,0.5)' },
+  tarot:  { key: 'tarot',  label: 'Tarot',            icon: '/images/tarot-icon.png',   color: '#FFD700', bg: 'rgba(218,165,32,0.12)',  border: 'rgba(218,165,32,0.55)',  glow: 'rgba(255,215,0,0.45)' },
+  yijing: { key: 'yijing', label: 'Yi Jing',          icon: '/images/yi-jing-icon.png', color: '#F0463C', bg: 'rgba(240,70,60,0.15)',   border: 'rgba(240,70,60,0.6)',    glow: 'rgba(240,70,60,0.55)' },
+  rune:   { key: 'rune',   label: 'Runes',            icon: '/images/runes-icon.png',   color: '#3CB371', bg: 'rgba(60,179,113,0.14)',  border: 'rgba(60,179,113,0.55)',  glow: 'rgba(60,179,113,0.5)' },
+  des:    { key: 'des',    label: 'Dés',               icon: '/images/des-zodiaque.png', color: '#3D9BE9', bg: 'rgba(46,134,193,0.15)', border: 'rgba(61,155,233,0.6)',   glow: 'rgba(61,155,233,0.55)' },
 };
 
 export function classifyType(t: string): keyof typeof TYPE_META {
@@ -87,9 +90,9 @@ export function typeLabelOf(r: Reading, lang: Lang): string {
 export const FILTERS = [
   { key: 'all',   labelKey: 'history.filter.all',    icon: '/images/tarot-icon.png', color: '#FFD700' },
   { key: 'tarot', labelKey: 'history.filter.tarot',  icon: '/images/tarot-icon.png', color: '#FFD700' },
-  { key: 'yijing', labelKey: 'history.filter.yijing', icon: '/images/yi-jing-icon.png', color: '#E0CFF0' },
-  { key: 'rune',  labelKey: 'history.filter.rune',   icon: '/images/runes-icon.png', color: '#D4B483' },
-  { key: 'des',   labelKey: 'history.filter.des',    icon: '/images/des-zodiaque.png', color: '#7FB3D5' },
+  { key: 'yijing', labelKey: 'history.filter.yijing', icon: '/images/yi-jing-icon.png', color: '#F0463C' },
+  { key: 'rune',  labelKey: 'history.filter.rune',   icon: '/images/runes-icon.png', color: '#3CB371' },
+  { key: 'des',   labelKey: 'history.filter.des',    icon: '/images/des-zodiaque.png', color: '#3D9BE9' },
 ] as const;
 
 export const tarot3Positions = [

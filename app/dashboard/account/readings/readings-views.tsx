@@ -63,12 +63,12 @@ export function EmptyState() {
       <div className="flex gap-3 justify-center flex-wrap">
         <Link href="/tarot" className="inline-block px-4 py-2 rounded-lg text-amber-300 text-sm hover:opacity-80 transition-all"
           style={{ background: 'rgba(218,165,32,0.2)', border: '1px solid rgba(218,165,32,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doTarot')}</Link>
-        <Link href="/yi-jing" className="inline-block px-4 py-2 rounded-lg text-purple-300 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(180,140,220,0.2)', border: '1px solid rgba(180,140,220,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doYijing')}</Link>
-        <Link href="/runes" className="inline-block px-4 py-2 rounded-lg text-amber-200 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(138,109,59,0.2)', border: '1px solid rgba(138,109,59,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doRunes')}</Link>
-        <Link href="/des-divinatoires" className="inline-block px-4 py-2 rounded-lg text-blue-300 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(46,134,193,0.2)', border: '1px solid rgba(46,134,193,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doDes')}</Link>
+        <Link href="/yi-jing" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
+          style={{ color: '#F0463C', background: 'rgba(240,70,60,0.18)', border: '1px solid rgba(240,70,60,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doYijing')}</Link>
+        <Link href="/runes" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
+          style={{ color: '#3CB371', background: 'rgba(60,179,113,0.16)', border: '1px solid rgba(60,179,113,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doRunes')}</Link>
+        <Link href="/des-divinatoires" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
+          style={{ color: '#3D9BE9', background: 'rgba(61,155,233,0.16)', border: '1px solid rgba(61,155,233,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doDes')}</Link>
       </div>
     </div>
   );
