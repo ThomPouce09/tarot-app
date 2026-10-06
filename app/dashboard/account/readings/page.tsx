@@ -12,7 +12,7 @@ import SpaceTitle from '@/components/space-title';
 import { TYPE_META, metaOf, loc, typeLabelOf, FILTERS, type Reading } from './readings-data';
 
 // Primitives visuelles (etape 2 du decoupage).
-import { ChevronIcon, TrashIcon, ShareIcon, EchoDot, ReadingThumbs } from './readings-parts';
+import { ChevronIcon, TrashIcon, ShareIcon, EchoDot, ClockIcon, ReadingThumbs } from './readings-parts';
 
 // Vues de rendu par univers (etape 3 du decoupage).
 import { EmptyState, DoubleHexView, YiJingView, WheelView, TarotView, RuneView, AstroView } from './readings-views';
@@ -83,7 +83,10 @@ export default function ReadingsPage() {
       map.get(dateKey)!.push(r);
     });
     // dateKey trié du plus récent au plus ancien (basé sur createdAt réel)
-    const groups = Array.from(map.entries()).map(([dateKey, reads]) => ({ dateKey, dateLabel: dateKey, readings: reads }));
+    const groups = Array.from(map.entries()).map(([dateKey, reads]) => {
+      const dateLabel = new Date(reads[0].createdAt).toLocaleDateString(loc(lang), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+      return { dateKey, dateLabel, readings: reads };
+    });
     groups.sort((a, b) => new Date(b.readings[0].createdAt).getTime() - new Date(a.readings[0].createdAt).getTime());
     return groups;
   }, [filtered, lang]);
@@ -356,7 +359,7 @@ export default function ReadingsPage() {
 
       <div className="max-w-2xl mx-auto pb-24">
         {/* Bandeau du titre : un seul dégradé continu qui remonte sous la têtière et fond dans le ciel cosmique */}
-        <SpaceTitle img="/images/nav-historique.png" title={t('history.title')} subtitle={t('history.subtitle')} />
+        <SpaceTitle img="/images/nav-historique.png" title={t('history.title')} subtitle={t('history.subtitle')} dense />
 
         {fetchError && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 mb-4">
@@ -388,14 +391,14 @@ export default function ReadingsPage() {
           </div>
         )}
 
-        {/* Filtres par type (icônes landing) — compacts */}
+        {/* Filtres par type : une seule ligne, repartie sur la largeur */}
         {readings.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+          <div className="flex gap-1.5 mb-4">
             {FILTERS.map((f) => {
               const active = filter === f.key;
               return (
                 <button key={f.key} onClick={() => setFilter(f.key)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all"
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-1 py-1 rounded-full border transition-all"
                   style={{
                     fontFamily: 'var(--font-cinzel), serif',
                     color: active ? '#1a0e0a' : f.color,
@@ -405,8 +408,8 @@ export default function ReadingsPage() {
                     opacity: active ? 1 : 0.8,
                   }}
                 >
-                  <img src={f.icon} alt="" className="w-3.5 h-3.5 object-contain" style={{ filter: `drop-shadow(0 0 3px ${f.color})` }} />
-                  <span className="text-[10px] font-semibold">{t(f.labelKey)}</span>
+                  <img src={f.icon} alt="" className="w-3.5 h-3.5 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 3px ${f.color})` }} />
+                  <span className="text-[10px] font-semibold truncate">{t(f.labelKey)}</span>
                 </button>
               );
             })}
@@ -420,7 +423,7 @@ export default function ReadingsPage() {
             <p className="text-amber-200/70 text-sm">{t('history.noType')}</p>
           </div>
         ) : (
-          <div className="space-y-5 pb-2">
+          <div className="space-y-3 pb-2">
             {groupedByDate.map((group) => {
               const isOpen = openDates.has(group.dateKey);
               const counts: Record<string, number> = { tarot: 0, yijing: 0, rune: 0, des: 0 };
@@ -428,27 +431,26 @@ export default function ReadingsPage() {
 
               return (
                 <div key={group.dateKey}>
-                  {/* En-tête date rituel : filet doré + libellé Cinzel + compteurs points */}
-                  <div className="flex items-center gap-2 mb-1.5 group/head">
+                  {/* En-tete date : libelle or soutenu + compteurs colles, puis filet vers la purge */}
+                  <div className="flex items-center gap-2 mb-1 group/head">
                     <button onClick={() => toggleDate(group.dateKey)} className="flex items-center gap-2 flex-1 min-w-0 text-left" aria-expanded={isOpen}>
-                      <ChevronIcon size={13} className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} style={{ color: 'rgba(218,165,32,0.7)' }} />
-                      <span className="h-px flex-1 min-w-4" style={{ background: 'linear-gradient(90deg, transparent, rgba(218,165,32,0.45))' }} />
-                      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.18em] px-1" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#F8E3A0', textShadow: '0 0 12px rgba(248,227,160,0.45)' }}>
+                      <ChevronIcon size={13} className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} style={{ color: 'rgba(255,215,0,0.8)' }} />
+                      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: '#FFD700', textShadow: '0 0 14px rgba(255,215,0,0.6)' }}>
                         {group.dateLabel}
                       </span>
                       <span className="flex items-center gap-1.5 shrink-0">
                         {(['tarot', 'yijing', 'rune', 'des'] as const).map((k) => counts[k] > 0 && (
-                          <span key={k} className="flex items-center gap-0.5 text-[10px]" style={{ color: TYPE_META[k].color, opacity: 0.9 }}>
+                          <span key={k} className="flex items-center gap-0.5 text-[10px]" style={{ color: TYPE_META[k].color, opacity: 0.95 }}>
                             <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: TYPE_META[k].color, boxShadow: `0 0 5px ${TYPE_META[k].glow}` }} />
                             {counts[k]}
                           </span>
                         ))}
                       </span>
-                      <span className="h-px flex-1 min-w-4" style={{ background: 'linear-gradient(90deg, rgba(218,165,32,0.45), transparent)' }} />
+                      <span className="h-px flex-1 min-w-4" style={{ background: 'linear-gradient(90deg, rgba(255,215,0,0.6), rgba(255,215,0,0.12))' }} />
                     </button>
                     <button onClick={() => askDeleteDate(group)}
                       className="shrink-0 p-1.5 rounded-md transition-all opacity-70 hover:opacity-100"
-                      style={{ color: '#ff5252' }}
+                      style={{ color: '#FF3131' }}
                       aria-label={t('history.deleteDate')} title={t('history.deleteDate')}>
                       <TrashIcon size={14} />
                     </button>
@@ -463,45 +465,48 @@ export default function ReadingsPage() {
                         const spreadInfo = r.spread && !m.label.toLowerCase().includes(r.spread.toLowerCase().replace(/[-—–]/g, ' ').trim()) && !r.spread.toLowerCase().includes(m.label.toLowerCase()) ? r.spread : '';
                         const hasThumbs = Array.isArray(r.cards) && r.cards.length > 0;
                         return (
-                          <div key={r.id} className="rounded-xl overflow-hidden transition-shadow" style={{ background: 'linear-gradient(180deg, rgba(58,34,102,0.72) 0%, rgba(34,19,64,0.78) 100%)', backdropFilter: 'blur(8px)', border: `1px solid ${m.border}`, boxShadow: openReading === r.id ? `0 0 22px ${m.glow}, 0 4px 14px rgba(0,0,0,0.35)` : '0 2px 10px rgba(0,0,0,0.28)' }}>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => toggleReading(r.id)} className="flex-1 min-w-0 flex items-center gap-2.5 p-2.5 text-left hover:bg-white/[0.03] transition-colors">
-                                {/* Aperçu visuel du tirage (ou icône de type si pas de cartes) */}
-                                {hasThumbs ? (
-                                  <ReadingThumbs r={r} />
-                                ) : (
-                                  <img src={m.icon} alt="" className="w-7 h-7 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
-                                )}
-                                {/* Hiérarchie 2 niveaux : libellé doré fort, méta discrète */}
-                                <span className="min-w-0 flex-1">
-                                  <span className="flex items-center gap-1.5">
-                                    <span className="text-[13px] font-semibold truncate" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>{typeLabelOf(r, lang)}</span>
-                                    {r.echo && <EchoDot echo={r.echo} t={t} />}
+                          <div key={r.id} className="rounded-xl overflow-hidden transition-shadow flex" style={{ background: 'linear-gradient(180deg, rgba(58,34,102,0.72) 0%, rgba(34,19,64,0.78) 100%)', backdropFilter: 'blur(8px)', border: `1px solid ${m.border}`, boxShadow: openReading === r.id ? `0 0 22px ${m.glow}, 0 4px 14px rgba(0,0,0,0.35)` : '0 2px 10px rgba(0,0,0,0.28)' }}>
+                            {/* Rail lateral : code couleur de l'univers, tri visuel immediat */}
+                            <span aria-hidden className="w-[4px] shrink-0" style={{ background: m.color, boxShadow: `0 0 8px ${m.glow}` }} />
+                            <div className="flex-1 min-w-0">
+                              {/* Zone titre : icône + libellé + heure discrète en fin de ligne, question pleine largeur */}
+                              <button onClick={() => toggleReading(r.id)} className="w-full p-2.5 pb-1 text-left hover:bg-white/[0.03] transition-colors">
+                                <span className="flex items-center gap-1.5">
+                                  <img src={m.icon} alt="" className="w-6 h-6 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 5px ${m.glow})` }} />
+                                  <span className="text-[13px] font-semibold truncate" style={{ color: m.color, fontFamily: 'var(--font-cinzel), serif' }}>{typeLabelOf(r, lang)}</span>
+                                  {r.echo && <EchoDot echo={r.echo} t={t} />}
+                                  <span className="ml-auto shrink-0 flex items-center gap-1 pl-2 text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                                    <ClockIcon size={10} style={{ opacity: 0.8 }} />
+                                    {formatTime(r.createdAt)}
                                   </span>
-                                  {spreadInfo && (
-                                    <span className="block text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.38)' }}>{spreadInfo}</span>
-                                  )}
                                 </span>
-                                <span className="shrink-0 text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatTime(r.createdAt)}</span>
+                                {r.question ? (
+                                  <span className="block text-[12px] truncate mt-0.5 italic" style={{ color: 'rgba(255,233,176,0.72)', fontFamily: 'var(--font-cormorant), serif' }}>{r.question}</span>
+                                ) : spreadInfo ? (
+                                  <span className="block text-[10px] truncate mt-0.5 uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.55)' }}>{spreadInfo}</span>
+                                ) : null}
                               </button>
-                              {/* Actions discrètes : partage puis suppression */}
-                              <button onClick={() => doShare(r)}
-                                className="shrink-0 p-1.5 rounded-md transition-all opacity-40 hover:opacity-100 relative"
-                                style={{ color: '#4db8c4' }}
-                                aria-label={t('history.share')} title={t('history.share')}>
-                                {shareCopied === r.id ? (
-                                  <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
-                                ) : (
-                                  <ShareIcon size={14} />
-                                )}
-                              </button>
-                              <button onClick={() => askDeleteOne(r)}
-                                className="shrink-0 mr-1.5 p-1.5 rounded-md transition-all opacity-70 hover:opacity-100"
-                                style={{ color: '#ff5252' }}
-                                aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
-                                <TrashIcon size={14} />
-                              </button>
-                            </div>
+                              {/* Dernière ligne : items du tirage à gauche, partage puis purge à droite */}
+                              <div onClick={() => toggleReading(r.id)} className="flex items-center gap-1 px-2.5 pb-2 cursor-pointer">
+                                {hasThumbs && <ReadingThumbs r={r} />}
+                                <span className="flex-1" />
+                                <button onClick={(e) => { e.stopPropagation(); doShare(r); }}
+                                  className="shrink-0 p-1 rounded-md transition-all opacity-80 hover:opacity-100 relative"
+                                  style={{ color: '#FFF3D6' }}
+                                  aria-label={t('history.share')} title={t('history.share')}>
+                                  {shareCopied === r.id ? (
+                                    <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
+                                  ) : (
+                                    <ShareIcon size={14} />
+                                  )}
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); askDeleteOne(r); }}
+                                  className="shrink-0 p-1 rounded-md transition-all opacity-60 hover:opacity-100"
+                                  style={{ color: '#FF3131' }}
+                                  aria-label={t('history.deleteOne')} title={t('history.deleteOne')}>
+                                  <TrashIcon size={14} />
+                                </button>
+                              </div>
 
                             {openReading === r.id && (
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
@@ -520,6 +525,7 @@ export default function ReadingsPage() {
                                 )}
                               </div>
                             )}
+                            </div>
                           </div>
                         );
                       })}
