@@ -1,7 +1,9 @@
 // ===========================================================================
-// Seed des messages de sagesse « pause repas » (1 par jour, bilingue FR/EN).
-// Table DailyMessage (day 1-365, textFr, textEn) — créée via `prisma db push`.
+// Seed des messages de sagesse « pause repas » (1 par jour, FR/EN/ES/HI).
+// Table DailyMessage (day 1-365, textFr, textEn, textEs, textHi) — via `prisma db push`.
 // Upsert idempotent (ON CONFLICT day) : relançable sans doublon.
+// Le tuple [fr, en, es, hi] accepte aussi [fr, en] (colonnes es/hi laissées
+// intactes si absentes — jamais écrasées par NULL).
 // Exécution : npx tsx --require dotenv/config scripts/seed-daily-messages.ts
 // ===========================================================================
 import { PrismaClient } from '@prisma/client';
@@ -12,13 +14,16 @@ const prisma = new PrismaClient();
 async function main() {
   let ups = 0;
   for (let i = 0; i < DAILY_MESSAGES.length; i++) {
-    const [textFr, textEn] = DAILY_MESSAGES[i];
+    const [textFr, textEn, textEs, textHi] = DAILY_MESSAGES[i];
     const day = i + 1;
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "DailyMessage" ("id", "day", "textFr", "textEn")
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT ("day") DO UPDATE SET "textFr" = $3, "textEn" = $4`,
-      crypto.randomUUID(), day, textFr, textEn,
+      `INSERT INTO "DailyMessage" ("id", "day", "textFr", "textEn", "textEs", "textHi")
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT ("day") DO UPDATE SET
+         "textFr" = $3, "textEn" = $4,
+         "textEs" = COALESCE($5, "DailyMessage"."textEs"),
+         "textHi" = COALESCE($6, "DailyMessage"."textHi")`,
+      crypto.randomUUID(), day, textFr, textEn, textEs ?? null, textHi ?? null,
     );
     ups++;
   }
