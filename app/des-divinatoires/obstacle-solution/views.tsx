@@ -3,16 +3,15 @@
 // Composants de rendu de /des-divinatoires/obstacle-solution (etape 2/2).
 // Deplaces tels quels depuis page.tsx. GlowDefsStrike reste prive ici.
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { DICE_THEME, DiceButton, OneLineQuestion, PLANET_NAMES, SIGN_NAMES } from '../_shared';
 import type { TargetFaces } from '@/components/astro-dice';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
-import AnalysisWaitCard from '@/components/analysis-wait-card';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { api } from '@/lib/api-client';
-import { useT, useLang, pick4, tr, type Lang } from '@/lib/i18n';
+import { useT, useLang, pick4, type Lang } from '@/lib/i18n';
 import { md, VOIE_TINT } from './helpers';
 
 // ── Analyse courte (LLM, fallback DB) + approfondie — moule /choix ──
@@ -33,44 +32,15 @@ export function DiceAnalysis({
   const lang = useLang();
   const [dbInterpretation, setDbInterpretation] = useState<string | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
-  const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
-  const [deepLoading, setDeepLoading] = useState(false);
-  const deepRef = useRef<HTMLDivElement | null>(null);
-  const shortInterpRef = useRef<string | null>(null);
+  const [isDeep, setIsDeep] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (deepAnalysis && deepRef.current) {
-      setTimeout(() => deepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    }
-  }, [deepAnalysis]);
-
-  const runDeep = useCallback(async () => {
-    setDeepLoading(true);
-    setDeepAnalysis(null);
-    try {
-      const planet = PLANET_NAMES[faces.planet as string];
-      const sign = SIGN_NAMES[faces.sign as string];
-      const house = `Maison ${faces.house}`;
-      if (!planet || !sign) { setDeepAnalysis('Indisponible.'); return; }
-      const res = await api('/api/astro-interpretation-obstacle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
-      });
-      const data = await res.json();
-      if (data.analysis) {
-        setDeepAnalysis(data.analysis);
-        onDeepAnalysisReady?.(data.analysis);
-      } else {
-        setDeepAnalysis('Indisponible.');
-      }
-    } catch { setDeepAnalysis('Indisponible.'); }
-    finally { setDeepLoading(false); }
-  }, [faces, question, spread, lang, onDeepAnalysisReady]);
-
-  // Interprétation courte : LLM d'abord, DB en fallback. Guard anti-course :
-  // seule la dernière exécution peut écrire l'état.
-  const shortLastSeqRef = useRef(0);
+  // Tirage AVANCÉ → l'analyse approfondie (prompt long) est automatique dès
+  // que les dés sont posés, et REMPLACE le résumé court dans la même carte
+  // (comportement calé sur /affinage). Le court (LLM 1-2 phrases, puis DB)
+  // devient un filet de repli silencieux si l'approfondie n'arrive pas.
+  // Guard anti-course : seule la dernière exécution peut écrire l'état.
+  const lastSeqRef = useRef(0);
   useEffect(() => {
     if (!faces.planet || !faces.sign || !faces.house) return;
     const planet = PLANET_NAMES[faces.planet as string];
@@ -79,11 +49,31 @@ export function DiceAnalysis({
     if (!planet || !sign) return;
 
     const seq = nextRaceSeq();
-    shortLastSeqRef.current = seq;
+    lastSeqRef.current = seq;
     setDbLoading(true);
     setDbInterpretation(null);
+    setIsDeep(false);
 
     (async () => {
+      // 1) Analyse approfondie automatique
+      try {
+        const res = await api('/api/astro-interpretation-obstacle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
+        });
+        const data = await res.json();
+        if (seq !== lastSeqRef.current) return;
+        if (data.analysis) {
+          setDbInterpretation(data.analysis);
+          setIsDeep(true);
+          onDeepAnalysisReady?.(data.analysis);
+          setDbLoading(false);
+          return;
+        }
+      } catch { /* repli court ci-dessous */ }
+
+      // 2) Filet : LLM court, puis interprétation DB (jamais un tirage vide)
       try {
         const res = await api('/api/astro-interpretation-obstacle', {
           method: 'POST',
@@ -91,10 +81,9 @@ export function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'short', lang }),
         });
         const data = await res.json();
-        if (seq !== shortLastSeqRef.current) return;
+        if (seq !== lastSeqRef.current) return;
         if (data.interpretation) {
           setDbInterpretation(data.interpretation);
-          shortInterpRef.current = data.interpretation;
           onInterpretationReady?.(data.interpretation);
           setDbLoading(false);
           return;
@@ -108,19 +97,23 @@ export function DiceAnalysis({
           body: JSON.stringify({ planet, sign, house }),
         });
         const data = await res.json();
-        if (seq !== shortLastSeqRef.current) return;
+        if (seq !== lastSeqRef.current) return;
         if (data.found && data.interpretation) {
           setDbInterpretation(data.interpretation);
-          shortInterpRef.current = data.interpretation;
           onInterpretationReady?.(data.interpretation);
-          setDbLoading(false);
-          return;
         }
       } catch { /* silencieux */ }
-      if (seq === shortLastSeqRef.current) setDbLoading(false);
+      if (seq === lastSeqRef.current) setDbLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faces, question, spread, lang]);
+
+  // Recentre la vue sur l'analyse dès qu'elle se pose (même geste que /affinage).
+  useEffect(() => {
+    if (dbInterpretation && cardRef.current) {
+      setTimeout(() => cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [dbInterpretation]);
 
   return (
     <div className="mt-4 space-y-3">
@@ -166,6 +159,7 @@ export function DiceAnalysis({
       )}
       {dbInterpretation && (
         <div
+          ref={cardRef}
           className="mt-2 rounded-2xl p-5"
           style={{
             background: `linear-gradient(135deg, ${DICE_THEME.gold}22 0%, ${DICE_THEME.brick} 100%)`,
@@ -177,7 +171,7 @@ export function DiceAnalysis({
             className="mb-3 text-center text-sm font-bold uppercase tracking-wider"
             style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: `0 0 8px ${DICE_THEME.gold}33`, letterSpacing: '0.1em' }}
           >
-            ✦ {t('des.choix.shortTitle')} ✦
+            ✦ {t(isDeep ? 'des.choix.deepTitle' : 'des.choix.shortTitle')} ✦
           </p>
           <div
             className="text-center text-base leading-relaxed"
@@ -186,56 +180,6 @@ export function DiceAnalysis({
             {md(dbInterpretation)}
           </div>
         </div>
-      )}
-
-      {/* ── Analyse APPROFONDIE (prompt long) ── */}
-      {!deepAnalysis && !deepLoading && (
-        <div className="mt-4 text-center">
-          <DiceButton variant="gold" onClick={runDeep}>
-            {t('des.choix.deepLongBtn')}
-          </DiceButton>
-        </div>
-      )}
-      {deepLoading && (
-        <AnalysisWaitCard
-          accent={DICE_THEME.gold}
-          title={
-            <>
-              {tr("La sagesse se dévoile", "Wisdom unfolds", "La sabiduría se revela", "ज्ञान प्रकट हो रहा है")}
-              <span className="oracle-loader-dot">.</span>
-              <span className="oracle-loader-dot">.</span>
-              <span className="oracle-loader-dot">.</span>
-            </>
-          }
-          subtitle={t('des.choix.deepLoading')}
-          videoPrefix="analyse-des-zodiaque"
-        />
-      )}
-      {deepAnalysis && deepAnalysis !== 'Indisponible.' && (
-        <motion.div
-          ref={deepRef}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 rounded-2xl p-5"
-          style={{
-            background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brick} 100%)`,
-            border: `1.5px solid ${DICE_THEME.gold}55`,
-            boxShadow: `inset 0 0 24px ${DICE_THEME.gold}10`,
-          }}
-        >
-          <p
-            className="mb-3 text-center text-sm font-bold uppercase tracking-[0.12em]"
-            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: `0 0 12px ${DICE_THEME.gold}44` }}
-          >
-            ✦ {t('des.choix.deepTitle')} ✦
-          </p>
-          <div
-            className="text-base leading-relaxed"
-            style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.75 }}
-          >
-            {md(deepAnalysis)}
-          </div>
-        </motion.div>
       )}
     </div>
   );

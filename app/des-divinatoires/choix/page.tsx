@@ -13,7 +13,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
 import { DICE_THEME, DiceBackground, DiceTitle, DiceTutorial, OneLineQuestion, scrollToCupFit, useDiceCupHeight } from '../_shared';
-import { Step, diceCards, diceStaticText, md } from './helpers';
+import { Step, diceCards, diceStaticText } from './helpers';
 import { DiceAnalysis, RecapCard } from './views';
 import { DiceLaunchCard } from '@/app/des-divinatoires/launch-card';
 import { TargetFaces, randomTargetFaces } from '@/components/astro-dice';
@@ -98,8 +98,6 @@ function ChoixPage() {
   const [deepAnalysisB, setDeepAnalysisB] = useState<string | null>(null);
   const [shortInterpA, setShortInterpA] = useState<string | null>(null);
   const [shortInterpB, setShortInterpB] = useState<string | null>(null);
-  const [showDeepA, setShowDeepA] = useState(false);
-  const [showDeepB, setShowDeepB] = useState(false);
 
   // Scroll vers le gobelet + tutoriel dès qu'il est monté (A_roll ou B_roll)
   const scrollToCup = useCallback(() => {
@@ -193,8 +191,6 @@ function ChoixPage() {
     setDeepAnalysisB(null);
     setShortInterpA(null);
     setShortInterpB(null);
-    setShowDeepA(false);
-    setShowDeepB(false);
   }, []);
 
   // Scroll vers les résultats après chaque phase
@@ -215,36 +211,23 @@ function ChoixPage() {
   const recapRef = useRef<HTMLDivElement | null>(null);
 
   // ── Sauvegarde centralisée dans l'historique ──
-  // Interprétation combinée quand les 2 analyses courtes sont prêtes
+  // Analyse posée par chemin = approfondie (auto) à défaut court (repli DB).
   useEffect(() => {
-    if (step === 'B_done' && shortInterpA && shortInterpB && readingAId) {
-      const payload = {
-        version: 'des-choix',
-        facesA: resultA,
-        facesB: resultB,
-        shortA: shortInterpA,
-        shortB: shortInterpB,
-      };
-      updateReading(readingAId, { interpretation: JSON.stringify(payload) });
-    }
-  }, [step, shortInterpA, shortInterpB, readingAId, resultA, resultB]);
-
-  // Analyse approfondie (sauve quand les deux analyses longues sont prêtes)
-  useEffect(() => {
-    if (!readingAId) return;
-    if (deepAnalysisA && deepAnalysisB) {
-      const payload = {
-        version: 'des-choix',
-        facesA: resultA,
-        facesB: resultB,
-        shortA: shortInterpA,
-        shortB: shortInterpB,
-        deepA: deepAnalysisA,
-        deepB: deepAnalysisB,
-      };
-      updateReading(readingAId, { interpretation: JSON.stringify(payload) });
-    }
-  }, [deepAnalysisA, deepAnalysisB, shortInterpA, shortInterpB, readingAId, resultA, resultB]);
+    if (step !== 'B_done' || !readingAId) return;
+    const a = deepAnalysisA || shortInterpA;
+    const b = deepAnalysisB || shortInterpB;
+    if (!a || !b) return;
+    const payload = {
+      version: 'des-choix',
+      facesA: resultA,
+      facesB: resultB,
+      shortA: shortInterpA,
+      shortB: shortInterpB,
+      deepA: deepAnalysisA,
+      deepB: deepAnalysisB,
+    };
+    updateReading(readingAId, { interpretation: JSON.stringify(payload) });
+  }, [step, shortInterpA, shortInterpB, deepAnalysisA, deepAnalysisB, readingAId, resultA, resultB]);
 
   return (
     <DiceBackground starry>
@@ -462,25 +445,8 @@ function ChoixPage() {
                       label={t('des.choix.first')}
                       faces={resultA!}
                       question={questionRef.current}
-                      shortInterpretation={shortInterpA}
-                      deepAvailable={!!deepAnalysisA}
-                      onToggleDeep={() => setShowDeepA(!showDeepA)}
+                      shortInterpretation={deepAnalysisA || shortInterpA}
                     />
-
-                    {showDeepA && deepAnalysisA && (
-                      <div
-                        className="rounded-2xl p-5 text-sm leading-relaxed"
-                        style={{
-                          background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
-                          border: `1px solid ${DICE_THEME.gold}33`,
-                          fontFamily: 'var(--font-cormorant), serif',
-                          color: '#F0E6D3',
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        {md(deepAnalysisA)}
-                      </div>
-                    )}
                   </div>
 
                   {/* Option B */}
@@ -489,24 +455,8 @@ function ChoixPage() {
                       label={t('des.choix.second')}
                       faces={resultB!}
                       question={questionBRef.current}
-                      shortInterpretation={shortInterpB}
-                      deepAvailable={!!deepAnalysisB}
-                      onToggleDeep={() => setShowDeepB(!showDeepB)}
+                      shortInterpretation={deepAnalysisB || shortInterpB}
                     />
-                    {showDeepB && deepAnalysisB && (
-                      <div
-                        className="rounded-2xl p-5 text-sm leading-relaxed"
-                        style={{
-                          background: `linear-gradient(135deg, ${DICE_THEME.gold}14 0%, ${DICE_THEME.brick} 100%)`,
-                          border: `1px solid ${DICE_THEME.gold}33`,
-                          fontFamily: 'var(--font-cormorant), serif',
-                          color: '#F0E6D3',
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        {md(deepAnalysisB)}
-                      </div>
-                    )}
                   </div>
                 </div>
 
