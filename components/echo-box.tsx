@@ -22,6 +22,10 @@ export interface EchoData {
   readingId: string | null;
   textFr: string;
   textEn: string | null;
+  // Parallèles ES/HI (sérialisées par l'API depuis la v-i18n ; optionnelles
+  // pour ne pas casser les anciens constructeurs côté client).
+  textEs?: string | null;
+  textHi?: string | null;
   domain: string;
   dueAt: string; // ISO
   verdict: string | null;

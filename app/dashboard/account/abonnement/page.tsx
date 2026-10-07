@@ -305,7 +305,7 @@ export default function AbonnementPage() {
 
   return (
     <div className="space-y-6">
-      <SpaceTitle img="/images/nav-abonnement.png" title={t('sub.title')} />
+      <SpaceTitle img="/images/nav-abonnement.png" title={t('sub.title')} dense />
 
       {/* Activation en cours (retour de paiement) */}
       {activating && (

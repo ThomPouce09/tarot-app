@@ -200,7 +200,7 @@ export default function PreferencesPage() {
 
   return (
     <div className="space-y-6">
-      <SpaceTitle img="/images/nav-preferences.png" title={t('prefs.title')} subtitle={t('prefs.subtitle')} />
+      <SpaceTitle img="/images/nav-preferences.png" title={t('prefs.title')} subtitle={t('prefs.subtitle')} dense />
 
       {/* Son */}
       <div className="mystic-panel p-5 space-y-3">

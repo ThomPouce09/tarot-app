@@ -47,9 +47,9 @@ export function EchoDot({ echo, t }: { echo: NonNullable<Reading['echo']>; t: (k
 // Tarot : art réel des lames (/cards/arcana/{id}.jpg). Runes : glyphes ᚠ.
 // Dés : symboles ☿/♄. Yi Jing : hexagramme. Max 4 + badge « +N », aux codes
 // couleur des univers ; les renversées sont pivotées.
-export function ReadingThumb({ group, card, idx }: { group: string; card: any; idx: number }) {
+export function ReadingThumb({ group, card, idx, big }: { group: string; card: any; idx: number; big?: boolean }) {
   const base = 'shrink-0 rounded-[5px] flex items-center justify-center leading-none';
-  const st: React.CSSProperties = { width: 20, height: 28, fontSize: 11 };
+  const st: React.CSSProperties = big ? { width: 36, height: 50, fontSize: 14 } : { width: 20, height: 28, fontSize: 11 };
   if (group === 'tarot') {
     const id = typeof card === 'number' ? card : (card?.id ?? card?.name?.id);
     const rev = typeof card === 'object' && card?.reversed;
@@ -72,21 +72,21 @@ export function ReadingThumb({ group, card, idx }: { group: string; card: any; i
   if (group === 'rune') {
     const rev = card?.reversed;
     return (
-      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(60,179,113,0.55)', background: 'rgba(60,179,113,0.16)', color: '#CFF0DA', transform: rev ? 'rotate(180deg)' : undefined, fontSize: 13 }}>
+      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(60,179,113,0.55)', background: 'rgba(60,179,113,0.16)', color: '#CFF0DA', transform: rev ? 'rotate(180deg)' : undefined, fontSize: big ? 20 : 13 }}>
         {card?.symbol || 'ᛟ'}
       </span>
     );
   }
   if (group === 'des') {
     return (
-      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(61,155,233,0.6)', background: 'rgba(61,155,233,0.16)', color: '#3D9BE9', fontSize: 13 }}>
+      <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(61,155,233,0.6)', background: 'rgba(61,155,233,0.16)', color: '#3D9BE9', fontSize: big ? 20 : 13 }}>
         {card?.value || '⚄'}
       </span>
     );
   }
   // yijing : hexagramme (symbole Unicode ou nom)
   return (
-    <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(240,70,60,0.6)', background: 'rgba(240,70,60,0.16)', color: '#F5C4BE', fontSize: 15 }}>
+    <span key={idx} className={base} style={{ ...st, border: '1px solid rgba(240,70,60,0.6)', background: 'rgba(240,70,60,0.16)', color: '#F5C4BE', fontSize: big ? 22 : 15 }}>
       {card?.symbol || '䷊'}
     </span>
   );
