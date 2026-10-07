@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { playSound } from '@/lib/sounds';
+import { useT } from '@/lib/i18n';
 
 type Props = {
   data: {
@@ -227,11 +228,11 @@ function GiftBurst({ glow }: { glow: string }) {
 
 export default function CreaturePopup({ data, onClaim, onClose }: Props) {
   const { creature, text } = data;
+  const t = useT();
   const [imgError, setImgError] = useState(false);
   const [show, setShow] = useState(true); // tout (créature + texte) visible
   const [claimState, setClaimState] = useState<'idle' | 'claiming' | 'claimed' | 'failed'>('idle');
   const glow = creature.color || GOLD;
-  const isEn = data.lang === 'en';
 
   // Pas de fermeture automatique : la créature reste affichée jusqu'à ce que
   // l'utilisateur tape EN DEHORS du message (overlay) — il lit à son rythme.
@@ -375,7 +376,7 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
                     }}
                   >
                     <GiftIcon size={15} />
-                    {isEn ? 'Claim my gift' : 'Réclamer mon cadeau'}
+                    {t('gift.claim')}
                   </button>
                 )}
                 {claimState === 'claiming' && (
@@ -398,12 +399,12 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
                     }}
                   >
                     <GiftIcon size={15} />
-                    {isEn ? 'Gift claimed! Your next draw is free ✦' : 'Cadeau récupéré ! Ton prochain tirage est offert ✦'}
+                    {t('gift.claimed')}
                   </motion.span>
                 )}
                 {claimState === 'failed' && (
                   <span className="text-xs italic" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#c9b27e' }}>
-                    {isEn ? 'A gift was already claimed recently…' : 'Un cadeau a déjà été réclamé récemment…'}
+                    {t('gift.failed')}
                   </span>
                 )}
               </div>

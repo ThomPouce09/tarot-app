@@ -138,7 +138,8 @@ export default function Firefly({ page }: { page: string }) {
 
   const glow = creature?.color || GOLD;
 
-  // Réclame le cadeau d'une créature (1 tirage offert, rare : max 1/5 jours).
+  // Réclame le cadeau d'une créature (1 billet de la filière annoncée par le
+  // message — base ou avancé ; rare : cooldown aléatoire 3-4 jours).
   const claimGift = useCallback(async (): Promise<boolean> => {
     const email = readEmailLocal();
     if (!email) return false;
@@ -146,7 +147,7 @@ export default function Firefly({ page }: { page: string }) {
       const res = await fetch('/api/gift/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, kind: popup?.giftKind ?? 'base' }),
       });
       if (!res.ok) return false;
       const d = await res.json().catch(() => ({}));
@@ -154,7 +155,7 @@ export default function Firefly({ page }: { page: string }) {
     } catch {
       return false;
     }
-  }, []);
+  }, [popup?.giftKind]);
 
   return (
     <>

@@ -1,6 +1,6 @@
 // app/api/tarot-semaine/route.ts
 // « Les Arcanes de la Semaine » — roue hebdomadaire (7 arcanes majeurs, un par
-// jour planétaire). Le tirage coûte 2 grands tirages (consommés via
+// jour planétaire). Le tirage coûte 1 grand tirage (consommés via
 // /api/entitlement par la page avant POST action:'cast').
 //
 // Actions (POST { email, action, ... }) :

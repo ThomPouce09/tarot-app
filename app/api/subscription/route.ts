@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
             bonusGrand: rights.bonusGrand,
             rechargeCredits: rights.rechargeCredits,
             giftTickets: rights.giftTickets,
+            giftGrandTickets: rights.giftGrandTickets,
             giftExpiresAt: rights.giftExpiresAt ? rights.giftExpiresAt.toISOString() : null,
             streakDays: rights.streakDays,
           }
