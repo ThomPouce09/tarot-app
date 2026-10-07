@@ -27,8 +27,46 @@ import type { EchoData } from '@/components/echo-box';
 // Réutilisation des primitives de l'historique : la modale montre le tirage
 // d'origine tel qu'il apparaît dans /readings (mêmes vignettes, mêmes libellés).
 import { TYPE_META, metaOf, typeLabelOf } from '../readings/readings-data';
+import { TAROT_CARDS } from '@/lib/tarot-data';
 import { ReadingThumb, ShareIcon } from '../readings/readings-parts';
 import { DoubleHexView, YiJingView, WheelView, TarotView, RuneView, AstroView } from '../readings/readings-views';
+
+// Surbrillance des mots-clés de la recherche dans les textes affichés
+// (même style doré que Highlight dans /readings, mais par mot : la recherche
+// matche chaque mot séparément, le surlignage doit suivre).
+function MarkWords({ text, q }: { text: string; q: string }) {
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length || !text) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const marks = new Set<number>();
+  for (const w of words) {
+    let idx = lower.indexOf(w);
+    while (idx !== -1) {
+      for (let k = idx; k < idx + w.length; k++) marks.add(k);
+      idx = lower.indexOf(w, idx + w.length);
+    }
+  }
+  const parts: (string | JSX.Element)[] = [];
+  let run = '';
+  let runStart = -1;
+  const flush = (end: number) => {
+    if (runStart === -1) return;
+    parts.push(
+      <mark key={runStart} className="rounded px-0.5 font-semibold" style={{
+        background: 'rgba(255, 215, 0, 0.18)', color: '#FFE9A8',
+        textShadow: '0 0 16px rgba(255, 215, 0, 1), 0 0 28px rgba(255, 215, 0, 0.6)',
+        boxShadow: '0 0 10px rgba(255, 215, 0, 0.45)',
+      }}>{text.slice(runStart, end)}</mark>
+    );
+    runStart = -1; run = '';
+  };
+  for (let i = 0; i < text.length; i++) {
+    if (marks.has(i)) { if (runStart === -1) runStart = i; run += text[i]; }
+    else { flush(i); parts.push(text[i]); }
+  }
+  flush(text.length);
+  return <>{parts}</>;
+}
 
 function readEmail(): string {
   try {
@@ -174,17 +212,34 @@ export default function AuguresPage() {
   const matches = useCallback((e: EchoData): boolean => {
     const needle = q.trim().toLowerCase();
     if (needle) {
-      const hay = [
+      // Haystack = texte de l'augure + mots-clés du tirage d'origine
+      // (thème/intention, nom du tirage, cartes) pour une recherche globale.
+      const parts: string[] = [
         e.textFr || '', e.textEn || '', e.textEs || '', e.textHi || '',
         t(`echo.domain.${e.domain}`), e.domain,
         fmtDate(e.dueAt, lang), fmtShort(e.dueAt, lang),
         e.verdict ? t(`echo.verdict.${e.verdict}`) : '',
-      ].join('\n').toLowerCase();
+      ];
+      const rd = e.readingId && readingsList ? readingsList.find((x) => x.id === e.readingId) : null;
+      if (rd) {
+        if (rd.question) parts.push(String(rd.question));
+        parts.push(typeLabelOf(rd as any, lang), String(rd.type || ''), String(rd.spread || ''));
+        const cards: any[] = Array.isArray(rd.cards) ? rd.cards : [];
+        cards.forEach((c) => {
+          const nm = (typeof c === 'number' ? TAROT_CARDS.find((k) => k.id === c)?.name
+            : (typeof c?.name === 'string' ? c.name : c?.name?.name)
+            ?? (typeof c?.id === 'number' ? TAROT_CARDS.find((k) => k.id === c.id)?.name : undefined))
+            || (typeof c?.symbol === 'string' ? c.symbol : '')
+            || (typeof c?.value === 'string' ? c.value : '');
+          if (nm) parts.push(String(nm));
+        });
+      }
+      const hay = parts.join('\n').toLowerCase();
       if (!needle.split(/\s+/).every((w) => hay.includes(w))) return false;
     }
     if (domFilter.size > 0 && !domFilter.has(e.domain)) return false;
     return true;
-  }, [q, domFilter, lang, t]);
+  }, [q, domFilter, lang, t, readingsList]);
 
   const visible = useMemo(() => {
     const base = (echoes || []).filter((e) => {
@@ -483,7 +538,7 @@ export default function AuguresPage() {
                           initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}
                           className="text-amber-50 italic text-[16px] leading-relaxed mb-3"
                           style={{ fontFamily: 'var(--font-cinzel), serif', textShadow: '0 0 16px rgba(218,165,32,0.35)' }}>
-                          « {pickEchoText(e, lang)} »
+                          « <MarkWords text={pickEchoText(e, lang)} q={q} /> »
                         </motion.p>
                         <p className="text-sm text-gray-300 mb-2">{t('echo.verdictAsk')}</p>
                         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -542,8 +597,8 @@ export default function AuguresPage() {
                           )}
                           <img src={DOMAIN_ICON[e.domain] || DOMAIN_ICON.tarot} alt="" className="w-5 h-5 shrink-0 object-contain opacity-80" />
                           <span className="min-w-0 flex-1 truncate text-[13px] italic" style={{ fontFamily: 'var(--font-cormorant), serif', color: state === 'closed' ? 'rgba(220,214,200,0.62)' : '#E8DECA' }}>
-                            « {pickEchoText(e, lang)} »
-                          </span>
+                            « <MarkWords text={pickEchoText(e, lang)} q={q} /> »
+                            </span>
                           <span className="shrink-0 text-[10px] tabular-nums text-gray-400">{fmtShort(e.dueAt, lang)}</span>
                           <span className="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                             style={state === 'closed'
@@ -614,7 +669,7 @@ export default function AuguresPage() {
                   <>
                     <img src={TYPE_META[rdGroup].icon} alt="" className="w-6 h-6 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 5px ${TYPE_META[rdGroup].glow})` }} />
                     <span className="min-w-0 flex-1 text-[13px] font-bold truncate" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: TYPE_META[rdGroup].color, textShadow: `0 0 12px ${TYPE_META[rdGroup].glow}` }}>
-                      {typeLabelOf(rd as any, lang)}
+                      <MarkWords text={typeLabelOf(rd as any, lang)} q={q} />
                       <span className="ml-2 text-[10px] font-normal text-gray-400">{fmtDate(rd.createdAt, lang)}</span>
                     </span>
                   </>
@@ -659,7 +714,7 @@ export default function AuguresPage() {
                           {t('echo.themeLabel')}
                         </p>
                         <p className="text-[14px] font-bold leading-snug" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFF6DE' }}>
-                          {theme}
+                          <MarkWords text={theme} q={q} />
                         </p>
                         {intention && (
                           <>
@@ -667,7 +722,7 @@ export default function AuguresPage() {
                               {t('echo.intentionLabel')}
                             </p>
                             <p className="text-[13px] italic leading-snug" style={{ fontFamily: 'var(--font-cormorant), serif', color: 'rgba(255,233,176,0.85)' }}>
-                              « {intention} »
+                              « <MarkWords text={intention} q={q} /> »
                             </p>
                           </>
                         )}
@@ -710,7 +765,7 @@ export default function AuguresPage() {
                     ✦ {t('echo.augureSingular')} · {fmtDate(detail.dueAt, lang)}
                   </p>
                   <p className="text-amber-50 italic text-[16px] leading-relaxed" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-                    « {pickEchoText(detail, lang)} »
+                    « <MarkWords text={pickEchoText(detail, lang)} q={q} /> »
                   </p>
                 </div>
 

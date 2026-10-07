@@ -438,7 +438,7 @@ export const DICT = {
   'echo.collapseReading': { fr: "Replier le tirage", en: "Collapse the reading", es: "Plegar la tirada", hi: "पात समेटें" },
   'echo.drawTitle': { fr: "Le tirage d'origine", en: "The original drawing", es: "La tirada original", hi: "मूल पात" },
   'echo.exitManage': { fr: "Quitter la sélection", en: "Exit selection", es: "Salir de la selección", hi: "चयन से बाहर निकलें" },
-  'echo.searchPlaceholder': { fr: "Rechercher un augure…", en: "Search an augury…", es: "Buscar un augurio…", hi: "शगुन खोजें…" },
+  'echo.searchPlaceholder': { fr: "Rechercher un augure ou un tirage…", en: "Search an augury or a reading…", es: "Buscar un augurio o una tirada…", hi: "शगुन या पात खोजें…" },
   'echo.searchClear': { fr: "Effacer la recherche", en: "Clear search", es: "Borrar búsqueda", hi: "खोज साफ़ करें" },
   'echo.noResults': { fr: "Aucun augure ne correspond à cette recherche.", en: "No augury matches this search.", es: "Ningún augurio corresponde a esta búsqueda.", hi: "इस खोज से कोई शगुन मेल नहीं खाता।" },
   'echo.selectedN': { fr: "{n} sélectionné(s)", en: "{n} selected", es: "{n} seleccionado(s)", hi: "{n} चयनित" },
