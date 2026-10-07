@@ -13,6 +13,7 @@ export default function SpaceTitle({
   subtitle,
   children,
   dense,
+  flush,
 }: {
   img?: string;
   icon?: React.ReactNode;
@@ -22,6 +23,9 @@ export default function SpaceTitle({
   /** Rapproche le contenu sous le bandeau (historique : pas de trou sous le
    *  dégradé avant le champ de recherche). */
   dense?: boolean;
+  /** Avec dense : colle le titre sous la bannière (supprime l'espace haut du
+   *  dégradé) — pages dont le contenu collant suit immédiatement. */
+  flush?: boolean;
 }) {
   // Le bloc identité (avatar/icône + nom d'utilisateur) doit tenir sur UNE
   // seule ligne quelle que soit la longueur du nom : le texte ne peut PAS se
@@ -66,7 +70,7 @@ export default function SpaceTitle({
 
   return (
     <div
-      className={`${dense ? 'mb-0 pb-4' : 'mb-5 pb-10'} px-4 -mx-4 sm:-mx-6 lg:-mx-10 -mt-8 md:-mt-12 pt-12 md:pt-16`}
+      className={`${dense ? 'mb-0 pb-4' : 'mb-5 pb-10'} px-4 ${dense && flush ? '-mx-4 sm:-mx-6 lg:-mx-10 !-mt-6 md:!-mt-10 pt-1' : '-mx-4 sm:-mx-6 lg:-mx-10 -mt-8 md:-mt-12 pt-12 md:pt-16'}`}
       style={{ background: 'linear-gradient(180deg, rgba(8,5,20,0.92) 0%, rgba(14,8,30,0.80) 45%, rgba(30,16,58,0.45) 78%, rgba(30,16,58,0) 100%)' }}
     >
       <h1

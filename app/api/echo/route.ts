@@ -1,6 +1,7 @@
 // app/api/echo/route.ts
 // Augures : POST = sceller (IA + gating Initié/Arkane), GET = liste d'un compte,
-// PUT = verdict de vérification (oui | partiel | non).
+// PUT = verdict de vérification (oui | partiel | non), DELETE = purge (une ou
+// plusieurs augures du compte — ownership vérifié, jamais trans-compte).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -100,4 +101,34 @@ export async function PUT(request: NextRequest) {
     data: { verdict, verdictAt: new Date() },
   });
   return NextResponse.json({ echo: serializeEcho(updated) });
+}
+
+// DELETE — purge d'une ou plusieurs augures. Body : { userId, echoIds: string[] }
+// (echoId unique accepté pour la compat). Suppression scoped au compte :
+// un id d'un autre compte est silencieusement ignoré (deleteMany where userId).
+export async function DELETE(request: NextRequest) {
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const email = String(body.userId || '').trim();
+  const ids: string[] = Array.isArray(body.echoIds)
+    ? body.echoIds.map((x: unknown) => String(x).trim()).filter(Boolean)
+    : body.echoId
+      ? [String(body.echoId).trim()]
+      : [];
+  if (!email || ids.length === 0) {
+    return NextResponse.json({ error: 'userId et echoIds requis' }, { status: 400 });
+  }
+
+  const user = await findUser(email);
+  if (!user) return NextResponse.json({ error: 'user introuvable' }, { status: 404 });
+
+  const res = await prisma.echo.deleteMany({
+    where: { userId: user.id, id: { in: ids } },
+  });
+  return NextResponse.json({ ok: true, deleted: res.count });
 }

@@ -364,7 +364,7 @@ export default function StatsPage() {
 
   return (
     <div className="space-y-6">
-      <SpaceTitle img="/images/nav-stats.png" title={t('stats.title')} subtitle={t('stats.subtitle')} />
+      <SpaceTitle img="/images/nav-stats.png" title={t('stats.title')} subtitle={t('stats.subtitle')} dense />
 
       {/* ── Bloc "série" (streak) : mise en avant de l'activité ── */}
       <div className="mystic-panel p-5">
