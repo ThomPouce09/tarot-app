@@ -134,19 +134,19 @@ titleEs: "Los Arcanos de la Semana", titleHi: "सप्ताह के आर�
     descEn: 'Seven major arcana, one per day: your week unfolds day by day, then the red thread seals as an augury.',
 descEs: "Siete arcanos mayores, uno por día: su semana se despliega día tras día, y luego el hilo rojo se sella en augurio.", descHi: "सात बृहत् अर्काना, एक-एक दिन: आपका सप्ताह दिन-प्रतिदिन खुलता है, फिर लाल धागा शुभसूचन बनकर मुद्रित हो जाता है।",
     steps: [
-      'Posez la roue (un seul geste, deux grands tirages)',
+      'Posez la roue (un seul geste, un grand tirage)',
       'Chaque jour, ouvrez la carte qui luit — les jours passés se révèlent seuls',
       'À la fin de la semaine, tissez le fil rouge et scellez-le en augure',
       'Notez votre semaine en pourcentage — la Ferveur s’en souvient',
     ],
     stepsEn: [
-      'Cast the wheel (one gesture, two advanced readings)',
+      'Cast the wheel (one gesture, one advanced reading)',
       'Each day, open the glowing card — past days reveal themselves',
       'At week’s end, weave the red thread and seal it as an augury',
       'Score your week in percent — the Fervor remembers',
     ],
-stepsEs: ["Despliegue la rueda (un solo gesto, dos grandes tiradas)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio", "Puntúe su semana en porcentaje — el Fervor lo recuerda"],
-stepsHi: ["चक्र बिछाइए (एक ही क्रिया, दो बड़े वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें", "अपने सप्ताह को प्रतिशत में अंकित करें — उत्ताप इसे याद रखता है"],
+stepsEs: ["Despliegue la rueda (un solo gesto, una gran tirada)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio", "Puntúe su semana en porcentaje — el Fervor lo recuerda"],
+stepsHi: ["चक्र बिछाइए (एक ही क्रिया, एक बृहत् वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें", "अपने सप्ताह को प्रतिशत में अंकित करें — उत्ताप इसे याद रखता है"],
   },
   {
     iconImg: '/images/5 cartes manuelles.png',

@@ -4,7 +4,7 @@
 // /tarot-semaine — « Les Arcanes de la Semaine » (version réelle).
 //
 // Une roue = 7 arcanes majeurs, un par jour planétaire (dim☉ … sam♄),
-// posée d'un geste (coût : 2 grands tirages, débits par /api/entitlement).
+// posée d'un geste (coût : 1 grand tirage, débits par /api/entitlement).
 // temporalité des 7 jours GLISSANTS : on peut tirer n'importe quel jour ;
 // le « dimanche » personnel = jour du tirage. Les jours passés se
 // révèlent d'eux-mêmes ; seul le jour courant s'ouvre au tap. Le fil
@@ -152,7 +152,7 @@ function SemainePage() {
     prevBootingRef.current = booting;
   }, [booting, wheel, focusWheel]);
 
-  /* ── Tirer la roue (2 grands tirages) ── */
+  /* ── Tirer la roue (1 grand tirage) ── */
   const cast = async () => {
     const e = emailLocal();
     if (!e || busy) return;
@@ -266,7 +266,7 @@ function SemainePage() {
           </p>
           {wheel === null && !booting && (
             <p className="mt-1 text-[10px] tracking-widest" style={{ color: `${GOLD}99` }}>
-              {pick4('poser la roue débite deux grands tirages', 'casting the wheel spends two advanced readings', "lanzar la rueda consume dos tiradas avanzadas", "चक्र बिछाने पर दो उन्नत वाचन खर्च होते हैं")(lang)}
+              {pick4('poser la roue débite un grand tirage', 'casting the wheel spends one advanced reading', "lanzar la rueda consume una tirada avanzada", "चक्र बिछाने पर एक उन्नत वाचन खर्च होता है")(lang)}
             </p>
           )}
         </div>
@@ -538,7 +538,7 @@ function SemainePage() {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Paywall « 2 grands tirages » (modale du même hook). */}
+      {/* Paywall « 1 grand tirage » (modale du même hook). */}
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       {/* Attente TAROTIQUE « La Roue des Sept + fiole de décoction »
           (semaine-decoction.tsx, variante B du labo retenue par le user) :

@@ -36,8 +36,9 @@ export interface Rights {
   welcomeGrandUsed: boolean;
   bonusGrand: number;
   rechargeCredits: number;
-  giftTickets: number; // tickets « cadeau des créatures » (1 = 1 tirage offert)
-  giftExpiresAt: Date | null; // expiration du ticket (réclamation + 5 jours)
+  giftTickets: number; // tickets « cadeau des créatures » — filière base
+  giftGrandTickets: number; // tickets « cadeau des créatures » — filière avancée
+  giftExpiresAt: Date | null; // expiration des tickets (réclamation + 5 jours)
   streakDays: number;
 }
 
@@ -93,10 +94,12 @@ async function loadUsage(userId: string) {
   if (existing.dateKey !== tk) { patch.dateKey = tk; patch.baseUsedToday = 0; patch.grandUsedToday = 0; }
   if (existing.monthKey !== mk) { patch.monthKey = mk; patch.grandUsedMonth = 0; }
   // Cadeau des créatures : un tirage offert NON utilisé expire 5 jours après
-  // sa réclamation → purge automatique (le panneau « Consommation restante »
-  // et les droits ne montrent alors plus le ticket).
-  if ((existing.giftTickets ?? 0) > 0 && !giftStillValid(existing.giftLastAt ?? null, existing.giftTickets ?? 0)) {
+  // sa réclamation → purge automatique des DEUX filières (le panneau
+  // « Consommation restante » et les droits ne montrent alors plus les tickets).
+  const anyTicket = (existing.giftTickets ?? 0) + ((existing as { giftGrandTickets?: number }).giftGrandTickets ?? 0);
+  if (anyTicket > 0 && !giftStillValid(existing.giftLastAt ?? null, anyTicket)) {
     patch.giftTickets = 0;
+    (patch as Record<string, unknown>).giftGrandTickets = 0;
   }
   if (Object.keys(patch).length) {
     return prisma.usage.update({ where: { userId }, data: patch });
@@ -130,7 +133,8 @@ export async function getRights(email: string): Promise<Rights | null> {
     bonusGrand: u.bonusGrand,
     rechargeCredits: u.rechargeCredits,
     giftTickets: u.giftTickets,
-    giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets),
+    giftGrandTickets: (u as { giftGrandTickets?: number }).giftGrandTickets ?? 0,
+    giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets + ((u as { giftGrandTickets?: number }).giftGrandTickets ?? 0)),
     streakDays: u.streakDays,
   };
 }
@@ -184,30 +188,28 @@ export async function canDo(email: string, type: string, question: string | null
   if (rights.level === 'arkane' && subActive) {
     return { allowed: true, reason: 'ok', message: '' };
   }
-  // Coût en grands : 2 pour la roue des Arcanes de la Semaine (office du
-  // dimanche), 1 ailleurs. Les ressources se cumulent dans l'ordre de
-  // priorité habituel (welcome → tickets cadeau → bonus streak → crédits → quota).
+  // Coût en grands : 1 partout (la roue hebdo ne coûte plus qu'un seul grand
+  // depuis sa refonte). Les ressources se cumulent dans l'ordre de priorité
+  // habituel (welcome → tickets cadeau avancés → bonus streak → crédits → quota).
   const cost = grandCostOf(type);
   let avail = 0;
   if (!rights.welcomeGrandUsed) avail += 1;
-  avail += rights.giftTickets + rights.bonusGrand;
+  avail += rights.giftGrandTickets + rights.bonusGrand;
   avail += Math.floor(rights.rechargeCredits / CREDITS_GRAND);
   if (rights.grandMonthly !== null) avail += Math.max(0, rights.grandMonthly - rights.grandUsedMonth);
   if (avail >= cost) {
-    return { allowed: true, reason: rights.welcomeGrandUsed ? 'ok' : cost === 1 ? 'welcome-grand-ok' : 'ok', message: '' };
+    return { allowed: true, reason: rights.welcomeGrandUsed ? 'ok' : 'welcome-grand-ok', message: '' };
   }
   return {
     allowed: false,
     reason: 'limit-grand',
-    message: cost > 1
-      ? 'La roue des Arcanes de la Semaine demande deux grands tirages. Abonnez-vous pour en débloquer.'
-      : 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.',
+    message: 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.',
   };
 }
 
-/** Nombre de grands tirages consommés par ce type (2 pour la roue hebdomadaire). */
-export function grandCostOf(type: string): number {
-  return type === 'tarot-semaine' ? 2 : 1;
+/** Nombre de grands tirages consommés par ce type (la roue hebdo est revenue à 1). */
+export function grandCostOf(_type: string): number {
+  return 1;
 }
 
 // ── Consomme un tirage (met à jour le streak + décrémente) ──────
@@ -257,16 +259,17 @@ export async function consume(email: string, type: string, question: string | nu
     }
     // (initie/arkane actif : base illimitée, aucun compteur)
   } else {
-    // Grand : épuise d'abord les droits one-shot, puis les tickets cadeau,
-    // puis les crédits, puis le quota mensuel — coût = grandCostOf(type)
-    // (2 pour la roue des Arcanes de la Semaine).
+    // Grand : épuise d'abord les droits one-shot, puis les TICKETS CADEAU
+    // AVANCÉS (filière grand — les tickets base ne débloquent pas un grand),
+    // puis les bonus streak, les crédits, le quota mensuel — coût = 1.
     let left = grandCostOf(type);
     if (left >= 1 && !u.welcomeGrandUsed) {
       patch.welcomeGrandUsed = true;
       left -= 1;
     }
-    const spendGift = Math.min(left, u.giftTickets);
-    if (spendGift > 0) { patch.giftTickets = u.giftTickets - spendGift; left -= spendGift; }
+    const grandTickets = (u as { giftGrandTickets?: number }).giftGrandTickets ?? 0;
+    const spendGift = Math.min(left, grandTickets);
+    if (spendGift > 0) { (patch as Record<string, unknown>).giftGrandTickets = grandTickets - spendGift; left -= spendGift; }
     const spendBonus = Math.min(left, u.bonusGrand);
     if (spendBonus > 0) { patch.bonusGrand = u.bonusGrand - spendBonus; left -= spendBonus; }
     const maxCreditPays = Math.floor(u.rechargeCredits / CREDITS_GRAND);
