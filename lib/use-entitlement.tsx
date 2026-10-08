@@ -20,6 +20,9 @@ export interface UsageState {
   bonusGrand: number;
   rechargeCredits: number;
   streakDays: number;
+  /** Privilèges mensuels restants (Conseil d'Odin / Secret d'Artémis) ; null = illimité (Arkane). */
+  odinRemaining?: number | null;
+  artemisRemaining?: number | null;
 }
 
 export interface SubscriptionState {
@@ -30,7 +33,7 @@ export interface SubscriptionState {
   usage: UsageState | null;
 }
 
-export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only';
+export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit';
 
 export interface GateDecision {
   allowed: boolean;
@@ -124,9 +127,14 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   const isGrand = reason === 'limit-grand';
   const isPersonalOnly = reason === 'personal-only';
   const notLogged = reason === 'not-logged';
+  // Privilèges d'abonnement (Conseil d'Odin / Secret d'Artémis).
+  const isPerkTier = reason === 'perk-tier';
+  const isPerkLimit = reason === 'perk-limit';
 
-  const title = isBaseDaily ? t('gate.baseDailyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle') : t('gate.paywallTitle');
-  const text = isBaseDaily ? t('gate.baseDailyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText') : t('gate.paywallText');
+  const title = isBaseDaily ? t('gate.baseDailyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
+    : isPerkTier ? t('gate.perkTierTitle') : isPerkLimit ? t('gate.perkLimitTitle') : t('gate.paywallTitle');
+  const text = isBaseDaily ? t('gate.baseDailyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
+    : isPerkTier ? t('gate.perkTierText') : isPerkLimit ? t('gate.perkLimitText') : t('gate.paywallText');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">

@@ -55,6 +55,8 @@ export default function AbonnementPage() {
   const t = useT();
   const lang = useLang();
   const [current, setCurrent] = useState<PlanId>('apprenti');
+  // Accordéon des avantages : cartes dont la liste complète est dépliée.
+  const [openFeatures, setOpenFeatures] = useState<Set<PlanId>>(new Set());
   const [status, setStatus] = useState<string | null>(null);
   // Facturation indépendante par abonnement (mois par défaut) : radios propres à chaque carte.
   const [billing, setBilling] = useState<Record<'initie' | 'arkane', 'month' | 'year'>>({ initie: 'month', arkane: 'month' });
@@ -69,6 +71,22 @@ export default function AbonnementPage() {
   // Modale de confirmation de résiliation (plan ciblé : 'initie' | 'arkane' | null).
   const [confirmCancel, setConfirmCancel] = useState<PlanId | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Venue de #initie (CTA page Augures) : on scrolle vers la carte ciblée.
+  // Les cartes n'apparaissent qu'après chargement de l'état du compte →
+  // on réessaie jusqu'à les trouver (max ~5 s).
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+    let tries = 0;
+    const iv = setInterval(() => {
+      const el = document.getElementById(hash);
+      tries++;
+      if (el) { clearInterval(iv); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      else if (tries > 20) clearInterval(iv);
+    }, 250);
+    return () => clearInterval(iv);
+  }, []);
 
   const hydrate = useCallback((d: any) => {
     if (d.plan) {
@@ -484,7 +502,7 @@ export default function AbonnementPage() {
           const isSub = isSubscription(p);
           const isOne = isOneShot(p);
           return (
-            <div key={p} className={`mystic-panel p-5 flex flex-col ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
+            <div key={p} id={p} className={`mystic-panel p-5 flex flex-col scroll-mt-24 ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
               <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
               <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
               <p className="mystic-subtitle text-sm mb-3">
@@ -519,11 +537,29 @@ export default function AbonnementPage() {
                   </div>
                 ) : null}
               </p>
-              <ul className="space-y-1.5 text-sm text-gray-300 flex-1">
-                {features.map((f) => (
-                  <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{f}</span></li>
-                ))}
-              </ul>
+              {(() => {
+                const open = openFeatures.has(p) || features.length <= 2;
+                const shown = open ? features : features.slice(0, 2);
+                return (
+                  <div className="flex-1">
+                    <ul className="space-y-1.5 text-sm text-gray-300">
+                      {shown.map((f) => (
+                        <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{f}</span></li>
+                      ))}
+                    </ul>
+                    {features.length > 2 && (
+                      <button type="button"
+                        onClick={() => setOpenFeatures((prev) => { const n = new Set(prev); if (n.has(p)) n.delete(p); else n.add(p); return n; })}
+                        aria-expanded={open}
+                        className="mt-2 flex items-center gap-1 text-[12px] font-bold transition-colors hover:brightness-125"
+                        style={{ color: '#DAA520', fontFamily: 'var(--font-cinzel), serif' }}>
+                        <span aria-hidden className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
+                        {open ? t('sub.showLess') : t('sub.showMore').replace('{n}', String(features.length - 2))}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
               {p === 'recharge' ? (
                 <div className="mt-4">
                   {locked ? (

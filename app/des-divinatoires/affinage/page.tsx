@@ -42,6 +42,7 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
+import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
@@ -102,6 +103,10 @@ function AffinagePage() {
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
   const lang = useLang();
+  // Privilège « Secret d'Artémis » : Initié 1/mois, Arkane illimité, autre refusé
+  // (le serveur décide ; on mémorise le motif pour la modale à la révélation).
+  const { gateReason, openGate, closeGate } = useEntitlement();
+  const artemisBlockedRef = useRef<GateReason | null>(null);
   const [faces, setFaces] = useState<TargetFaces>(() =>
     typeof window === 'undefined' ? ({ planet: '☉', sign: '♈', house: 1 }) : randomTargetFaces()
   );
@@ -304,6 +309,8 @@ function AffinagePage() {
     setAnalysisSections(null);
     setAnalysisSynthese('');
     try {
+      let email = '';
+      try { const u = localStorage.getItem('tarot_user'); if (u) email = JSON.parse(u).email || ''; } catch { /* noop */ }
       const payload: Record<string, unknown> = {
         faces: result,
         activeKinds: presentKinds,
@@ -311,6 +318,7 @@ function AffinagePage() {
         dbInterpretation: dbInterpretation || undefined,
         question: question || undefined,
         lang,
+        userId: email || undefined,
       };
       // Affinage → le secret d'Artémis est demandé DANS ce même appel
       // (réponse { texte, artemis }) : aucun rechargement IA à la révélation.
@@ -325,6 +333,9 @@ function AffinagePage() {
       });
       const data = await res.json();
       if (seq !== analysisLastSeqRef.current) return; // réponse obsolète → ignorer
+      // Secret d'Artémis refusé par le gating privilège (tier/limit/non connecté) :
+      // l'analyse arrive sans chuchotement, le bouton révélera la modale.
+      if (data.artemisBlocked) artemisBlockedRef.current = String(data.artemisBlocked) as GateReason;
       // Secret d'Artémis reçu EN MÊME TEMPS que l'analyse (aucun 2e appel).
       if (data.artemis) {
         setArtemisAdvice(String(data.artemis));
@@ -364,6 +375,12 @@ function AffinagePage() {
   // Filet de sécurité (rare : JSON fusionné malformé côté modèle) : si le
   // chuchotement manque, on le demande en un petit appel à la révélation.
   const revealArtemis = useCallback(async () => {
+    // Privilège refusé par le serveur (réservé / quota mensuel épuisé) :
+    // on ouvre la modale de gating, le secret reste non révélé.
+    if (!artemisAdvice && artemisBlockedRef.current) {
+      openGate(artemisBlockedRef.current);
+      return;
+    }
     setArtemisRevealed(true);
     // Révélation du secret d'Artémis : le bouton ne s'affiche qu'une fois
     // (!artemisRevealed) → un seul déclenchement sonore par tirage.
@@ -384,6 +401,7 @@ function AffinagePage() {
           dbInterpretation: dbInterpretation || undefined,
           question: question || undefined,
           lang,
+          userId: (() => { try { const u = localStorage.getItem('tarot_user'); return u ? (JSON.parse(u).email || undefined) : undefined; } catch { return undefined; } })(),
         }),
       });
       const data = await res.json();
@@ -1026,6 +1044,7 @@ function AffinagePage() {
             tirage se reprend depuis le hub). */}
       </div>
     </DiceBackground>
+      <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=swipe"

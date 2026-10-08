@@ -2,7 +2,7 @@
 // Mécanique des « Augures » : l'oracle scelle une prémonction datée à la fin
 // d'une lecture (4 univers : tarot, Yi Jing, runes, dés). L'utilisateur la
 // rouvre à l'échéance (14-45 j) et rend son verdict : oui / partiel / non.
-// Gating : Initié = 1 augure actif maximum, Arkane = illimité + Augures.
+// Gating : Initié = 2 augures actifs maximum, Arkane = illimité.
 
 import { prisma } from './prisma';
 import { callOracle, extractJsonObject } from './llm';
@@ -96,7 +96,9 @@ export interface EchoGating {
   message?: string;
 }
 
-/** Initié : 1 augure actif max (non clos). Arkane : illimité. Autres niveaux : refusé. */
+/** Initié : 2 augures actifs max (non clos). Arkane : illimité. Autres niveaux : refusé. */
+export const ECHO_INITIE_CAP = 2;
+
 export async function canCreateEcho(email: string): Promise<EchoGating> {
   const rights = await getRights(email);
   if (!rights) return { allowed: false, reason: 'no_user', message: 'Compte introuvable.' };
@@ -110,11 +112,11 @@ export async function canCreateEcho(email: string): Promise<EchoGating> {
     });
     if (!user) return { allowed: false, reason: 'no_user', message: 'Compte introuvable.' };
     const active = await prisma.echo.count({ where: { userId: user.id, verdict: null } });
-    if (active >= 1) {
+    if (active >= ECHO_INITIE_CAP) {
       return {
         allowed: false,
         reason: 'cap',
-        message: 'Un seul augure actif pour les Initiés — vérifiez-le avant d\'en sceller un nouveau.',
+        message: `Deux augures actifs au maximum pour les Initiés — vérifiez-les avant d'en sceller un nouveau.`,
       };
     }
   }
