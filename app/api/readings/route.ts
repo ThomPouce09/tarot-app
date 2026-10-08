@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { sanitizeWheelInterpretation } from '@/lib/tarot-semaine';
+import { echoIsRevealed } from '@/lib/echo';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,9 @@ export async function GET(request: Request) {
           cards,
           interpretation,
           createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
-          echo: r.echo ? { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict, verdictPct: r.echo.verdictPct ?? null, bestCardIndex: r.echo.bestCardIndex ?? null, textFr: r.echo.textFr ?? null, textEn: r.echo.textEn ?? null, textEs: r.echo.textEs ?? null, textHi: r.echo.textHi ?? null } : null,
+          // Le texte d'un augure scellé ne sort JAMAIS avant l'échéance/verdict
+          // (règle du sceau, voir lib/echo.ts echoIsRevealed).
+          echo: r.echo ? (() => { const rev = echoIsRevealed(r.echo.dueAt, r.echo.verdict); return { id: r.echo.id, dueAt: r.echo.dueAt.toISOString(), verdict: r.echo.verdict, verdictPct: r.echo.verdictPct ?? null, bestCardIndex: r.echo.bestCardIndex ?? null, textFr: rev ? (r.echo.textFr ?? null) : null, textEn: rev ? (r.echo.textEn ?? null) : null, textEs: rev ? (r.echo.textEs ?? null) : null, textHi: rev ? (r.echo.textHi ?? null) : null }; })() : null,
         };
       });
 

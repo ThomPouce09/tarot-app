@@ -244,6 +244,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: use.message, reason: perkReasonCode(use.reason), gated: true }, { status: 402 });
     }
   }
+  // Variante « intégrée » : le conseil vit dans conseil_action de l'analyse
+  // globale des trois tirages à conseil. Initié : 1er exemplaire du mois
+  // consommé ici ; hors quota (ou non abonné) → on retire la clé, la page
+  // n'affichera pas la carte Conseil d'Odin.
+  const embeddedOdin = focus !== 'odin' && ['nornes', 'yggdrasil', 'mjolnir'].includes(m);
   // Les petits modèles gratuits (secours) omettent parfois « conseil_action »
   // ou répondent en prose. Une relance UNIQUE le réclame explicitement.
   let json = extractJsonObject(content) as Record<string, any>;
@@ -254,8 +259,14 @@ export async function POST(request: NextRequest) {
       json = jsonRetry;
     }
   }
+  let odinDenied = false;
+  if (embeddedOdin && String(json?.conseil_action || '').trim()) {
+    const use = await consumePerk(odinEmail, 'odin');
+    if (!use.allowed) { odinDenied = true; }
+  }
   try {
     if (json && Array.isArray(json.sections)) {
+      if (odinDenied) json.conseil_action = '';
       const sections = (json.sections as any[])
         .filter((s) => s && s.lecture && String(s.lecture).trim().length > 0)
         .map((s) => ({

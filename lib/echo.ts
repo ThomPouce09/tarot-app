@@ -139,19 +139,27 @@ export interface SerializedEcho {
   createdAt: string;
 }
 
+/** Règle du sceau : un augure sans verdict dont l'échéance est future ne doit
+ *  JAMAIS sortir son texte de l'API (ni liste, ni POST, ni lecture history).
+ *  Révélé = verdict posé OU échéance atteinte (l'user peut alors briser). */
+export function echoIsRevealed(dueAt: Date | string, verdict?: string | null): boolean {
+  return !!verdict || new Date(dueAt).getTime() <= Date.now();
+}
+
 export function serializeEcho(e: {
   id: string; readingId: string | null; textFr: string; textEn: string | null;
   textEs?: string | null; textHi?: string | null;
   domain: string; dueAt: Date; verdict: string | null; verdictAt: Date | null; createdAt: Date;
   verdictPct?: number | null; bestCardIndex?: number | null;
 }): SerializedEcho {
+  const revealed = echoIsRevealed(e.dueAt, e.verdict);
   return {
     id: e.id,
     readingId: e.readingId,
-    textFr: e.textFr,
-    textEn: e.textEn,
-    textEs: e.textEs ?? null,
-    textHi: e.textHi ?? null,
+    textFr: revealed ? e.textFr : '',
+    textEn: revealed ? e.textEn : null,
+    textEs: revealed ? (e.textEs ?? null) : null,
+    textHi: revealed ? (e.textHi ?? null) : null,
     domain: e.domain,
     dueAt: e.dueAt.toISOString(),
     verdict: e.verdict,

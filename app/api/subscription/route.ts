@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe';
 import { stripePeriodEndDate } from '@/lib/stripe-period';
+import { ECHO_INITIE_CAP } from '@/lib/echo';
 import { getRights } from '@/lib/entitlements';
 import { planToLevel } from '@/lib/entitlements';
 
@@ -55,6 +56,17 @@ export async function GET(request: NextRequest) {
     const rights = await getRights(emailNorm);
     const level = rights?.level ?? 'apprenti';
 
+    // Restant « augures actifs » pour le tableau de bord (Initié seulement :
+    // Apprenti n'y a pas droit, Arkane est illimité). Même règle que le serveur
+    // (canCreateEcho) : toute place est occupée par un augure sans verdict,
+    // échéance atteinte ou non — le compteur affiché doit dire la même vérité
+    // que le sceau.
+    let auguriesRemaining: number | null = null;
+    if (level === 'initie' && user) {
+      const holding = await prisma.echo.count({ where: { userId: user.id, verdict: null } });
+      auguriesRemaining = Math.max(0, ECHO_INITIE_CAP - holding);
+    }
+
     return NextResponse.json({
       plan: sub?.plan ?? 'apprenti',
       level,
@@ -78,6 +90,7 @@ export async function GET(request: NextRequest) {
             streakDays: rights.streakDays,
             odinRemaining: rights.odinRemaining,
             artemisRemaining: rights.artemisRemaining,
+            auguriesRemaining,
           }
         : null,
     });

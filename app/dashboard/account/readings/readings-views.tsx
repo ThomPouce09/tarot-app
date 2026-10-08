@@ -163,7 +163,7 @@ export function DoubleHexView({ r }: { r: Reading }) {
         <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(243,201,105,0.06)', border: `1px solid ${GOLD}44` }}>
           <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{t('echo.title')}</p>
           <p className="mt-1 text-xs italic" style={{ color: IVORY }}>
-            {pickEchoText(r.echo, lang)}
+            {pickEchoText(r.echo, lang) || `🔒 ${t('echo.masked')}`}
           </p>
           <p className="mt-1 text-[11px]" style={{ color: r.echo.verdict ? GOLD : '#FF6B5E' }}>
             {r.echo.verdict

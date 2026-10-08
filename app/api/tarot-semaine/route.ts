@@ -21,7 +21,7 @@ import { prisma } from '@/lib/prisma';
 import { callOracle } from '@/lib/llm';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 import { TAROT_CARDS } from '@/lib/tarot-data';
-import { canCreateEcho, echoDomainForType } from '@/lib/echo';
+import { canCreateEcho, echoDomainForType, echoIsRevealed } from '@/lib/echo';
 // Résonance planétaire canonique (Golden Dawn) — arcane ↔ planète du jour.
 // (un fichier de route Next n'exporte que ses handlers → constant en lib/.)
 import { isResonant, EXPIRY_DAY } from '@/lib/tarot-semaine';
@@ -131,11 +131,11 @@ function wheelView(reading: { id: string; createdAt: Date; cards: string; interp
     // Le fil rouge résume les 7 : réservé à la fin de semaine (ou à l'augure scellé).
     filRouge: nowDay >= 7 || echo ? (st.filRouge || null) : null,
     woven: Array.isArray(st.days) && st.days.length === 7,
-    echo: echo ? {
-      id: echo.id, textFr: echo.textFr, textEn: echo.textEn, textEs: echo.textEs ?? null, textHi: echo.textHi ?? null,
+    echo: echo ? (() => { const rev = echoIsRevealed(echo.dueAt, echo.verdict); return {
+      id: echo.id, textFr: rev ? echo.textFr : '', textEn: rev ? echo.textEn : null, textEs: rev ? (echo.textEs ?? null) : null, textHi: rev ? (echo.textHi ?? null) : null,
       dueAt: echo.dueAt.toISOString(), verdict: echo.verdict,
       verdictPct: echo.verdictPct, bestCardIndex: echo.bestCardIndex,
-    } : null,
+    }; })() : null,
   };
 }
 

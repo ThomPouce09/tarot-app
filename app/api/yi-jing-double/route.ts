@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
-import { canCreateEcho } from '@/lib/echo';
+import { canCreateEcho, echoIsRevealed } from '@/lib/echo';
 import { deriveDouble, type DoubleDerivation } from '@/lib/yi-double';
 import { resolveLang, langName } from '@/lib/lang';
 import { pick4, type Lang } from '@/lib/i18n';
@@ -84,10 +84,10 @@ function doubleView(reading: { id: string; createdAt: Date; interpretation: stri
     hexFutur: st.hexFutur,
     names: st.names,
     read: st.read ?? null,
-    echo: echo ? {
-      id: echo.id, textFr: echo.textFr, textEn: echo.textEn, textEs: echo.textEs ?? null, textHi: echo.textHi ?? null,
+    echo: echo ? (() => { const rev = echoIsRevealed(echo.dueAt, echo.verdict); return {
+      id: echo.id, textFr: rev ? echo.textFr : '', textEn: rev ? echo.textEn : null, textEs: rev ? (echo.textEs ?? null) : null, textHi: rev ? (echo.textHi ?? null) : null,
       dueAt: echo.dueAt.toISOString(), verdict: echo.verdict, verdictPct: echo.verdictPct,
-    } : null,
+    }; })() : null,
   };
 }
 

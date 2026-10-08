@@ -414,6 +414,29 @@ export default function AbonnementPage() {
             </div>
           </div>
 
+          {/* Privilèges du mois — Initié uniquement (Apprenti : non accessible ;
+              Arkane : illimité, rien à compter). Restants servis par le serveur
+              (mêmes règles que les quotas réels). */}
+          {current === 'initie' && (
+            <div className="rounded-lg bg-gray-900/40 border border-gray-700/40 p-3">
+              <div className="text-gray-500 text-xs mb-2">{t('sub.meterPerksTitle')}</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-gray-500 text-[10px] leading-tight">{t('sub.meterAuguries')}</div>
+                  <div className="text-xl font-bold text-amber-200">{usage?.auguriesRemaining ?? '—'}<span className="text-[10px] text-gray-500">/2</span></div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-[10px] leading-tight">{t('sub.meterOdin')}</div>
+                  <div className="text-xl font-bold text-amber-200">{usage?.odinRemaining ?? '—'}<span className="text-[10px] text-gray-500">/1</span></div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-[10px] leading-tight">{t('sub.meterArtemis')}</div>
+                  <div className="text-xl font-bold text-amber-200">{usage?.artemisRemaining ?? '—'}<span className="text-[10px] text-gray-500">/1</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Recharge cosmique — seulement si pertinente, en tirages (pas en crédits) */}
           {rechargeRelevant && (
             <div className="rounded-lg bg-amber-900/20 border border-amber-700/30 p-3 text-sm">
