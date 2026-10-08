@@ -6,6 +6,7 @@ import SpaceTitle from '@/components/space-title';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
 import { api } from '@/lib/api-client';
+import { openExternal, isNative } from '@/lib/capacitor-utils';
 
 // Code BCP-47 pour dates localisées selon la langue de l'app.
 const loc = (lang: string): string => ({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR';
@@ -174,6 +175,24 @@ export default function AbonnementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
+  // APK : le checkout s'ouvre dans un onglet externe (Capacitor Browser).
+  // À sa fermeture, on resynchronise l'état du compte — l'abonnement vient
+  // d'être créé en base par /api/checkout/confirm, la page doit le voir sans
+  // relancer l'app.
+  useEffect(() => {
+    if (!isNative()) return;
+    let off: { remove: () => void } | undefined;
+    let alive = true;
+    import('@capacitor/browser')
+      .then(({ Browser }) => {
+        if (!alive) return;
+        return Browser.addListener('browserFinished', () => { void loadState(); }).then((h) => { off = h; });
+      })
+      .catch(() => { /* plugin absent : nop */ });
+    return () => { alive = false; off?.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadState]);
+
   const choose = async (p: PlanId) => {
     if (p === 'bienvenue') {
       setMsg(t('sub.welcomeState') + ' — ' + t('sub.bienvenueFeatures').split('|')[0]);
@@ -194,7 +213,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        await openExternal(data.url);
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -219,7 +238,7 @@ export default function AbonnementPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        await openExternal(data.url);
         return;
       }
       setMsg(data.error || "Échec de l'initialisation du paiement.");
@@ -240,7 +259,7 @@ export default function AbonnementPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.url) { window.location.href = data.url; return; }
+      if (data.url) { await openExternal(data.url); return; }
       setMsg(data.error || "Échec de l'ouverture du portail.");
     } catch {
       setMsg("Erreur de connexion au serveur.");
