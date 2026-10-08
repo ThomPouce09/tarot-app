@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe';
+import { stripePeriodEndDate } from '@/lib/stripe-period';
 import { getRights } from '@/lib/entitlements';
 import { planToLevel } from '@/lib/entitlements';
 
@@ -36,9 +37,8 @@ export async function GET(request: NextRequest) {
     if (stripe && sub?.stripeSubscriptionId && sub.stripeCustomerId && sub.status !== 'canceled') {
       try {
         const remote = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
-        // current_period_end peut manquer sur le type SDK → cast (pattern webhook).
-        const endSec = (remote as any).current_period_end as number | null | undefined;
-        const remoteEnd = endSec ? new Date(endSec * 1000) : sub.currentPeriodEnd;
+        // Fin de période lisible sur toutes les versions d'API (dahlia = items[]).
+        const remoteEnd = stripePeriodEndDate(remote) ?? sub.currentPeriodEnd;
         if (remote.status !== sub.status || remoteEnd.getTime() !== sub.currentPeriodEnd.getTime()) {
           await prisma.subscription.update({
             where: { id: sub.id },

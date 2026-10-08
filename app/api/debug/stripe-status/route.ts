@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe';
+import { stripePeriodEndDate } from '@/lib/stripe-period';
 import { getRights } from '@/lib/entitlements';
 
 export const dynamic = 'force-dynamic';
@@ -116,6 +117,9 @@ export async function GET(request: NextRequest) {
           billing: one.metadata?.billing,
           current_period_end: one.current_period_end,
           cancel_at_period_end: one.cancel_at_period_end,
+          // PREUVE de diagnostic : la borne peut vivre sur items[] (API dahlia).
+          periodEndHelper: stripePeriodEndDate(one)?.toISOString() ?? null,
+          itemEnds: (one.items?.data ?? []).map((i: any) => i.current_period_end ?? null),
         };
       }
 

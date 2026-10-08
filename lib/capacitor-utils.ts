@@ -56,6 +56,26 @@ export async function shareViaCapacitor(title: string, text: string, url?: strin
 }
 
 /**
+ * Open a URL OUTSIDE the app (payment pages, etc.).
+ * In the native APK, assigning checkout URLs to window.location would load
+ * Stripe inside the WebView (and the success redirect would then leave the
+ * app for the browser). We open them in the system browser instead — where
+ * Stripe Checkout works fully (Google Pay, 3DS, saved cards) — and the app's
+ * /api/subscription GET re-syncs the entitlement when the user comes back.
+ * On web this is a plain navigation.
+ */
+export async function openExternal(url: string): Promise<void> {
+  if (isNative()) {
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url });
+      return;
+    } catch { /* fallback below */ }
+  }
+  window.location.href = url;
+}
+
+/**
  * Get the base URL for API calls.
  * In development: uses NEXT_PUBLIC_API_URL or empty (same-origin)
  * In production APK: uses a Vercel/remote backend URL

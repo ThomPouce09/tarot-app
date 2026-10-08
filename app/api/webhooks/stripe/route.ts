@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { stripePeriodEndDate } from '@/lib/stripe-period';
 import { prisma } from '@/lib/prisma';
 import { RECHARGE_CREDITS } from '@/lib/entitlements';
 
@@ -89,12 +90,11 @@ export async function POST(request: NextRequest) {
 
         const sub = await stripe.subscriptions.retrieve(subId);
         const priceId = (sub.items.data[0]?.price?.id) as string;
-        // `current_period_end` peut manquer (SDK/expansion) → ne jamais construire
-        // new Date(undefined) (= Invalid Date, rejeté par Prisma). Fallback now().
-        const periodEndSec = (sub as any).current_period_end;
-        const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : new Date();
+        // Fin de période via lib/stripe-period (l'API dahlia la place sur items).
+        const periodEnd = stripePeriodEndDate(sub);
         const status = sub.status;
 
+        const prior = await prisma.subscription.findUnique({ where: { userId }, select: { currentPeriodEnd: true } });
         await prisma.subscription.upsert({
           where: { userId },
           create: {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
             plan,
             billing,
             status,
-            currentPeriodEnd: periodEnd,
+            currentPeriodEnd: periodEnd ?? prior?.currentPeriodEnd ?? new Date(),
           },
           update: {
             stripeCustomerId: customerId,
@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
             plan,
             billing,
             status,
-            currentPeriodEnd: periodEnd,
+            // Jamais d'écrasement avec now() si la borne est illisible : on
+            // garde la période déjà connue (sinon faux « abonnement expiré »).
+            ...(periodEnd ? { currentPeriodEnd: periodEnd } : {}),
           },
         });
         break;
@@ -140,8 +142,7 @@ export async function POST(request: NextRequest) {
         if (!userId) break;
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) break;
-        const subSec = (sub as any).current_period_end;
-        const periodEnd = subSec ? new Date(subSec * 1000) : new Date();
+        const periodEnd = stripePeriodEndDate(sub) ?? new Date();
         const plan = sub.metadata?.plan || 'initie';
         const billing = sub.metadata?.billing || 'month';
         await prisma.subscription.create({
@@ -166,8 +167,7 @@ export async function POST(request: NextRequest) {
         const subscriptionId = sub.id as string;
         const existing = await prisma.subscription.findFirst({ where: { stripeSubscriptionId: subscriptionId } });
         if (!existing) break;
-        const endSec = (sub as any).current_period_end;
-        const periodEnd = endSec ? new Date(endSec * 1000) : existing.currentPeriodEnd;
+        const periodEnd = stripePeriodEndDate(sub) ?? existing.currentPeriodEnd;
         await prisma.subscription.update({
           where: { id: existing.id },
           data: {

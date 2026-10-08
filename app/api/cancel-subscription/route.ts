@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { stripePeriodEndDate } from '@/lib/stripe-period';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -45,9 +46,8 @@ export async function POST(request: NextRequest) {
       cancel_at_period_end: cancel,
     });
 
-    // `current_period_end` peut manquer (SDK/expansion) → jamais new Date(undefined).
-    const endSec = (updated as any).current_period_end;
-    const periodEnd = endSec ? new Date(endSec * 1000) : sub.currentPeriodEnd;
+    // Fin de période via lib/stripe-period ; illisible → on garde la base.
+    const periodEnd = stripePeriodEndDate(updated) ?? sub.currentPeriodEnd;
     // On conserve le plan réel venant de Stripe (metadata) ; sinon celui en base.
     const plan = updated.metadata?.plan || sub.plan;
     const billing = updated.metadata?.billing || sub.billing;

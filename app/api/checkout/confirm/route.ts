@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { stripePeriodEndDate } from '@/lib/stripe-period';
 import { prisma } from '@/lib/prisma';
 import { RECHARGE_CREDITS } from '@/lib/entitlements';
 
@@ -71,10 +72,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Abonnement introuvable', plan: 'apprenti' }, { status: 404 });
     }
     const priceId = sub.items.data[0]?.price?.id as string;
-    // `current_period_end` peut manquer → jamais new Date(undefined) (= Invalid Date).
-    const periodEndSec = (sub as any).current_period_end;
-    const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : new Date();
-
+    // Fin de période fiable (voir lib/stripe-period.ts : l'API dahlia a déplacé
+    // current_period_end au niveau items). Repli sur la période déjà en base ;
+    // JAMAIS now() en update (faux « expiré »), now() uniquement en create.
+    const periodEnd = stripePeriodEndDate(sub);
+    const prior = await prisma.subscription.findUnique({ where: { userId }, select: { currentPeriodEnd: true } });
     await prisma.subscription.upsert({
       where: { userId },
       create: {
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
         plan,
         billing,
         status: sub.status,
-        currentPeriodEnd: periodEnd,
+        currentPeriodEnd: periodEnd ?? prior?.currentPeriodEnd ?? new Date(),
       },
       update: {
         stripeCustomerId: customerId,
@@ -94,14 +96,14 @@ export async function GET(request: NextRequest) {
         plan,
         billing,
         status: sub.status,
-        currentPeriodEnd: periodEnd,
+        ...(periodEnd ? { currentPeriodEnd: periodEnd } : {}),
       },
     });
 
     return NextResponse.json({
       plan,
       status: sub.status,
-      currentPeriodEnd: periodEnd.toISOString(),
+      currentPeriodEnd: (periodEnd ?? prior?.currentPeriodEnd ?? new Date()).toISOString(),
       email,
     });
   } catch (e: any) {
