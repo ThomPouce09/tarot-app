@@ -70,6 +70,9 @@ export function RuneAnalysis({
   const lang = useLang();
   const { sub: entSub, gateReason, closeGate, openGate } = useEntitlement();
   const isArkane = entSub?.level === 'arkane';
+  // Conseil d'Odin : ouvert aux abonnés — Initié 1/mois (quota serveur : hors
+  // quota, le conseil est simplement retiré de la réponse IA), Arkane illimité.
+  const canOdin = entSub?.level === 'arkane' || entSub?.level === 'initie';
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
@@ -180,10 +183,10 @@ export function RuneAnalysis({
   // Précharge conseil-odin.png dès que le conseil est disponible (avant le
   // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
   useEffect(() => {
-    if (!conseil || !isArkane || !['nornes', 'yggdrasil', 'mjolnir'].includes(mode)) return;
+    if (!conseil || !canOdin || !['nornes', 'yggdrasil', 'mjolnir'].includes(mode)) return;
     const img = new Image();
     img.src = '/images/conseil-odin.png';
-  }, [conseil, isArkane, mode]);
+  }, [conseil, canOdin, mode]);
 
   // Type d'attente (pool de messages) selon le tirage : les Nornes (nornes &
   // nornes2) ajoutent leur message dédié, Yggdrasil le sien, Mjölnir la base.
@@ -509,11 +512,13 @@ export function RuneAnalysis({
             </div>
           )}
 
-          {/* Conseil d'Odin (nornes ET yggdrasil) : le texte vient
+          {/* Conseil d'Odin (nornes, yggdrasil, mjolnir) : le texte vient
               du JSON de l'interprétation IA (conseil_action) — isolé puis révélé
               par le bouton dédié. Carte conseil-odin.png (cadre + parchemin),
-              texte calé DANS le parchemin. Réservé au forfait ARKANE. */}
-          {conseil && ['nornes', 'yggdrasil', 'mjolnir'].includes(mode) && isArkane && (
+              texte calé DANS le parchemin. Réservé aux abonnés : Initié 1/mois
+              (hors quota, le serveur retire conseil_action → bloc absent),
+              Arkane illimité. */}
+          {conseil && ['nornes', 'yggdrasil', 'mjolnir'].includes(mode) && canOdin && (
             <div className="mt-4 text-center">
               {!conseilRevealed ? (
                 <button

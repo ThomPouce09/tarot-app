@@ -291,6 +291,10 @@ export default function AuguresPage() {
     setBrokenIds((s) => new Set(s).add(id));
   }, []);
 
+  // Un augure scellé (sans verdict, pas encore brisé en session) ne doit JAMAIS
+  // livrer son texte — ni dans les lignes, ni dans la modale, ni en partage.
+  const isRevealed = useCallback((e: EchoData) => !!e.verdict || brokenIds.has(e.id), [brokenIds]);
+
   const toggleSelect = useCallback((id: string) => {
     setSelected((prev) => {
       const n = new Set(prev);
@@ -605,7 +609,9 @@ export default function AuguresPage() {
                           )}
                           <img src={DOMAIN_ICON[e.domain] || DOMAIN_ICON.tarot} alt="" className="w-5 h-5 shrink-0 object-contain opacity-80" />
                           <span className="min-w-0 flex-1 truncate text-[13px] italic" style={{ fontFamily: 'var(--font-cormorant), serif', color: state === 'closed' ? 'rgba(220,214,200,0.62)' : '#E8DECA' }}>
-                            « <MarkWords text={pickEchoText(e, lang)} q={q} /> »
+                            {isRevealed(e)
+                              ? <>« <MarkWords text={pickEchoText(e, lang)} q={q} /> »</>
+                              : <span className="not-italic opacity-75">🔒 {t('echo.masked')}</span>}
                             </span>
                           <span className="shrink-0 text-[10px] tabular-nums text-gray-400">{fmtShort(e.dueAt, lang)}</span>
                           <span className="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
@@ -690,6 +696,7 @@ export default function AuguresPage() {
                   </>
                 )}
                 <button type="button" onClick={() => doShare(detail)} aria-label={t('history.share')} title={t('history.share')}
+                  hidden={!isRevealed(detail)}
                   className="shrink-0 p-1.5 rounded-md text-amber-200/55 hover:text-amber-100 transition-colors">
                   {shareCopied === detail.id
                     ? <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: '#4ade80' }}>{t('history.shareCopied')}</span>
@@ -772,9 +779,21 @@ export default function AuguresPage() {
                   <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-amber-200/60" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
                     ✦ {t('echo.augureSingular')} · {fmtDate(detail.dueAt, lang)}
                   </p>
-                  <p className="text-amber-50 italic text-[16px] leading-relaxed" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
-                    « <MarkWords text={pickEchoText(detail, lang)} q={q} /> »
-                  </p>
+                  {isRevealed(detail) ? (
+                    <p className="text-amber-50 italic text-[16px] leading-relaxed" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                      « <MarkWords text={pickEchoText(detail, lang)} q={q} /> »
+                    </p>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-amber-400/40 px-4 py-5 text-center"
+                      style={{ background: 'radial-gradient(circle at 50% 30%, rgba(218,165,32,0.10), rgba(10,6,24,0.35))' }}>
+                      <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-amber-400/60">
+                        <span className="text-2xl" aria-hidden>🔒</span>
+                      </div>
+                      <p className="text-amber-100/85 text-[14px] italic" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                        {t('echo.maskedModal').replace('{date}', fmtDate(detail.dueAt, lang))}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {detail.verdict && (
