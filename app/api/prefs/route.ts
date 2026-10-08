@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     musicTrack: user.musicTrack,
     seenTutorials: user.seenTutorials,
     language: user.language,
+    timezone: user.timezone,
     lastLetterSentAt: user.lastLetterSentAt ? user.lastLetterSentAt.toISOString() : null,
   });
 }
@@ -54,6 +55,11 @@ export async function POST(request: NextRequest) {
     if (mt === 'vibrations' || mt === 'promenades' || mt === 'constellations' || mt === 'silverwell') data.musicTrack = mt;
     if (typeof body.fcmToken === 'string' && body.fcmToken.trim()) data.fcmToken = body.fcmToken.trim();
     if (body.fcmToken === null) data.fcmToken = null; // retirer le token (déconnexion)
+    // Fuseau IANA de l'appareil (ex. 'Europe/Paris') — capture native au lancement,
+    // sert au déclenchement du rappel à l'heure LOCALE du user (cron par heure UTC).
+    if (typeof body.timezone === 'string' && /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)?$/.test(body.timezone) && body.timezone.length <= 64) {
+      data.timezone = body.timezone;
+    }
 
     // Tutoriels vus : union avec l'existant (marquer « vu » ne retire jamais rien)
     // ou remise à zéro totale via { seenTutorialsClear: true } (« Revoir le tutoriel »).

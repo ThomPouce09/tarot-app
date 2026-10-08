@@ -144,7 +144,8 @@ export const DICT = {
   'prefs.dailyReminderHint': { fr: "Notification push chaque jour", en: "Push notification every day", es: "Notificación push cada día", hi: "प्रतिदिन पुश सूचना" },
   'prefs.reminderHour': { fr: "Heure du rappel", en: "Reminder time", es: "Hora del recordatorio", hi: "अनुस्मारक का समय" },
   'prefs.reminderFixedHour': { fr: "Votre rappel quotidien est envoyé à", en: "Your daily reminder is sent at", es: "Su recordatorio diario se envía a las", hi: "आपका दैनिक अनुस्मारक इस समय भेजा जाता है" },
-  'prefs.reminderFixedTime': { fr: "20h30", en: "8:30 pm", es: "20:30", hi: "8:30 बजे" },
+  'prefs.reminderFixedTime': { fr: "18h30 (votre heure locale)", en: "6:30 pm (your local time)", es: "18:30 (su hora local)", hi: "6:30 बजे (आपका स्थानीय समय)" },
+  'prefs.reminderLocalNote': { fr: "heure de votre appareil", en: "your device's time", es: "hora de su dispositivo", hi: "आपके डिवाइस का समय" },
   'prefs.emailNews': { fr: "Lettre mystique hebdomadaire", en: "Weekly mystic letter", es: "Carta mística semanal", hi: "साप्ताहिक रहस्यमय पत्र" },
   'prefs.emailNewsHint': { fr: "Un récap de votre semaine, chaque dimanche", en: "A recap of your week, every Sunday", es: "Un resumen de su semana, cada domingo", hi: "हर रविवार, आपके सप्ताह का सारांश" },
   'prefs.reset': { fr: "Réinitialiser les préférences", en: "Reset preferences", es: "Restablecer preferencias", hi: "प्राथमिकताएँ रीसेट करें" },
@@ -395,6 +396,8 @@ export const DICT = {
     hi: "मुहर लग गई। वह {date} को अपने-आप टूट जाएगी।",
   },
   'echo.daysLeft': { fr: "Encore {n} jour(s).", en: "{n} day(s) left.", es: "Quedan {n} día(s).", hi: "अभी {n} दिन शेष।" },
+  'echo.masked': { fr: "Sceau encore fermé", en: "Seal still closed", es: "Sello aún cerrado", hi: "मुहर अभी बंद है" },
+  'echo.maskedModal': { fr: "Le sceau tient jusqu'au {date}. Revenez ce jour-là briser le cachet et lire la prémonction de l'Oracle.", en: "The seal holds until {date}. Come back that day to break it and read the Oracle's foretelling.", es: "El sello se mantiene hasta el {date}. Vuelva ese día para romperlo y leer la premonición del Oráculo.", hi: "मुहर {date} तक बनी रहेगी। उस दिन लौटकर छाप तोड़ें और ओरैकल की प्रेरणा पढ़ें।" },
   'echo.dueNow': {
     fr: "L'heure est venue. Brisez le sceau et lisez ce que l'oracle avait dit.",
     en: "The hour has come. Break the seal and read what the oracle foretold.",

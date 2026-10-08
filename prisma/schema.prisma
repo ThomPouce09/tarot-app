@@ -46,6 +46,11 @@ model User {
   musicOn           Boolean  @default(true)
   musicTrack        String   @default("classique")
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
+  // Fuseau IANA de l'appareil (ex. 'Europe/Paris'), capturé au lancement natif.
+  // Sert à déclencher le rappel quotidien à l'heure LOCALE du user (cron par heure UTC).
+  timezone          String?
+  // Date du dernier rappel quotidien envoyé (anti-doublon : 1 max/jour/user).
+  lastReminderSentAt DateTime?
   // Tutoriels vus (lié au compte → ne se ressert pas après déconnexion/reconnexion
   // ni sur un autre appareil). Flags : 'tour', 'login_tour', 'hints_landing',
   // 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des'.
@@ -153,6 +158,7 @@ model Echo {
   bestCardIndex Int?    // index 0-6 de la carte la mieux accomplie (roue hebdo, facultatif)
   verdictAt DateTime?
   notified  Boolean   @default(false) // push d'échéance envoyé (cron)
+  eveNotified Boolean @default(false) // push de la veille (« un sceau se brise demain ») envoyé
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   reading   Reading?  @relation(fields: [readingId], references: [id], onDelete: Cascade)

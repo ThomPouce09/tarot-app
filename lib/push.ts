@@ -3,6 +3,9 @@
 // ── Notifications push (Capacitor / FCM) ────────────────────────────────
 // Gère la demande de permission + l'enregistrement du token FCM dans /api/prefs.
 // S'exécute UNIQUEMENT en natif (APK Capacitor) ; sur web, no-op silencieux.
+// Depuis 2026-10 : capture aussi le fuseau horaire de l'appareil (IANA) —
+// indispensable pour déclencher le rappel à ~18h30 LOCAUX par user (cron Hobby),
+// et route le tap sur une notification vers la page promise (deep link).
 // Expose sur window :
 //   __requestPushPermission() -> demande permission + enregistre le token
 //   __clearPushPermission()   -> retire le token (déconnexion / reset)
@@ -28,6 +31,37 @@ async function saveToken(token: string | null) {
   } catch { /* réseau — on retentera à la prochaine demande */ }
 }
 
+// ── Fuseau horaire local (pour le déclenchement heure locale du rappel) ──
+async function syncTimezone() {
+  const email = getEmail();
+  if (!email) return;
+  let tz = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { /* vieux WebView */ }
+  if (!tz) return;
+  // Évite un POST à chaque lancement : on ne renvoie que si ça a changé.
+  try {
+    if (localStorage.getItem('tarot_tz_synced') === `${email}|${tz}`) return;
+  } catch {}
+  try {
+    const r = await fetch('/api/prefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, timezone: tz }),
+    });
+    if (r.ok) localStorage.setItem('tarot_tz_synced', `${email}|${tz}`);
+  } catch { /* réseau — retentera au prochain lancement */ }
+}
+
+// Tap sur une notification : route vers la page promise (data.url).
+// Stockée dans localStorage pour le cas COLD START (l'app se lance, le
+// listener est posé trop tard pour l'événement natif) — <PushRouter> la
+// consomme au montage. Ensuite on navigue en direct pour un warm start.
+function handleTap(url: string | undefined) {
+  if (!url || !url.startsWith('/')) return;
+  try { localStorage.setItem('tarot_pending_route', url); } catch {}
+  window.dispatchEvent(new CustomEvent('push-navigate', { detail: url }));
+}
+
 // Enregistre l'app auprès de FCM et stocke le token.
 async function register(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
@@ -35,6 +69,11 @@ async function register(): Promise<boolean> {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     await PushNotifications.addListener('registration', (t) => saveToken(t.value));
     await PushNotifications.addListener('registrationError', () => {});
+    // Tap : ouvre la destination de la notif (deep link SPA via <PushRouter>).
+    await PushNotifications.addListener('pushNotificationActionPerformed', (n: any) => {
+      handleTap(n?.data?.url || n?.notification?.data?.url);
+      PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+    });
     await PushNotifications.register();
     return true;
   } catch (e) {
@@ -69,16 +108,36 @@ async function clearPermission() {
 
 // Installer les hooks globaux + auto-register au démarrage (si app déjà autorisée).
 export function initPush() {
-  if (registered) return;
+  if (registered || typeof window === 'undefined') return;
   registered = true;
-  if (typeof window === 'undefined') return;
   (window as any).__requestPushPermission = requestPermission;
   (window as any).__clearPushPermission = clearPermission;
+  // Fuseau local synchronisé dès qu'un compte est connecté (web comme natif —
+  // utile si l'utilisateur revient sur l'APK après un passage web).
+  if (getEmail()) syncTimezone();
+  // Couvre les connexions SURVENUES après ce montage (le modal de login pose
+  // 'tarot_user' sans re-charger la page) : un wrapper unique sur setItem
+  // capte tous les points d'entrée login/signup/confirm sans les modifier.
+  try {
+    const ls = window.localStorage;
+    const orig = ls.setItem.bind(ls);
+    if (!(ls as any).__tzHook) {
+      (ls as any).__tzHook = true;
+      (ls as any).setItem = (k: string, v: string) => {
+        orig(k, v);
+        if (k === 'tarot_user') syncTimezone();
+      };
+    }
+  } catch {}
   // Ré-enregistre automatiquement si on a déjà un compte et une app native.
   if (Capacitor.isNativePlatform() && getEmail()) {
     // Re-réussit simplement à récupérer le token existant si permission déjà donnée.
     import('@capacitor/push-notifications').then(({ PushNotifications }) => {
       PushNotifications.addListener('registration', (t) => saveToken(t.value));
+      PushNotifications.addListener('pushNotificationActionPerformed', (n: any) => {
+        handleTap(n?.data?.url || n?.notification?.data?.url);
+        PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+      });
       PushNotifications.checkPermissions().then((st) => {
         if (st.receive !== 'denied') PushNotifications.register().catch(() => {});
       }).catch(() => {});

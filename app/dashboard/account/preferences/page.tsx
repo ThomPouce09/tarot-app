@@ -286,7 +286,20 @@ export default function PreferencesPage() {
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.notifications')}</h2>
         <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
         {prefs.dailyReminder && (
-          <p className="text-gray-400 text-xs pl-1">{t('prefs.reminderFixedHour')} <span className="text-amber-200 font-medium">{t('prefs.reminderFixedTime')}</span></p>
+          <div className="flex items-center gap-2 pl-1">
+            <p className="text-gray-400 text-xs">{t('prefs.reminderFixedHour')}</p>
+            <select
+              aria-label={t('prefs.reminderHour')}
+              value={prefs.dailyReminderHour}
+              onChange={(e) => update({ dailyReminderHour: Number(e.target.value) })}
+              className="bg-black/40 border border-amber-900/50 text-amber-200 text-xs rounded px-2 py-1"
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>{String(h).padStart(2, '0')}:30</option>
+              ))}
+            </select>
+            <p className="text-gray-500 text-xs">({t('prefs.reminderLocalNote')})</p>
+          </div>
         )}
         {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />

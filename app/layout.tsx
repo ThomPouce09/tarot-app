@@ -9,6 +9,7 @@ import LanguageGate from '@/components/language-gate'
 import OnboardingTour from '@/components/onboarding-tour'
 import MusicAmbience from '@/components/music-ambience'
 import SpeakerAmbience from '@/components/speaker-ambience'
+import PushRouter from '@/components/push-router'
 
 export const dynamic = 'force-dynamic';
 
@@ -130,6 +131,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
+          <PushRouter />
           <MusicAmbience />
           <SpeakerAmbience />
           <LoginModal />
