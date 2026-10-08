@@ -11,7 +11,7 @@ const LINKS = [
   { href: '/dashboard/account/security', img: '/images/nav-security.png', key: 'nav.security' },
   { href: '/dashboard/account/abonnement', img: '/images/nav-abonnement.png', key: 'nav.abonnement' },
   { href: '/dashboard/account/stats', img: '/images/nav-stats.png', key: 'nav.stats' },
-  { href: '/dashboard/account/echoes', img: '/images/nav-grimoire.png', key: 'nav.augures', arkaneOnly: true },
+  { href: '/dashboard/account/echoes', img: '/images/nav-grimoire.png', key: 'nav.augures' },
   { href: '/dashboard/account/readings', img: '/images/nav-historique.png', key: 'nav.historique' },
   { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
 ];
@@ -20,9 +20,8 @@ export default function AccountNav({ user }: { user: any }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useT();
-  // Les Augures des Etoiles sont la prérogative des Arkanes (étape 10).
-  const { sub } = useEntitlement();
-  const links = LINKS.filter((l) => !l.arkaneOnly || sub?.level === 'arkane');
+  // Les Augures sont visibles par tous (vitrine) ; le scellage reste Initié/Arkane.
+  const links = LINKS;
   const initial = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '') || user?.email?.[0] || '?').toUpperCase();
 
   // Visite guidée (une fois par COMPTE, persistée en base) : bulles à bouton « OK »,

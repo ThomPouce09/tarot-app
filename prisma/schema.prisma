@@ -82,6 +82,11 @@ model Usage {
   // Compteur mensuel (reset selon monthKey, format YYYY-MM)
   monthKey        String   @default("")
   grandUsedMonth  Int      @default(0)
+  // Privilèges mensuels d'abonnement (reset selon monthKey) :
+  // Conseil d'Odin (runes) & Secret d'Artémis (dés). Initié : 1/mois chacun,
+  // Arkane : illimité (compteur non utilisé), Apprenti : refusé.
+  odinUsedMonth    Int     @default(0)
+  artemisUsedMonth Int     @default(0)
   // Pack de bienvenue (one-shot, univers déjà servis)
   welcomeBaseUsed String[] @default([])
   welcomeGrandUsed Boolean @default(false)

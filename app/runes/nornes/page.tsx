@@ -39,9 +39,10 @@ function NornesPage() {
   // « Tisser une nouvelle voie » n'apparaît qu'après — jamais avant).
   const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
   // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
-  // réservée au forfait ARKANE.
+  // réservée aux abonnés — Initié : 1 Conseil/mois (quota serveur, la modale
+  // de gating affiche le motif en cas de refus) ; Arkane : illimité.
   const { sub: entSub } = useEntitlement();
-  const canOdinAdvice = entSub?.level === 'arkane';
+  const canOdinAdvice = entSub?.level === 'arkane' || entSub?.level === 'initie';
   const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
   const [question, setQuestion] = useState<string | null>(null);
   // Modale « Principe du Fil des Nornes » affichée au chargement :

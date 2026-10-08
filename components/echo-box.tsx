@@ -4,7 +4,7 @@
 // L'Augure scellé : encadré mystérieux apparu sous l'interprétation d'une lecture
 // (4 univers). Le texte reste scellé jusqu'à l'échéance (14-45 j) ; à partir de
 // là, l'utilisateur le brise et rend son verdict (oui / partiel / non).
-// Gating : Initié = 1 augure actif max, Arkane = illimité (le serveur tranche).
+// Gating : Initié = 2 augures actifs max, Arkane = illimité (le serveur tranche).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

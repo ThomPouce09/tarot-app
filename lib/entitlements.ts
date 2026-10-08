@@ -40,6 +40,10 @@ export interface Rights {
   giftGrandTickets: number; // tickets « cadeau des créatures » — filière avancée
   giftExpiresAt: Date | null; // expiration des tickets (réclamation + 5 jours)
   streakDays: number;
+  // Privilèges mensuels d'abonnement (Conseil d'Odin / Secret d'Artémis) :
+  // nombre RESTANT dans le mois ; null = illimité (Arkane).
+  odinRemaining: number | null;
+  artemisRemaining: number | null;
 }
 
 export interface Decision {
@@ -92,7 +96,13 @@ async function loadUsage(userId: string) {
   }
   const patch: Record<string, unknown> = {};
   if (existing.dateKey !== tk) { patch.dateKey = tk; patch.baseUsedToday = 0; patch.grandUsedToday = 0; }
-  if (existing.monthKey !== mk) { patch.monthKey = mk; patch.grandUsedMonth = 0; }
+  // Reset mensuel : grands + privilèges abonnement (Conseil d'Odin, Secret d'Artémis).
+  if (existing.monthKey !== mk) {
+    patch.monthKey = mk;
+    patch.grandUsedMonth = 0;
+    patch.odinUsedMonth = 0;
+    patch.artemisUsedMonth = 0;
+  }
   // Cadeau des créatures : un tirage offert NON utilisé expire 5 jours après
   // sa réclamation → purge automatique des DEUX filières (le panneau
   // « Consommation restante » et les droits ne montrent alors plus les tickets).
@@ -136,6 +146,8 @@ export async function getRights(email: string): Promise<Rights | null> {
     giftGrandTickets: (u as { giftGrandTickets?: number }).giftGrandTickets ?? 0,
     giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets + ((u as { giftGrandTickets?: number }).giftGrandTickets ?? 0)),
     streakDays: u.streakDays,
+    odinRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { odinUsedMonth?: number }).odinUsedMonth ?? 0)),
+    artemisRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { artemisUsedMonth?: number }).artemisUsedMonth ?? 0)),
   };
 }
 

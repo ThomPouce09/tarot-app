@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
             giftGrandTickets: rights.giftGrandTickets,
             giftExpiresAt: rights.giftExpiresAt ? rights.giftExpiresAt.toISOString() : null,
             streakDays: rights.streakDays,
+            odinRemaining: rights.odinRemaining,
+            artemisRemaining: rights.artemisRemaining,
           }
         : null,
     });

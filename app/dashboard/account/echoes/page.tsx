@@ -11,6 +11,7 @@
 //    sceau qui se fendille au survol, son magique au bris) — visibles sans scroller ;
 //  - le reste en lignes compactes groupées par mois (repliables) : 6× moins de scroll ;
 //  - modale détail : texte intégral, verdict, relire le tirage associé, partager ;
+// Gating : registre consultable par Initié et Arkane ; Apprenti = vitrine verrouillée.
 //  - mode « Gérer » : sélection multiple + suppression en lot (DELETE /api/echo).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -157,10 +158,12 @@ export default function AuguresPage() {
   const [readingExpanded, setReadingExpanded] = useState(false);
 
   const email = typeof window !== 'undefined' ? readEmail() : '';
-  const isArkane = sub?.level === 'arkane';
+  const level = sub?.level;
+  // Registre consultable dès le rang d'Initié ; l'Arkane reste illimité (cap serveur).
+  const canSee = level === 'initie' || level === 'arkane';
 
   useEffect(() => {
-    if (!email || !isArkane) return;
+    if (!email || !canSee) return;
     api(`/api/echo?userId=${encodeURIComponent(email)}`)
       .then((r) => r.json())
       .then((d) => setEchoes(d.echoes || []))
@@ -171,7 +174,7 @@ export default function AuguresPage() {
       .then((r) => r.json())
       .then((d) => setReadingsList(Array.isArray(d?.readings) ? d.readings : []))
       .catch(() => setReadingsList([]));
-  }, [email, isArkane]);
+  }, [email, canSee]);
 
   // Lien profond depuis /readings (« relire l'augure de ce tirage ») : ?open=<echoId>.
   // window.location plutôt que useSearchParams (pas de Suspense requis au build).
@@ -352,18 +355,18 @@ export default function AuguresPage() {
 
   const detail = openId ? (echoes || []).find((x) => x.id === openId) || null : null;
 
-  // ── Verrou Arkane ──
-  if (loaded && !isArkane) {
+  // ── Verrou Apprenti : page visible, registre non consultable ──
+  if (loaded && !canSee) {
     return (
       <div className="space-y-6">
-        <SpaceTitle img="/images/nav-grimoire.png" title={t('echo.augures')} subtitle={t('echo.auguresSub')} dense />
+        <SpaceTitle img="/images/nav-grimoire.png" title={t('echo.yourAugures')} subtitle={t('echo.auguresSub')} dense flush />
         <div className="mystic-panel p-8 text-center">
           <div className="mx-auto mb-4 w-20 h-20 rounded-full border border-amber-400/40 bg-gradient-to-b from-amber-500/20 to-black/40 flex items-center justify-center shadow-[0_0_28px_rgba(217,164,6,0.3)]">
             <span className="text-4xl" aria-hidden>🔒</span>
           </div>
           <p className="text-amber-100/90 text-[15px] leading-relaxed max-w-md mx-auto">{t('echo.auguresLocked')}</p>
           <div className="mt-6">
-            <Link href="/dashboard/account/abonnement">
+            <Link href="/dashboard/account/abonnement#initie">
               <RuneButton variant="save">{t('echo.auguresCta')}</RuneButton>
             </Link>
           </div>
@@ -475,11 +478,16 @@ export default function AuguresPage() {
         </div>
       </div>
 
-      {/* ── Contenu ── */}
-      {echoes === null ? (
-        <p className="text-center py-8 text-[15px] font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFE45C', textShadow: '0 0 12px rgba(255,215,0,0.45)' }}>
-          {t('echo.loadingList')}
-        </p>
+      {/* ── Contenu ──
+          Le « Chargement » ne s'affiche que si le compte a le droit de charger
+          (Initié/Arkane). Tant que le niveau n'est pas résolu, rien d'inutile :
+          le verrou Apprenti prendra le relais dès que loaded=true. */}
+      {echoes === null || !loaded ? (
+        canSee ? (
+          <p className="text-center py-8 text-[15px] font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFE45C', textShadow: '0 0 12px rgba(255,215,0,0.45)' }}>
+            {t('echo.loadingList')}
+          </p>
+        ) : null
       ) : counts.all === 0 ? (
         <div className="mystic-panel p-6 text-center">
           <p className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#FFE45C', textShadow: '0 0 12px rgba(255,215,0,0.45)' }}>{t('echo.auguresEmpty')}</p>

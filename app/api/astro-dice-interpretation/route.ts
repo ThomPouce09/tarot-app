@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
+import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
 import { resolveLang, outputDirective } from '@/lib/lang';
 import { type DieKind } from '@/components/astro-dice/glyphs';
 
@@ -378,10 +379,23 @@ export async function POST(request: NextRequest) {
 
   // affinage + withArtemis → un seul appel qui renvoie { texte, artemis } :
   // le chuchotement arrive AVEC l'analyse, jamais en rechargement séparé.
-  const fusedArtemis = (m === 'zoom-action' || m === 'zoom-domaine')
+  let fusedArtemis = (m === 'zoom-action' || m === 'zoom-domaine')
     && body.withArtemis === true
     && body.originalFaces && typeof body.originalFaces === 'object';
   const zoomKind = m === 'zoom-action' ? 'sign' : 'house';
+
+  // ── Privilège « Secret d'Artémis » : Initié 1/mois, Arkane illimité, autre refusé.
+  // Dégradation douce : si le privilège est refusé, on produit l'analyse d'affinage
+  // SANS le chuchotement (le tirage reste dû) + champ artemisBlocked pour l'UI. ──
+  let artemisBlocked: string | null = null;
+  const artemisEmail = String(body.userId || '').trim();
+  if (fusedArtemis) {
+    const pre = await checkPerk(artemisEmail, 'artemis');
+    if (!pre.allowed) {
+      fusedArtemis = false;
+      artemisBlocked = perkReasonCode(pre.reason);
+    }
+  }
 
   const prompt = fusedArtemis
     ? buildZoomWithArtemisPrompt(faces, body.originalFaces, zoomKind, m, dbInterpretation, question)
@@ -397,13 +411,19 @@ export async function POST(request: NextRequest) {
   }
 
   // Réponse fusionnée : extraire { texte, artemis } ; repli texte brut si JSON KO.
+  if (!fusedArtemis && artemisBlocked) {
+    return NextResponse.json({ texte: content.trim(), artemisBlocked });
+  }
   if (fusedArtemis) {
     try {
       const json = extractJson(content);
       if (json && (json.texte || json.artemis)) {
+        const whisper = String(json.artemis || '').trim();
+        // Le privilège est consommé UNIQUEMENT s'il est réellement délivré.
+        if (whisper) await consumePerk(artemisEmail, 'artemis');
         return NextResponse.json({
           texte: String(json.texte || '').trim(),
-          artemis: String(json.artemis || '').trim(),
+          artemis: whisper,
         });
       }
     } catch { /* fallback texte libre ci-dessous */ }
