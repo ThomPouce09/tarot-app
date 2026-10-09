@@ -61,10 +61,12 @@ export const PLAN_ICON: Record<PlanId, string> = {
 export type ActiveLevel = PlanId;
 
 // Capacités par niveau récurrent (hors one-shot, gérés dans entitlements).
-export const PLAN_CAPACITY: Record<SubscriptionPlanId | 'apprenti', { baseUnlimited: boolean; grandMonthly: number | null; perkMonthly: number | null }> = {
-  apprenti: { baseUnlimited: false, grandMonthly: 0, perkMonthly: 0 },
-  initie: { baseUnlimited: true, grandMonthly: 10, perkMonthly: 1 }, // 1 Conseil d'Odin + 1 Secret d'Artémis / mois
-  arkane: { baseUnlimited: true, grandMonthly: null, perkMonthly: null }, // null = illimité
+// baseMonthly / grandMonthly : plafonds mensuels par compte ; null = pas de
+// plafond mensuel (le quota journalier/welcom/crédits gouverne alors).
+export const PLAN_CAPACITY: Record<SubscriptionPlanId | 'apprenti', { baseUnlimited: boolean; baseMonthly: number | null; grandMonthly: number | null; perkMonthly: number | null }> = {
+  apprenti: { baseUnlimited: false, baseMonthly: null, grandMonthly: 0, perkMonthly: 0 },
+  initie: { baseUnlimited: false, baseMonthly: 90, grandMonthly: 10, perkMonthly: 1 }, // 1 Conseil d'Odin + 1 Secret d'Artémis / mois
+  arkane: { baseUnlimited: false, baseMonthly: 120, grandMonthly: 120, perkMonthly: null }, // perks illimités
 };
 
 // Skins réservés à Arkane (accès visuel). Côté client pour la galerie de skins.

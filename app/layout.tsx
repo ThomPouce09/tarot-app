@@ -9,6 +9,7 @@ import StatusBarController from '@/components/status-bar-controller'
 import LanguageGate from '@/components/language-gate'
 import OnboardingTour from '@/components/onboarding-tour'
 import MusicAmbience from '@/components/music-ambience'
+import PushRouter from '@/components/push-router'
 import SpeakerAmbience from '@/components/speaker-ambience'
 
 // (static export : pas de force-dynamic)
@@ -132,6 +133,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
+          <PushRouter />
           <MusicAmbience />
           <SpeakerAmbience />
           <LoginModal />

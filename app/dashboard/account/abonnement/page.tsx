@@ -309,6 +309,8 @@ export default function AbonnementPage() {
   const isArkane = current === 'arkane';
   const grandMonthly = usage?.grandMonthly;
   const grandUsed = usage?.grandUsedMonth ?? 0;
+  const baseMonthly = usage?.baseMonthly ?? null;
+  const baseUsedMonth = usage?.baseUsedMonth ?? 0;
 
   const credits = usage?.rechargeCredits ?? 0;
   const welcomeBaseUsed = (usage?.welcomeBaseUsed ?? []) as Universe[];
@@ -322,10 +324,12 @@ export default function AbonnementPage() {
   const baseUsedToday = usage?.baseUsedToday ?? 0;
   const baseUnlimited = usage?.baseUnlimited ?? false;
 
-  const baseRemaining: number | 'inf' = baseUnlimited ? 'inf' : (UNIVERSES.length - welcomeBaseUsed.length) + (baseUsedToday < 1 ? 1 : 0) + Math.floor(credits / CREDITS_BASE);
+  const baseRemaining: number | 'inf' = baseMonthly !== null
+    ? Math.max(0, baseMonthly - baseUsedMonth) + Math.floor(credits / CREDITS_BASE)
+    : (UNIVERSES.length - welcomeBaseUsed.length) + (baseUsedToday < 1 ? 1 : 0) + Math.floor(credits / CREDITS_BASE);
 
   const grandQuotaLeft = (grandMonthly ?? 0) > 0 ? Math.max(0, (grandMonthly ?? 0) - grandUsed) : 0;
-  const grandRemaining: number | 'inf' = isArkane ? 'inf' : bonusGrand + (welcomeGrandUsed ? 0 : 1) + Math.floor(credits / CREDITS_GRAND) + grandQuotaLeft;
+  const grandRemaining: number | 'inf' = (isArkane && grandMonthly === null) ? 'inf' : bonusGrand + (welcomeGrandUsed ? 0 : 1) + Math.floor(credits / CREDITS_GRAND) + grandQuotaLeft;
 
   const rechargeRelevant = credits > 0;
   const rechargeBaseLeft = Math.floor(credits / CREDITS_BASE);

@@ -34,7 +34,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     })
       .then(async (r) => {
         if (r.status === 404 && alive) {
-          try { localStorage.removeItem('tarot_user'); } catch {}
+          try { localStorage.removeItem('tarot_user'); localStorage.removeItem('arkane_session_token'); } catch {}
           setUser(null);
         }
       })

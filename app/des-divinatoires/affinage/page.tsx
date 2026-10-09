@@ -42,6 +42,7 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
+import { api } from '@/lib/api-client';
 import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
@@ -49,7 +50,6 @@ import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { playSound } from '@/lib/sounds';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
-import { api } from '@/lib/api-client';
 import { useT, useLang, tr , getRuntimeLang} from '@/lib/i18n';
 import AuthGate from '@/components/auth-gate';
 

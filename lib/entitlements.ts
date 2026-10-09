@@ -29,6 +29,8 @@ export type EntitlementLevel = 'apprenti' | 'initie' | 'arkane';
 export interface Rights {
   level: EntitlementLevel;
   baseUnlimited: boolean;
+  baseMonthly: number | null; // plafond mensuel de bases (Initié 90, Arkane 120)
+  baseUsedMonth: number;
   grandMonthly: number | null; // null = illimité
   grandUsedMonth: number;
   baseUsedToday: number;
@@ -49,7 +51,7 @@ export interface Rights {
 export interface Decision {
   allowed: boolean;
   // Motif machine pour la couche UI (message déjà i18n-é côté client).
-  reason: 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe';
+  reason: 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'session';
   message: string;
 }
 
@@ -96,9 +98,10 @@ async function loadUsage(userId: string) {
   }
   const patch: Record<string, unknown> = {};
   if (existing.dateKey !== tk) { patch.dateKey = tk; patch.baseUsedToday = 0; patch.grandUsedToday = 0; }
-  // Reset mensuel : grands + privilèges abonnement (Conseil d'Odin, Secret d'Artémis).
+  // Reset mensuel : bases + grands + privilèges abonnement (Conseil d'Odin, Secret d'Artémis).
   if (existing.monthKey !== mk) {
     patch.monthKey = mk;
+    patch.baseUsedMonth = 0;
     patch.grandUsedMonth = 0;
     patch.odinUsedMonth = 0;
     patch.artemisUsedMonth = 0;
@@ -135,6 +138,8 @@ export async function getRights(email: string): Promise<Rights | null> {
   return {
     level: effective,
     baseUnlimited: cap.baseUnlimited,
+    baseMonthly: cap.baseMonthly ?? null,
+    baseUsedMonth: (u as { baseUsedMonth?: number }).baseUsedMonth ?? 0,
     grandMonthly: cap.grandMonthly,
     grandUsedMonth: u.grandUsedMonth,
     baseUsedToday: u.baseUsedToday,
@@ -174,9 +179,21 @@ export async function canDo(email: string, type: string, question: string | null
 
   // ── TIRAGE DE BASE ──
   if (cls.isBase) {
-    // Arkane / Initié (abo actif) : base illimitée.
-    if (rights.baseUnlimited) {
-      return { allowed: true, reason: 'ok', message: '' };
+    // Abonnés actifs (Initié/Arkane) : QUOTA MENSUEL de bases (90 / 120) —
+    // l'ancien « illimité » n'existe plus. Tickets cadeaux et crédits de
+    // recharge prennent le relais au-delà du plafond.
+    if (subActive && (rights.level === 'initie' || rights.level === 'arkane')) {
+      const cap = rights.baseMonthly;
+      if (cap === null || rights.baseUsedMonth < cap) {
+        return { allowed: true, reason: 'ok', message: '' };
+      }
+      if (rights.giftTickets > 0) return { allowed: true, reason: 'ok', message: '' };
+      if (rights.rechargeCredits >= CREDITS_BASE) return { allowed: true, reason: 'ok', message: '' };
+      return {
+        allowed: false,
+        reason: 'limit-base-monthly',
+        message: `Plafond mensuel de ${cap} tirages de base atteint. Rechargez ou revenez le mois prochain.`,
+      };
     }
     // Pack bienvenue : 1 base par univers (une fois), indépendant du 1/jour.
     if (!rights.welcomeBaseUsed.includes(cls.universe)) {
@@ -196,8 +213,11 @@ export async function canDo(email: string, type: string, question: string | null
   }
 
   // ── GRAND TIRAGE ──
-  // Arkane : illimité.
-  if (rights.level === 'arkane' && subActive) {
+  // Initié 10 / Arkane 120 par mois : le calcul ci-dessous ajoute le quota
+  // mensuel (grandMonthly !== null) aux ressources one-shot (welcome, tickets,
+  // streak, crédits). L'ancien « Arkane illimité » (grandMonthly null) est
+  // remplacé par un plafond ; s'il redevient null, le return direct suit.
+  if (rights.level === 'arkane' && subActive && rights.grandMonthly === null) {
     return { allowed: true, reason: 'ok', message: '' };
   }
   // Coût en grands : 1 partout (la roue hebdo ne coûte plus qu'un seul grand
@@ -253,23 +273,35 @@ export async function consume(email: string, type: string, question: string | nu
   Object.assign(patch, streakPatch);
 
   if (cls.isBase) {
-    const unlimited = rightsIsBaseUnlimited(user.subscription?.plan, subActive);
-    if (!unlimited) {
-      // Base bienvenue : 1 par univers (offert, ne consomme pas la base du jour).
-      if (!(u.welcomeBaseUsed as string[]).includes(cls.universe)) {
-        patch.welcomeBaseUsed = [...(u.welcomeBaseUsed as string[]), cls.universe];
-      } else if (u.baseUsedToday < 1) {
-        // Apprenti : 1 base/jour gratuit.
-        patch.baseUsedToday = u.baseUsedToday + 1;
-      } else if (u.giftTickets > 0) {
-        // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
-        patch.giftTickets = u.giftTickets - 1;
-      } else {
-        // Au-delà du gratuit/jour → consomme 7 crédits de recharge.
-        patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
+    // Le compteur mensuel de bases suit TOUT tirage base consommé (reset au
+    // changement de monthKey via loadUsage) — seul un abonné s'en voit plafonné.
+    patch.baseUsedMonth = u.baseUsedMonth + 1;
+    const level = planToLevel(user.subscription?.plan);
+    const isSubBase = subActive && (level === 'initie' || level === 'arkane');
+    if (isSubBase) {
+      // Initié/Arkane : puise dans le quota mensuel (90/120), puis tickets,
+      // puis crédits de recharge.
+      const cap = PLAN_CAPACITY[level].baseMonthly;
+      if (cap !== null && u.baseUsedMonth >= cap) {
+        if (u.giftTickets > 0) {
+          patch.giftTickets = u.giftTickets - 1;
+        } else {
+          patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
+        }
       }
+    } else if (!(u.welcomeBaseUsed as string[]).includes(cls.universe)) {
+      // Base bienvenue : 1 par univers (une fois), indépendant du 1/jour.
+      patch.welcomeBaseUsed = [...(u.welcomeBaseUsed as string[]), cls.universe];
+    } else if (u.baseUsedToday < 1) {
+      // Apprenti : 1 base/jour gratuit.
+      patch.baseUsedToday = u.baseUsedToday + 1;
+    } else if (u.giftTickets > 0) {
+      // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
+      patch.giftTickets = u.giftTickets - 1;
+    } else {
+      // Au-delà du gratuit/jour → consomme 7 crédits de recharge.
+      patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
     }
-    // (initie/arkane actif : base illimitée, aucun compteur)
   } else {
     // Grand : épuise d'abord les droits one-shot, puis les TICKETS CADEAU
     // AVANCÉS (filière grand — les tickets base ne débloquent pas un grand),

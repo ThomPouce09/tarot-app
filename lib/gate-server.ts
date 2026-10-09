@@ -1,29 +1,32 @@
 // lib/gate-server.ts
-// Helper serveur : verrou de droits (quota base/avancé) pour les endpoints
-// d'interprétation. Un seul point, réutilisé par toutes les routes.
+// Helper serveur : verrou de droits (session + quota base/avancé) pour les
+// endpoints d'interprétation. Un seul point, réutilisé par toutes les routes.
 //
 // Usage dans une route API :
-//   const gate = await enforceGate(userId?, type, question);
-//   if (gate) return gate; // réponse 402 si bloqué, sinon null → continuer.
+//   const gate = await enforceGate(request, body, type, question, flowId);
+//   if (gate) return gate; // 401 sans session / 402 quota → null = autorisé.
+//
+// Depuis l'ère « session » : la mention « invité → libre » a DISPARU. Toutes
+// les pages de tirage sont derrière AuthGate (compte vérifié) — une route IA
+// sans session valide est une anomalie (script ou APK périmé), elle doit être
+// refusée, pas servie gratuitement.
 
 import { NextResponse } from 'next/server';
-import { canDo, consume } from './entitlements';
+import type { NextRequest } from 'next/server';
+import { guardRequest } from './quota-guard';
 
 export async function enforceGate(
-  userId: string | null | undefined,
+  request: NextRequest,
+  body: { email?: unknown; userId?: unknown; type?: unknown; flowId?: unknown },
   type: string,
-  question?: string | null
+  question?: string | null,
 ): Promise<NextResponse | null> {
-  // Invité (sans compte) → libre (l'historique n'est enregistré que connecté).
-  if (!userId || typeof userId !== 'string' || !userId.trim()) return null;
-
-  const decision = await canDo(userId, type, question ?? null);
-  if (!decision.allowed) {
-    return NextResponse.json(
-      { error: decision.message, reason: decision.reason, gated: true, status: 402 },
-      { status: 402 }
-    );
-  }
-  await consume(userId, type, question ?? null);
+  const g = await guardRequest(request, {
+    email: body.email ?? body.userId ?? null,
+    type: body.type ?? type,
+    flowId: body.flowId ?? null,
+    question: question ?? null,
+  }, type);
+  if ('error' in g) return g.error;
   return null;
 }

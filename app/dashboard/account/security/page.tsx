@@ -80,6 +80,7 @@ export default function SecurityPage() {
         return;
       }
       localStorage.removeItem('tarot_user');
+      localStorage.removeItem('arkane_session_token');
       router.push('/');
     } catch {
       setMsg({ type: 'err', text: 'Erreur de connexion' });

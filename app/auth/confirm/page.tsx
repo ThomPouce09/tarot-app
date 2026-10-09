@@ -35,6 +35,7 @@ function ConfirmPasswordInner() {
     if (res.ok) {
       // Marque le compte confirmé en local (tarot_user) pour débloquer le gate.
       try {
+        if (data?.session) localStorage.setItem('arkane_session_token', data.session);
         const raw = localStorage.getItem('tarot_user');
         if (raw) {
           const u = JSON.parse(raw);

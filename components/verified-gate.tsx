@@ -31,6 +31,15 @@ export function useRequireVerified(): VerifyState {
       return;
     }
     setState(u.confirmed === true ? 'ok' : 'unverified');
+
+    // Session expirée signalée par une route IA (401 reason:'session') :
+    // on redescend proprement vers la mire de connexion.
+    const onSignout = () => {
+      router.replace('/');
+      setTimeout(() => window.dispatchEvent(new Event('open-login')), 100);
+    };
+    window.addEventListener('arkane-signout', onSignout);
+    return () => window.removeEventListener('arkane-signout', onSignout);
   }, [router]);
 
   return state;

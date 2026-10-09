@@ -75,6 +75,7 @@ export default function AccountPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
+    localStorage.removeItem('arkane_session_token');
     router.push('/');
   };
 

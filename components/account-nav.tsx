@@ -41,6 +41,7 @@ export default function AccountNav({ user }: { user: any }) {
 
   const handleLogout = () => {
     localStorage.removeItem('tarot_user');
+      localStorage.removeItem('arkane_session_token');
     router.push('/');
   };
 
