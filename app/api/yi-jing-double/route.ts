@@ -21,6 +21,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
+import { guardRequest } from '@/lib/quota-guard';
+import { requireSessionEmail } from '@/lib/session';
 import { canCreateEcho, echoIsRevealed } from '@/lib/echo';
 import { deriveDouble, type DoubleDerivation } from '@/lib/yi-double';
 import { resolveLang, langName } from '@/lib/lang';
@@ -123,9 +125,16 @@ export async function POST(request: NextRequest) {
   const user = await findUser(email);
   if (!user) return NextResponse.json({ error: 'Compte introuvable.' }, { status: 404 });
 
+  // Session serveur : le jeton X-Session doit correspondre au compte utilisé.
+  const sess = requireSessionEmail(request, email);
+  if ('error' in sess) return sess.error as NextResponse;
+
   switch (String(body.action || '')) {
     // ── Poser le Double ────────────────────────────────────────────────
     case 'cast': {
+      // Le débit du grand tirage est SERVEUR (was: client /api/entitlement).
+      const g = await guardRequest(request, { email, type: TYPE, flowId: body.flowId }, TYPE);
+      if ('error' in g) return g.error;
       const d: DoubleDerivation | null = deriveDouble(body.lignes);
       if (!d || d.hexPresent === null || d.hexFutur === null) {
         return NextResponse.json({ error: 'lignes invalides (6 valeurs parmi 6,7,8,9).' }, { status: 400 });

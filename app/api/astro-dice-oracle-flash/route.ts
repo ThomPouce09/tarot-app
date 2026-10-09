@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
+import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 const PLANET_NAMES: Record<string, string> = {
@@ -51,6 +52,10 @@ export async function POST(request: NextRequest) {
   if (!faces || typeof faces !== 'object') {
     return NextResponse.json({ error: 'faces requis' }, { status: 400 });
   }
+
+  // ── Session + quota : le flash est l'analyse du Dés Simplifié (base). ──
+  const guarded = await guardRequest(request, body, 'des-simplifie');
+  if ('error' in guarded) return guarded.error;
 
   const kinds = Array.isArray(activeKinds)
     ? activeKinds.filter((k: string) => k === 'planet' || k === 'sign' || k === 'house')

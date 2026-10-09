@@ -19,6 +19,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle } from '@/lib/llm';
+import { requireSessionEmail } from '@/lib/session';
+import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { canCreateEcho, echoDomainForType, echoIsRevealed } from '@/lib/echo';
@@ -177,6 +179,10 @@ export async function POST(request: NextRequest) {
   const user = await findUser(email);
   if (!user) return NextResponse.json({ error: 'Compte introuvable.' }, { status: 404 });
 
+  // Session serveur : le jeton X-Session doit correspondre au compte utilisé.
+  const sess = requireSessionEmail(request, email);
+  if ('error' in sess) return sess.error as NextResponse;
+
   const latest = await prisma.reading.findFirst({
     where: { userId: user.id, type: 'tarot-semaine' },
     orderBy: { createdAt: 'desc' },
@@ -186,6 +192,9 @@ export async function POST(request: NextRequest) {
   switch (String(body.action || '')) {
     // ── Poser la roue ────────────────────────────────────────────────
     case 'cast': {
+      // Le débit du grand tirage est SERVEUR (was: client /api/entitlement).
+      const g = await guardRequest(request, { email, type: 'tarot-semaine', flowId: body.flowId }, 'tarot-semaine');
+      if ('error' in g) return g.error;
       // Une seule roue ACTIVE à la fois — mais « active » s'arrête à la fin des
       // 7 jours : une fois la semaine écoulée, la roue précédente est archivée
       // (augure scellée ou non) et une nouvelle peut être posée.

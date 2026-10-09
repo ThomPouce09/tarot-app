@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { signSession, SESSION_COOKIE } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,15 @@ export async function POST(request: NextRequest) {
 
     await prisma.user.update({ where: { id: user.id }, data });
 
-    return NextResponse.json({
+    const resp = NextResponse.json({
       success: true,
-      message: 'Compte activé',
+      session: signSession(user.email),
       user: { id: user.id, email: user.email, confirmed: true },
     });
+    resp.cookies.set(SESSION_COOKIE, signSession(user.email), {
+      httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 30 * 24 * 3600,
+    });
+    return resp;
   } catch (error: any) {
     console.error('Confirm error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

@@ -12,6 +12,7 @@ import { cardDisplayName } from '@/lib/i18n/cards';
 import { localizePosition } from '@/lib/i18n/positions';
 import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume } from '@/components/yi-icons';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
+import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
 import { parseTarotQuestion, localizeTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
@@ -164,7 +165,7 @@ function InterpretationInner() {
       return;
     }
 
-    fetch('/api/interpret', {
+    api('/api/interpret', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

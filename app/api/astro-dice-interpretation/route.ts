@@ -297,26 +297,18 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Verrou Initié/Arkane (Dés Simplifié : « Analyser en profondeur ») ──
-  // Activé par le flag requireInitie : les autres appels (affinage, choix,
-  // obstacle) restent libres comme avant. Réponse 403 { reason: 'tier' }.
-  if (body.requireInitie === true) {
-    const email = String(body.email || '').trim().toLowerCase();
-    if (!email) {
-      return NextResponse.json({ error: 'Connexion requise.', reason: 'not-logged', gated: true }, { status: 401 });
-    }
-    try {
-      const { getRights } = await import('@/lib/entitlements');
-      const rights = await getRights(email);
-      if (!rights || rights.level === 'apprenti') {
-        return NextResponse.json({
-          error: "L'analyse en profondeur est réservée aux Initiés et aux Arkanes.",
-          reason: 'tier', gated: true,
-        }, { status: 403 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Vérification des droits indisponible.', reason: 'tier', gated: true }, { status: 403 });
-    }
-  }
+  // DÉPLACÉ côté quota : l'analyse fait partie du tirage (quota déduit du mode),
+  // le flag client requireInitie n'était envoyé par personne — porte morte.
+
+  // ── Session + quota serveur (dédup par flowId : un flux 2-3 appels = 1 débit) ──
+  const typeFromMode: Record<string, string> = {
+    global: 'des-affinage', 'zoom-action': 'des-affinage', 'zoom-domaine': 'des-affinage',
+    choix: 'des-choix', 'obstacle-solution': 'des-obstacle-solution',
+  };
+  const { guardRequest } = await import('@/lib/quota-guard');
+  const guarded = await guardRequest(request, { ...body, email: body.userId ?? body.email }, typeFromMode[m] || 'des-affinage');
+  if ('error' in guarded) return guarded.error;
+
 
   // ── Mode comparaison de choix ──
   if (m === 'choix') {
@@ -388,7 +380,9 @@ export async function POST(request: NextRequest) {
   // Dégradation douce : si le privilège est refusé, on produit l'analyse d'affinage
   // SANS le chuchotement (le tirage reste dû) + champ artemisBlocked pour l'UI. ──
   let artemisBlocked: string | null = null;
-  const artemisEmail = String(body.userId || '').trim();
+  // ── Privilège « Secret d'Artémis » : l'email vient du JETON de session
+  // (body.userId n'est pas cru sur parole — anti-impersonation). ──
+  const artemisEmail = guarded.email;
   if (fusedArtemis) {
     const pre = await checkPerk(artemisEmail, 'artemis');
     if (!pre.allowed) {

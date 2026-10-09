@@ -8,9 +8,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useT } from '@/lib/i18n';
+import { api } from '@/lib/api-client';
 
 export interface UsageState {
   baseUsedToday: number;
+  baseUsedMonth?: number;
+  baseMonthly?: number | null;
   grandUsedMonth: number;
   grandMonthly: number | null;
   baseUnlimited: boolean;
@@ -32,7 +35,7 @@ export interface SubscriptionState {
   usage: UsageState | null;
 }
 
-export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit';
+export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit' | 'session';
 
 export interface GateDecision {
   allowed: boolean;
@@ -59,13 +62,12 @@ export function useEntitlement() {
     setEmail(e);
     if (!e) { setSub(null); setLoaded(true); return; }
     try {
-      const res = await fetch(`/api/subscription?email=${encodeURIComponent(e)}`);
+      const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
       if (res.ok) setSub(await res.json());
       else setSub(null);
     } catch { /* offline */ }
     setLoaded(true);
   }, []);
-
   // Charge la dispo de tous les tirages (GET /api/entitlement/status). Non destructif.
   // Retry (jusqu'à 3x) pour absorber le cold-start Neon (premier appel = 500/timeout).
   const loadTiles = useCallback(async (): Promise<Record<string, GateDecision> | null> => {
@@ -123,6 +125,7 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   if (!reason) return null;
 
   const isBaseDaily = reason === 'limit-base-daily';
+  const isBaseMonthly = reason === 'limit-base-monthly';
   const isGrand = reason === 'limit-grand';
   const isPersonalOnly = reason === 'personal-only';
   const notLogged = reason === 'not-logged';
@@ -130,9 +133,9 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   const isPerkTier = reason === 'perk-tier';
   const isPerkLimit = reason === 'perk-limit';
 
-  const title = isBaseDaily ? t('gate.baseDailyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
+  const title = isBaseDaily ? t('gate.baseDailyTitle') : isBaseMonthly ? t('gate.baseMonthlyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
     : isPerkTier ? t('gate.perkTierTitle') : isPerkLimit ? t('gate.perkLimitTitle') : t('gate.paywallTitle');
-  const text = isBaseDaily ? t('gate.baseDailyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
+  const text = isBaseDaily ? t('gate.baseDailyText') : isBaseMonthly ? t('gate.baseMonthlyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
     : isPerkTier ? t('gate.perkTierText') : isPerkLimit ? t('gate.perkLimitText') : t('gate.paywallText');
 
   return (

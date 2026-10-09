@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
+import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
@@ -22,6 +23,11 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // ── Session + quota : Obstacle & Solution (fenêtre partagée avec les Voies
+  //    et le second côté du tirage : un tirage = une consommation). ──
+  const guarded = await guardRequest(request, body, 'des-obstacle-solution');
+  if ('error' in guarded) return guarded.error;
 
   const kindLabel = kind === 'Obstacle' ? 'Obstacle' : 'Solution';
   const kindFr =

@@ -43,6 +43,7 @@ import { planetName, signName, houseName, dieKindLabel } from '@/components/astr
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
+import { api } from '@/lib/api-client';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
@@ -325,7 +326,7 @@ function AffinagePage() {
         payload.withArtemis = true;
         payload.originalFaces = originalFacesRef.current;
       }
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -388,7 +389,7 @@ function AffinagePage() {
     const orig = originalFacesRef.current;
     if (!orig) return;
     try {
-      const res = await fetch('/api/astro-dice-interpretation', {
+      const res = await api('/api/astro-dice-interpretation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -488,7 +489,7 @@ function AffinagePage() {
     setDbLoading(true);
     setDbInterpretation(null);
 
-    fetch('/api/astro-interpretation-db', {
+    api('/api/astro-interpretation-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ planet, sign, house }),

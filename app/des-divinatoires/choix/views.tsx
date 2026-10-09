@@ -10,6 +10,7 @@ import { TargetFaces } from '@/components/astro-dice';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { useLang, useT } from '@/lib/i18n';
 import { nextRaceSeq } from '@/lib/race-guard';
+import { api } from '@/lib/api-client';
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 
@@ -62,7 +63,7 @@ export function DiceAnalysis({
     (async () => {
       // 1) Analyse approfondie automatique
       try {
-        const res = await fetch('/api/astro-interpretation-approfondie', {
+        const res = await api('/api/astro-interpretation-approfondie', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house, question, spread, lang }),
@@ -80,7 +81,7 @@ export function DiceAnalysis({
 
       // 2) Filet : LLM court, puis interprétation DB (jamais un tirage vide)
       try {
-        const llmRes = await fetch('/api/astro-interpretation-choix', {
+        const llmRes = await api('/api/astro-interpretation-choix', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house, question: question || undefined, spread, lang }),
@@ -98,7 +99,7 @@ export function DiceAnalysis({
       }
 
       try {
-        const dbRes = await fetch('/api/astro-interpretation-db', {
+        const dbRes = await api('/api/astro-interpretation-db', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ planet, sign, house }),

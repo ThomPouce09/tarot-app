@@ -57,6 +57,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('tarot_user', JSON.stringify(data.user));
+        if (data.session) { try { localStorage.setItem('arkane_session_token', data.session); } catch {} }
         onAccountChanged(); // drapeaux tutoriels du compte (ne resservent pas)
         router.push('/dashboard/account');
       } else {

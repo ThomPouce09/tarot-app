@@ -28,6 +28,7 @@ model User {
   echoes            Echo[]
   subscription      Subscription?
   usage             Usage?
+  flows             DrawFlow[]
   purchases         Purchase[]
 
   // ── Préférences (persistées pour le serveur : lettre hebdo + rappel push) ──
@@ -87,6 +88,7 @@ model Usage {
   // Compteur mensuel (reset selon monthKey, format YYYY-MM)
   monthKey        String   @default("")
   grandUsedMonth  Int      @default(0)
+  baseUsedMonth   Int      @default(0) // quotas mensuels base Initié (90) / Arkane (120)
   // Privilèges mensuels d'abonnement (reset selon monthKey) :
   // Conseil d'Odin (runes) & Secret d'Artémis (dés). Initié : 1/mois chacun,
   // Arkane : illimité (compteur non utilisé), Apprenti : refusé.
@@ -112,6 +114,21 @@ model Usage {
   giftNextOkAt    DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ─── Dédup de flux de tirage (un même tirage client = UNE consommation) ─
+// Clé `${userId}:${flowId}` ; flowId = uuid généré par la page à l'ouverture
+// du tirage. Purge périodique des flux > 40 jours dans lib/quota-guard.ts.
+model DrawFlow {
+  id          String   @id
+  userId      String
+  key         String
+  type        String
+  consumedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("DrawFlow")
 }
 
 // ─── Achats one-shot (bienvenue, recharge cosmique) ────────────
@@ -187,7 +204,15 @@ model CreatureMessage {
   category  String   // tips | credits | lore | advice | joke | history
   textFr    String
   textEn    String?
+  // Parallèles ES/HI présentes en base (seed 4 langues via l'API pause-repas) ;
+  // déclarées ici pour que 'db push' ne cherche plus à les dropper.
+  textEs    String?
+  textHi    String?
+  // Page de créature (seed-creatures-v2, SQL manuel) — présente en base.
+  page        String?
   createdAt DateTime @default(now())
+
+  @@index([page])
 }
 
 

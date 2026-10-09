@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
       usage: rights
         ? {
             baseUsedToday: rights.baseUsedToday,
+            baseUsedMonth: rights.baseUsedMonth,
+            baseMonthly: rights.baseMonthly,
             grandUsedMonth: rights.grandUsedMonth,
             grandMonthly: rights.grandMonthly,
             baseUnlimited: rights.baseUnlimited,

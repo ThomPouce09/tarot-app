@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
+import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
@@ -22,6 +23,11 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // ── Session + quota : filet « Choix » (même débit que l'approfondie —
+  //    un tirage = une fenêtre). ──
+  const guarded = await guardRequest(request, body, 'des-choix');
+  if ('error' in guarded) return guarded.error;
 
   const spreadLabel = spread || 'Premier Choix';
   const optionNum = spreadLabel === 'Premier Choix' ? '1' : '2';

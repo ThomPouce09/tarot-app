@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getRights } from '@/lib/entitlements';
+import { requireSessionEmail } from '@/lib/session';
 import { calcAge } from '@/lib/dates';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import {
@@ -69,14 +70,17 @@ export async function GET(req: NextRequest) {
     let dob: string | null = null;
     let gender: string | null = null;
     if (personal) {
-      if (!email) {
-        return NextResponse.json({ found: false, error: 'Connexion requise', code: 'not-logged' }, { status: 401 });
-      }
-      const rights = await getRights(email);
+      // L'email de la vue perso vient du JETON de session (le ?email= de
+      // l'URL n'est pas cru sur parole : il ne peut pas débloquer un
+      // conseil réservé en prétendant le compte d'un abonné).
+      const sess = requireSessionEmail(req, email);
+      if ('error' in sess) return sess.error as NextResponse;
+      const emailS = sess.email;
+      const rights = await getRights(emailS);
       if (!rights || rights.level === 'apprenti') {
         return NextResponse.json({ found: false, error: 'Réservé aux Initiés et Arkanes', code: 'upgrade-required' }, { status: 402 });
       }
-      const u = await prisma.user.findUnique({ where: { email }, select: { dateOfBirth: true, gender: true } });
+      const u = await prisma.user.findUnique({ where: { email: emailS }, select: { dateOfBirth: true, gender: true } });
       age = u?.dateOfBirth ? calcAge(u.dateOfBirth.toISOString()) : null;
       dob = u?.dateOfBirth ? u.dateOfBirth.toISOString().slice(0, 10) : null;
       const g = (u?.gender || '').toLowerCase();

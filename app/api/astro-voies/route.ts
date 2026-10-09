@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { guardRequest } from '@/lib/quota-guard';
 import { pick4 } from '@/lib/i18n';
 import { resolveLang, langName, type LlmLang } from '@/lib/lang';
 
@@ -56,6 +57,10 @@ export async function POST(request: NextRequest) {
   if (!planet || !sign || !house) {
     return NextResponse.json({ error: 'Champs requis : planet, sign, house' }, { status: 400 });
   }
+
+  // ── Session + quota : les Voies font partie du flux Obstacle & Solution. ──
+  const guarded = await guardRequest(request, body, 'des-obstacle-solution');
+  if ('error' in guarded) return guarded.error;
 
   const fallback = (lang === 'en' ? FALLBACK_VOIES.en : FALLBACK_VOIES.fr).map((v) => ({ ...v }));
   const glyphs: Record<string, string> = { fire: '♈', water: '♋', air: '♎', earth: '♑' };

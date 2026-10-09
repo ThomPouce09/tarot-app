@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
 import { resolveLang, authMsg, localDate, durationPhrase } from '@/lib/lang';
+import { signSession, SESSION_COOKIE } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,8 +54,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: authMsg('bad', lang) }, { status: 401 });
     }
 
-    return NextResponse.json({
+    const resp = NextResponse.json({
       success: true,
+      session: signSession(user.email),
       user: {
         id: user.id,
         email: user.email,
@@ -70,6 +72,12 @@ export async function POST(request: NextRequest) {
         token: user.confirmationToken || 'authenticated',
       },
     });
+    // Cookie same-origin pour le web (repli) ; l'APK utilise le jeton JSON
+    // (X-Session) — la WebView bloque les cookies tiers cross-site.
+    resp.cookies.set(SESSION_COOKIE, signSession(user.email), {
+      httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 30 * 24 * 3600,
+    });
+    return resp;
   } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Erreur serveur: ' + error.message }, { status: 500 });

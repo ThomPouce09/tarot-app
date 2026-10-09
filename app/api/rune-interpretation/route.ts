@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { enforceGate } from '@/lib/gate-server';
+import { requireSessionEmail } from '@/lib/session';
 import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 import { pick4 } from '@/lib/i18n';
@@ -200,21 +201,25 @@ export async function POST(request: NextRequest) {
 
   const focus = body.focus === 'odin' ? 'odin' : 'global';
 
+  // ── Session serveur : l'email vient du jeton X-Session, JAMAIS du body. ──
+  const sess = requireSessionEmail(request, typeof body.userId === 'string' ? body.userId : null);
+  if ('error' in sess) return sess.error as NextResponse;
+  const odinEmail = sess.email;
+
   // ── Privilège « Conseil d'Odin » : Initié 1/mois, Arkane illimité, autre refusé.
   // Pré-vérification avant le quota tirage pour ne rien brûler si tirage refusé ;
   // consommation défensive juste après enforcement (double contrôle de la course). ──
   if (focus === 'odin') {
-    const pre = await checkPerk(body.userId ? String(body.userId) : '', 'odin');
+    const pre = await checkPerk(odinEmail, 'odin');
     if (!pre.allowed) {
       return NextResponse.json({ error: pre.message, reason: perkReasonCode(pre.reason), gated: true }, { status: 402 });
     }
   }
 
-  // ── Gating serveur : consomme le quota du type de tirage (base/avancé). ──
-  const gate = await enforceGate(body.userId ? String(body.userId) : null, body.type || `runes-${m}`, body.question ?? null);
+  // ── Gating serveur : session (jeton X-Session) + quota base/avancé + dédup
+  //    par flowId (un même tirage qui relance l'appel ne débite pas deux fois). ──
+  const gate = await enforceGate(request, body, body.type || `runes-${m}`, body.question ?? null);
   if (gate) return gate;
-
-  const odinEmail = body.userId ? String(body.userId) : '';
   const runes: RuneInput[] = Array.isArray(body.runes) ? body.runes : [];
   if (runes.length === 0) {
     return NextResponse.json({ error: 'runes requis' }, { status: 400 });

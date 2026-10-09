@@ -6,6 +6,7 @@ import { useLang, pick4, pickContent, type Lang } from '@/lib/i18n';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import { api } from '@/lib/api-client';
 
 // ─── Charte laque noir / rouge / or (identité Yi Jing) ─────────────────────
 const L = {
@@ -440,7 +441,7 @@ function YiJingDuJourPage() {
       qs.set('email', email);
       qs.set('personal', '1');
     }
-    fetch(`/api/yi-jing-du-jour?${qs.toString()}`)
+    api(`/api/yi-jing-du-jour?${qs.toString()}`)
       .then(async (r) => {
         const j = (await r.json()) as ApiResponse;
         // Accès personnel refusé (abonnement expiré entre-temps) → retour au
@@ -456,7 +457,7 @@ function YiJingDuJourPage() {
         if (seenSeal.current) setOpened(true); else setOpened(false);
         // un compte qui ouvre la page valide sa vue du jour (collection/streak)
         if (email) {
-          fetch('/api/yi-jing-du-jour', {
+          api('/api/yi-jing-du-jour', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, numero: j.hexagram.numero, date: j.date }),

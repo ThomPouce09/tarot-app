@@ -31,6 +31,7 @@ export default function LanguageGate() {
         // « Mon espace » renverra donc vers la mire de connexion tant que
         // l'utilisateur ne s'est pas lui-même connecté.
         localStorage.removeItem('tarot_user');
+      localStorage.removeItem('arkane_session_token');
         setOpen(true);
       }
     } catch {

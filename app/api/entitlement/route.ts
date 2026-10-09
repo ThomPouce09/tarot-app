@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 });
     if (!type) return NextResponse.json({ error: 'type requis' }, { status: 400 });
 
-    const decision = await consume(email, type, question);
+    // Vérification SEULE depuis la sécurisation serveur : le débit est fait
+    // par les routes IA elles-mêmes (guardRequest) — un consume ici serait un
+    // double comptage (client + serveur).
+    const decision = await canDo(email, type, question);
     return NextResponse.json(decision);
   } catch (e: any) {
     console.error('[api/entitlement POST]', e?.message);
