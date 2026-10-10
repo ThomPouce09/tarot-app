@@ -254,6 +254,7 @@ export function musicGloballyAllowed(): boolean {
 
 /** Éléments audio pré-déverrouillés (un par son). */
 const unlocked = new Map<string, HTMLAudioElement>();
+const soundWarmed = new Set<string>(); // fichiers déjà poussés en cache HTTP
 
 /** Fichier réellement chargé par clé (pour détecter un changement de langue). */
 const loadedFile = new Map<string, string>();
@@ -345,6 +346,33 @@ export function unlockAllSounds() {
       // fichier absent / contexte invalide — on ignore
     }
   }
+}
+
+/** Précharge la SOURCE d'une clé dans son élément audio, sans la jouer : le
+ *  buffer HTTP se remplit à l'avance et, au déclenchement, play() repart du
+ *  cache au lieu de retélécharger le mp3. Sans ça, l'ordre de lecture est
+ *  donné à temps mais le fichier n'est pas encore là → le son part en
+ *  retard alors que l'animation tourne (cas des roulements de dés sur la
+ *  piste, déclenchés au renversement du gobelet).
+ *  Réservé aux sons courts pilotés par un geste ; les grandes pistes et
+ *  boucles gardent leur chargement à la demande.
+ */
+export function preloadSound(key: string): void {
+  if (typeof window === 'undefined') return;
+  const entry = BY_KEY[key];
+  if (!entry) return;
+  if (entry.voice ? !isVoicesEnabled() : !isEffectsEnabled()) return;
+  const file = soundFileFor(entry); // variante de langue effective, comme playSound
+  if (soundWarmed.has(file)) return;
+  soundWarmed.add(file);
+  // fetch() et NON element.load() : Chrome/WebView RETARDENT le chargement
+  // d'un média tant qu'aucune interaction n'a eu lieu (« lazy media load ») —
+  // a.load() ne téléchargeait donc rien avant le geste, d'où le son en retard.
+  // Le fetch remplit bel et bien le cache HTTP ; au geste, play() sert la
+  // même URL depuis ce cache — instantané.
+  fetch(file, { priority: 'low' } as RequestInit)
+    .then((r) => (r.ok ? r.arrayBuffer() : undefined))
+    .catch(() => { soundWarmed.delete(file); }); // réseau : on retentera
 }
 
 /**

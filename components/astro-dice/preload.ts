@@ -1,3 +1,5 @@
+import { preloadSound } from '@/lib/sounds';
+
 // Préchauffe TOUT ce dont le gobelet des dés a besoin, dès l'arrivée sur la
 // page (bien avant la sélection du thème/question puis du lancer) :
 //
@@ -16,6 +18,19 @@
 // codés dans AstroDiceCup/AstroDiceSet — si l'un change là-bas, le
 // préchargement devient un simple no-op (404 avalé), jamais une régression.
 let p: Promise<unknown> | null = null;
+
+// Toutes les pistes du geste de tirage (les 10 mp3, ~240 Ko au total) :
+//  - secousse : jouée au pointerdown, souvent = 1er geste de la session →
+//    sans préchauffe, le mp3 est téléchargé À CE MOMENT (le son part après
+//    le début visuel de la secousse) ;
+//  - jetés : joués au renversement (début du roulement sur la piste).
+const DICE_SOUNDS = [
+  'dice-shake-1', 'dice-shake-2', 'dice-shake-3',
+  'dices-cup-1', 'dices-cup-2', 'dices-cup-3',
+  'dice-throw-1', 'dice-throw-2', 'dice-throw-3', 'dices-throw-4',
+  // frappe « le ciel se déchire » qui suit l'immobilisation des dés
+  'animation-zodiac', 'animation-zodiac-obstacle',
+];
 
 const CUP_IMAGES = ['/images/gobelet1.png', '/images/gobelet2.png', '/images/gobelet3.png'];
 const CUP_ASSETS = ['/backgrounds/des-divinatoires-bg.png', '/fonts/DejaVuSans.ttf'];
@@ -44,6 +59,9 @@ async function warmFont(url: string): Promise<void> {
 }
 
 function warmAssets(): Promise<void> {
+  // Les pistes du geste sont préchargées avec le gobelet : au geste, play()
+  // repart du cache — plus de téléchargement à la seconde du roulement.
+  for (const k of DICE_SOUNDS) preloadSound(k);
   return Promise.all([...CUP_IMAGES.map(warmImage), ...CUP_ASSETS.map(warmFont)]).then(() => undefined);
 }
 
