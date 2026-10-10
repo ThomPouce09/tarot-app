@@ -4,6 +4,7 @@
 // Deplacees telles quelles depuis page.tsx (decoupage).
 
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
+import WaitPoolLine from '@/components/wait-pool-line';
 import { DICE_THEME, OneLineQuestion, PLANET_NAMES, SIGN_NAMES } from '../_shared';
 import { md } from './helpers';
 import { TargetFaces } from '@/components/astro-dice';
@@ -198,17 +199,16 @@ export function DiceAnalysis({
               height: '55%',
             }}
           />
-          {/* Message d'attente */}
-          <p
-            className="absolute inset-x-0 bottom-0 pb-2 text-center text-xs font-bold uppercase tracking-widest"
+          {/* Message d'attente : rotation du corpus « Dés zodiacaux » */}
+          <WaitPoolLine
+            universe="des"
+            className="absolute inset-x-0 bottom-0 px-3 pb-2 text-center text-[11px] leading-snug"
             style={{
-              fontFamily: 'var(--font-cinzel-deco), serif',
+              fontFamily: 'var(--font-cinzel), serif',
               color: DICE_THEME.gold,
               textShadow: `0 0 12px ${DICE_THEME.gold}44`,
             }}
-          >
-            {t('des.choix.analysisPending')}
-          </p>
+          />
           {/* Hauteur minimale pour la vidéo */}
           <div className="h-52 sm:h-64" />
         </motion.div>

@@ -20,6 +20,7 @@
 
 import { useEffect, useRef } from 'react';
 import AnalysisWaitVideo from './analysis-wait-video';
+import WaitPoolLine from '@/components/wait-pool-line';
 
 export default function AnalysisWaitCard({
   title,
@@ -90,12 +91,12 @@ export default function AnalysisWaitCard({
           {title}
         </p>
         {subtitle && (
-          <p
+          <div
             className="mt-2 text-[10px] uppercase tracking-wider"
             style={{ fontFamily: 'var(--font-cinzel), serif', color: '#DCE6F5', opacity: 0.75 }}
           >
             {subtitle}
-          </p>
+          </div>
         )}
       </div>
     </div>

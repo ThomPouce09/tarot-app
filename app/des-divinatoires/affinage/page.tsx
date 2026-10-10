@@ -45,6 +45,7 @@ import { nextRaceSeq } from '@/lib/race-guard';
 import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import WaitPoolLine from '@/components/wait-pool-line';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { playSound } from '@/lib/sounds';
@@ -881,6 +882,7 @@ function AffinagePage() {
                     <AnalysisWaitCard
                       accent={DICE_THEME.gold}
                       title={t('des.affinage.thinking')}
+                      subtitle={<WaitPoolLine universe="des" />}
                       videoPrefix="analyse-des-zodiaque"
                     />
                   )}
