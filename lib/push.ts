@@ -66,6 +66,56 @@ function handleTap(url: string | undefined) {
   window.dispatchEvent(new CustomEvent('push-navigate', { detail: url }));
 }
 
+// ── App Links (liens profonds : lettre hebdo, e-mails, partages) ────────
+// Android livre l'URL d'un lien https vérifié (autoVerify + assetlinks.json,
+// ou tarotdivination://) à MainActivity ; Capacitor relaie ça en événement
+// 'appUrlOpen' du plugin App natif (embarqué — pas besoin du package JS).
+// Routage :
+//   - pages internes (/runes, /tarot, /dashboard/…) → deep link interne,
+//     exactement comme un tap de notification (PushRouter consomme).
+//   - /api/* (unsubscribe GET HTML), /auth/confirm (activation),
+//     /dashboard/account/abonnement (retour Stripe) → navigateur SYSTÈME :
+//     ces routes vivent sur le backend, la WebView statique ne doit pas les
+//     charger (porte web 403 et session incohérente sinon).
+const EXTERNAL_LINK_PREFIXES = ['/api/', '/auth/confirm', '/dashboard/account/abonnement'];
+
+function routeAppUrl(raw: string) {
+  if (!raw) return;
+  let path = '';
+  try {
+    if (raw.startsWith('tarotdivination:')) {
+      const u = new URL(raw);
+      const inner = u.searchParams.get('url');
+      if (inner) path = inner.startsWith('/') ? inner : `/${inner}`;
+      else path = (u.host ? `/${u.host}` : '') + u.pathname;
+    } else {
+      const u = new URL(raw);
+      path = u.pathname + u.search;
+    }
+  } catch { return; }
+  path = path.replace(/\/+$/, '') || '/';
+  if (!path.startsWith('/')) return;
+  if (EXTERNAL_LINK_PREFIXES.some((p) => path.startsWith(p))) {
+    import('@capacitor/browser')
+      .then(({ Browser }) => Browser.open({ url: raw }))
+      .catch(() => { try { window.open(raw, '_system'); } catch { /* pas de navigateur dispo */ } });
+    return;
+  }
+  handleTap(path);
+}
+
+function registerAppLinkListener() {
+  try {
+    const cap = (window as any).Capacitor;
+    const App = cap?.Plugins?.App;
+    if (!App) return;
+    App.addListener?.('appUrlOpen', (res: { url?: string }) => routeAppUrl(res?.url || ''))?.catch?.(() => {});
+    // COLD START : l'événement peut être émis avant notre montage → le plugin
+    // expose l'URL d'intent. handleTap est idempotent (pending + « déjà ici »).
+    App.getLaunchUrl?.().then((r: { url?: string } | null) => { if (r?.url) routeAppUrl(r.url); }).catch(() => {});
+  } catch { /* bridge non prêt — le listener push covera les taps */ }
+}
+
 // Enregistre l'app auprès de FCM et stocke le token.
 // Repli premier plan : sur Android, un push reçu pendant que l'app est OUVERTE
 // n'affiche aucune notification système (comportement FCM natif). On la rejoue
@@ -156,6 +206,8 @@ export function initPush() {
   // Fuseau local synchronisé dès qu'un compte est connecté (web comme natif —
   // utile si l'utilisateur revient sur l'APK après un passage web).
   if (getEmail()) syncTimezone();
+  // App Links : listener des liens profonds dès le montage (voir routeAppUrl).
+  if (Capacitor.isNativePlatform()) registerAppLinkListener();
   // Couvre les connexions SURVENUES après ce montage (le modal de login pose
   // 'tarot_user' sans re-charger la page) : un wrapper unique sur setItem
   // capte tous les points d'entrée login/signup/confirm sans les modifier.
