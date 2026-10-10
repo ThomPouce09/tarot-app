@@ -205,7 +205,7 @@ export default function AbonnementPage() {
     }
     setLoading(p);
     try {
-      const body: any = { plan: p, email };
+      const body: any = { plan: p, email, native: isNative() };
       if (isSubscription(p)) body.billing = billing[p as 'initie' | 'arkane'];
       const res = await api('/api/checkout', {
         method: 'POST',
@@ -235,7 +235,7 @@ export default function AbonnementPage() {
       const res = await api('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'recharge', email }),
+        body: JSON.stringify({ plan: 'recharge', email, native: isNative() }),
       });
       const data = await res.json();
       if (data.url) {
@@ -257,7 +257,7 @@ export default function AbonnementPage() {
       const res = await api('/api/billing-portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, native: isNative() }),
       });
       const data = await res.json();
       if (data.url) { await openExternal(data.url); return; }
