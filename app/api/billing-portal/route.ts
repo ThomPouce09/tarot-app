@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, native } = await request.json();
     if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 });
 
     const stripe = getStripe();
@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.APP_URL || 'http://localhost:3007';
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripeCustomerId,
-      return_url: `${baseUrl}/dashboard/account/abonnement`,
+      return_url: native
+        ? `${baseUrl}/pay-return?next=/dashboard/account/abonnement&status=success`
+        : `${baseUrl}/dashboard/account/abonnement`,
     });
 
     return NextResponse.json({ url: session.url });

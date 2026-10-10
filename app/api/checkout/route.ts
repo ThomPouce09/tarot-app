@@ -6,7 +6,11 @@
 //   - Abonnement récurrent (initie / arkane), mensuel ou annuel : mode 'subscription'.
 //   - One-shot (bienvenue offert / recharge cosmique) : mode 'payment'.
 //
-// Le front envoie { plan, billing?, email }.
+// Le front envoie { plan, billing?, email, native? }.
+// native=true (APK) → success/cancel passent par la page relais /pay-return
+// (Stripe n'accepte que de l'https) qui bascule dans l'app via le schéma
+// tarotdivination:// — le retour de paiement ramène DIRECTEMENT dans l'app.
+// Le web (native absent) garde la redirection classique vers /abonnement.
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -48,7 +52,15 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.APP_URL || 'http://localhost:3007';
-    const { plan, billing = 'month', email } = await request.json();
+    const { plan, billing = 'month', email, native } = await request.json();
+    // Retour de paiement : l'APK passe par /pay-return (page relais qui bascule
+    // dans l'app via tarotdivination:// — Stripe n'accepte que de l'https).
+    // Le web garde la redirection directe vers la page d'abonnement.
+    const ABS = '/dashboard/account/abonnement';
+    const back = (status: string, withSession: boolean) =>
+      native
+        ? `${baseUrl}/pay-return?next=${ABS}&status=${status}${withSession ? '&session_id={CHECKOUT_SESSION_ID}' : ''}`
+        : `${baseUrl}${ABS}?${withSession ? 'session_id={CHECKOUT_SESSION_ID}&' : ''}status=${status}`;
     const oneShot = plan === 'bienvenue' || plan === 'recharge';
     if (!oneShot && plan !== 'initie' && plan !== 'arkane') {
       return NextResponse.json({ error: 'Plan invalide' }, { status: 400 });
@@ -76,8 +88,8 @@ export async function POST(request: NextRequest) {
           : [{ price_data: { currency: 'eur', product_data: { name: ONE_SHOT_NAMES[plan as OneShotPlan] }, unit_amount: amountEur }, quantity: 1 }],
         payment_method_types: ['card', 'paypal'],
         metadata: { userId: user.id, plan },
-        success_url: `${baseUrl}/dashboard/account/abonnement?session_id={CHECKOUT_SESSION_ID}&status=success`,
-        cancel_url: `${baseUrl}/dashboard/account/abonnement?status=cancel`,
+        success_url: back('success', true),
+        cancel_url: back('cancel', false),
       });
       return NextResponse.json({ url: session.url });
     }
@@ -96,8 +108,8 @@ export async function POST(request: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       payment_method_types: ['card', 'paypal'],
       metadata: { userId: user.id, plan, billing },
-      success_url: `${baseUrl}/dashboard/account/abonnement?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `${baseUrl}/dashboard/account/abonnement?status=cancel`,
+      success_url: back('success', true),
+      cancel_url: back('cancel', false),
       allow_promotion_codes: true,
     });
 

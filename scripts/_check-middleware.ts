@@ -25,6 +25,7 @@ const CASES: Array<[string, string, number | 'pass']> = [
   ['Privacy (Play Store)', '/privacy', 'pass'],
   ['Confirmation email', '/auth/confirm', 'pass'],
   ['Retour Stripe', '/dashboard/account/abonnement', 'pass'],
+  ['Relais pay-return (APK)', '/pay-return?next=/dashboard/account/abonnement', 'pass'],
   ['API (APK)', '/api/prefs', 'pass'],
   ['Page applicative', '/dashboard/account/echoes', 403],
   ['Accueil', '/', 403],

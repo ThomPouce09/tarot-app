@@ -27,6 +27,7 @@ const IS_PROD = process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV 
 const PUBLIC_PATHS = (p: string) =>
   p === '/privacy' || p.startsWith('/privacy') ||
   p === '/auth/confirm' || p.startsWith('/auth/confirm') ||
+  p === '/pay-return' ||
   p.startsWith('/dashboard/account/abonnement') ||
   p.startsWith('/api/');
 

@@ -73,7 +73,7 @@ function handleTap(url: string | undefined) {
 //     /dashboard/account/abonnement (retour Stripe) → navigateur SYSTÈME :
 //     ces routes vivent sur le backend, la WebView statique ne doit pas les
 //     charger (porte web 403 et session incohérente sinon).
-const EXTERNAL_LINK_PREFIXES = ['/api/', '/auth/confirm', '/dashboard/account/abonnement'];
+const EXTERNAL_LINK_PREFIXES = ['/api/', '/auth/confirm', '/dashboard/account/abonnement', '/pay-return'];
 
 function routeAppUrl(raw: string) {
   if (!raw) return;
@@ -91,7 +91,10 @@ function routeAppUrl(raw: string) {
   } catch { return; }
   path = path.replace(/\/+$/, '') || '/';
   if (!path.startsWith('/')) return;
-  if (EXTERNAL_LINK_PREFIXES.some((p) => path.startsWith(p))) {
+  // Deep link tarotdivination:// = TOUJOURS interne (retour de Stripe, liens
+  // courts) : on ne doit jamais le renvoyer au navigateur, sinon boucle.
+  const fromDeep = raw.startsWith('tarotdivination');
+  if (!fromDeep && EXTERNAL_LINK_PREFIXES.some((p) => path.startsWith(p))) {
     import('@capacitor/browser')
       .then(({ Browser }) => Browser.open({ url: raw }))
       .catch(() => { try { window.open(raw, '_system'); } catch { /* pas de navigateur dispo */ } });
