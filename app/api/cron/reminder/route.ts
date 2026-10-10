@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
-import { pickReminderMessage, sealNotification } from '@/lib/reminder-messages';
+import { pickReminderMessage, sealNotification, missYouNotification, INACTIVITY_DAYS } from '@/lib/reminder-messages';
 import {
   inReminderBand, alreadySentToday, dueOnLocalDay, localDayKey, utcDayKey, DEFAULT_REMINDER_HOUR,
 } from '@/lib/reminder-time';
@@ -16,6 +16,17 @@ export const dynamic = 'force-dynamic';
 // (timezone IANA, DST gérée) → un rappel quotidien à l'heure locale de chacun,
 // sans Vercel Pro. La date du jour UTC seede le message : tous les fuseaux
 // reçoivent le même message le même jour (roulement aléatoire jour -> jour).
+//
+// L'heure de 18h30 est FIXE et identique pour tous : la page Préférences ne
+// propose donc AUCUN réglage d'heure (ni de choix d'univers — le rappel doit
+// faire découvrir les univers que le user ne pratique pas). Un seul
+// interrupteur « rappel quotidien aléatoire » pilote tout.
+//
+// Deux notifications distinctes, un seul interrupteur :
+//   1. le rappel du soir (18h30 locale) — roulement des 16 messages ;
+//   2. le réengagement après INACTIVITY_DAYS jours sans tirage (« Vous nous
+//      manquez »), envoyé aussi dans la fenêtre du soir pour respecter le
+//      coucher de tout le monde.
 
 const DAY = 24 * 60 * 60 * 1000;
 const ECHO_GRACE_DAYS = 7; // fenêtre de rattrapage si l'envoi a échoué le jour J
@@ -74,8 +85,9 @@ export async function GET(request: NextRequest) {
 
   for (const u of users) {
     const tz = u.timezone || 'Europe/Paris';
-    const hour = (typeof u.dailyReminderHour === 'number' && u.dailyReminderHour >= 0 && u.dailyReminderHour <= 23)
-      ? u.dailyReminderHour : DEFAULT_REMINDER_HOUR;
+    // Heure FIXE 18h30 locale pour tout le monde : ce n'est plus un réglage
+    // utilisateur (la page Préférences n'expose plus d'heure).
+    const hour = DEFAULT_REMINDER_HOUR;
     // Message du jour dans la langue du user (seed date => même # pour tous).
     const msg = pickReminderMessage(dayKey, u.language);
 
@@ -90,19 +102,41 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // 1) Rappel « oracle du soir » — message du jour (roulement aléatoire).
+    // ── UN SEUL push de rappel par soir et par user ──────────────────────
+    // Deux textes candidats : le rappel du soir (roulement des 16) et le
+    // réengagement (« Vous nous manquez ») quand le user n'a plus tiré depuis
+    // INACTIVITY_DAYS jours. Le réengagement est PRIORITAIRE ; si le user est
+    // actif, c'est le rappel du soir qui part. JAMAIS les deux le même soir :
+    // lastReminderSentAt sert d'horodatage commun et bloque le second envoi.
     if (u.dailyReminder) {
+      const lastReading = await prisma.reading.findFirst({
+        where: { user: { email: u.email } },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+      const idleDays = lastReading
+        ? Math.floor((now.getTime() - lastReading.createdAt.getTime()) / DAY)
+        : Infinity; // jamais tiré : considéré inactif
+      const isIdle = idleDays >= INACTIVITY_DAYS;
+
+      const chosen = isIdle
+        ? (() => {
+            const m = missYouNotification(localDayKey(tz, now), u.language);
+            return { title: m.title, body: m.body, url: '/', kind: 'missyou' as const };
+          })()
+        : { title: msg.title, body: msg.body, url: msg.url, kind: 'daily' as const };
+
       try {
         await messaging.send({
           token,
-          notification: { title: msg.title, body: msg.body },
-          data: { url: msg.url, kind: 'daily' },
+          notification: { title: chosen.title, body: chosen.body },
+          data: { url: chosen.url, kind: chosen.kind },
           android: { priority: 'high' as const },
         });
         await prisma.user.update({ where: { email: u.email }, data: { lastReminderSentAt: now } });
-        sent++; push(u.email, 'daily');
+        sent++; push(u.email, chosen.kind);
       } catch (e: any) {
-        failed++; push(u.email, 'daily-fail'); await killToken(e);
+        failed++; push(u.email, `${chosen.kind}-fail`); await killToken(e);
       }
     }
 

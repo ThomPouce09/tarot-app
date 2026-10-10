@@ -4,16 +4,20 @@
 //
 // Logique (cycle de vie d'un compte) :
 //   - Niveau récurrent : arkane > initie > apprenti (défaut, gratuit).
-//   - Pack de bienvenue (one-shot) : 1 base sur CHAQUE univers + 1 grand au choix.
+//   - Pack Apprenti (one-shot, offert) : 1 tirage de base sur UN univers au
+//     choix + 1 tirage avancé sur UN univers au choix. Rien d'autre : plus de
+//     base quotidienne, plus de bonus streak.
 //   - Recharge cosmique (one-shot, 2€) : un pool de 105 crédits MIXABLE.
 //     base = 7 crédits ; avancé = 15 crédits (15x7 = 105 = 7x15) → ratio exact,
 //     on pioche dans le pool jusqu'à épuisement, dans n'importe quelle combinaison.
-//   - Streak 7 jours consécutifs : +1 grand offert à chaque palier de 7 jours.
+//   - Streak : compteur de jours consécutifs (vitrine/stats/lettre uniquement,
+//     ne récompense plus).
 //
-// Un tirage de BASE est gratuit/illimité pour initie & arkane ; 1/jour pour
-// apprenti (au-delà, il consomme 7 crédits de recharge). Un GRAND tirage est
-// limité (mensuel) sauf arkane ; il consomme d'abord les droits one-shot,
-// puis 15 crédits de recharge, puis le quota mensuel.
+// Un tirage de BASE est plafonné par mois pour les abonnés (Initié 90, Arkane
+// 120) ; pour les non-abonnés, seul le Pack Apprenti en donne un (puis tickets
+// cadeaux et crédits de recharge). Un GRAND tirage est limité (mensuel :
+// Initié 10, Arkane 120) ; il consomme d'abord les droits one-shot (pack,
+// tickets, bonus hérités), puis 15 crédits de recharge, puis le quota mensuel.
 
 import { prisma } from './prisma';
 import { classify, type Universe } from './classification';
@@ -51,7 +55,7 @@ export interface Rights {
 export interface Decision {
   allowed: boolean;
   // Motif machine pour la couche UI (message déjà i18n-é côté client).
-  reason: 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'session';
+  reason: 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'limit-base-pack' | 'session';
   message: string;
 }
 
@@ -195,21 +199,19 @@ export async function canDo(email: string, type: string, question: string | null
         message: `Plafond mensuel de ${cap} tirages de base atteint. Rechargez ou revenez le mois prochain.`,
       };
     }
-    // Pack bienvenue : 1 base par univers (une fois), indépendant du 1/jour.
-    if (!rights.welcomeBaseUsed.includes(cls.universe)) {
+    // ── Pack Apprenti (remplace le forfait gratuit) ──
+    // 1 tirage de base sur UN univers au choix (une fois, à vie de compte).
+    // Plus de base quotidienne : au-delà du pack, ticket cadeau puis crédits.
+    if (rights.welcomeBaseUsed.length === 0) {
       return { allowed: true, reason: 'welcome-base-ok', message: '' };
     }
-    // Apprenti : 1 base/jour gratuit. Au-delà → ticket cadeau, puis 7 crédits.
-    if (rights.baseUsedToday >= 1) {
-      if (rights.giftTickets > 0) {
-        return { allowed: true, reason: 'ok', message: '' };
-      }
-      if (rights.rechargeCredits >= CREDITS_BASE) {
-        return { allowed: true, reason: 'ok', message: '' };
-      }
-      return { allowed: false, reason: 'limit-base-daily', message: 'Base quotidienne atteinte. Rechargez ou revenez demain.' };
+    if (rights.giftTickets > 0) {
+      return { allowed: true, reason: 'ok', message: '' };
     }
-    return { allowed: true, reason: 'ok', message: '' };
+    if (rights.rechargeCredits >= CREDITS_BASE) {
+      return { allowed: true, reason: 'ok', message: '' };
+    }
+    return { allowed: false, reason: 'limit-base-pack', message: 'Pack Apprenti épuisé. Abonnez-vous ou rechargez vos crédits.' };
   }
 
   // ── GRAND TIRAGE ──
@@ -289,17 +291,14 @@ export async function consume(email: string, type: string, question: string | nu
           patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
         }
       }
-    } else if (!(u.welcomeBaseUsed as string[]).includes(cls.universe)) {
-      // Base bienvenue : 1 par univers (une fois), indépendant du 1/jour.
+    } else if ((u.welcomeBaseUsed as string[]).length === 0) {
+      // Pack Apprenti : la base offerte se consomme sur l'univers choisi.
       patch.welcomeBaseUsed = [...(u.welcomeBaseUsed as string[]), cls.universe];
-    } else if (u.baseUsedToday < 1) {
-      // Apprenti : 1 base/jour gratuit.
-      patch.baseUsedToday = u.baseUsedToday + 1;
     } else if (u.giftTickets > 0) {
       // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
       patch.giftTickets = u.giftTickets - 1;
     } else {
-      // Au-delà du gratuit/jour → consomme 7 crédits de recharge.
+      // Plus de base gratuite : 7 crédits de recharge.
       patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
     }
   } else {
@@ -348,8 +347,7 @@ function computeStreakPatch(lastDate: string | null, streak: number, bonusGrand:
     s = 1; // nouvelle série
   }
   patch.streakDays = s;
-  // Chaque palier de 7 jours → +1 grand offert.
-  if (s % 7 === 0) patch.bonusGrand = bonusGrand + 1;
+  // Le streak ne récompense plus (bonus supprimé) : compteur vitrine seulement.
   return patch;
 }
 

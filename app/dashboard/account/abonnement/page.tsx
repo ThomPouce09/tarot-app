@@ -10,13 +10,14 @@ import { openExternal, isNative } from '@/lib/capacitor-utils';
 // Code BCP-47 pour dates localisées selon la langue de l'app.
 const loc = (lang: string): string => ({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR';
 
-// Niveaux affichés, ordre d'exposition.
-const CARDS: PlanId[] = ['bienvenue', 'apprenti', 'recharge', 'initie', 'arkane'];
+// Niveaux affichés, ordre d'exposition. (Le forfait « Apprenti » en tant que
+// carte a disparu : il EST le Pack Apprenti, carte 'bienvenue'.)
+const CARDS: PlanId[] = ['bienvenue', 'recharge', 'initie', 'arkane'];
 
 // Rang hiérarchique pour verrouiller les forfaits inférieurs au forfait actif.
 const RANK: Record<PlanId, number> = {
   bienvenue: 1,
-  apprenti: 2,
+  apprenti: 1, // même rang que le pack : niveau de base, plus de carte dédiée
   recharge: 2, // one-shot : pas un niveau, mais non proposable à un abonné
   initie: 3,
   arkane: 4,
@@ -326,7 +327,7 @@ export default function AbonnementPage() {
   // formule journalière historique (welcome + 1/jour + crédits).
   const baseRemaining: number | 'inf' = baseMonthly !== null
     ? Math.max(0, baseMonthly - baseUsedMonth) + Math.floor(credits / CREDITS_BASE)
-    : (UNIVERSES.length - welcomeBaseUsed.length) + (baseUsedToday < 1 ? 1 : 0) + Math.floor(credits / CREDITS_BASE);
+    : (welcomeBaseUsed.length === 0 ? 1 : 0) + giftTickets + Math.floor(credits / CREDITS_BASE);
 
   const grandQuotaLeft = (grandMonthly ?? 0) > 0 ? Math.max(0, (grandMonthly ?? 0) - grandUsed) : 0;
   // Arkane n'est plus « illimité » : 120/mois, le compteur s'affiche comme Initié.
@@ -338,7 +339,10 @@ export default function AbonnementPage() {
 
   const universeStatus = (u: Universe): 'welcome' | 'credits' | 'none' => {
     if (baseUnlimited) return 'welcome';
-    if (!welcomeBaseUsed.includes(u)) return 'welcome';
+    // Non-abonné : le Pack Apprenti n'offre QU'UNE base, sur l'univers choisi
+    // en premier. Les autres univers ne s'ouvrent que par crédits.
+    if (welcomeBaseUsed.length === 0) return 'welcome';
+    if (welcomeBaseUsed.includes(u)) return 'welcome';
     if (credits >= CREDITS_BASE) return 'credits';
     return 'none';
   };
@@ -520,21 +524,14 @@ export default function AbonnementPage() {
             </div>
           </div>
 
-          {/* Bonus & streak (si présents) */}
-          {bonusGrand > 0 || (usage?.streakDays ?? 0) > 0 ? (
+          {/* Bonus hérités (bonus streak supprimé : les comptes anciens peuvent
+              encore porter un bonusGrand — il reste consommable et affiché). */}
+          {bonusGrand > 0 ? (
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm border-t border-gray-700/50 pt-3">
-              {bonusGrand > 0 && (
-                <div>
-                  <span className="text-gray-500 text-xs">{t('sub.meterBonus')}</span>
-                  <span className="ml-2 text-amber-200 font-semibold">+{bonusGrand}</span>
-                </div>
-              )}
-              {(usage?.streakDays ?? 0) > 0 && (
-                <div>
-                  <span className="text-gray-500 text-xs">{t('sub.streak')}</span>
-                  <span className="ml-2 text-amber-200 font-semibold">{usage.streakDays} 🔥</span>
-                </div>
-              )}
+              <div>
+                <span className="text-gray-500 text-xs">{t('sub.meterBonus')}</span>
+                <span className="ml-2 text-amber-200 font-semibold">+{bonusGrand}</span>
+              </div>
             </div>
           ) : null}
         </div>
@@ -543,7 +540,7 @@ export default function AbonnementPage() {
       {/* Cartes de forfaits */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {CARDS.map((p) => {
-          const isCurrent = p === current;
+          const isCurrent = p === 'bienvenue' ? current === 'apprenti' : p === current;
           const locked = isLocked(p);
           const features = t(PLAN_FEATURES_KEY[p]).split('|');
           const isSub = isSubscription(p);

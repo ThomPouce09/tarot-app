@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tarot.divination",
+      "sha256_cert_fingerprints": [
+        "0F:E6:C9:7C:DF:17:09:CE:73:50:A9:15:29:89:74:A1:C9:0B:9C:49:7B:38:09:A8:E8:C6:3A:E7:A2:21:0F:03"
+      ]
+    }
+  }
+]

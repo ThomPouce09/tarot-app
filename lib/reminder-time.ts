@@ -6,6 +6,9 @@
 // gérée automatiquement : un user d'Europe/Paris reçoit toujours ~18h30
 // LOCALE, été comme hiver (l'heure UTC cible change, le job qui le matche aussi).
 
+// Heure d'envoi UNIQUE et fixe pour tous : ~18h30 dans le fuseau local du user.
+// Ce n'est PAS un réglage utilisateur — la page Préférences n'expose qu'un
+// interrupteur on/off (le rappel doit rester « aléatoire et surprise »).
 export const DEFAULT_REMINDER_HOUR = 18; // 18h30 locale
 const MINUTE_OF_HOUR = 30;               // bande centrée sur :30 local
 const BAND_TOLERANCE_MIN = 45;           // ±45 min : marge sur la dérive des crons Hobby (±59)

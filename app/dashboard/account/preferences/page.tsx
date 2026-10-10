@@ -12,7 +12,6 @@ import { useEntitlement } from '@/lib/use-entitlement';
 
 type Prefs = {
   dailyReminder: boolean;
-  dailyReminderHour: number;
   emailNews: boolean;
   backgrounds: string[];
   language: 'fr' | 'en' | 'es' | 'hi';
@@ -24,7 +23,6 @@ type Prefs = {
 
 const DEFAULT_PREFS: Prefs = {
   dailyReminder: false,
-  dailyReminderHour: 18,
   emailNews: false,
   backgrounds: [], // vide = tous les fonds en mode aléatoire
   language: 'fr',
@@ -82,7 +80,6 @@ export default function PreferencesPage() {
           const next: Prefs = {
             ...p,
             dailyReminder: d.dailyReminder ?? p.dailyReminder,
-            dailyReminderHour: d.dailyReminderHour ?? p.dailyReminderHour,
             emailNews: d.emailNews ?? p.emailNews,
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
             musicOn: typeof d.musicOn === 'boolean' ? d.musicOn : p.musicOn,
@@ -113,7 +110,7 @@ export default function PreferencesPage() {
     fetch('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, dailyReminderHour: next.dailyReminderHour, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language }),
     }).catch(() => {});
   };
 
@@ -285,24 +282,10 @@ export default function PreferencesPage() {
       <div className="mystic-panel p-5 space-y-3">
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.notifications')}</h2>
         <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
-        {prefs.dailyReminder && (
-          <div className="flex items-center gap-2 pl-1">
-            <p className="text-gray-400 text-xs">{t('prefs.reminderFixedHour')}</p>
-            <select
-              aria-label={t('prefs.reminderHour')}
-              value={prefs.dailyReminderHour}
-              onChange={(e) => update({ dailyReminderHour: Number(e.target.value) })}
-              className="bg-black/40 border border-amber-900/50 text-amber-200 text-xs rounded px-2 py-1"
-            >
-              {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>{String(h).padStart(2, '0')}:30</option>
-              ))}
-            </select>
-            <p className="text-gray-500 text-xs">({t('prefs.reminderLocalNote')})</p>
-          </div>
-        )}
         {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
+        <Toggle label={t('prefs.missYou')} checked={prefs.dailyReminder} disabled onChange={() => {}} hint={t('prefs.missYouHint')} />
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
+        <p className="text-gray-500 text-[11px] leading-relaxed pt-1">{t('prefs.letterNext')}</p>
       </div>
 
       {/* Langue — pastilles alignées sur la charte de la page (or sur bois).
@@ -384,9 +367,9 @@ export default function PreferencesPage() {
   );
 }
 
-function Toggle({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
+function Toggle({ label, checked, onChange, hint, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string; disabled?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className={`flex items-center justify-between ${disabled ? 'opacity-70' : ''}`}>
       <div className="min-w-0">
         <div className="text-gray-300 text-sm">{label}</div>
         {hint && <div className="text-gray-500 text-[11px]">{hint}</div>}
@@ -395,8 +378,10 @@ function Toggle({ label, checked, onChange, hint }: { label: string; checked: bo
         role="switch"
         aria-checked={checked}
         aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-violet-600' : 'bg-gray-700'}`}
+        aria-disabled={disabled || undefined}
+        disabled={disabled}
+        onClick={() => { if (!disabled) onChange(!checked); }}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-violet-600' : 'bg-gray-700'} ${disabled ? 'cursor-default' : ''}`}
       >
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : ''}`} />
       </button>

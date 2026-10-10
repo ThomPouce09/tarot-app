@@ -1,8 +1,14 @@
-// ── Rappel quotidien : roulement aléatoire des 16 messages (FR verbatim) ──
+// ── Rappel quotidien : roulement aléatoire des 16 messages ───────────────
 // Chaque jour, le cron choisit UN message au hasard parmi les 16, de façon
 // déterministe (seed = date du jour) : tous les fuseaux voient le même
 // message le même jour, et un retry du cron dans la journée reste idempotent
 // (pas de changement de texte en cas de re-exécution).
+//
+// ⚠️ Choix produit : on ne filtre PAS par univers. Le tirage quotidien sert
+// justement à faire DÉCOUVRIR les univers que l'utilisateur ne pratique pas
+// habituellement (le côté aléatoire est voulu) — ne pas ajouter de filtre
+// « univers préférés » côté rappel du soir.
+//
 // Langues : User.language (fr/en/es/hi) — même convention que lib/letter.
 // Titres courts (< 30 car.) car Android tronque la ligne de titre.
 
@@ -209,6 +215,51 @@ export const SEAL_COPY: Record<'due' | 'eve', { title: L10n; body: L10n }> = {
     },
   },
 };
+
+// ── Réengagement « Vous nous manquez » ───────────────────────────────────
+// Déclenché quand le user n'a plus AUCUN tirage depuis INACTIVITY_DAYS jours
+// (aucun réglage d'univers : le message reste volontairement transverse, le
+// but est de faire revenir vers un tirage, quel qu'il soit).
+// Sélection déterministe : seed = jour LOCAL de l'utilisateur + index du cycle
+// → un même jour ne rejoue jamais le même texte, et les 3 messages tournent.
+export const INACTIVITY_DAYS = 3;
+
+export const MISS_YOU_COPY: Array<{ title: L10n; body: L10n }> = [
+  {
+    title: { fr: 'Vous nous manquez', en: 'We miss you', es: 'Te echamos de menos', hi: 'आपकी याद आती है' },
+    body: {
+      fr: 'Vos oracles se sont tus depuis quelques jours. Une simple carte suffit à rallumer la flamme — venez reprendre le fil.',
+      en: 'Your oracles have gone quiet for a few days. One card is enough to relight the flame — come take up the thread again.',
+      es: 'Sus oráculos llevan unos días en silencio. Una sola carta basta para reavivar la llama: vuelva a retomar el hilo.',
+      hi: 'आपके ओरैकल कुछ दिनों से मौन हैं। ज्योति फिर जलाने के लिए एक पत्ती काफ़ी है — आओ, सूत्र फिर थामो।',
+    },
+  },
+  {
+    title: { fr: 'Vous nous manquez', en: 'We miss you', es: 'Te echamos de menos', hi: 'आपकी याद आती है' },
+    body: {
+      fr: 'L\u2019oracle garde votre place. Trois jours se sont écoulés : offrez-vous à nouveau un moment pour lire votre chemin.',
+      en: 'The oracle is keeping your seat. Three days have passed: treat yourself once more to a moment reading your path.',
+      es: 'El oráculo le guarda el sitio. Han pasado tres días: regálese de nuevo un momento para leer su camino.',
+      hi: 'ओरैकल तुम्हारी जगह सुरक्षित रखे है। तीन दिन बीत गए: अपने मार्ग को फिर से पढ़ने का एक पल लो।',
+    },
+  },
+  {
+    title: { fr: 'Vous nous manquez', en: 'We miss you', es: 'Te echamos de menos', hi: 'आपकी याद आती है' },
+    body: {
+      fr: 'Le silence dure un peu trop longtemps… Votre prochain tirage vous attend, et il a des choses à vous dire.',
+      en: 'The silence has lasted a little too long… Your next draw is waiting, and it has things to tell you.',
+      es: 'El silencio dura ya demasiado… Su próxima tirada le espera, y tiene cosas que decirle.',
+      hi: 'यह मौन अब थोड़ा लंबा हो गया है… तुम्हारा अगला विन्यास प्रतीक्षा में है, और उसके पास तुम्हें कहने को कुछ है।',
+    },
+  },
+];
+
+/** Message de réengagement : stable sur un jour local donné, fait tourner les 3. */
+export function missYouNotification(dayIso: string, lang: unknown): { title: string; body: string } {
+  const l = normNotifLang(lang);
+  const m = MISS_YOU_COPY[fnv1a(`oracle-manque-${dayIso}`) % MISS_YOU_COPY.length];
+  return { title: m.title[l], body: m.body[l] };
+}
 
 export function sealNotification(kind: 'due' | 'eve', lang: unknown, firstName?: string | null): { title: string; body: string } {
   const l = normNotifLang(lang);

@@ -6,6 +6,10 @@ export const dynamic = 'force-dynamic';
 // Préférences persistées (serveur) : lettre mystique hebdo + rappel quotidien.
 // Le front lit/écrit aussi localStorage pour la réactivité instantanée ; ce
 // endpoint fait foi côté serveur (cron lettre + rappel push).
+//
+// Rappel quotidien = UN interrupteur, heure FIXE (~18h30 locale) et message
+// aléatoire : aucun réglage d'heure ni de choix d'univers (voulu — le rappel
+// sert à faire découvrir les univers que le user ne pratique pas).
 export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email');
   if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 });
@@ -39,9 +43,9 @@ export async function POST(request: NextRequest) {
     const data: Record<string, unknown> = {};
     if (typeof body.emailNews === 'boolean') data.emailNews = body.emailNews;
     if (typeof body.dailyReminder === 'boolean') data.dailyReminder = body.dailyReminder;
-    if (typeof body.dailyReminderHour === 'number' && body.dailyReminderHour >= 0 && body.dailyReminderHour <= 23) {
-      data.dailyReminderHour = Math.floor(body.dailyReminderHour);
-    }
+    // NOTE : dailyReminderHour n'est volontairement plus accepté — l'heure du
+    // rappel est fixe (~18h30 locale, cf. lib/reminder-time) et n'est plus
+    // exposée dans la page Préférences.
     // Fonds d'écran sélectionnés : tableau de chemins publics valides (ou [] = tous en aléatoire).
     if (Array.isArray(body.backgrounds)) {
       data.backgrounds = body.backgrounds.filter((b: unknown): b is string => typeof b === 'string').slice(0, 20);

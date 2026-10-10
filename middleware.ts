@@ -37,6 +37,17 @@ const ASSET_PATHS = (p: string) =>
   p.startsWith('/images/') || p.startsWith('/sounds/') || p.endsWith('.css') || p.endsWith('.js') ||
   p.endsWith('.woff2') || p.endsWith('.svg') || p.endsWith('.png') || p.endsWith('.jpg');
 
+// Ressources destinées à des TIERS, hors application (ne jamais y mettre de
+// page ni de route API) :
+//   /.well-known/assetlinks.json → vérification App Links par Android. Sans
+//     ce fichier, les liens https n'ouvrent PAS l'APK installée. Public par
+//     conception (empreinte de certificat, aucun secret).
+//   /email/* → images des emails (bandeau, icônes). Les clients mail les
+//     chargent sans Origin/Referer, souvent via un proxy d'images : la porte
+//     web les renvoyait en 403 et les images n'apparaissaient jamais.
+const THIRD_PARTY_ASSETS = (p: string) =>
+  p === '/.well-known/assetlinks.json' || p.startsWith('/email/');
+
 // ── Rate-limit mémoire (par instance ; suffisant contre les scans/scripts) ──
 // 90 req / 10 s par IP sur les routes coûteuses ; les crons et l'auth
 // (qui ont leurs propres garde-fous) sont exemptés du burst bas.
@@ -102,7 +113,7 @@ export function middleware(request: NextRequest) {
   //     ou aux URL publiques ; le navigateur du grand public reste dehors.
   //     (En dev et en preview Vercel : aucune restriction — tester l'app
   //     dans un navigateur local reste possible.)
-  if (IS_PROD && !isAllowed && !PUBLIC_PATHS(path) && !ASSET_PATHS(path)) {
+  if (IS_PROD && !isAllowed && !PUBLIC_PATHS(path) && !ASSET_PATHS(path) && !THIRD_PARTY_ASSETS(path)) {
     return new NextResponse(
       '<!doctype html><html lang="fr"><meta charset="utf-8">' +
       '<title>Application Arkane</title>' +
