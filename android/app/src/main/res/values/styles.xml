@@ -27,13 +27,11 @@
         <item name="android:background">@drawable/splash</item>
         <item name="android:windowBackground">#FF0A0A1A</item>
         <!-- Splash Android 12+ : FOND = le bleu exact de l'image d'icône
-             (#0A0A1A) → l'icône (qui a ce fond bleu) se fond dans le splash,
-             plus de carré bleu sur fond brun-noir. Ces trois attributs sont
-             lus par l'API système (>=31) ET par la lib androidx.core
-             .splashscreen (compat <31, via installSplashScreen()). -->
+             (#0A0A1A) → l'icône se fond dans le splash, plus de carré bleu
+             sur fond brun-noir. PAS d'icône forcée : le logo garde sa taille
+             d'avant (l'attribut AnimatedIcon l'agrandissait dans le conteneur
+             circulaire système). -->
         <item name="windowSplashScreenBackground">#FF0A0A1A</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
-        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
