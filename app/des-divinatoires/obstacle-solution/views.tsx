@@ -9,6 +9,7 @@ import { DICE_THEME, DiceButton, OneLineQuestion, PLANET_NAMES, SIGN_NAMES } fro
 import type { TargetFaces } from '@/components/astro-dice';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
+import WaitPoolLine from '@/components/wait-pool-line';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { api } from '@/lib/api-client';
 import { useT, useLang, pick4, type Lang } from '@/lib/i18n';
@@ -148,12 +149,11 @@ export function DiceAnalysis({
             className="pointer-events-none absolute inset-x-0 bottom-0"
             style={{ background: 'linear-gradient(to top, rgba(4,6,15,0.85) 0%, rgba(4,6,15,0.35) 55%, transparent 100%)', height: '55%' }}
           />
-          <p
-            className="absolute inset-x-0 bottom-0 pb-2 text-center text-xs font-bold uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold, textShadow: `0 0 12px ${DICE_THEME.gold}44` }}
-          >
-            {t('des.choix.analysisPending')}
-          </p>
+          <WaitPoolLine
+            universe="des"
+            className="absolute inset-x-0 bottom-0 px-3 pb-2 text-center text-[11px] leading-snug"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.gold, textShadow: `0 0 12px ${DICE_THEME.gold}44` }}
+          />
           <div className="h-52 sm:h-64" />
         </motion.div>
       )}

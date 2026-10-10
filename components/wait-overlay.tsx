@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
+import { waitMessages } from '@/lib/wait-messages';
 
 interface WaitConfig {
   messages: string[];
@@ -27,35 +28,37 @@ const FALLBACK: WaitConfig = {
 // d'attente. On initialise avec analyse-tarot1.mp4 (resp. analyse-yi-jing1.mp4)
 // pour que la vidéo démarre IMMÉDIATEMENT (pas de fond noir pendant le fetch),
 // puis le fetch rafraîchit la liste complète (1..9.mp4) pour la boucle.
-const TAROT_OPTIMISTIC: WaitConfig = {
-  messages: ['Les cartes se dévoilent…', 'Le tarot médite votre tirage…', 'L’oracle assemble les arcanes…'],
-  backgroundType: 'video',
-  backgroundUrls: ['/images/analyse-tarot1.mp4'],
-  animation: 'fade',
-  minDurationMs: 3500,
-};
-
-const YIJING_OPTIMISTIC: WaitConfig = {
-  messages: ['L’oracle consulte les hexagrammes…', 'Les baguettes d’achillée résonnent…', 'Le Yi Jing médite votre tirage…'],
-  backgroundType: 'video',
-  backgroundUrls: ['/images/analyse-yi-jing1.mp4'],
-  noLoopUrls: ['/images/analyse-yi-jing1.mp4'],
-  animation: 'fade',
-  minDurationMs: 3500,
-};
-
-const YIJING_DOUBLE_OPTIMISTIC: WaitConfig = {
-  messages: ['L’oracle consulte les hexagrammes…', 'Les trois pièces résonnent encore…', 'Le Yi Jing médite votre tirage…'],
-  backgroundType: 'video',
-  backgroundUrls: ['/images/analyse-yi-jing-h1.mp4'],
-  animation: 'fade',
-  minDurationMs: 3500,
-};
-
-function optimisticConfig(type: string): WaitConfig | null {
-  if (type === 'yi-jing-double') return YIJING_DOUBLE_OPTIMISTIC;
-  if (type.startsWith('tarot')) return TAROT_OPTIMISTIC;
-  if (type.startsWith('yi-jing') || type === 'yi-qing') return YIJING_OPTIMISTIC;
+// Les messages viennent directement du corpus officiel (mélangé au montage) —
+// plus de liste figée ici : le premier texte s'affiche avant même le fetch.
+function optimisticConfig(type: string, lang: 'fr' | 'en' | 'es' | 'hi'): WaitConfig | null {
+  if (type === 'yi-jing-double') {
+    return {
+      messages: waitMessages('yijing', lang),
+      backgroundType: 'video',
+      backgroundUrls: ['/images/analyse-yi-jing-h1.mp4'],
+      animation: 'fade',
+      minDurationMs: 3500,
+    };
+  }
+  if (type.startsWith('tarot')) {
+    return {
+      messages: waitMessages('tarot', lang),
+      backgroundType: 'video',
+      backgroundUrls: ['/images/analyse-tarot1.mp4'],
+      animation: 'fade',
+      minDurationMs: 3500,
+    };
+  }
+  if (type.startsWith('yi-jing') || type === 'yi-qing') {
+    return {
+      messages: waitMessages('yijing', lang),
+      backgroundType: 'video',
+      backgroundUrls: ['/images/analyse-yi-jing1.mp4'],
+      noLoopUrls: ['/images/analyse-yi-jing1.mp4'],
+      animation: 'fade',
+      minDurationMs: 3500,
+    };
+  }
   return null;
 }
 
@@ -195,7 +198,7 @@ export default function WaitOverlay({
   onVideoEnded?: () => void;
 }) {
   const lang = useLang();
-  const [cfg, setCfg] = useState<WaitConfig | null>(() => optimisticConfig(type));
+  const [cfg, setCfg] = useState<WaitConfig | null>(() => optimisticConfig(type, lang));
   const [msgIdx, setMsgIdx] = useState(0);
   const [startedAt] = useState(Date.now());
   const [exiting, setExiting] = useState(false);
