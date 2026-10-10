@@ -25,6 +25,11 @@ export interface UsageState {
   /** Privilèges mensuels restants (Conseil d'Odin / Secret d'Artémis) ; null = illimité (Arkane). */
   odinRemaining?: number | null;
   artemisRemaining?: number | null;
+  /** Places d'augures restantes (Initié : 2 tenues max). null = hors Initié.
+   *  Juger OU supprimer un augure libère sa place : le compteur serveur ne
+   *  compte que les augures sans verdict — suppression = scellement possible
+   *  de nouveau dans la foulée (demande user). */
+  auguriesRemaining?: number | null;
 }
 
 export interface SubscriptionState {
@@ -116,7 +121,10 @@ export function useEntitlement() {
   // Pour les endpoints gâtés côté serveur : on ouvre la modale avec le motif renvoyé (402).
   const openGate = useCallback((reason: GateReason | null) => setGateReason(reason), []);
 
-  return { email, sub, loaded, tiles, loadTiles, consume, gateReason, closeGate, openGate };
+  // reload : rafraîchir sub après un sceau / verdict / suppression — le
+  // compteur d'augures (et les privilèges du mois) doivent coller à la vérité
+  // serveur sans re-charger la page.
+  return { email, sub, loaded, tiles, loadTiles, consume, gateReason, closeGate, openGate, reload: load };
 }
 
 // ── Modale de gating (paywall / limite) ─────────────────────────

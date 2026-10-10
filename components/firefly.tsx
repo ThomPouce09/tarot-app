@@ -167,10 +167,11 @@ export default function Firefly({ page }: { page: string }) {
             title={creature.name}
             onClick={() => {
               if (!pending) return;
-              // Jongle : un des 8 sons creature1..8 au hasard à chaque tap.
-              // playSound respecte la préférence « Effets sonores ».
-              const n = 1 + Math.floor(Math.random() * 8);
-              playSound(`creatures${n}`, 0.7);
+              // Jongle : un des 11 sons créature (creatures0..creatures10)
+              // tiré au hasard ; il part à l'APPARITION de la créature
+              // (dans le timeout du popup, ~620 ms), plus au tap. playSound
+              // respecte la préférence « Effets sonores ».
+              const n = Math.floor(Math.random() * 11);
               // Explosion de la luciole en petites particules qui fondent dans le fond
               const parts = Array.from({ length: 42 }).map((_, i) => ({
                 id: i,
@@ -186,6 +187,8 @@ export default function Firefly({ page }: { page: string }) {
                 setPopup(pending);
                 popupActiveRef.current = true;
                 setBurst(null);
+                // Cri de la créature : au moment exact où elle apparaît.
+                playSound(`creatures${n}`, 0.7);
                 // Cadeau exceptionnel : carillon magique dédié à l'ouverture.
                 if (pending.giftClaimable) playSound('cadeau', 0.8);
               }, 620);

@@ -48,6 +48,7 @@ import AnalysisWaitCard from '@/components/analysis-wait-card';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { playSound } from '@/lib/sounds';
+import { clampTwoSentences } from '@/lib/artemis-secret';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import EchoBox from '@/components/echo-box';
 import { useT, useLang, tr , getRuntimeLang} from '@/lib/i18n';
@@ -156,6 +157,11 @@ function AffinagePage() {
   // révéler le texte déjà reçu. ──
   const [artemisRevealed, setArtemisRevealed] = useState(false);
   const [artemisAdvice, setArtemisAdvice] = useState<string | null>(null);
+  // Parchemin secret-artemis.png : zone texte + police auto-ajustée (mécanique
+  // identique à la carte Conseil d'Odin : binary search shrink-to-fit).
+  const artemisBoxRef = useRef<HTMLDivElement | null>(null);
+  const artemisTextRef = useRef<HTMLParagraphElement | null>(null);
+  const [artemisFont, setArtemisFont] = useState<string | null>(null);
 
   // ── Verrouillage immédiat du scroll (pas via React — trop lent) ──
   // Appelé synchrone dans rollFirst/refine AVANT setPhase.
@@ -382,9 +388,11 @@ function AffinagePage() {
       return;
     }
     setArtemisRevealed(true);
-    // Révélation du secret d'Artémis : le bouton ne s'affiche qu'une fois
-    // (!artemisRevealed) → un seul déclenchement sonore par tirage.
+    // Son AU CLIC (l'ancien, conservé) : le bouton ne s'affiche qu'une fois
+    // (!artemisRevealed) → un seul déclenchement par tirage.
     playSound('artemis-secret', 1);
+    // Puis, à l'APPARITION RÉELLE du texte, un second son (magic10.wav,
+    // géré par l'effet plus bas) — les deux se cumulent volontairement.
     if (artemisAdvice) return;
     const orig = originalFacesRef.current;
     if (!orig) return;
@@ -405,8 +413,11 @@ function AffinagePage() {
         }),
       });
       const data = await res.json();
+      // Filet « 2 phrases max » aussi côté CLIENT : dans ce chemin de repli le
+      // serveur peut n'avoir renvoyé que du texte long (JSON KO) — le parchemin
+      // secret-artemis.png a une zone gravée à taille fixe, jamais de débordement.
       setArtemisAdvice(
-        String(data.artemis || data.texte || '') ||
+        clampTwoSentences(String(data.artemis || data.texte || '')) ||
         tr("Les étoiles se voilent un instant… le secret n'a pas pu être chuchoté. Recommence plus tard.", "The stars veil for a moment… the secret could not be whispered. Try again later.", "Las estrellas se velan un instante… el secreto no pudo susurrarse. Inténtalo más tarde.", "तारे एक पल के लिए आवृत हो गई हैं… रहस्य फुसफुसाया नहीं जा सका। बाद में पुनः प्रयास करें।"),
       );
     } catch {
@@ -450,6 +461,99 @@ function AffinagePage() {
     setArtemisAdvice(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis, analysisSections]);
+
+  // Précharge secret-artemis.png dès que le secret est disponible (avant le
+  // clic sur « Révéler ») → la carte apparaît sans attente de chargement.
+  useEffect(() => {
+    if (!artemisAdvice) return;
+    const img = new Image();
+    img.src = '/images/secret-artemis.png';
+  }, [artemisAdvice]);
+
+  // Auto-fit du texte gravé dans le parchemin (copie de la recette Odin :
+  // mesure en px de LAYOUT après chargement de Cinzel, puis filet shrink-only).
+  useEffect(() => {
+    if (!artemisRevealed || !artemisAdvice) return;
+    setArtemisFont(null);
+    let cancelled = false;
+    let late: number | undefined;
+    const measure = () => {
+      if (cancelled) return;
+      const box = artemisBoxRef.current;
+      const txt = artemisTextRef.current;
+      if (!box || !txt) return;
+      const basePx = parseFloat(getComputedStyle(txt).fontSize) || 14;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let lo = 9;
+      let hi = Math.min(basePx * 1.9, 22, bh * 0.3);
+      for (let i = 0; i < 16; i++) {
+        const mid = (lo + hi) / 2;
+        txt.style.fontSize = mid + 'px';
+        if (txt.offsetHeight <= bh - 1) lo = mid;
+        else hi = mid;
+      }
+      const finalPx = Math.round(lo * 10) / 10;
+      txt.style.fontSize = finalPx + 'px';
+      setArtemisFont(finalPx + 'px');
+    };
+    const t = window.setTimeout(measure, 80);
+    const fonts = (document as any).fonts;
+    if (fonts?.load) {
+      fonts
+        .load('700 20px Cinzel')
+        .then(() => window.setTimeout(measure, 30))
+        .catch(() => {});
+    }
+    late = window.setTimeout(measure, 1200);
+    const verify = () => {
+      if (cancelled) return;
+      const box = artemisBoxRef.current;
+      const txt = artemisTextRef.current;
+      if (!box || !txt) return;
+      const bh = box.clientHeight;
+      if (bh <= 0) return;
+      let f = parseFloat(txt.style.fontSize) || parseFloat(getComputedStyle(txt).fontSize) || 14;
+      while (f > 9 && txt.offsetHeight > bh - 1) {
+        f -= 0.5;
+        txt.style.fontSize = f + 'px';
+      }
+      setArtemisFont(f + 'px');
+    };
+    const v = window.setTimeout(verify, 2000);
+    let lastW = window.innerWidth;
+    const remeasure = () => {
+      if (window.innerWidth === lastW) return;
+      lastW = window.innerWidth;
+      setArtemisFont(null);
+      window.setTimeout(measure, 60);
+    };
+    window.addEventListener('resize', remeasure);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+      if (late) window.clearTimeout(late);
+      window.clearTimeout(v);
+      window.removeEventListener('resize', remeasure);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artemisRevealed, artemisAdvice]);
+
+  // Son de révélation — magic10.wav (clé 'artemis-reveal') : déclenché à
+  // l'APPARITION EXACTE du texte du Secret d'Artémis (révélé + chuchotement
+  // présent), y compris dans le chemin de repli où le texte arrive après
+  // l'appel API. Refusé (gating) → jamais révélé → jamais de son.
+  // Garde one-shot : un seul tintement par cycle de révélation.
+  const artemisSoundDoneRef = useRef(false);
+  useEffect(() => {
+    if (!artemisRevealed || !artemisAdvice) return;
+    if (artemisSoundDoneRef.current) return;
+    artemisSoundDoneRef.current = true;
+    playSound('artemis-reveal', 1);
+  }, [artemisRevealed, artemisAdvice]);
+  useEffect(() => {
+    if (!artemisRevealed) artemisSoundDoneRef.current = false;
+  }, [artemisRevealed]);
 
 
   // Amène l'utilisateur au résultat dès qu'il apparaît (après le tirage),
@@ -887,28 +991,7 @@ function AffinagePage() {
                       );
                     }
                     return (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                        className="relative mx-auto mt-6 overflow-hidden rounded-3xl p-6 text-center"
-                        style={{
-                          maxWidth: 560,
-                          background:
-                            'radial-gradient(120% 90% at 50% 0%, #17224a 0%, #0a1430 55%, #050a1c 100%)',
-                          border: '1.5px solid rgba(220,230,245,0.28)',
-                          boxShadow: '0 0 34px rgba(180,200,255,0.16), inset 0 0 30px rgba(10,20,48,0.9)',
-                        }}
-                      >
-                        {/* Halo lunaire (remplacera l'image user à terme) */}
-                        <div
-                          aria-hidden
-                          className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full"
-                          style={{
-                            background:
-                              'radial-gradient(circle, rgba(226,236,255,0.35), rgba(226,236,255,0.06) 55%, transparent 75%)',
-                          }}
-                        />
+                      <div className="mx-auto mt-6" style={{ maxWidth: 560 }}>
                         <p
                           className="mb-3 flex items-center justify-center gap-2 text-base font-bold uppercase tracking-[0.14em]"
                           style={{
@@ -925,13 +1008,89 @@ function AffinagePage() {
                           {t('des.affinage.artemis.title')}
                           <span aria-hidden style={{ color: '#DCE6F5', WebkitTextFillColor: '#DCE6F5' }}>✦</span>
                         </p>
-                        <p
-                          className="text-sm leading-relaxed italic"
-                          style={{ fontFamily: 'var(--font-cinzel), serif', color: '#EAF1FF' }}
+                        {/* Le parchemin secret-artemis.png — RÉCEPTACLE du texte
+                            (même mécanique que conseil-odin.png pour le Conseil
+                            d'Odin) : cadre image, message gravé dans la zone
+                            centrale claire, police auto-ajustée. */}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.78, y: 20, filter: 'blur(8px)' }}
+                          animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                          transition={{ type: 'spring', damping: 15, stiffness: 150, mass: 0.9 }}
+                          className="relative mx-auto overflow-hidden rounded-xl"
+                          style={{
+                            width: 'min(80%, 360px)',
+                            aspectRatio: '250 / 318',
+                            backgroundImage: "url('/images/secret-artemis.png')",
+                            backgroundSize: '100% 100%',
+                            backgroundPosition: 'center',
+                            boxShadow: '0 14px 44px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)',
+                          }}
                         >
-                          {artemisAdvice || t('des.affinage.artemis.whispering')}
-                        </p>
-                      </motion.div>
+                          {/* Reflet lumineux qui balaie le parchemin */}
+                          <motion.div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-y-0 w-1/2"
+                            style={{
+                              background:
+                                'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.5) 45%, rgba(255,255,255,0.08) 60%, transparent 100%)',
+                              left: '-60%',
+                            }}
+                            initial={{ left: '-60%' }}
+                            animate={{ left: '110%' }}
+                            transition={{ delay: 0.35, duration: 0.95, ease: 'easeInOut' }}
+                          />
+                          {/* Lueur lunaire pulsante dans la zone claire */}
+                          <motion.div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0"
+                            style={{
+                              background:
+                                'radial-gradient(circle at 50% 45%, rgba(214,228,255,0.55), transparent 70%)',
+                            }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0, 0.5, 0.15, 0.35, 0.15] }}
+                            transition={{ delay: 0.5, duration: 1.6, times: [0, 0.3, 0.55, 0.8, 1] }}
+                          />
+                          {/* Zone texte : calée DANS la partie claire du parchemin
+                              (mesurée sur l'image : ~20–78% en hauteur, 15–85% en
+                              largeur). Attend le texte réel : jamais le libellé
+                              de chargement dans le cadre (sinon l'auto-fit
+                              dimensionnerait la carte pour un faux texte). */}
+                          <div
+                            ref={artemisBoxRef}
+                            className="absolute flex flex-col items-center justify-center"
+                            style={{ top: '20%', bottom: '22%', left: '16%', right: '16%' }}
+                          >
+                            {artemisAdvice ? (
+                              <motion.p
+                                ref={artemisTextRef}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.55, duration: 0.55 }}
+                                className="text-center font-bold italic leading-snug"
+                                style={{
+                                  fontFamily: 'var(--font-cinzel), serif',
+                                  fontSize: artemisFont || '12px',
+                                  color: '#2E2A4A', // indigo nuit, gravé sur le vélin
+                                  textShadow:
+                                    '0 -1px 0 rgba(20,16,48,0.4), 0 1px 0 rgba(255,252,240,0.9), 0 2px 4px rgba(46,42,74,0.18)',
+                                }}
+                              >
+                                {artemisAdvice}
+                              </motion.p>
+                            ) : (
+                              <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-center text-sm italic"
+                                style={{ fontFamily: 'var(--font-cinzel), serif', color: '#2E2A4A' }}
+                              >
+                                {t('des.affinage.artemis.whispering')}
+                              </motion.p>
+                            )}
+                          </div>
+                        </motion.div>
+                      </div>
                     );
                   })()}
 

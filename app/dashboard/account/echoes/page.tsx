@@ -119,7 +119,7 @@ type Tab = 'due' | 'sealed' | 'closed';
 export default function AuguresPage() {
   const t = useT();
   const lang = useLang();
-  const { sub, loaded } = useEntitlement();
+  const { sub, loaded, reload: reloadSub } = useEntitlement();
   const [echoes, setEchoes] = useState<EchoData[] | null>(null);
   const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -277,13 +277,14 @@ export default function AuguresPage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.echo) {
         setEchoes((prev) => (prev || []).map((x) => (x.id === e.id ? data.echo : x)));
+        void reloadSub(); // augure clos : sa place est rendue (sceaux réouverts ailleurs)
       }
     } catch {
       /* réseau — le verdict pourra être repris plus tard */
     } finally {
       setSavingId(null);
     }
-  }, [email]);
+  }, [email, reloadSub]);
 
   // Briser le sceau : son magique + texte révélé dans la foulée.
   const breakSeal = useCallback((id: string) => {
@@ -341,6 +342,9 @@ export default function AuguresPage() {
         body: JSON.stringify({ userId: email, echoIds: ids }),
       });
       if (res.ok) {
+        // un augure NON BRISÉ supprimé libère sa place : le compteur du hook
+        // suit immédiatement (l'Initié peut resceller autant qu'il a supprimé).
+        void reloadSub();
         setEchoes((prev) => (prev || []).filter((x) => !ids.includes(x.id)));
         setSelected(new Set());
         setOpenId(null);
@@ -348,7 +352,7 @@ export default function AuguresPage() {
       }
     } catch { /* le geste pourra être repris */ }
     finally { setDeleting(false); }
-  }, [email]);
+  }, [email, reloadSub]);
 
   const exitManage = () => { setManage(false); setSelected(new Set()); };
   const openEcho = (e: EchoData) => {

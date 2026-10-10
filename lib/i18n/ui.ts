@@ -144,7 +144,6 @@ export const DICT = {
   'prefs.dailyReminderHint': { fr: "Un tirage mis en avant chaque jour, au hasard — pour vous faire explorer de nouveaux univers.", en: "One draw highlighted each day, at random — to lead you into new universes.", es: "Una tirada destacada cada día, al azar, para llevarle a nuevos universos.", hi: "हर दिन एक विन्यास, बिना किसी क्रम के — ताकि आप नए ब्रह्मांड खोज सकें।" },
   'prefs.missYou': { fr: "Vous nous manquez", en: "We miss you", es: "Te echamos de menos", hi: "आपकी याद आती है" },
   'prefs.missYouHint': { fr: "Après quelques jours sans tirage, un mot de l'oracle pour vous rappeler à lui.", en: "After a few days without a draw, a word from the oracle to call you back.", es: "Tras unos días sin tirada, una palabra del oráculo para invitarle a volver.", hi: "कुछ दिन विन्यास न करने पर, ओरैकल की ओर से याद दिलाने वाला एक संदेश।" },
-  'prefs.letterNext': { fr: "La lettre part en fin de semaine, le dimanche.", en: "The letter goes out at the end of the week, on Sunday.", es: "La carta sale al final de la semana, el domingo.", hi: "पत्र सप्ताह के अंत में, रविवार को भेजा जाता है।" },
   'prefs.emailNews': { fr: "Lettre mystique hebdomadaire", en: "Weekly mystic letter", es: "Carta mística semanal", hi: "साप्ताहिक रहस्यमय पत्र" },
   'prefs.emailNewsHint': { fr: "Un récap de votre semaine, chaque dimanche", en: "A recap of your week, every Sunday", es: "Un resumen de su semana, cada domingo", hi: "हर रविवार, आपके सप्ताह का सारांश" },
   'prefs.reset': { fr: "Réinitialiser les préférences", en: "Reset preferences", es: "Restablecer preferencias", hi: "प्राथमिकताएँ रीसेट करें" },
@@ -179,7 +178,7 @@ export const DICT = {
   'hubs.tarot.tileMansub': { fr: "Consultation personnalisée", en: "Personal consultation", es: "Consulta personalizada", hi: "व्यक्तिगत परामर्श" },
   'hubs.loginRequired': { fr: "🔒 Connectez-vous", en: "🔒 Sign in", es: "🔒 Inicie sesión", hi: "🔒 प्रवेश करें" },
   'hubs.loginPrompt': { fr: "🔒 Connectez-vous pour accéder à cette fonction", en: "🔒 Sign in to access this feature", es: "🔒 Inicie sesión para acceder a esta función", hi: "🔒 इस सुविधा के लिए प्रवेश करें" },
-  'hubs.tarot.footer': { fr: "✦ Les étoiles vous guident ✦", en: "✦ The stars guide you ✦", es: "✦ Las estrellas le guían ✦", hi: "✦ तारे आपका मार्गदर्शन करते हैं ✦" },
+  'hubs.tarot.footer': { fr: "Que les étoiles vous guident !", en: "May the stars guide you!", es: "¡Que las estrellas le guíen!", hi: "तारें आपका मार्गदर्शन करें!" },
   'hubs.yijing.title': { fr: "Le Yi Jing", en: "The I Ching", es: "El Yi Jing", hi: "इ चिंग" },
   'hubs.yijing.subtitle': { fr: "Pose ta question, laisse l'hexagramme répondre", en: "Ask your question, let the hexagram answer", es: "Plantea tu pregunta, deja que el hexagrama responda", hi: "अपना प्रश्न रखो, षट्कोण को उत्तर देने दो" },
   'hubs.yijing.base': { fr: "Yi Jing simplifié", en: "Simplified I Ching", es: "Yi Jing simplificado", hi: "सरल इ चिंग" },
@@ -374,6 +373,12 @@ export const DICT = {
   'stats.more': { fr: "Plus", en: "More", es: "Más", hi: "अधिक" },
   // ── Augures (prophéties datées, 4 univers) ──
   'echo.title': { fr: "Envie de défier l'Oracle ?", en: "Dare to challenge the Oracle?", es: "¿Ganas de desafiar al Oráculo?", hi: "ओरैकल को चुनौती देने का साहस?" },
+  'echo.quotaNote': {
+    fr: "Votre quota mensuel d'augures est épuisé. Vous pouvez gérer vos Augures avec un appui long dessus dans Mon espace > Augures.",
+    en: "Your monthly augury quota is used up. You can manage your Auguries with a long press on them in My space > Auguries.",
+    es: "Su cuota mensual de augurios está agotada. Puede gestionar sus Augurios con una pulsación larga sobre ellos en Mi espacio > Augurios.",
+    hi: "आपकी मासिक शगुन कोटि समाप्त हो चुकी है। आप 'मेरा स्थान > शगुन' में शगुन को देर तक दबाकर उन्हें प्रबंधित कर सकते हैं।",
+  },
   'echo.tease': {
     fr: "Une augure (prémonition) peut naître de cette lecture. Scellée aujourd'hui, elle se révèlera dans quelques semaines — et vous direz si l'oracle a vu juste.",
     en: "A foretelling can be born from this reading. Sealed today, it will reveal itself in a few weeks — and you will tell whether the oracle saw true.",
