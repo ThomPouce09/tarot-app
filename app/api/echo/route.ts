@@ -42,11 +42,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'summary trop court' }, { status: 400 });
   }
 
-  // Anti-doublon : un augure existe déjà pour cette lecture → on le renvoie.
+  // Anti-doublon : un augure existe déjà pour cette lecture → on le renvoie,
+  // avec le flag `dedup` : le client doit le DIRE (sinon le clic « Sceller »
+  // semble avoir créé un augure alors qu'il n'en restitue qu'un existant —
+  // l'utilisateur croit à tort un sceau neuf ; c'était le signal manquant).
   const readingId = body.readingId ? String(body.readingId) : null;
   if (readingId) {
     const existing = await prisma.echo.findUnique({ where: { readingId } });
-    if (existing) return NextResponse.json({ echo: serializeEcho(existing) });
+    if (existing) return NextResponse.json({ echo: serializeEcho(existing), dedup: true });
   }
 
   const result = await generateAndSaveEcho({

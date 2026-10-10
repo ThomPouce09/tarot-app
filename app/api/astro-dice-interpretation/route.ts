@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
+import { clampTwoSentences } from '@/lib/artemis-secret';
 import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
 import { resolveLang, outputDirective } from '@/lib/lang';
 import { type DieKind } from '@/components/astro-dice/glyphs';
@@ -238,7 +239,9 @@ Les actions en langage courant, CHACUNE commence par "Action concrète N :", 10-
 }
 
 // ── Affinage + secret d'Artémis FONDUS : un SEUL appel IA renvoie
-// l'analyse du dé relancé (texte) ET le chuchotement (artemis, 2-3 phrases).
+// l'analyse du dé relancé (texte) ET le chuchotement (artemis, 2 phrases
+// MAXIMUM — c'est le « secret » gravé dans le parchemin secret-artemis.png,
+// révélé au clic ; il doit tenir dans le cadre : court et percutant).
 // Déclenché par body.withArtemis + body.originalFaces (les autres appelants
 // zoom gardent le texte libre comme avant).
 
@@ -271,7 +274,7 @@ ${lines(faces)}${db}${q}
 
 Deux réponses, dans le même objet JSON :
 1. "texte" : ${mission}.
-2. "artemis" : le CHUCHOTEMENT qui découle UNIQUEMENT de ce changement de ${label}, lu à la lumière du tirage initial. STRICTEMENT 2 à 3 phrases intenses et concrètes (un geste, une posture — rien de général, aucun remplissage), comme une amie clairvoyante qui marche à côté de la personne.
+2. "artemis" : le SECRET d'Artémis — 2 phrases MAXIMUM (une seule si elle suffit), gravées dans un parchemin : chaque mot compte. Message puissant, tranchant, qui découle UNIQUEMENT de ce changement de ${label} lu à la lumière du tirage initial et dit un lien DIRECT avec les cartes face à la personne (nomme l'attitude, le geste, l'enjeu précis de CE tirage — jamais une maxime générale). Ton : révélation nocturne d'une déesse qui connaît la personne, jamais un conseil de développement personnel. Aucun remplissage, aucune reformulation du point 1.
 
 Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 { "texte": "...", "artemis": "..." }`;
@@ -412,7 +415,7 @@ export async function POST(request: NextRequest) {
     try {
       const json = extractJson(content);
       if (json && (json.texte || json.artemis)) {
-        const whisper = String(json.artemis || '').trim();
+        const whisper = clampTwoSentences(String(json.artemis || '').trim());
         // Le privilège est consommé UNIQUEMENT s'il est réellement délivré.
         if (whisper) await consumePerk(artemisEmail, 'artemis');
         return NextResponse.json({

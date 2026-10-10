@@ -86,7 +86,10 @@ function SemainePage() {
     if (found) return cardDisplayName(found, lang);
     return typeof card === 'object' && card ? (card.name || '') : '';
   };
-  const { gateReason, closeGate, openGate } = useEntitlement();
+  const { sub, gateReason, closeGate, openGate, reload: reloadSub } = useEntitlement();
+  // Initié sans place libre : le bouton « sceller » ne se montre PAS (juger ou
+  // supprimer un augure non brisé en rend une — même règle que le serveur).
+  const echoSlotsExhausted = !!sub && sub.level === 'initie' && sub.usage?.auguriesRemaining === 0;
   const [wheel, setWheel] = useState<Wheel | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -226,7 +229,8 @@ function SemainePage() {
       });
       const d = await res.json();
       if (!res.ok) flash(d.reason === 'echo-cap' ? d.error : (pick4('Sceau impossible.', 'Could not seal.', "Sello imposible.", "मुहर लगाना असंभव।")(lang)));
-      else flash(pick4('Ton augure est scellé jusqu’à la fin de la semaine.', 'Your augury is sealed for the week’s end.', "Tu augurio queda sellado hasta el fin de la semana.", "तुम्हारा शगुन सप्ताह के अंत तक मुहरबंद है।")(lang));
+      else void reloadSub(); // place prise : compteur à jour (la boîte se cache ailleurs)
+      if (res.ok) flash(pick4('Ton augure est scellé jusqu’à la fin de la semaine.', 'Your augury is sealed for the week’s end.', "Tu augurio queda sellado hasta el fin de la semana.", "तुम्हारा शगुन सप्ताह के अंत तक मुहरबंद है।")(lang));
       await reload();
     } finally { setSealedBusy(false); }
   };
@@ -242,6 +246,7 @@ function SemainePage() {
       });
       if (!res.ok) { flash(pick4('L’enregistrement a échoué.', 'The record failed.', "El registro falló.", "रिकॉर्ड विफल रहा।")(lang)); return; }
       await reload();
+      void reloadSub(); // augure clos : place rendue
       flash(pick4('Semaine consignée — la Ferveur grandit.', 'Week recorded — the Fervor grows.', "Semana consignada — el Fervor crece.", "सप्ताह दर्ज — ज्वर बढ़ता है।")(lang));
     } finally { setSealedBusy(false); }
   };
@@ -442,7 +447,12 @@ function SemainePage() {
                     </div>
                   )}
                   {wheel.filRouge && <p className="mt-3 text-center text-sm italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cinzel), serif' }}>« {pickContent(wheel.filRouge, lang)} »</p>}
-                  {wheel.filRouge && !wheel.echo && (
+                  {wheel.filRouge && !wheel.echo && echoSlotsExhausted && (
+                    <p className="mt-4 text-center text-[13px] leading-relaxed" style={{ color: `${IVORY}cc` }}>
+                      {pick4("Votre quota mensuel d'augures est épuisé. Vous pouvez gérer vos Augures avec un appui long dessus dans Mon espace > Augures.", "Your monthly augury quota is used up. You can manage your Auguries with a long press on them in My space > Auguries.", "Su cuota mensual de augurios está agotada. Puede gestionar sus Augurios con una pulsación larga sobre ellos en Mi espacio > Augurios.", "आपकी मासिक शगुन कोटि समाप्त हो चुकी है। आप 'मेरा स्थान > शगुन' में शगुन को देर तक दबाकर उन्हें प्रबंधित कर सकते हैं।")(lang)}
+                    </p>
+                  )}
+                  {wheel.filRouge && !wheel.echo && !echoSlotsExhausted && (
                     <div className="mt-4 text-center">
                       <button onClick={seal} disabled={sealedBusy} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50" style={{
                         background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%), linear-gradient(180deg, #E8C66A 0%, #D4AF37 45%, #9A7A22 100%)',

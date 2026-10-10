@@ -14,6 +14,7 @@ import { useEntitlement } from '@/lib/use-entitlement';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { RuneButton } from '@/app/runes/_shared';
 import { playSound } from '@/lib/sounds';
+import { api } from '@/lib/api-client';
 import { useFitOneLine } from '@/lib/fit-one-line';
 
 export interface EchoData {
@@ -75,7 +76,12 @@ export default function EchoBox({
   // largeur (police réduite au besoin, jamais de retour à la ligne).
   const titleRef = useRef<HTMLHeadingElement>(null);
   useFitOneLine(titleRef, [t('echo.title'), lang], { base: 18, min: 11, max: 22, inset: 4, font: '700 18px "Cinzel"' });
-  const { gateReason, closeGate } = useEntitlement();
+  const { sub, gateReason, closeGate, reload } = useEntitlement();
+  // Initié à court de places : le serveur refuse (403 'cap') et l'UI doit
+  // ne le lui rappelle plus — la boîte de scellement est INVISIBLE tant qu'aucune
+  // place n'est libre (juger ou supprimer un augure non brisé en rend une ;
+  // le compteur serveur ne compte que les augures sans verdict).
+  const echoSlotsExhausted = !!sub && sub.level === 'initie' && sub.usage?.auguriesRemaining === 0;
   const [current, setCurrent] = useState<EchoData | null>(echo ?? null);
   const [sealing, setSealing] = useState(false);
   const [sealError, setSealError] = useState('');
@@ -91,6 +97,27 @@ export default function EchoBox({
   useEffect(() => {
     if (echo !== undefined) setCurrent(echo);
   }, [echo]);
+
+  // Les pages dés/tarot/yi-jing ne passent pas la prop `echo` : sans ce
+  // chargement, la boîte propose de « Sceller » une lecture QUI A DÉJÀ SON
+  // AUGURE — le clic semblait réussir sans rien créer (dédup serveur) ni
+  // prévenir. On récupère l'augure de cette lecture au montage : le sceau
+  // existant s'affiche directement, le faux bouton par disparaît.
+  useEffect(() => {
+    if (echo !== undefined || !readingId) return;
+    const email = readEmail();
+    if (!email) return;
+    let alive = true;
+    api(`/api/echo?userId=${encodeURIComponent(email)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const mine = (d?.echoes as EchoData[] | undefined)?.find((e) => e.readingId === readingId);
+        if (alive && mine) setCurrent(mine);
+      })
+      .catch(() => { /* réseau — le POST dédupliquera de toute façon */ });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readingId]);
 
   const apply = useCallback(
     (e: EchoData | null) => {
@@ -112,16 +139,22 @@ export default function EchoBox({
     setSealing(true);
     setSealError('');
     try {
-      const res = await fetch('/api/echo', {
+      const res = await api('/api/echo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: email, domain, readingId: readingId ?? null, question: question ?? null, summary }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.echo) {
-        // l'acte : le sceau est posé (timbre astro propre aux dés zodiacaux)
-        playSound(domain === 'des' ? 'seal-astro' : 'seal', 0.95);
+        // Dédup serveur (flag `dedup`) : la lecture portait déjà son augure —
+        // aucun nouveau sceau, aucune consumption : on affiche le sceau existant
+        // SANS le son de succès (sinon le geste semble avoir réussi).
+        if (!data.dedup) playSound(domain === 'des' ? 'seal-astro' : 'seal', 0.95);
         apply(data.echo);
+        // place libérée/occupée : le compteur d'augures du compte suit (la
+        // boîte disparaît ailleurs dès la dernière place prise, revient dès
+        // qu'un verdict ou une suppression la libère).
+        void reload();
       } else if (data.reason === 'tier' || data.reason === 'cap') {
         // Message i18n côté client (le serveur ne connaît pas la langue).
         setSealError(data.reason === 'cap' ? t('echo.cap') : t('echo.locked'));
@@ -134,7 +167,7 @@ export default function EchoBox({
     } finally {
       if (mounted.current) setSealing(false);
     }
-  }, [domain, readingId, question, summary, apply, t]);
+  }, [domain, readingId, question, summary, apply, t, reload]);
 
   // ── Verdict ────────────────────────────────────────────────────────
   const verdict = useCallback(
@@ -144,20 +177,25 @@ export default function EchoBox({
       if (!email) return;
       setSavingVerdict(true);
       try {
-        const res = await fetch('/api/echo', {
+        const res = await api('/api/echo', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: email, echoId: current.id, verdict: v }),
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.echo) apply(data.echo);
+        if (res.ok && data.echo) {
+          apply(data.echo);
+          // le verdict clos l'augure : sa place se libère, le sceau redevient
+          // proposable — rafraîchir le compteur partagé.
+          void reload();
+        }
       } catch {
         /* réseau — le verdict pourra être repris plus tard */
       } finally {
         if (mounted.current) setSavingVerdict(false);
       }
     },
-    [current, apply],
+    [current, apply, reload],
   );
 
   const email = typeof window !== 'undefined' ? readEmail() : '';
@@ -196,8 +234,15 @@ export default function EchoBox({
         </div>
 
         <AnimatePresence mode="wait">
-          {/* ── État 1 : pas d'écho → proposition de sceller ── */}
-          {!current && (
+          {/* ── État 1 : pas d'écho. Initié à quota épuisé : l'encart reste
+              visible mais porte la NOTE explicite (où gérer ses augures) au
+              lieu du bouton — rien à cliquer. Sinon : proposition de sceller. ── */}
+          {!current && echoSlotsExhausted && (
+            <motion.div key="quota" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
+              <p className={`text-[14px] leading-relaxed ${moss ? 'text-[#cfe3d6]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-gray-200'}`}>{t('echo.quotaNote')}</p>
+            </motion.div>
+          )}
+          {!current && !echoSlotsExhausted && (
             <motion.div key="seal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
               <p className={`italic text-[15px] leading-relaxed mb-4 ${moss ? 'text-[#cfe3d6]' : domain === 'des' ? 'text-[#DCE6F5]' : 'text-gray-200'}`}>{t('echo.tease')}</p>
               <RuneButton variant="save" saveTint={moss ? 'cedar' : domain === 'des' ? 'astro' : domain} onClick={seal} disabled={sealing}>

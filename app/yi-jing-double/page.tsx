@@ -211,7 +211,10 @@ function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onC
 function DoublePage() {
   const lang = useLang();
   const en = lang === 'en';
-  const { gateReason, closeGate, openGate } = useEntitlement();
+  const { sub, gateReason, closeGate, openGate, reload: reloadSub } = useEntitlement();
+  // Initié sans place libre : le bouton « sceller » ne se montre PAS (juger ou
+  // supprimer un augure non brisé en rend une — même règle que le serveur).
+  const echoSlotsExhausted = !!sub && sub.level === 'initie' && sub.usage?.auguriesRemaining === 0;
   const L = (fr: string, e: string, es?: string, hi?: string) =>
     lang === 'en' ? e : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
 
@@ -358,6 +361,7 @@ function DoublePage() {
         return;
       }
       playSound('spell', 0.8);
+      void reloadSub(); // la place prise : le compteur suit
       setDb((prev) => {
         if (!prev || !prev.read) return prev;
         const dir = prev.read.sections.find((x) => x.key === 'direction') || prev.read.sections[0];
@@ -380,6 +384,7 @@ function DoublePage() {
       setDb((prev) => (prev && prev.echo
         ? { ...prev, echo: { ...prev.echo, verdict: verdictPct >= 100 ? 'oui' : verdictPct <= 0 ? 'non' : 'partiel', verdictPct } }
         : prev));
+      void reloadSub(); // l'augure est clos : sa place est de nouveau libre
       flash(tr("La mutation est consignée — la Ferveur grandit.", "The turn is recorded — Fervor grows.", "La mutación queda registrada — el Fervor crece.", "परिवर्तन दर्ज हो गया — जोश बढ़ रहा है।"));
     } finally { setSealedBusy(false); }
   };
@@ -577,7 +582,12 @@ function DoublePage() {
             </div>
 
             {/* ── 6. Sceller l'augure / échéance / verdict ── */}
-            {db.read && !db.echo && phase === 'read' && (
+            {db.read && !db.echo && phase === 'read' && echoSlotsExhausted && (
+              <p className="mt-4 text-center text-[13px] leading-relaxed" style={{ color: `${LILAC}cc` }}>
+                {L("Votre quota mensuel d'augures est épuisé. Vous pouvez gérer vos Augures avec un appui long dessus dans Mon espace > Augures.", "Your monthly augury quota is used up. You can manage your Auguries with a long press on them in My space > Auguries.", "Su cuota mensual de augurios está agotada. Puede gestionar sus Augurios con una pulsación larga sobre ellos en Mi espacio > Augurios.", "आपकी मासिक शगुन कोटि समाप्त हो चुकी है। आप 'मेरा स्थान > शगुन' में शगुन को देर तक दबाकर उन्हें प्रबंधित कर सकते हैं।")}
+              </p>
+            )}
+            {db.read && !db.echo && phase === 'read' && !echoSlotsExhausted && (
               <div className="mt-4 text-center">
                 <button onClick={seal} disabled={sealedBusy} className="rounded-full px-7 py-2.5 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                   style={YI_RED}>

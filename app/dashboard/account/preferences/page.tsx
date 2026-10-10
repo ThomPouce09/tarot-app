@@ -285,7 +285,6 @@ export default function PreferencesPage() {
         {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
         <Toggle label={t('prefs.missYou')} checked={prefs.dailyReminder} disabled onChange={() => {}} hint={t('prefs.missYouHint')} />
         <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
-        <p className="text-gray-500 text-[11px] leading-relaxed pt-1">{t('prefs.letterNext')}</p>
       </div>
 
       {/* Langue — pastilles alignées sur la charte de la page (or sur bois).
