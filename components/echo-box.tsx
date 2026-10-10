@@ -15,7 +15,6 @@ import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import { RuneButton } from '@/app/runes/_shared';
 import { playSound } from '@/lib/sounds';
-import { api } from '@/lib/api-client';
 import { useFitOneLine } from '@/lib/fit-one-line';
 
 export interface EchoData {
