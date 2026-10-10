@@ -19,6 +19,25 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links : les liens de la lettre journaliere (et des emails)
+                 pointent vers le domaine de l'API ; ils ouvrent l'app quand
+                 elle est installee, sinon le navigateur. autoVerify=true exige
+                 /.well-known/assetlinks.json publie sur le domaine. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="tarot-app-one-sage.vercel.app" />
+            </intent-filter>
+
+            <!-- Repli si l'app est ouverte par un lien custom (tarotdivination://) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tarotdivination" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -26,7 +45,9 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
         </provider>
     </application>
 

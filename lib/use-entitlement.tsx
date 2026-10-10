@@ -35,7 +35,7 @@ export interface SubscriptionState {
   usage: UsageState | null;
 }
 
-export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit' | 'session';
+export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-pack' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit' | 'session';
 
 export interface GateDecision {
   allowed: boolean;
@@ -125,6 +125,7 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   if (!reason) return null;
 
   const isBaseDaily = reason === 'limit-base-daily';
+  const isBasePack = reason === 'limit-base-pack';
   const isBaseMonthly = reason === 'limit-base-monthly';
   const isGrand = reason === 'limit-grand';
   const isPersonalOnly = reason === 'personal-only';
@@ -133,9 +134,9 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   const isPerkTier = reason === 'perk-tier';
   const isPerkLimit = reason === 'perk-limit';
 
-  const title = isBaseDaily ? t('gate.baseDailyTitle') : isBaseMonthly ? t('gate.baseMonthlyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
+  const title = isBaseDaily ? t('gate.baseDailyTitle') : isBasePack ? t('gate.basePackTitle') : isBaseMonthly ? t('gate.baseMonthlyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
     : isPerkTier ? t('gate.perkTierTitle') : isPerkLimit ? t('gate.perkLimitTitle') : t('gate.paywallTitle');
-  const text = isBaseDaily ? t('gate.baseDailyText') : isBaseMonthly ? t('gate.baseMonthlyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
+  const text = isBaseDaily ? t('gate.baseDailyText') : isBasePack ? t('gate.basePackText') : isBaseMonthly ? t('gate.baseMonthlyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
     : isPerkTier ? t('gate.perkTierText') : isPerkLimit ? t('gate.perkLimitText') : t('gate.paywallText');
 
   return (
