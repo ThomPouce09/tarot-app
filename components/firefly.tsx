@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
-import { playSound } from '@/lib/sounds';
+import { playSound, preloadSound } from '@/lib/sounds';
 import { FIREFLY_CONFIG } from '@/config/firefly';
 import CreaturePopup, { isCreaturePopupOpen } from './creature-popup';
 
@@ -116,6 +116,14 @@ export default function Firefly({ page }: { page: string }) {
     };
   }, [page, lang]);
 
+  // Warm-up : les 11 cris de créatures sont préchargés (cache HTTP) au
+  // montage — sinon le tout premier clic télécharge le mp3 À ce moment-là
+  // et le son part en retard malgré l'animation déjà déclenchée.
+  useEffect(() => {
+    for (let i = 0; i <= 10; i++) preloadSound(`creatures${i}`);
+    preloadSound('cadeau');
+  }, []);
+
   // Errance : marche aléatoire CONTINUE au milieu de l'écran (jamais de saut).
   // Léger rappel vers le centre (50/50) pour rester majoritairement centrale,
   // mais bornes élargies à [-8, 108]% : la luciole peut chevaucher/dépasser les bords.
@@ -167,10 +175,12 @@ export default function Firefly({ page }: { page: string }) {
             onClick={() => {
               if (!pending) return;
               // Jongle : un des 11 sons créature (creatures0..creatures10)
-              // tiré au hasard ; il part à l'APPARITION de la créature
-              // (dans le timeout du popup, ~620 ms), plus au tap. playSound
+              // tiré au hasard. Il part IMMÉDIATEMENT au clic sur l'orbe
+              // (plus au timeout d'apparition du popup, ~620 ms + attente
+              // d'un popup concurrent) : zéro décalage perçu. playSound
               // respecte la préférence « Effets sonores ».
               const n = Math.floor(Math.random() * 11);
+              playSound(`creatures${n}`, 0.7);
               // Explosion de la luciole en petites particules qui fondent dans le fond
               const parts = Array.from({ length: 42 }).map((_, i) => ({
                 id: i,
@@ -192,8 +202,7 @@ export default function Firefly({ page }: { page: string }) {
                 setPopup(pending);
                 popupActiveRef.current = true;
                 setBurst(null);
-                // Cri de la créature : au moment exact où elle apparaît.
-                playSound(`creatures${n}`, 0.7);
+                // (Le cri de la créature est déjà parti au clic — voir plus haut.)
                 // Cadeau exceptionnel : carillon magique dédié à l'ouverture.
                 if (pending.giftClaimable) playSound('cadeau', 0.8);
               }, 620);

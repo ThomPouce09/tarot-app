@@ -55,6 +55,13 @@ export const PLAN_ICON: Record<PlanId, string> = {
   arkane: '🔮',
 };
 
+// Plans abonnés : icônes IMAGES (déposées dans public/images) qui remplacent le
+// glyphe texte sur la carte d'abonnement. Les autres forfaits gardent PLAN_ICON.
+export const PLAN_ICON_IMG: Partial<Record<PlanId, string>> = {
+  initie: '/images/initie.png',
+  arkane: '/images/arkane.png',
+};
+
 // Renvoie le niveau d'abonnement récurrent d'un utilisateur.
 // 'apprenti' = défaut (gratuit) ; les one-shot (bienvenue/recharge) s'ajoutent
 // aux droits mais ne changent pas le "niveau" affiché.

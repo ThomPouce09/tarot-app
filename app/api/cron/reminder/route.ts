@@ -82,6 +82,11 @@ export async function GET(request: NextRequest) {
   let sent = 0, failed = 0, echoed = 0, eves = 0;
   const results: Record<string, string[]> = {};
   const push = (email: string, tag: string) => (results[email] = (results[email] || []).concat(tag));
+  // Dédup PAR APPAREIL : un même token FCM peut être porté par plusieurs
+  // comptes (2 comptes sur 1 téléphone). Le rappel du soir ne part qu'UNE fois
+  // par token et par jour — sinon l'appareil reçoit deux notifications.
+  const dailySentTokens = new Set<string>();
+  const dayStamp = new Date();
 
   for (const u of users) {
     const tz = u.timezone || 'Europe/Paris';
@@ -126,17 +131,26 @@ export async function GET(request: NextRequest) {
           })()
         : { title: msg.title, body: msg.body, url: msg.url, kind: 'daily' as const };
 
-      try {
-        await messaging.send({
-          token,
-          notification: { title: chosen.title, body: chosen.body },
-          data: { url: chosen.url, kind: chosen.kind },
-          android: { priority: 'high' as const },
-        });
-        await prisma.user.update({ where: { email: u.email }, data: { lastReminderSentAt: now } });
-        sent++; push(u.email, chosen.kind);
-      } catch (e: any) {
-        failed++; push(u.email, `${chosen.kind}-fail`); await killToken(e);
+      if (dailySentTokens.has(token)) {
+        // Ce téléphone a déjà reçu SON rappel ce soir (autre compte) : on
+        // n'envoie pas un second push, mais on horodate ce compte pour qu'il
+        // soit aussi bloqué sur les créneaux suivants du bandeau.
+        await prisma.user.update({ where: { email: u.email }, data: { lastReminderSentAt: dayStamp } });
+        push(u.email, 'daily-dedup');
+      } else {
+        try {
+          await messaging.send({
+            token,
+            notification: { title: chosen.title, body: chosen.body },
+            data: { url: chosen.url, kind: chosen.kind },
+            android: { priority: 'high' as const },
+          });
+          dailySentTokens.add(token);
+          await prisma.user.update({ where: { email: u.email }, data: { lastReminderSentAt: dayStamp } });
+          sent++; push(u.email, chosen.kind);
+        } catch (e: any) {
+          failed++; push(u.email, `${chosen.kind}-fail`); await killToken(e);
+        }
       }
     }
 

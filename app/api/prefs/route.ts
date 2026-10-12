@@ -79,6 +79,16 @@ export async function POST(request: NextRequest) {
     }
 
     const updated = await prisma.user.update({ where: { email }, data });
+    // Un appareil (token FCM) ne doit être attaché qu'au compte ACTIF : quand
+    // ce compte s'enregistre sur ce téléphone, on retire le même token des
+    // autres comptes qui le portaient. Sinon : deux comptes sur un seul
+    // téléphone recevaient chacun leur rappel du soir → notification en double.
+    if (typeof data.fcmToken === 'string' && data.fcmToken) {
+      await prisma.user.updateMany({
+        where: { email: { not: email }, fcmToken: String(data.fcmToken) },
+        data: { fcmToken: null },
+      });
+    }
     return NextResponse.json({
       success: true,
       emailNews: updated.emailNews,

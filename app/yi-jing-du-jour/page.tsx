@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, pick4, pickContent, type Lang } from '@/lib/i18n';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import WaitPoolLine from '@/components/wait-pool-line';
+import { playSound } from '@/lib/sounds';
 import { api } from '@/lib/api-client';
 
 // ─── Charte laque noir / rouge / or (identité Yi Jing) ─────────────────────
@@ -70,13 +71,7 @@ const T = {
   title: { fr: 'Hexagramme du jour', en: "Today's Hexagram", es: 'Hexagrama del día', hi: 'आज का हैक्सग्राम' },
   sealed: { fr: 'Un sceau vous attend', en: 'A seal awaits you', es: 'Un sello le espera', hi: 'एक मुहर आपकी प्रतीक्षा करती है' },
   open: { fr: 'Briser le sceau et consulter', en: 'Break the seal and consult', es: 'Romper el sello y consultar', hi: 'मुहर तोड़ें और पूछें' },
-  breaking: { fr: 'Le sceau se brise…', en: 'The seal breaks…', es: 'El sello se rompe…', hi: 'मुहर टूटती है…' },
   // Encadré « comment ça marche » — le user comprend avant de consentir.
-  howTitle: { fr: 'Comment fonctionne ce tirage', en: 'How this draw works', es: 'Cómo funciona esta tirada', hi: 'यह विन्यास कैसे काम करता है' },
-  how1: { fr: 'Chaque jour, un hexagramme est tiré pour votre compte seul — personne d\u2019autre ne reçoit le même.', en: 'Each day, a hexagram is drawn for your account alone — no one else receives the same one.', es: 'Cada día se tira un hexagrama solo para su cuenta; nadie más recibe el mismo.', hi: 'हर दिन आपके खाते के लिए अकेले एक हैक्सग्राम खिंचता है — किसी और को वही नहीं मिलता।' },
-  how2: { fr: 'L\u2019Oracle en tire un conseil de quelques phrases, ajusté à votre énergie du moment et aux tendances de votre profil.', en: 'The Oracle draws from it a few-sentence guidance, tuned to your energy of the moment and your profile\u2019s tendencies.', es: 'El oráculo extrae una guía de pocas frases, ajustada a su energía del momento y a las tendencias de su perfil.', hi: 'देववाणी उससे कुछ वाक्यों का मार्गदर्शन निकालती है — आपके क्षण की ऊर्जा और प्रोफ़ाइल की प्रवृत्तियों के अनुकूल।' },
-  how3: { fr: 'Cette consultation utilise un tirage de base. Le résultat reste consultable toute la journée — et dans votre historique — sans rien relancer.', en: 'This consultation uses one base draw. The result stays readable all day — and in your history — without relaunching anything.', es: 'Esta consulta usa una tirada base. El resultado queda legible todo el día —y en su historial— sin volver a lanzar nada.', hi: 'यह परामर्श एक आधार-पात लेता है। परिणाम सारा दिन — और आपके इतिहास में — बिना पुनःआरंभ पढ़ा जा सकता है।' },
-  how4: { fr: 'Une fois brisé, le sceau ne se repose pas : le même conseil vous attend jusqu\u2019au lendemain.', en: 'Once broken, the seal is not re-set: the same guidance waits for you until tomorrow.', es: 'Una vez roto, el sello no vuelve a ponerse: la misma guía le espera hasta mañana.', hi: 'टूटने के बाद मुहर दोबारा नहीं लगती: वही मार्गदर्शन कल तक आपकी प्रतीक्षा करता है।' },
   dobHint: { fr: 'Sans date de naissance dans votre profil, le conseil reste juste un peu moins ajusté.', en: 'Without a birth date in your profile, the guidance stays just slightly less tailored.', es: 'Sin fecha de nacimiento en su perfil, la guía queda solo un poco menos ajustada.', hi: 'प्रोफ़ाइल में जन्म तिथि न होने पर मार्गदर्शन थोड़ा कम अनुकूल रहता है।' },
   dobCta: { fr: 'Compléter mon profil', en: 'Complete my profile', es: 'Completar mi perfil', hi: 'अपनी प्रोफ़ाइल पूरी करें' },
   advice: { fr: 'Conseil du jour', en: "Today's guidance", es: 'Consejo del día', hi: 'आज का मार्गदर्शन' },
@@ -134,6 +129,23 @@ function trigramPair(lignes: boolean[], lang: Lang): string {
 function HexLines({ lignes, mutating = [], size = 1 }: { lignes: boolean[]; mutating?: number[]; size?: number }) {
   const rows = [...lignes].reverse(); // sommet en haut
   return (
+    <div
+      className="relative overflow-hidden rounded-xl"
+      style={{
+        padding: `${8 * size}px ${12 * size}px`,
+        background: 'radial-gradient(120% 90% at 50% 10%, rgba(142,28,34,0.16) 0%, rgba(0,0,0,0.38) 70%)',
+        border: `1px solid ${L.or}26`,
+        boxShadow: 'inset 0 1px 10px rgba(0,0,0,0.55), inset 0 0 24px rgba(243,201,105,0.05), 0 4px 14px rgba(0,0,0,0.4)',
+      }}
+    >
+    {/* reflet luisant : filet doré qui traverse les traits, puis se retire */}
+    <motion.span
+      className="pointer-events-none absolute inset-y-0 w-1/3"
+      style={{ background: 'linear-gradient(105deg, transparent 0%, rgba(255,240,200,0.14) 45%, rgba(255,247,220,0.32) 50%, rgba(255,240,200,0.14) 55%, transparent 100%)' }}
+      initial={{ x: '-140%' }}
+      animate={{ x: '380%' }}
+      transition={{ duration: 2.8, ease: 'easeInOut', repeat: Infinity, repeatDelay: 3.4 }}
+    />
     <div className="flex flex-col justify-between" style={{ height: 66 * size, width: 96 * size, gap: 6 * size }}>
       {rows.map((yang, i) => {
         const lineNo = 6 - i; // numéro réel (1 base … 6 sommet)
@@ -148,35 +160,122 @@ function HexLines({ lignes, mutating = [], size = 1 }: { lignes: boolean[]; muta
             style={{ height: 10 * size }}
           >
             {yang ? (
-              <div className="w-full rounded-full" style={{ height: 9 * size, background: `linear-gradient(180deg, ${L.or}, #b8862f)`, boxShadow: mut ? `0 0 12px ${L.rougeGlow}` : 'none' }} />
+              <div className="w-full rounded-full" style={{ height: 9 * size, background: 'linear-gradient(180deg, #ffe9b0 0%, ' + L.or + ' 42%, #9c6d22 100%)', boxShadow: 'inset 0 1px 0 rgba(255,244,200,0.85), inset 0 -1px 2px rgba(60,30,0,0.5), 0 2px 6px rgba(0,0,0,0.55)' + (mut ? ', 0 0 14px ' + L.rougeGlow : '') }} />
             ) : (
               <div className="flex w-full justify-between" style={{ height: 9 * size }}>
-                <div className="rounded-full" style={{ width: '42%', background: `linear-gradient(180deg, ${L.or}, #b8862f)` }} />
-                <div className="rounded-full" style={{ width: '42%', background: `linear-gradient(180deg, ${L.or}, #b8862f)` }} />
+                <div className="rounded-full" style={{ width: '42%', background: 'linear-gradient(180deg, #ffe9b0 0%, ' + L.or + ' 42%, #9c6d22 100%)', boxShadow: 'inset 0 1px 0 rgba(255,244,200,0.85), inset 0 -1px 2px rgba(60,30,0,0.5), 0 2px 6px rgba(0,0,0,0.55)' + (mut ? ', 0 0 14px ' + L.rougeGlow : '') }} />
+                <div className="rounded-full" style={{ width: '42%', background: 'linear-gradient(180deg, #ffe9b0 0%, ' + L.or + ' 42%, #9c6d22 100%)', boxShadow: 'inset 0 1px 0 rgba(255,244,200,0.85), inset 0 -1px 2px rgba(60,30,0,0.5), 0 2px 6px rgba(0,0,0,0.55)' + (mut ? ', 0 0 14px ' + L.rougeGlow : '') }} />
               </div>
             )}
             {mut && (
-              <span className="absolute rounded-full" style={{ right: -18 * size, top: '50%', transform: 'translateY(-50%)', width: 9 * size, height: 9 * size, border: `1.5px solid ${L.rouge}`, background: L.noir, boxShadow: `0 0 8px ${L.rougeGlow}` }} />
+              <motion.span
+                className="absolute rounded-full"
+                style={{ right: 8 * size, top: '50%', transform: 'translateY(-50%)', width: 9 * size, height: 9 * size, border: `1.5px solid ${L.rouge}`, background: L.noir }}
+                animate={{ boxShadow: [`0 0 4px ${L.rougeGlow}`, `0 0 14px ${L.rougeGlow}`, `0 0 4px ${L.rougeGlow}`] }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+              />
             )}
           </motion.div>
         );
       })}
     </div>
+    </div>
+  );
+}
+
+// ─── Attente initiale : « Lecture du ciel » ────────────────────────────────
+// Instant signature de l'univers : un taijitu calligraphié respire et tourne,
+// cerclé de deux anneaux gravés (points cardinaux + trigrammes) qui tournent à
+// contre-temps, une étincelle dorée en orbite, et le souffle du pinceau qui
+// balaie le libellé. Tout en SVG/framer — aucun emoji, aucune police système.
+function SkyLoader({ lang }: { lang: Lang }) {
+  const t = (k: keyof typeof T) => pickContent(T[k] as { fr: string }, lang);
+  return (
+    <div className="flex w-full items-center justify-center" style={{ minHeight: '54vh' }}>
+    <div className="flex flex-col items-center gap-7">
+      <div className="relative" style={{ width: 168, height: 168 }}>
+        {/* halo de fond qui respire */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(243,201,105,0.14) 0%, rgba(142,28,34,0.10) 45%, transparent 70%)' }}
+          animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ repeat: Infinity, duration: 4.6, ease: 'easeInOut' }}
+        />
+        {/* anneau outer : ponctué (les 64 hexagrammes du livre), rotation lente */}
+        <motion.svg viewBox="0 0 168 168" className="absolute inset-0" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 26, ease: 'linear' }}>
+          <circle cx="84" cy="84" r="80" fill="none" stroke={L.or} strokeOpacity="0.28" strokeWidth="1" strokeDasharray="2 11" strokeLinecap="round" />
+        </motion.svg>
+        {/* anneau inner : 8 trigrammes en bâtons, à contre-rotation */}
+        <motion.svg viewBox="0 0 168 168" className="absolute inset-0" animate={{ rotate: -360 }} transition={{ repeat: Infinity, duration: 38, ease: 'linear' }}>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+            const a = (i * 45 * Math.PI) / 180;
+            const x = 84 + 63 * Math.cos(a);
+            const y = 84 + 63 * Math.sin(a);
+            const solid = i % 2 === 0;
+            return (
+              <g key={i} transform={`translate(${x} ${y}) rotate(${i * 45 + 90})`} opacity="0.5">
+                {[0, 1, 2].map((j) => {
+                  const dy = (j - 1) * 4.2;
+                  return solid || j !== 1 ? (
+                    <rect key={j} x={-6} y={dy - 0.9} width={12} height={1.8} rx={0.9} fill={L.or} />
+                  ) : (
+                    <g key={j}>
+                      <rect x={-6} y={dy - 0.9} width={4.8} height={1.8} rx={0.9} fill={L.or} />
+                      <rect x={1.2} y={dy - 0.9} width={4.8} height={1.8} rx={0.9} fill={L.or} />
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
+        </motion.svg>
+        {/* étincelle en orbite */}
+        <motion.div className="absolute inset-0" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 6.5, ease: 'easeInOut' }}>
+          <span className="absolute left-1/2 top-[6px] h-2 w-2 -translate-x-1/2 rounded-full" style={{ background: '#ffe9b0', boxShadow: '0 0 10px 3px rgba(243,201,105,0.75)' }} />
+        </motion.div>
+        {/* taijitu central : contour or, moitiés laque/ivoire, rotation ample */}
+        <motion.div className="absolute inset-0 flex items-center justify-center" animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 12, ease: 'easeInOut' }}>
+          <svg viewBox="0 0 100 100" width="92" height="92" style={{ filter: 'drop-shadow(0 0 12px rgba(243,201,105,0.35))' }}>
+            <defs>
+              <linearGradient id="skyYang" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={L.ivoire} />
+                <stop offset="100%" stopColor="#d8c9a8" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="url(#skyYang)" stroke={L.or} strokeWidth="2" />
+            <path d="M50 4 A46 46 0 0 1 50 96 A23 23 0 0 1 50 50 A23 23 0 0 0 50 4" fill={L.panelDeep} stroke={L.or} strokeOpacity="0.5" strokeWidth="1" />
+            <circle cx="50" cy="27" r="6.5" fill={L.ivoire} stroke={L.or} strokeWidth="1.4" />
+            <circle cx="50" cy="73" r="6.5" fill={L.panelDeep} stroke={L.or} strokeWidth="1.4" />
+            <circle cx="50" cy="27" r="2" fill={L.panelDeep} />
+            <circle cx="50" cy="73" r="2" fill={L.ivoire} />
+          </svg>
+        </motion.div>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <p className="font-[family-name:var(--font-cinzel-deco)] text-[12px] tracking-[0.4em]" style={{ color: L.orSoft }}>
+          {t('loading')}
+        </p>
+        {/* souffle du pinceau : filet doré qui balaie */}
+        <div className="relative h-px w-44 overflow-hidden" style={{ background: `${L.or}22` }}>
+          <motion.span
+            className="absolute h-px w-12"
+            style={{ background: `linear-gradient(90deg, transparent, ${L.or}, transparent)` }}
+            animate={{ x: ['-3rem', '11.5rem'] }}
+            transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+          />
+        </div>
+      </div>
+    </div>
+    </div>
   );
 }
 
 // ─── Sceau (carte scellée à briser pour CONSENTIR au tirage) ───────────────
-const TRIGRAMMES = [
-  [1, 1, 1], [0, 1, 1], [1, 0, 1], [0, 0, 1],
-  [1, 1, 0], [0, 1, 0], [1, 0, 0], [0, 0, 0],
-];
-const CRACKS = [
-  'M130 150 L117 126 L124 102 L111 78',
-  'M130 150 L151 133 L174 122 L196 104',
-  'M130 150 L139 177 L127 201 L138 226',
-  'M130 150 L103 158 L80 151 L56 160',
-  'M130 150 L153 167 L177 176 L201 194',
-];
+// Le sceau est une VIDEO (/images/sceau.mp4, 5 s) : seule sa PREMIÈRE IMAGE
+// est chargée au départ ; un clic lance la lecture, et la fin de la vidéo
+// équivaut au « bris du sceau » → déclenche le tirage (consentement).
+// Tous les messages (libellé du sceau, puis attente IA) sont sous la vidéo.
+const SEAL_VIDEO = '/images/sceau.mp4';
 
 // Icône de partage : même glyphe à 3 points reliés que l'historique des tirages.
 function ShareIcon({ size = 15, style }: { size?: number; style?: React.CSSProperties }) {
@@ -189,163 +288,170 @@ function ShareIcon({ size = 15, style }: { size?: number; style?: React.CSSPrope
   );
 }
 
-function SealDisc() {
-  return (
-    <g>
-      <circle cx={130} cy={150} r={56} fill="url(#sealLac)" stroke={L.or} strokeOpacity={0.85} strokeWidth={2.5} />
-      <circle cx={130} cy={150} r={48} fill="none" stroke={L.or} strokeOpacity={0.45} strokeWidth={1} />
-      <text x={130} y={151} textAnchor="middle" dominantBaseline="central" fontSize={54} fill={L.or} style={{ fontFamily: "'Hoshiko Satsuki', serif", textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}>日</text>
-    </g>
-  );
-}
+const SEAL_PLAYING_LABEL: Record<string, string> = { fr: 'Le sceau se brise…', en: 'The seal breaks…', es: 'El sello se rompe…', hi: 'मुहर टूटती है…' };
 
-function SealedCard({ onOpen, busy, lang }: { onOpen: () => void; busy: boolean; lang: Lang }) {
-  const [breaking, setBreaking] = useState(false);
-  const fire = () => {
-    if (breaking || busy) return;
-    setBreaking(true);
-    setTimeout(onOpen, 950);
+type SealHandle = { play: () => void };
+
+const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () => void; busy: boolean; drawing: boolean; lang: Lang }>(function SealedCard({ onOpen, onSealTap, busy, drawing, lang }, ref) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  // Le dégradé masqué (anneau brossé + specular) n'est peint que si le moteur
+  // gère mask-composite ; sinon il recouvrirait la vidéo d'un plein cadre or.
+  const [ringShine, setRingShine] = useState(false);
+  useEffect(() => {
+    try {
+      setRingShine(
+        typeof CSS !== 'undefined' &&
+        (CSS.supports('mask-composite', 'exclude') || CSS.supports('-webkit-mask-composite', 'source-out')),
+      );
+    } catch { setRingShine(false); }
+  }, []);
+  const firedRef = useRef(false);
+
+  const open = () => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    onOpen();
   };
+
+  const tap = () => {
+    if (playing || busy || firedRef.current) return;
+    onSealTap(); // le parent fait fondre le CTA « Briser le sceau » (~2 s)
+    playSound('open-seal'); // sceau qui se brise — simultané à l'animation
+    const v = videoRef.current;
+    if (!v) { open(); return; } // vidéo indisponible → on ouvre quand même
+    setPlaying(true);
+    v.play().catch(() => open());
+    // Filet : certains WebViews ne déclenchent jamais 'ended' (5 s de vidéo).
+    setTimeout(open, 6200);
+  };
+
+  // Le CTA « Briser le sceau et consulter » (extérieur) passe par ici :
+  // même parcours que le tap sur la vidéo — lecture, puis tirage à la fin.
+  useImperativeHandle(ref, () => ({ play: () => tap() }));
+
   return (
-    <motion.button
-      type="button"
-      onClick={fire}
-      whileTap={{ scale: 0.97 }}
-      className="relative mx-auto block overflow-hidden rounded-2xl"
-      style={{
-        width: 260,
-        height: 360,
-        background: `linear-gradient(165deg, ${L.rouge} 0%, ${L.rougeDeep} 55%, #3a070c 100%)`,
-        border: `1.5px solid ${L.or}66`,
-        boxShadow: `0 18px 50px rgba(0,0,0,0.6), 0 0 40px ${L.rougeGlow}, inset 0 0 30px rgba(0,0,0,0.35)`,
-      }}
-      aria-label={pickContent(T.open, lang)}
-    >
-      <div className="absolute inset-3 rounded-xl" style={{ border: `1px solid ${L.or}33` }} />
-      <svg viewBox="0 0 260 300" className="relative mt-4" width={260} height={300} aria-hidden>
-        <defs>
-          <radialGradient id="sealLac" cx="38%" cy="30%" r="80%">
-            <stop offset="0%" stopColor="#c22f36" />
-            <stop offset="70%" stopColor={L.rougeDeep} />
-            <stop offset="100%" stopColor="#3a070c" />
-          </radialGradient>
-          <clipPath id="sealTop"><rect x="0" y="0" width="260" height="150" /></clipPath>
-          <clipPath id="sealBot"><rect x="0" y="150" width="260" height="150" /></clipPath>
-        </defs>
-
-        {/* couronne des 8 trigrammes */}
-        <motion.g
-          animate={breaking ? { opacity: 0 } : { rotate: [0, 2, -2, 0] }}
-          transition={breaking ? { duration: 0.3 } : { repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-          style={{ originX: '130px', originY: '150px' }}
-        >
-          {TRIGRAMMES.map((tri, i) => {
-            const a = ((i * 45 - 90) * Math.PI) / 180;
-            const x = 130 + 82 * Math.cos(a);
-            const y = 150 + 82 * Math.sin(a);
-            return (
-              <g key={i} transform={`translate(${x} ${y}) rotate(${i * 45})`}>
-                {tri.map((solid, j) => {
-                  const dy = (j - 1) * 6.5;
-                  return solid ? (
-                    <rect key={j} x={-9} y={dy - 1.4} width={18} height={2.8} rx={1.2} fill={L.or} opacity={0.8} />
-                  ) : (
-                    <g key={j}>
-                      <rect x={-9} y={dy - 1.4} width={7.2} height={2.8} rx={1.2} fill={L.or} opacity={0.8} />
-                      <rect x={1.8} y={dy - 1.4} width={7.2} height={2.8} rx={1.2} fill={L.or} opacity={0.8} />
-                    </g>
-                  );
-                })}
-              </g>
-            );
-          })}
-        </motion.g>
-
-        <motion.circle
-          cx={130} cy={150} r={56} fill="none" stroke={L.or} strokeWidth={2}
-          initial={{ opacity: 0 }}
-          animate={breaking ? { r: [56, 120], opacity: [0.9, 0] } : {}}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-        />
-
-        <motion.g clipPath="url(#sealTop)"
-          animate={breaking ? { x: -30, y: -38, rotate: -16, opacity: 0 } : {}}
-          transition={{ duration: 0.75, ease: 'easeIn', delay: 0.25 }}
-          style={{ originX: '130px', originY: '150px' }}
-        >
-          <SealDisc />
-        </motion.g>
-        <motion.g clipPath="url(#sealBot)"
-          animate={breaking ? { x: 26, y: 44, rotate: 12, opacity: 0 } : {}}
-          transition={{ duration: 0.75, ease: 'easeIn', delay: 0.25 }}
-          style={{ originX: '130px', originY: '150px' }}
-        >
-          <SealDisc />
-        </motion.g>
-
-        {CRACKS.map((d, i) => (
-          <motion.path key={i} d={d} fill="none" stroke="#ffe9b0" strokeWidth={1.4} strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={breaking ? { pathLength: 1, opacity: [0, 1, 0.85, 0] } : {}}
-            transition={{ duration: 0.55, delay: i * 0.05, times: [0, 0.2, 0.6, 1] }}
-          />
-        ))}
-
-        {[...Array(8)].map((_, i) => {
-          const a = ((i * 45 + 22) * Math.PI) / 180;
-          return (
-            <motion.rect key={i} x={128} y={148} width={4.5} height={4.5} rx={1} fill={L.or}
-              initial={{ opacity: 0 }}
-              animate={breaking ? { x: Math.cos(a) * 95, y: Math.sin(a) * 95, opacity: [0, 1, 0], rotate: 140 } : {}}
-              transition={{ duration: 0.85, delay: 0.2 }}
-            />
-          );
-        })}
-      </svg>
-      <div className="relative -mt-2 flex flex-col items-center gap-5">
-        <span className="font-[family-name:var(--font-cinzel-deco)] text-[11px] tracking-[0.4em]" style={{ color: `${L.or}99` }}>
-          易經
-        </span>
-        <span className="font-[family-name:var(--font-cinzel-deco)] text-[13px] tracking-[0.25em]" style={{ color: L.orSoft }}>
-          {breaking ? pick4('Le sceau se brise…', 'The seal breaks…', 'El sello se rompe…', 'मुहर टूटती है…')(lang) : pickContent(T.sealed, lang)}
-        </span>
-      </div>
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        animate={breaking ? { opacity: 0 } : { x: ['-120%', '120%'] }}
-        transition={breaking ? { duration: 0.2 } : { repeat: Infinity, duration: 3.4, repeatDelay: 1.6, ease: 'easeInOut' }}
-        style={{ background: 'linear-gradient(105deg, transparent 42%, rgba(243,201,105,0.16) 50%, transparent 58%)' }}
-      />
-    </motion.button>
-  );
-}
-
-// ─── Encadré « comment ça marche » + bouton de consentement ────────────────
-function HowItWorks({ lang, dobKnown }: { lang: Lang; dobKnown: boolean }) {
-  const t = (k: keyof typeof T) => pickContent(T[k] as { fr: string }, lang);
-  const rows = ['how1', 'how2', 'how3', 'how4'] as const;
-  return (
-    <div className="mx-auto w-full rounded-2xl px-4 py-3.5" style={{ background: 'rgba(0,0,0,0.42)', border: `1px solid ${L.or}2e`, maxWidth: '26rem' }}>
-      <p className="text-[10px] tracking-[0.35em]" style={{ color: L.orDim }}>{t('howTitle').toUpperCase()}</p>
-      <ul className="mt-2 space-y-2">
-        {rows.map((k) => (
-          <li key={k} className="flex gap-2 text-[12.5px] leading-snug" style={{ color: `${L.ivoire}dd` }}>
-            <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: L.or }}>◆</span>
-            <span>{t(k)}</span>
-          </li>
-        ))}
-      </ul>
-      {!dobKnown && (
-        <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: `rgba(142,28,34,0.16)`, border: `1px dashed ${L.rouge}66` }}>
-          <p className="text-[11.5px] leading-snug" style={{ color: `${L.ivoire}cc` }}>{t('dobHint')}</p>
-          <a href="/dashboard/account" className="mt-1.5 inline-block text-[11px] font-semibold underline underline-offset-4" style={{ color: L.orSoft }}>
-            {t('dobCta')}
-          </a>
+    <div className="mx-auto flex w-full flex-col items-center">
+      {/* Plaque du sceau : AU-DESSUS de la vidéo, plus large et plus épaisse.
+          Décor (易經 en grand) — le libellé se lit sous la vidéo. */}
+      <div
+        className="pointer-events-none mb-3 flex w-[320px] items-center justify-center rounded-2xl py-4"
+        style={{
+          background: 'linear-gradient(160deg, rgba(20,10,14,0.92), rgba(13,6,9,0.95))',
+          border: '1.5px solid rgba(243,201,105,0.34)',
+          boxShadow: '0 6px 22px rgba(0,0,0,0.55), inset 0 0 16px rgba(243,201,105,0.06)',
+        }}
+        aria-hidden
+      >
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-[family-name:var(--font-cinzel-deco)] text-[20px] leading-none tracking-[0.55em]" style={{ color: 'rgba(243,201,105,0.85)', textShadow: '0 0 16px rgba(243,201,105,0.25)' }}>
+            易經
+          </span>
+          <span className="text-[9.5px] italic tracking-[0.14em]" style={{ color: 'rgba(245,234,214,0.55)', fontFamily: 'var(--font-cormorant), serif' }}>
+            {pick4('Yì Jīng — Le Livre des Mutations', 'Yì Jīng — The Book of Changes', 'Yì Jīng — El Libro de las Mutaciones', 'ई चिंग — परिवर्तनों का ग्रंथ')(lang)}
+          </span>
         </div>
+      </div>
+      <motion.button
+        type="button"
+        onClick={tap}
+        whileTap={{ scale: 0.97 }}
+        className="relative mx-auto block overflow-hidden rounded-2xl"
+        style={{
+          width: 260,
+          height: 360,
+          background: `linear-gradient(165deg, ${L.rouge} 0%, ${L.rougeDeep} 55%, #3a070c 100%)`,
+          border: `1.5px solid ${L.or}66`,
+          boxShadow: `0 18px 50px rgba(0,0,0,0.6), 0 0 40px ${L.rougeGlow}, inset 0 0 30px rgba(0,0,0,0.35)`,
+        }}
+        aria-label={pickContent(T.open, lang)}
+      >
+      {/* Image d'attente = première image de la vidéo (aucune lecture avant le clic). */}
+      <video
+        ref={videoRef}
+        src={SEAL_VIDEO}
+        muted
+        playsInline
+        preload="auto"
+        onLoadedMetadata={(e) => {
+          // Force l'affichage de la frame 0 sur les WebViews qui n'exposent
+          // pas la première image sans seek.
+          const v = e.currentTarget;
+          try { v.currentTime = 0.001; } catch { /* refusé sur de rares WebView : la frame suit au play */ }
+        }}
+        onEnded={open}
+        onError={() => { /* vidéo absente : la carte reste, le CLIC ouvrira (consentement) */ }}
+        className="absolute inset-0 h-full w-full rounded-[12px] object-cover"
+      />
+      {/* Cadre or posé AU-DESSUS de la vidéo. Base universelle : anneau 4 px
+          « or massif » (filets sombre/clair + halo). */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{
+          border: '4px solid #d4af37',
+          boxShadow:
+            '0 0 0 1.5px #6b4d12, 0 0 0 3px rgba(255,236,180,0.28), '
+            + 'inset 0 0 0 1px rgba(40,20,0,0.55), inset 0 0 14px rgba(255,236,180,0.30), '
+            + '0 0 22px rgba(243,201,105,0.5)',
+        }}
+        aria-hidden
+      />
+      {/* Sur les WebView récentes (mask-composite dispo) : dégradé métallique
+          brossé + reflet specular qui balaie l'anneau uniquement. */}
+      {ringShine && (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 rounded-2xl"
+            style={{
+              border: '4px solid transparent',
+              background:
+                'linear-gradient(135deg, #f7d774 0%, #b8860b 22%, #fff3c4 44%, #e6bd52 60%, #7a5410 82%, #f0cd6a 100%) border-box',
+              WebkitMask: 'linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)',
+              WebkitMaskComposite: 'source-out',
+              mask: 'linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)',
+              maskComposite: 'exclude',
+            }}
+            aria-hidden
+          />
+          <motion.div
+            className="pointer-events-none absolute rounded-2xl"
+            style={{
+              inset: -4,
+              border: '4px solid transparent',
+              backgroundImage: 'linear-gradient(115deg, transparent 42%, rgba(255,255,240,0.95) 50%, transparent 58%)',
+              backgroundSize: '250% 100%',
+              WebkitMask: 'linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)',
+              WebkitMaskComposite: 'source-out',
+              mask: 'linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)',
+              maskComposite: 'exclude',
+            }}
+            initial={{ backgroundPosition: '0% 0%' }}
+            animate={{ backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
+            transition={{ duration: 5.5, repeat: Infinity, repeatDelay: 1.5, ease: 'easeInOut' }}
+            aria-hidden
+          />
+        </>
+      )}
+      </motion.button>
+      {/* Message sous la vidéo — un seul emplacement, une seule typographie :
+          libellé du sceau, « Le sceau se brise… », puis messages d'attente IA. */}
+      {drawing ? (
+        <WaitPoolLine
+          universe="yijing"
+          className="mt-4 max-w-[20rem] text-center text-[17px] italic leading-relaxed font-semibold"
+          style={{ color: L.or, fontFamily: 'var(--font-cormorant), serif', textShadow: '0 0 16px rgba(243,201,105,0.45), 0 1px 4px rgba(0,0,0,0.9)' }}
+        />
+      ) : (
+        <p
+          className="mt-4 max-w-[20rem] text-center text-[17px] italic leading-relaxed font-semibold"
+          style={{ color: L.or, fontFamily: 'var(--font-cormorant), serif', textShadow: '0 0 16px rgba(243,201,105,0.45), 0 1px 4px rgba(0,0,0,0.9)' }}
+        >
+          {playing ? (SEAL_PLAYING_LABEL[lang] || SEAL_PLAYING_LABEL.fr) : pickContent(T.sealed, lang)}
+        </p>
       )}
     </div>
   );
-}
+});
 
 // ─── Export PNG de la carte du jour ────────────────────────────────────────
 // Rendu soigné dans l'esprit de la page : fond laque + halo rouge, cadre or double,
@@ -402,7 +508,7 @@ function drawHexLine(ctx: CanvasRenderingContext2D, cx: number, y: number, w: nu
 
 async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): Promise<string> {
   const W = 1080;
-  const H = 1350;
+  const H = 1750;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -518,7 +624,7 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
   const panel = { x: 92, w: W - 184, top: 660, r: 26, padX: 34, labelH: 56, padB: 34 };
   const maxTextW = panel.w - panel.padX * 2;
   // police ajustée : de 30 à 21, pour tenir dans la hauteur dispo
-  const bottomLimit = data.transformed ? 1060 : 1200;
+  const bottomLimit = data.transformed ? 1220 : 1360;
   const availH = bottomLimit - panel.top - panel.labelH - panel.padB;
   let fs2 = 30;
   let lines = wrapText(ctx, advice, maxTextW);
@@ -566,8 +672,52 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
   ctx.font = `${fs2}px "Cormorant Garamond", Georgia, serif`;
   lines.forEach((ln, i2) => ctx.fillText(ln, W / 2, panel.top + panel.labelH + fs2 + i2 * lh));
 
-  // ── Hexagramme transformé (si mutantes) : juste sous le panneau ──
-  let curY = panel.top + panelH + 44;
+  // ── Panneau « Synthèse » : la lecture complète de l'oracle, sous le conseil ──
+  const synth = (hexVariant(lang, hex.syntheseEn, hex.syntheseEs, hex.syntheseHi, hex.synthese) || '').trim();
+  let curY = panel.top + panelH + 40;
+  if (synth) {
+    const sy = { x: panel.x, w: panel.w, r: 22, padX: panel.padX, labelH: 44, padB: 26 };
+    const bottomSy = data.transformed ? H - 420 : H - 300;
+    const availSy = Math.max(120, bottomSy - curY - sy.labelH - sy.padB);
+    let fs3 = 24;
+    let slines: string[] = [];
+    for (;;) {
+      ctx.font = `italic ${fs3}px "Cormorant Garamond", Georgia, serif`;
+      slines = wrapText(ctx, synth, sy.w - sy.padX * 2);
+      if (slines.length * fs3 * 1.5 <= availSy || fs3 <= 20) break;
+      fs3 -= 1;
+    }
+    const lh3 = Math.round(fs3 * 1.5);
+    const maxL3 = Math.floor(availSy / lh3);
+    if (slines.length > maxL3) {
+      slines = slines.slice(0, maxL3);
+      slines[slines.length - 1] = slines[slines.length - 1].replace(/\s*\S{0,10}$/, '') + ' …';
+    }
+    const syH = sy.labelH + slines.length * lh3 + sy.padB;
+    const sg = ctx.createLinearGradient(0, curY, 0, curY + syH);
+    sg.addColorStop(0, 'rgba(0,0,0,0.30)');
+    sg.addColorStop(1, 'rgba(0,0,0,0.46)');
+    rrect(ctx, sy.x, curY, sy.w, syH, sy.r);
+    ctx.fillStyle = sg; ctx.fill();
+    ctx.strokeStyle = 'rgba(243,201,105,0.30)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = 'rgba(243,201,105,0.75)';
+    ctx.font = '600 22px "Cinzel", Georgia, serif';
+    const sl = pickContent(T.synthesis, lang).toUpperCase();
+    {
+      const sp3 = 5;
+      const total = Array.from(sl).reduce((a, ch) => a + ctx.measureText(ch).width + sp3, -sp3);
+      let cx = W / 2 - total / 2;
+      ctx.textAlign = 'left';
+      for (const ch of Array.from(sl)) { ctx.fillText(ch, cx, curY + 34); cx += ctx.measureText(ch).width + sp3; }
+      ctx.textAlign = 'center';
+    }
+    ctx.fillStyle = 'rgba(245,234,214,0.85)';
+    ctx.font = `italic ${fs3}px "Cormorant Garamond", Georgia, serif`;
+    slines.forEach((ln, i2) => ctx.fillText(ln, W / 2, curY + sy.labelH + fs3 + i2 * lh3));
+    curY += syH + 44;
+  }
+
+  // ── Hexagramme transformé (si mutantes) : juste sous la synthèse ──
   if (data.transformed) {
     const tn = hexVariant(lang, data.transformed.nameEn, data.transformed.nameEs, data.transformed.nameHi, data.transformed.name);
     ctx.fillStyle = 'rgba(245,234,214,0.62)';
@@ -622,10 +772,12 @@ function YiJingDuJourPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);   // état GET initial
   const [drawing, setDrawing] = useState(false);  // POST en cours (consentement)
+  const [sealTapped, setSealTapped] = useState(false); // tap vidéo/bouton → fondu du CTA
   const [error, setError] = useState<string | null>(null);
   const [synthOpen, setSynthOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const startedRef = useRef(false);
+  const sealRef = useRef<{ play: () => void } | null>(null);
 
   // Lecture d'état : AUCUN débit, AUCUNE IA. alreadyDrawn=true → le résultat
   // stocké s'affiche directement (le sceau est déjà brisé aujourd'hui).
@@ -641,6 +793,22 @@ function YiJingDuJourPage() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   };
+
+  // Fond de la page = noir profond : le `html, body` du site est marron
+  // (#1a0e0a) et cette teinte réapparaissait en bas d'écran (barre de
+  // navigation mobile, rebond élastique de la WebView) — bande « marron »
+  // signalée sous la modale de chargement. Peinture globale assumée par la
+  // page Yi Jing du Jour, restaurée à la sortie.
+  useEffect(() => {
+    const prevBody = document.body.style.background;
+    const prevHtml = document.documentElement.style.background;
+    document.body.style.background = L.noir;
+    document.documentElement.style.background = L.noir;
+    return () => {
+      document.body.style.background = prevBody;
+      document.documentElement.style.background = prevHtml;
+    };
+  }, []);
 
   useEffect(() => {
     if (!loaded || !email || startedRef.current) return;
@@ -694,10 +862,9 @@ function YiJingDuJourPage() {
   const displaySynth = hex ? hexVariant(lang, hex.syntheseEn, hex.syntheseEs, hex.syntheseHi, hex.synthese) : '';
 
   return (
-    <div className="relative min-h-dvh overflow-hidden" style={{ background: `radial-gradient(120% 80% at 50% 0%, ${L.panel} 0%, ${L.panelDeep} 55%, ${L.noir} 100%)` }}>
-      <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(60% 35% at 50% 8%, ${L.rougeGlow} 0%, transparent 70%)`, opacity: 0.5 }} />
+    <div className="relative min-h-dvh overflow-hidden" style={{ background: L.noir }}>
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-28 pt-6">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-28 pt-9">
         {/* En-tête (pas d'eyebrow : « Oracle du jour » est redondant avec le titre) */}
         <div className="text-center">
           <h1 className="font-[family-name:var(--font-cinzel-deco)] text-2xl" style={{ color: L.or }}>{t('title')}</h1>
@@ -705,13 +872,8 @@ function YiJingDuJourPage() {
         </div>
 
         {/* Corps */}
-        <div className="mt-6 flex-1">
-          {loading && (
-            <div className="flex flex-col items-center gap-4 pt-24">
-              <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: 'linear' }} className="text-4xl" style={{ color: L.or }}>☯</motion.span>
-              <p className="text-sm italic" style={{ color: `${L.ivoire}88` }}>{t('loading')}</p>
-            </div>
-          )}
+        <div className="mt-1 flex-1">
+          {loading && <SkyLoader lang={lang} />}
 
           {!loading && error && !data && (
             <div className="mt-16 rounded-2xl p-6 text-center" style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid ${L.or}33` }}>
@@ -725,27 +887,30 @@ function YiJingDuJourPage() {
 
           {/* Volet consentement : jamais tiré aujourd'hui → sceau + explications */}
           {!loading && !data?.alreadyDrawn && (
-            <div className="flex flex-col items-center gap-5 pt-6">
-              <HowItWorks lang={lang} dobKnown={data?.dobKnown !== false} />
-              <SealedCard onOpen={draw} busy={drawing} lang={lang} />
-              {drawing && (
-                <div className="flex w-full flex-col items-center gap-2">
-                  <WaitPoolLine
-                    universe="yijing"
-                    className="text-center text-[12px] italic leading-snug"
-                    style={{ color: `${L.ivoire}aa` }}
-                  />
-                </div>
-              )}
+            <div className="flex flex-col items-center gap-4 pt-1">
+              <SealedCard ref={sealRef} onOpen={draw} onSealTap={() => setSealTapped(true)} busy={drawing} drawing={drawing} lang={lang} />
               {!drawing && (
-                <button
-                  type="button"
-                  onClick={draw}
-                  className="mystic-btn rounded-full px-7 py-2.5 text-[13px]"
-                  style={{ background: `linear-gradient(160deg, ${L.rouge}, ${L.rougeDeep})`, color: L.or, border: `1px solid ${L.or}66` }}
+                <motion.div
+                  className="flex flex-col items-center gap-3"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: sealTapped ? 0 : 1 }}
+                  transition={{ duration: 2, ease: 'easeOut' }}
+                  style={{ pointerEvents: sealTapped ? 'none' : 'auto' }}
                 >
-                  {t('open')}
-                </button>
+                  {data?.dobKnown === false && (
+                    <div className="flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ background: 'rgba(0,0,0,0.35)', border: `1px dashed ${L.or}33` }}>
+                      <p className="text-[11px]" style={{ color: `${L.ivoire}aa` }}>{t('dobHint')}</p>
+                      <a href="/dashboard/account" className="text-[11px] font-semibold underline underline-offset-4" style={{ color: L.orSoft }}>{t('dobCta')}</a>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { if (sealRef.current) sealRef.current.play(); else draw(); }}
+                    className="yi-btn rounded-xl border border-[#f3c969]/40 px-7 py-2.5 text-[13.5px] tracking-[0.06em]"
+                  >
+                    {t('open')}
+                  </button>
+                </motion.div>
               )}
             </div>
           )}
@@ -768,15 +933,15 @@ function YiJingDuJourPage() {
                 style={{ background: `linear-gradient(165deg, ${L.panel} 0%, ${L.panelDeep} 100%)`, border: `1.5px solid ${L.or}4d`, boxShadow: `0 14px 44px rgba(0,0,0,0.55), 0 0 26px rgba(243,201,105,0.08)` }}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[10px] tracking-[0.3em]" style={{ color: L.orDim }}>#{hex.numero} · {hex.pinyin}</p>
-                    <h2 className="mt-1 truncate font-[family-name:var(--font-cinzel-deco)] text-xl" style={{ color: L.or }}>{displayName}</h2>
-                    <p className="mt-0.5 text-xs italic" style={{ color: `${L.ivoire}88` }}>{hex.caractere} · {hex.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="whitespace-nowrap text-[10px] tracking-[0.3em]" style={{ color: L.orDim }}>#{hex.numero} · {hex.pinyin}</p>
+                    <h2 className={`mt-1 whitespace-nowrap font-[family-name:var(--font-cinzel-deco)] ${displayName.length > 26 ? 'text-base' : displayName.length > 18 ? 'text-lg' : 'text-xl'}`} style={{ color: L.or }}>{displayName}</h2>
+                    <p className="mt-0.5 whitespace-nowrap text-xs italic" style={{ color: `${L.ivoire}88` }}>{hex.caractere} · {hex.name}</p>
                     {trigramPair(hex.lignes, lang) && (
                       <p className="mt-0.5 text-[10px] tracking-[0.08em]" style={{ color: `${L.or}66` }}>{trigramPair(hex.lignes, lang)}</p>
                     )}
                   </div>
-                  <div className="shrink-0 pt-1" style={{ marginRight: '0.75rem' }}>
+                  <div className="shrink-0 pt-1">
                     <HexLines lignes={hex.lignes} mutating={mutating} />
                   </div>
                 </div>

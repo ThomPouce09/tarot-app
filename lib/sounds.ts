@@ -92,6 +92,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'tonnerre', file: '/audio/tonnerre.mp3', category: 'ui', label: 'Tonnerre (frappe)', duration: 2.3, usage: 'Mjölnir — éclair de la Frappe' },
   { key: 'anvil', file: '/audio/anvil.mp3', category: 'ui', label: 'Impact enclume (clic sceller)', duration: 2.0, usage: 'Augure — clic sur « Sceller » (impact du cachet)' },
   { key: 'seal', file: '/audio/seal.mp3', category: 'ui', label: 'Sceau acté', duration: 3.0, usage: 'Augure — confirmation affichée : le sceau est posé' },
+  { key: 'open-seal', file: '/audio/open-seal.mp3', category: 'ui', label: 'Sceau qui se brise', duration: 5.0, usage: 'Hexagramme du Jour — clic sur le sceau : la vidéo de bris se lance' },
   { key: 'seal-astro', file: '/audio/seal-astro.mp3', category: 'ui', label: 'Sceau acté (dés zodiacaux)', duration: 8.45, usage: 'Augure des dés — confirmation affichée : le sceau astral est posé' },
   { key: 'seal-astro-click', file: '/audio/seal-astro-click.mp3', category: 'ui', label: 'Clic sceller (dés zodiacaux)', duration: 1.62, usage: 'Augure des dés — clic sur « Sceller l’augure »' },
   { key: 'animation-zodiac', file: '/audio/animation-zodiac.mp3', category: 'dice', label: 'Frappe du zodiaque', duration: 3.01, usage: 'Dés — animation « le ciel se déchire » (les 3 faces)' },
