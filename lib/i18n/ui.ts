@@ -560,7 +560,8 @@ export const DICT = {
   'history.share': { fr: "Partager", en: "Share", es: "Compartir", hi: "साझा करें" },
   'history.shareCopied': { fr: "Copié !", en: "Copied !", es: "¡Copiado!", hi: "कॉपी हुआ!" },
   'history.reversed': { fr: "(renversée)", en: "(reversed)", es: "(invertida)", hi: "(उल्टा)" },
-  'history.hexagram': { fr: "Hexagramme", en: "Hexagram", es: "Hexagrama", hi: "षट्चिह्न" },
+  'history.advice': { fr: "Conseil du jour", en: "Today's guidance", es: "Consejo del día", hi: "आज का मार्गदर्शन" },
+  'history.hexagramOf': { fr: "L'hexagramme de ce jour", en: "Today's hexagram", es: "El hexagrama de este día", hi: "इस दिन का षट्चिह्न" },  'history.hexagram': { fr: "Hexagramme", en: "Hexagram", es: "Hexagrama", hi: "षट्चिह्न" },
   'history.hexagramNo': { fr: "Hexagramme n°", en: "Hexagram no. ", es: "Hexagrama n.º", hi: "षट्कोण सं." },
   'history.card': { fr: "Carte", en: "Card", es: "Carta", hi: "पत्ता" },
   // filtres

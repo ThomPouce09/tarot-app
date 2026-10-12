@@ -190,7 +190,7 @@ export default function OracleProfileForm() {
                   onChange={(e) => setP((s) => ({ ...s, birthTown: e.target.value.slice(0, 60) }))}
                   placeholder={t('profile.birthTownPh')}
                   autoComplete="address-level2"
-                  className="mt-1 w-full rounded-lg border border-amber-700/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-amber-500/70"
+                  className="mt-1 w-full rounded-lg border border-violet-500/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-violet-400/70"
                 />
               </label>
               <label className="block">
@@ -199,7 +199,7 @@ export default function OracleProfileForm() {
                   type="time"
                   value={p.birthHour ?? ''}
                   onChange={(e) => setP((s) => ({ ...s, birthHour: e.target.value || null }))}
-                  className="mt-1 w-full rounded-lg border border-amber-700/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-amber-500/70 [color-scheme:dark]"
+                  className="mt-1 w-full rounded-lg border border-violet-500/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-violet-400/70 [color-scheme:dark]"
                 />
               </label>
             </div>

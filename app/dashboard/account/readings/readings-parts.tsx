@@ -102,6 +102,8 @@ export function ReadingThumbs({ r }: { r: Reading }) {
     shown = [cards[open.length ? open[open.length - 1] : 0]];
   }
   if (r.type === 'yi-jing-double') shown = cards.slice(0, 2).map((c: any) => ({ symbol: c?.glyph || '' }));
+  // Hexagramme du jour : vignettes = idéogrammes des hex (présent ➔ transformé).
+  if (r.type === 'yi-jing-du-jour') shown = cards.slice(0, 2).map((c: any) => ({ symbol: c?.caractere || '' }));
   if (shown.length === 0) return null;
   return (
     <span className="flex items-center gap-1 shrink-0">

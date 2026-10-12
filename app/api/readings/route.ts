@@ -45,12 +45,61 @@ export async function GET(request: Request) {
         include: { echo: { select: { id: true, dueAt: true, verdict: true, verdictPct: true, bestCardIndex: true, textFr: true, textEn: true, textEs: true, textHi: true } } },
       });
 
+        // ── Hexagrammes du Jour : l'historique stocke (numero,mutating,transformed).
+        // Pour les afficher comme la page du tirage (nom, idéogramme, pinyin, lignes,
+        // conseil IA du jour), on rattache le texte des hexagrammes concernés — tables
+        // soeurs comprises — en une seule requête.
+        const duJour = userReadings.filter((r: any) => r.type === 'yi-jing-du-jour');
+        const hexNums = new Set<number>();
+        duJour.forEach((r: any) => {
+          try {
+            const c = JSON.parse(String(r.cards));
+            if (Number.isFinite(c.numero)) hexNums.add(c.numero);
+            if (Number.isFinite(c.transformed)) hexNums.add(c.transformed);
+          } catch { /* carte illisible : affichage nudge plus bas */ }
+        });
+        const [hexRows, hexEn, hexEs, hexHi] = await Promise.all([
+          prisma.hexagram.findMany({ where: { numero: { in: [...hexNums] } } }),
+          prisma.hexagramEn.findMany({ where: { numero: { in: [...hexNums] } } }),
+          prisma.hexagramEs.findMany({ where: { numero: { in: [...hexNums] } } }),
+          prisma.hexagramHi.findMany({ where: { numero: { in: [...hexNums] } } }),
+        ]);
+        type HexCard = { numero: number; caractere: string; pinyin: string; name: string; synthese: string; lignes: string; nameBy: Record<string, string | null> };
+        const hexMap = new Map<number, HexCard>(hexRows.map((h) => [
+          h.numero,
+          { numero: h.numero, caractere: h.caractere, pinyin: h.pinyin, name: h.element ?? '', synthese: h.synthese ?? '', lignes: (JSON.parse(h.lignes || '[]') as string[]).map((g) => (g.trim().includes(' ') ? '0' : '1')).reverse().join(''), nameBy: {} },
+        ]));
+        hexEn.forEach((e) => { const c = hexMap.get(e.numero); if (c) c.nameBy.en = e.nameEn ?? null; });
+        hexEs.forEach((e) => { const c = hexMap.get(e.numero); if (c) c.nameBy.es = e.nameEs ?? null; });
+        hexHi.forEach((e) => { const c = hexMap.get(e.numero); if (c) c.nameBy.hi = e.nameHi ?? null; });
+
       // Format response safely
       const readings = userReadings.map((r: any) => {
         let cards = Array.isArray(r.cards) ? r.cards : (typeof r.cards === 'string' ? JSON.parse(r.cards || '[]') : []);
         let interpretation = typeof r.interpretation === 'string' ? r.interpretation : (r.interpretation ? JSON.stringify(r.interpretation) : null);
         // Roue hebdo : jamais révéler l'avenir ni le fil rouge avant l'heure —
         // ni par l'interprétation, ni par la colonne `cards` (vignettes).
+        // Hexagramme du Jour : la colonne cards = {numero,mutating,transformed}.
+        // On la transforme en cartes lisibles (nom, idéogramme, pinyin, lignes 0/1,
+        // mutantes, conseil IA du jour) — la vue de l'historique rend le même
+        // déploiement magnifique que la page du tirage.
+        if (r.type === 'yi-jing-du-jour') {
+          try {
+            const d = typeof cards === 'string' ? JSON.parse(cards) : cards;
+            const mutating = Array.isArray((d as any).mutating) ? (d as any).mutating : [];
+            const present = hexMap.get(Number((d as any).numero));
+            if (present) {
+              const transformed = Number.isFinite((d as any).transformed) ? hexMap.get((d as any).transformed) : null;
+              let advice = '';
+              try { advice = String(JSON.parse(interpretation || '{}').advice || ''); } catch { advice = ''; }
+              cards = [
+                { numero: present.numero, caractere: present.caractere, pinyin: present.pinyin, name: present.name, nameBy: present.nameBy, lignes: present.lignes, mutating, transformed: transformed?.numero ?? null },
+                ...(transformed ? [{ numero: transformed.numero, caractere: transformed.caractere, pinyin: transformed.pinyin, name: transformed.name, nameBy: transformed.nameBy, lignes: transformed.lignes, transforming: true }] : []),
+              ];
+              if (advice) interpretation = JSON.stringify({ meditation: advice });
+            }
+          } catch { /* carte illisible : la vue affichera sobrement '—' */ }
+        }
         if (r.type === 'tarot-semaine') {
           interpretation = sanitizeWheelInterpretation(interpretation, !!r.echo);
           try {
