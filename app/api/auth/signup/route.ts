@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendConfirmationEmail } from '@/lib/mailer';
 import { calcAge, daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
+import { normalizePhone, isValidPhone } from '@/lib/phone';
 import { resolveLang, authMsg, localDate, durationPhrase } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
@@ -58,6 +59,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Téléphone : OBLIGATOIRE, format valide, et UNIQUE (un compte par numéro).
+    // Normalisé à la clé (chiffres + '+' éventuel) : 06.12.15.39.23 et 0033…
+    // se réduisent au même numéro ; le @unique de User.phone est le filet de
+    // sécurité contre la course — le pré-check ci-dessous donne le message.
+    const phoneNorm = normalizePhone(phone);
+    if (!phoneNorm) {
+      return NextResponse.json({ error: authMsg('phoneMissing', lang) }, { status: 400 });
+    }
+    if (!isValidPhone(phoneNorm)) {
+      return NextResponse.json({ error: authMsg('phoneInvalid', lang) }, { status: 400 });
+    }
+    const phoneTaken = await prisma.user.findUnique({ where: { phone: phoneNorm }, select: { id: true } });
+    if (phoneTaken) {
+      return NextResponse.json({ error: authMsg('phoneTaken', lang), code: 'PHONE_TAKEN' }, { status: 409 });
+    }
+
     const hashedPassword = await (bcrypt as any).hash(password, 12);
     const confirmationToken = randomBytes(32).toString('hex');
 
@@ -70,7 +87,7 @@ export async function POST(request: NextRequest) {
         gender,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         age: dateOfBirth ? calcAge(dateOfBirth) : null,
-        phone,
+        phone: phoneNorm,
         comment,
         confirmationToken,
       },

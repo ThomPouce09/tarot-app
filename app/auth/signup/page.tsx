@@ -25,7 +25,10 @@ const buildSignupSchema = () => {
     confirmPassword: z.string(),
     gender: z.enum(["male", "female", "other"]).optional(),
     dateOfBirth: z.string().optional().or(z.literal('')),
-    phone: z.string().optional().or(z.literal('')),
+    phone: z.string()
+      .min(1, tr("Le numéro de téléphone est obligatoire", "A phone number is required", "El número de teléfono es obligatorio", "फ़ोन नंबर आवश्यक है"))
+      .refine((v) => { const n = v.replace(/[^0-9+]/g, '').replace(/^00/, '+'); return /^\+?[0-9]{7,15}$/.test(n); },
+        tr("Numéro invalide (7 à 15 chiffres)", "Invalid number (7 to 15 digits)", "Número no válido (7 a 15 dígitos)", "अमान्य नंबर (7 से 15 अंक)")),
     comment: z.string().optional().or(z.literal('')),
   }).refine((data) => data.password === data.confirmPassword, {
     message: tr("Les mots de passe ne correspondent pas", "Passwords do not match", "Las contraseñas no coinciden", "पासवर्ड मेल नहीं खाते"),
@@ -79,7 +82,7 @@ export default function SignUpPage() {
       ...formData,
       dateOfBirth: formData.dateOfBirth || undefined,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
-      phone: formData.phone === '' ? undefined : formData.phone,
+      phone: formData.phone,
       comment: formData.comment === '' ? undefined : formData.comment,
     };
 
@@ -346,7 +349,7 @@ export default function SignUpPage() {
                   <div>
                     <label htmlFor="phone" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
                       <span className="text-amber-500">📞</span>
-                      {tr("Téléphone", "Phone", "Teléfono", "फ़ोन")}
+                      {tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}
                     </label>
                     <input
                       type="tel"
@@ -357,8 +360,9 @@ export default function SignUpPage() {
                       inputMode="tel"
                       autoComplete="tel"
                       className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                      placeholder={tr("T\u00e9l\u00e9phone", "Phone", "Tel\u00e9fono", "\u092b\u093c\u094b\u0928")}
+                      placeholder={tr("06 12 34 56 78", "06 12 34 56 78", "06 12 34 56 78", "06 12 34 56 78")}
                     />
+                  {errors.phone && <p className="text-red-400 text-[10px] mt-1">{errors.phone}</p>}
                   </div>
                 </div>
 

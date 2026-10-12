@@ -95,6 +95,24 @@ export const AUTH_MSG = {
     es: 'El Oráculo acoge a personas de 16 años en adelante. Podrás unirte más tarde.',
     hi: 'देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है। आप बाद में शामिल हो सकते हैं।',
   },
+  phoneMissing: {
+    fr: 'Le numéro de téléphone est obligatoire.',
+    en: 'A phone number is required.',
+    es: 'El número de teléfono es obligatorio.',
+    hi: 'फ़ोन नंबर आवश्यक है।',
+  },
+  phoneInvalid: {
+    fr: 'Numéro de téléphone invalide (7 à 15 chiffres).',
+    en: 'Invalid phone number (7 to 15 digits).',
+    es: 'Número de teléfono no válido (7 a 15 dígitos).',
+    hi: 'अमान्य फ़ोन नंबर (7 से 15 अंक)।',
+  },
+  phoneTaken: {
+    fr: 'Ce numéro de téléphone est déjà utilisé par un compte.',
+    en: 'This phone number is already used by an account.',
+    es: 'Este número de teléfono ya lo usa una cuenta.',
+    hi: 'यह फ़ोन नंबर पहले से किसी खाते में है।',
+  },
   emailTaken: {
     fr: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.',
     en: 'This email is already registered. Sign in or use another email.',
