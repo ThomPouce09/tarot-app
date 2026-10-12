@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Garde âge minimum : 16 ans (RGPD consentement). Seule date de naissance
+    // en notre possession — si le futur consultant n'en donne pas encore, la
+    // vérification se fera quand il remplira son profil (Mon espace).
+    if (dateOfBirth) {
+      const age = calcAge(String(dateOfBirth));
+      if (age !== null && age < 16) {
+        return NextResponse.json({ error: authMsg('tooYoung', lang) }, { status: 400 });
+      }
+    }
+
     const hashedPassword = await (bcrypt as any).hash(password, 12);
     const confirmationToken = randomBytes(32).toString('hex');
 

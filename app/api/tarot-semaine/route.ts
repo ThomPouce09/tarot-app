@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle } from '@/lib/llm';
 import { requireSessionEmail } from '@/lib/session';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
 import { TAROT_CARDS } from '@/lib/tarot-data';
@@ -252,12 +253,14 @@ export async function POST(request: NextRequest) {
       const rights = await getRights(email).catch(() => null);
       const depth = rights && rights.level !== 'apprenti' ? '2 à 3 phrases' : '1 phrase seule';
       const outLang: LlmLang = resolveLang(body.lang);
-      const prompt = `Tu es un taromancien bienveillant et concret. Voici la roue des 7 arcanes majeurs d'une semaine (jour réel : arcane) :\n${lines}\n\n
+      const rawPrompt = `Tu es un taromancien bienveillant et concret. Voici la roue des 7 arcanes majeurs d'une semaine (jour réel : arcane) :\n${lines}\n\n
 1) Pour CHAQUE jour, dans l'ordre (7 entrées), un « éclairage » de ${depth} : l'attitude, la température ou le conseil que cette carte donne CE jour-là — concret, incarné, jamais vague ni prédictif (« ce jour se prête à… », « tiens-toi à… »).
 2) Puis le « fil rouge » de la semaine : 3-4 phrases (ton général, jour le plus porteur, jour le plus prudent, une attitude).
 Traduis chaque texte en anglais naturel (même sens, pas littéral)${outLang === 'fr' ? '' : `. Traduis aussi chaque texte en ${langName(outLang)} dans la clé '${outLang}'`}
 
 Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."},{"fr":"...","en":"..."}],"filRouge":{"fr":"...","en":"..."}}`;
+      // Profil oracle (optionnel) : « le consultant en quelques mots ».
+      const prompt = injectProfile(rawPrompt, await buildProfileBlock(email));
       let days: { fr: string; en: string }[] | null = null;
       let fil: { fr: string; en: string } | null = null;
       for (let attempt = 0; attempt < 2 && !(days && fil); attempt++) {

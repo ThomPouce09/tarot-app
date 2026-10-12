@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useT, useLang, tr, type Lang } from '@/lib/i18n';
 const LOC: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
 import SpaceTitle from '@/components/space-title';
+import OracleProfileForm from '@/components/oracle-profile';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -208,6 +209,11 @@ export default function AccountPage() {
           </dl>
         )}
       </div>
+
+      {/* ── Profil oracle — juste sous le formulaire d'inscription ──
+          Entièrement optionnel : il aide l'Oracle à affiner ses réponses.
+          (Invoqué ici et non dans la barre de nav : largeur smartphone saturée.) */}
+      <OracleProfileForm />
 
       {/* Déconnexion (mobile) — icône porte comme dans la barre latérale */}
       <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3 flex items-center justify-center gap-2">

@@ -1,6 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from 'next/server';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { tarotNameI18n, POSITION_LABELS_3 } from '@/lib/tarot-data-i18n';
 import { prisma } from '@/lib/prisma';
@@ -328,6 +329,8 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
     'qwen/qwen-2-7b-instruct:free'
   ];
 
+  // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──
+  prompt = injectProfile(prompt, await buildProfileBlock(guarded.email));
   const content = (await callOracle(prompt)) || '';
 
   // Parse JSON de la réponse

@@ -9,6 +9,7 @@
 // pendant cet appel.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { enforceGate } from '@/lib/gate-server';
 import { requireSessionEmail } from '@/lib/session';
@@ -235,6 +236,8 @@ export async function POST(request: NextRequest) {
     prompt = buildMjolnirPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, resolveLang(body.lang));
   }
 
+  // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──
+  prompt = injectProfile(prompt, await buildProfileBlock(odinEmail));
   const content = (await callOracle(prompt)) || '';
   if (!content || content.trim().length === 0) {
     return NextResponse.json(

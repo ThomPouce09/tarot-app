@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { guardRequest } from '@/lib/quota-guard';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 const PLANET_NAMES: Record<string, string> = {
@@ -98,6 +99,9 @@ ${consigne}
 
 Réponds UNIQUEMENT avec du texte libre, pas de JSON, pas de markdown, pas de formatage.`;
   }
+
+  // ── Profil oracle (optionnel) : teinte la réponse flash. ──
+  prompt = injectProfile(prompt, await buildProfileBlock(guarded.email));
 
   const content = (await callOracle(prompt + outputDirective(resolveLang(body.lang)))) || '';
 

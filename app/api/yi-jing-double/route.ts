@@ -23,6 +23,7 @@ import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
 import { guardRequest } from '@/lib/quota-guard';
 import { requireSessionEmail } from '@/lib/session';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { canCreateEcho, echoIsRevealed } from '@/lib/echo';
 import { deriveDouble, type DoubleDerivation } from '@/lib/yi-double';
 import { resolveLang, langName } from '@/lib/lang';
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
       const mutTxt = st.mutants.length
         ? `Lignes mutantes (positions 1-6, base vers sommet) : ${st.mutants.map((i) => i + 1).join(', ')}.`
         : `AUCUNE ligne mutante : la situation est stable — rien ne tourne. Lis la force tranquille de l'hexagramme unique et pourquoi le consultant doit tenir. Dans ce cas 'direction' explique la stabilité comme une puissance, pas une impasse, et 'echeance' plus courte (3-10 jours d'observation).`;
-      const prompt = `Tu es un maître du Yi Jing, voix profonde et concrète. Question du consultant : « ${st.question || 'Chemins et avenir'} ». Le tirage zhi gua a donné l'hexagramme ${st.hexPresent} « ${a.nom} » (${a.synthese.slice(0, 260)}) qui se transforme en hexagramme ${st.hexFutur} « ${b.nom} » (${b.synthese.slice(0, 260)}). ${mutTxt}
+      const rawPrompt = `Tu es un maître du Yi Jing, voix profonde et concrète. Question du consultant : « ${st.question || 'Chemins et avenir'} ». Le tirage zhi gua a donné l'hexagramme ${st.hexPresent} « ${a.nom} » (${a.synthese.slice(0, 260)}) qui se transforme en hexagramme ${st.hexFutur} « ${b.nom} » (${b.synthese.slice(0, 260)}). ${mutTxt}
 Écris 4 sections courtes (2 à 3 phrases chacune, ton solennel mais incarné, jamais vague) :
 - situation : ce que la situation EST maintenant (hexagramme présent)
 - bascule : la/les ligne(s) mutante(s) comme point d'inflexion exact de la question posée
@@ -194,6 +195,8 @@ export async function POST(request: NextRequest) {
 Puis traduis chaque section en anglais naturel (pas littéral) dans "en"${lang !== 'fr' ? `. Traduis aussi chaque section en ${langName(lang)} naturel dans la clé '${lang}'` : ''}.
 Réponds STRICTEMENT en JSON, rien d'autre :
 {"sections":[{"key":"situation","fr":"…","en":"…"},{"key":"bascule","fr":"…","en":"…"},{"key":"direction","fr":"…","en":"…"},{"key":"conseil","fr":"…","en":"…"}],"dueInDays":12}`;
+      // Profil oracle (optionnel) : « le consultant en quelques mots ».
+      const prompt = injectProfile(rawPrompt, await buildProfileBlock(email));
       let read: DoubleState['read'] = null;
       for (let attempt = 0; attempt < 2 && !read; attempt++) {
         const raw = (await callOracle(

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildProfileBlock } from '@/lib/profile';
 import { prisma } from '@/lib/prisma';
 import { enforceGate } from '@/lib/gate-server';
 import { requireSessionEmail } from '@/lib/session';
@@ -250,13 +251,15 @@ export async function POST(req: NextRequest) {
       dob ? `phase de vie : ${age} ans` : null,
       gender ? `polarité ressentie : ${gender}` : null,
     ].filter(Boolean).join(' ; ');
+    // Profil oracle (pastilles volontaires) — complète les indices fins.
+    const yjProfile = await buildProfileBlock(email);
 
     const base = lang === 'en'
       ? `Today's personal I Ching draw for this consultant: hexagram #${main.numero} "${main.element}" (${main.pinyin}). Core advice: "${main.conseil}". Strategy: "${main.strategie}". Attitude: "${main.attitude}".${transformed ? ` Moving lines: ${linesHint} — the day matures into hexagram #${transformed!.numero} "${transformedName}".` : ` Moving lines: ${linesHint}.`}
-Consultant's subtle, non-literal cues (TENDENCIES only): ${hints || 'none'}.
+Consultant's subtle, non-literal cues (TENDENCIES only): ${hints || 'none'}.${yjProfile}
 Write guidance of exactly 5 to 6 sentences for THIS day. Soak it in the hexagram's base energy and the day's draw, and BUILD ON the consultant's personal cues: let them shape the stakes, the examples and the advice itself — yet never quote the birth date, age, gender or name as facts. Warm, precise, oracle voice. Reply ONLY in JSON with key "advice" (a single string of 5-6 sentences).`
       : `Tirage personnel du jour pour ce consultant : hexagramme n°${main.numero} « ${main.element} » (${main.pinyin}). Conseil socle : « ${main.conseil} ». Stratégie : « ${main.strategie} ». Attitude : « ${main.attitude} ».${transformed ? ` Lignes mutantes : ${linesHint} — la journée mûrit vers l'hexagramme n°${transformed!.numero} « ${transformedName} ».` : ` Lignes mutantes : ${linesHint} (journée stable).`}
-Indices fins et non littéraux du consultant (de SIMPLES tendances) : ${hints || 'aucun'}.
+Indices fins et non littéraux du consultant (de SIMPLES tendances) : ${hints || 'aucun'}.${yjProfile}
 Rédige un conseil de 5 à 6 phrases exactement pour CETTE journée. Impregne-le de l'énergie de base de l'hexagramme et du tirage du jour, et APPUIE-TOI sur les indices personnels du consultant : qu'ils façonnent réellement les enjeux, les exemples et le conseil lui-même — sans jamais citer la date de naissance, l'âge, le sexe ou le nom comme des certitudes. Voix d'oracle, chaleureuse et précise. Réponds UNIQUEMENT en JSON avec la clé "advice" (une seule chaîne de 5-6 phrases).${outputDirective(lang)}`;
 
     let advice: string | null = null;

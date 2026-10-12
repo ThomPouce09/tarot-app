@@ -89,6 +89,12 @@ export const AUTH_MSG = {
     es: 'Email o contraseña incorrectos',
     hi: 'ईमेल या पासवर्ड गलत है',
   },
+  tooYoung: {
+    fr: 'L’oracle accueille les personnes de 16 ans et plus. Vous pourrez nous rejoindre plus tard.',
+    en: 'The Oracle welcomes people aged 16 and over. You can join us later.',
+    es: 'El Oráculo acoge a personas de 16 años en adelante. Podrás unirte más tarde.',
+    hi: 'देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है। आप बाद में शामिल हो सकते हैं।',
+  },
   emailTaken: {
     fr: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.',
     en: 'This email is already registered. Sign in or use another email.',

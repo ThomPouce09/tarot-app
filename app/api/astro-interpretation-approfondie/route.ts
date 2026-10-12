@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
 import { guardRequest } from '@/lib/quota-guard';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
     console.error('[astro-interpretation-approfondie] Erreur chargement prompt:', err);
     return NextResponse.json({ analysis: null }, { status: 200 });
   }
+
+  // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──
+  prompt = injectProfile(prompt, await buildProfileBlock(guarded.email));
 
   try {
     const response = await callOracle(prompt + outputDirective(resolveLang(lang)), { maxTokens: 1200, temperature: 0.5 });

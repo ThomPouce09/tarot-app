@@ -56,6 +56,22 @@ model User {
   // ni sur un autre appareil). Flags : 'tour', 'login_tour', 'hints_landing',
   // 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des'.
   seenTutorials     String[]  @default([])
+
+  // ── Profil oracle (entièrement optionnel — aide l'IA à affiner) ──
+  // Pastilles bornées (aucune saisie libre, sauf la ville) : domaine(s) de
+  // prédilection, étape de vie, ton d'interprétation, familiarité par univers,
+  // lieu/heure de naissance (calcul ascendant). buildProfileBlock() les injecte
+  // dans les prompts IA. profilePromptSeen = créature-rappel déjà passée une
+  // seule fois (après le 3e tirage, profil encore vide).
+  domains           String[]  @default([])   // amour|famille|travail|etudes|argent|projets|serenite
+  lifeStage         String?                  // etudes|active|reconversion|parenthese|retraite|installation|separation|nouveau-depart
+  tone              String?                  // direct|poetique|concret|introspection
+  familiarity       String?                  // debutant|habitue|praticien
+  birthTown         String?
+  birthHour         String?    @db.VarChar(5) // "HH:MM" saisie native, null = inconnue
+  profilePromptSeen Boolean   @default(false)   // créature-rappel déjà passée (1re fois)
+  profilePromptAt   DateTime?                   // dernier affichage ( snooze 30 j )
+  profilePromptRefusals Int     @default(0)     // « Pas maintenant » (2 = on ne redemande plus)
 }
 
 model Subscription {

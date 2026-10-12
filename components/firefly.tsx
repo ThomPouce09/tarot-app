@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { playSound } from '@/lib/sounds';
 import { FIREFLY_CONFIG } from '@/config/firefly';
-import CreaturePopup from './creature-popup';
+import CreaturePopup, { isCreaturePopupOpen } from './creature-popup';
 
 type Creature = { id: string; slug: string; name: string; image: string; color: string | null };
 type PopupData = { creature: Creature; text: string; category: string; giftClaimable?: boolean; giftKind?: 'base' | 'grand'; lang: string };
@@ -182,7 +182,13 @@ export default function Firefly({ page }: { page: string }) {
               setVisible(false); // la luciole s'eteint : les particules prennent le relais
               wanderResolveRef.current?.();
               // Apres l'explosion, le message apparait
-              setTimeout(() => {
+              setTimeout(async () => {
+                // Un autre popup créature est ouvert (ex. renard du Profil) :
+                // on attend qu'il se ferme — jamais deux messages superposés.
+                for (let i = 0; i < 90 && isCreaturePopupOpen(); i++) {
+                  await new Promise((r) => setTimeout(r, 2000));
+                }
+                if (!aliveRef.current) return;
                 setPopup(pending);
                 popupActiveRef.current = true;
                 setBurst(null);

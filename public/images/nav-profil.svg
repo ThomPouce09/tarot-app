@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <!-- Icône nav « Profil oracle » : silhouette de renard (la créature du rappel),
+       dorée, style des autres icônes de Mon espace. -->
+  <g fill="none" stroke="#AB8B57" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- oreilles -->
+    <path d="M16 26 L12 9 L25 18"/>
+    <path d="M44 26 L48 9 L35 18"/>
+    <!-- tête -->
+    <path d="M16 26 C14 34 17 42 23 47 C26 49.5 28.5 51 30 51 C31.5 51 34 49.5 37 47 C43 42 46 34 44 26 C40 20 35 18 30 18 C25 18 20 20 16 26 Z"/>
+    <!-- museau -->
+    <path d="M26 38 L30 45 L34 38" stroke-width="2.2"/>
+    <circle cx="30" cy="45.6" r="1.4" fill="#AB8B57" stroke="none"/>
+    <!-- yeux -->
+    <path d="M22.5 31.5 q2.2 -1.6 4.2 0" stroke-width="2.2"/>
+    <path d="M33.3 31.5 q2.2 -1.6 4.2 0" stroke-width="2.2"/>
+  </g>
+</svg>

@@ -9,6 +9,7 @@
 // STATIQUE (meanings.ts, 100% client) + la carte DB combinée, avant le LLM.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
 import { clampTwoSentences } from '@/lib/artemis-secret';
 import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
@@ -319,7 +320,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'facesA et facesB requis' }, { status: 400 });
     }
     const prompt = buildChoixPrompt(facesA, facesB, kinds, question, body.dbInterpretationA, body.dbInterpretationB);
-    const content = (await callOracle(prompt + outputDirective(lang))) || '';
+    const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         comparaison: "Les étoiles se voilent un instant… La comparaison n'a pas pu être générée. Recommence plus tard.",
@@ -341,7 +342,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'faces requis' }, { status: 400 });
     }
     const prompt = buildObstacleSolutionPrompt(faces, kinds, kind, dbInterpretation, question);
-    const content = (await callOracle(prompt + outputDirective(lang))) || '';
+    const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         texte: "Les étoiles se voilent un instant… L'analyse n'a pas pu être générée. Recommence plus tard.",
@@ -399,7 +400,7 @@ export async function POST(request: NextRequest) {
     : buildPrompt(faces, kinds, m, dbInterpretation, question);
   // Analyse longue (json ~10 phrases) : délai élargi, sinon abort sur les
   // modèles gratuits → « Les étoiles se voilent » et bouton de relance.
-  const content = (await callOracle(prompt + outputDirective(lang), m === 'global' || fusedArtemis ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
+  const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang), m === 'global' || fusedArtemis ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json({

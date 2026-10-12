@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callOracle } from '@/lib/llm';
 import { getPrompt } from '@/lib/prompts';
 import { guardRequest } from '@/lib/quota-guard';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { resolveLang, outputDirective } from '@/lib/lang';
 
 export async function POST(request: NextRequest) {
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   }
+
+  // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──
+  prompt = injectProfile(prompt, await buildProfileBlock(guarded.email));
 
   try {
     const maxTokens = mode === 'deep' ? 1200 : 500;

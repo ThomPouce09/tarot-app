@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { guardRequest } from '@/lib/quota-guard';
+import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { pick4 } from '@/lib/i18n';
 import { resolveLang, langName, type LlmLang } from '@/lib/lang';
 
@@ -97,8 +98,11 @@ vraiment, pas la plus confortable). Réponds UNIQUEMENT en JSON :
     return NextResponse.json({ chosenId: v.id, reason: null, fromOracle: false });
   }
 
+  // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──
+  const voiesProfile = await buildProfileBlock(guarded.email);
+  const voiesPrompt = injectProfile(buildPrompt(planet, sign, house, question || null, resolveLang(lang)), voiesProfile);
   try {
-    const raw = await callOracle(buildPrompt(planet, sign, house, question || null, resolveLang(lang)), {
+    const raw = await callOracle(voiesPrompt, {
       maxTokens: 900,
       temperature: 0.9,
       timeoutMs: 45_000,
