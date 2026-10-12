@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getRights } from '@/lib/entitlements';
+import { enforceGate } from '@/lib/gate-server';
 import { requireSessionEmail } from '@/lib/session';
 import { calcAge } from '@/lib/dates';
 import { callOracle, extractJsonObject } from '@/lib/llm';
+import { resolveLang, outputDirective, type LlmLang } from '@/lib/lang';
 import {
   dayKey,
   dailyHexNumber,
@@ -19,7 +20,7 @@ type HexRow = {
   numero: number;
   caractere: string;
   pinyin: string;
-  element: string | null;
+  element: string | null;   // NOTE : contient le NOM de l'hexagramme (Ciel, Terre…)
   strategie: string | null;
   attitude: string | null;
   conseil: string | null;
@@ -37,7 +38,7 @@ function shape(h: HexRow, en?: HexSiblings | null) {
     numero: h.numero,
     caractere: h.caractere,
     pinyin: h.pinyin,
-    element: h.element ?? '',
+    name: h.element ?? '',        // nom FR (le champ `element` porte le nom)
     strategie: h.strategie ?? '',
     attitude: h.attitude ?? '',
     conseil: h.conseil ?? '',
@@ -52,152 +53,126 @@ function shape(h: HexRow, en?: HexSiblings | null) {
   };
 }
 
-/** GET : hexagramme du jour + contexte. personal=1 → lecture réservée aux
- *  Initiés/Arkane : même hexagramme collectif du jour, conseil adapté par l'IA
- *  à l'âge du consultant (date de naissance). */
+async function loadHexas(numList: number[]) {
+  const [hexas, ens, ess, his] = await Promise.all([
+    prisma.hexagram.findMany({ where: { numero: { in: numList } } }),
+    prisma.hexagramEn.findMany({ where: { numero: { in: numList } } }),
+    prisma.hexagramEs.findMany({ where: { numero: { in: numList } } }),
+    prisma.hexagramHi.findMany({ where: { numero: { in: numList } } }),
+  ]);
+  const byNum = new Map<number, HexRow>(hexas.map((h) => [h.numero, h as HexRow]));
+  const byNumEn = new Map<number, HexSiblings>();
+  const merge = (numero: number, patch: HexSiblings) =>
+    byNumEn.set(numero, { ...(byNumEn.get(numero) || {}), ...patch });
+  ens.forEach((e) => merge(e.numero, { nameEn: e.nameEn, syntheseEn: e.syntheseEn }));
+  ess.forEach((e) => merge(e.numero, { nameEs: e.nameEs, syntheseEs: e.syntheseEs }));
+  his.forEach((e) => merge(e.numero, { nameHi: e.nameHi, syntheseHi: e.syntheseHi }));
+  return { byNum, byNumEn };
+}
+
+/** Contexte dessiné pour un compte et un jour (déterministe, stable 24 h). */
+function drawFor(email: string, date: Date) {
+  const numero = dailyHexNumber(date, email);
+  const mutating = dailyMutatingLines(date, email);
+  return { numero, mutating, transformedNum: transformedHexagram(numero, mutating) };
+}
+
+/** GET : état du jour SANS débit ni IA.
+ *  - `tired=true` → l'abonné a déjà tiré aujourd'hui : résultat complet renvoyé
+ *    (conseil en base, relu tel quel), `alreadyDrawn: true`.
+ *  - sinon → `alreadyDrawn: false` + préparation (hexagramme NON révélé tant
+ *    que le user n'a pas consenti : on renvoie seulement ce qui sert au cadre —
+ *    compteur collection, date, hier/demain cachés).
+ *  Le résultat n'est révélé/compté qu'au POST (consentement). */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const email = (searchParams.get('email') || '').trim().toLowerCase() || null;
-    const personal = searchParams.get('personal') === '1';
-    const dateStr = searchParams.get('date') || dayKey();
+    const claimed = (searchParams.get('email') || '').trim().toLowerCase() || null;
+    const sess = requireSessionEmail(req, claimed);
+    if ('error' in sess) return sess.error;
+    const email = sess.email;
 
+    const dateStr = searchParams.get('date') || dayKey();
     const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T12:00:00`) : new Date();
     const today = dayKey(date);
 
-    // ── Mode personnel : gating Initié/Arkane + profil (date exacte, sexe) ──
-    let age: number | null = null;
-    let dob: string | null = null;
-    let gender: string | null = null;
-    if (personal) {
-      // L'email de la vue perso vient du JETON de session (le ?email= de
-      // l'URL n'est pas cru sur parole : il ne peut pas débloquer un
-      // conseil réservé en prétendant le compte d'un abonné).
-      const sess = requireSessionEmail(req, email);
-      if ('error' in sess) return sess.error as NextResponse;
-      const emailS = sess.email;
-      const rights = await getRights(emailS);
-      if (!rights || rights.level === 'apprenti') {
-        return NextResponse.json({ found: false, error: 'Réservé aux Initiés et Arkanes', code: 'upgrade-required' }, { status: 402 });
-      }
-      const u = await prisma.user.findUnique({ where: { email: emailS }, select: { dateOfBirth: true, gender: true } });
-      age = u?.dateOfBirth ? calcAge(u.dateOfBirth.toISOString()) : null;
-      dob = u?.dateOfBirth ? u.dateOfBirth.toISOString().slice(0, 10) : null;
-      const g = (u?.gender || '').toLowerCase();
-      gender = g === 'female' ? 'femme' : g === 'male' ? 'homme' : null;
+    const row = await prisma.dailyDrawView.findUnique({
+      where: { email_date: { email, date: today } },
+    });
+    // V2 uniquement : une ligne « déjà tirée » ne compte que si le champ
+    // `mutating` est posé (trace du nouveau flux). Les lignes héritées de la
+    // v1 (simple vue, sans conseil stocké) ne court-circuitent PAS le
+    // consentement : le user peut (et doit) tirer « pour de vrai » aujourd'hui.
+    const v2Draw = row && row.mutating !== null;
+
+    // Collection + streak (lecture seule, aucun débit).
+    const views = await prisma.dailyDrawView.findMany({
+      where: { email },
+      orderBy: { date: 'desc' },
+      take: 400,
+      select: { date: true, numero: true },
+    });
+    const dates = new Set(views.map((v) => v.date));
+    const uniqHex = new Set(views.map((v) => v.numero));
+    let streak = 0;
+    const cursor = new Date(date);
+    if (!dates.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+    while (dates.has(dayKey(cursor))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    const collection = { viewed: uniqHex.size, streak, total: 64 };
+
+    if (!v2Draw) {
+      // Jamais tiré aujourd'hui → rien n'est révélé (pas de spoiler gratuit).
+      const dobKnown = !!(await prisma.user.findUnique({
+        where: { email }, select: { dateOfBirth: true },
+      }))?.dateOfBirth;
+      return NextResponse.json({
+        found: true,
+        date: today,
+        alreadyDrawn: false,
+        collection,
+        hasAdvice: false,
+        dobKnown,
+      });
     }
 
-    // Le tirage reste CELUI DU JOUR (collectif), y compris en mode personnel :
-    // l'IA n'adapte que le conseil à l'âge du consultant.
-    const seed = personal ? null : email;
-    const numero = dailyHexNumber(date, seed);
-    const mutating = dailyMutatingLines(date, seed);
-    const transformedNum = transformedHexagram(numero, mutating);
-
+    // Déjà tiré → résultat complet, relu en base (aucun appel IA).
+    const { numero, mutating, transformedNum } = drawFor(email, date);
     const nums = new Set<number>([numero]);
     if (transformedNum) nums.add(transformedNum);
-    const yesterdayNum = hexForOffset(-1, date, seed);
-    const tomorrowNum = hexForOffset(1, date, seed);
-    nums.add(yesterdayNum);
+    const tomorrowNum = hexForOffset(1, date, email);
     nums.add(tomorrowNum);
-
-    const numList = Array.from(nums);
-    const [hexas, ens, ess, his] = await Promise.all([
-      prisma.hexagram.findMany({ where: { numero: { in: numList } } }),
-      prisma.hexagramEn.findMany({ where: { numero: { in: numList } } }),
-      prisma.hexagramEs.findMany({ where: { numero: { in: numList } } }),
-      prisma.hexagramHi.findMany({ where: { numero: { in: numList } } }),
-    ]);
-    const byNum = new Map<number, HexRow>(hexas.map((h) => [h.numero, h as HexRow]));
-    // Sœurs _en/_es/_hi fusionnées par numéro (une seule map passée à shape()).
-    const byNumEn = new Map<number, HexSiblings>();
-    const merge = (numero: number, patch: HexSiblings) =>
-      byNumEn.set(numero, { ...(byNumEn.get(numero) || {}), ...patch });
-    ens.forEach((e) => merge(e.numero, { nameEn: e.nameEn, syntheseEn: e.syntheseEn }));
-    ess.forEach((e) => merge(e.numero, { nameEs: e.nameEs, syntheseEs: e.syntheseEs }));
-    his.forEach((e) => merge(e.numero, { nameHi: e.nameHi, syntheseHi: e.syntheseHi }));
-
+    const { byNum, byNumEn } = await loadHexas(Array.from(nums));
     const main = byNum.get(numero);
     if (!main) {
       return NextResponse.json({ found: false, error: 'hexagramme absent' }, { status: 500 });
     }
-
-    // ── Conseil personnel (Initié/Arkane) : l'IA compare la tendance du jour
-    // à la phase de vie du consultant (date exacte de naissance + sexe,
-    // JAMAIS cités mot à mot) pour un conseil sur mesure propre à cette
-    // journée. Sans date de naissance → tirage du jour standard + avis de
-    // finesse (personalAge = null côté UI).
-    let personalAdvice: string | null = null;
-    if (personal && age !== null && dob) {
-      const isEn = (req.headers.get('accept-language') || '').toLowerCase().startsWith('en');
-      const profileFr = `Né le ${dob.split('-').reverse().join('/')} (${age} ans)${gender ? `, ${gender}` : ''}`;
-      const profileEn = `Born on ${dob} (${age} years old)${gender ? `, ${gender === 'femme' ? 'female' : 'male'}` : ''}`;
-      const prompt = isEn
-        ? `Today's collective I Ching draw: hexagram #${main.numero} "${main.element}" (${main.pinyin}). Advice: "${main.conseil}". Strategy: "${main.strategie}". Attitude: "${main.attitude}".
-Consultant's confidential profile: ${profileEn}.
-Compare today's trend (this hexagram's energy) with the consultant's exact life stage and sex to write guidance tailored to THIS day. NEVER quote or mention the birth date, the age or the sex explicitly — let them only resonate through the tone, the stakes and the examples. Reply ONLY in JSON with keys "advice" (2-3 sentences) and "tone" (one short sentence).`
-        : `Hexagramme collectif tiré aujourd'hui : n°${main.numero} « ${main.element} » (${main.pinyin}). Conseil : « ${main.conseil} ». Stratégie : « ${main.strategie} ». Attitude : « ${main.attitude} ».
-Profil confidentiel du consultant : ${profileFr}.
-Compare la tendance du jour (l'énergie de cet hexagramme) avec la phase de vie exacte et le sexe du consultant pour rédiger un conseil sur mesure propre à cette journée. Ne cite JAMAIS mot à mot la date de naissance, l'âge ou le sexe — laisse-les seulement résonner dans le ton, les enjeux et les exemples. Réponds UNIQUEMENT en JSON avec les clés "advice" (2-3 phrases) et "tone" (une phrase courte).`;
-      try {
-        const content = await callOracle(prompt, { maxTokens: 1500, temperature: 0.8 });
-        if (content) {
-          const parsed = extractJsonObject(content);
-          const advice = typeof parsed?.advice === 'string' ? parsed.advice.trim() : '';
-          const tone = typeof parsed?.tone === 'string' ? parsed.tone.trim() : '';
-          if (advice) personalAdvice = tone ? `${advice} — ${tone}` : advice;
-        }
-      } catch {
-        // IA indisponible → l'UI retombe sur le conseil du jour standard
-      }
-    }
-
-    // Collection + streak (uniquement pour un compte identifié, sur la vue du jour)
-    let collection: { viewed: number; streak: number; total: number } | null = null;
-    let viewedToday = false;
-    if (email) {
-      const views = await prisma.dailyDrawView.findMany({
-        where: { email },
-        orderBy: { date: 'desc' },
-        take: 400,
-        select: { date: true, numero: true },
-      });
-      const dates = new Set(views.map((v) => v.date));
-      viewedToday = dates.has(today);
-      const uniqHex = new Set(views.map((v) => v.numero));
-      // streak : jours consécutifs en terminant aujourd'hui ou hier
-      let streak = 0;
-      const cursor = new Date(date);
-      if (!dates.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-      while (dates.has(dayKey(cursor))) {
-        streak++;
-        cursor.setDate(cursor.getDate() - 1);
-      }
-      collection = { viewed: uniqHex.size, streak, total: 64 };
-    }
+    const savedMutating = (() => {
+      try { const a = JSON.parse(String(row.mutating || '[]')); return Array.isArray(a) ? a : mutating; }
+      catch { return mutating; }
+    })();
 
     return NextResponse.json({
       found: true,
       date: today,
-      personal,
-      personalAge: personal ? age : null,
-      personalAdvice,
+      alreadyDrawn: true,
+      collection,
+      hasAdvice: !!row.advice,
+      adviceMissing: !row.advice,
       hexagram: shape(main, byNumEn.get(numero) || null),
-      mutating,
+      mutating: savedMutating,
       transformed: transformedNum && byNum.get(transformedNum)
         ? shape(byNum.get(transformedNum)!, byNumEn.get(transformedNum) || null)
-        : null,
-      yesterday: byNum.get(yesterdayNum)
-        ? { numero: yesterdayNum, caractere: byNum.get(yesterdayNum)!.caractere, pinyin: byNum.get(yesterdayNum)!.pinyin }
         : null,
       tomorrow: byNum.get(tomorrowNum)
         ? { numero: tomorrowNum, caractere: byNum.get(tomorrowNum)!.caractere, pinyin: byNum.get(tomorrowNum)!.pinyin }
         : null,
-      collection,
-      viewedToday,
+      personalAdvice: row.advice ?? null,
     });
   } catch (error) {
-    console.error('Erreur API yi-jing-du-jour:', error);
+    console.error('Erreur API yi-jing-du-jour GET:', error);
     return NextResponse.json(
       { found: false, error: error instanceof Error ? error.message : 'Erreur interne' },
       { status: 500 },
@@ -205,24 +180,135 @@ Compare la tendance du jour (l'énergie de cet hexagramme) avec la phase de vie 
   }
 }
 
-/** POST : enregistrer la consultation du jour (collection + streak). */
+/** POST : consentement explicite → tirage du jour.
+ *  - déjà tiré aujourd'hui → renvoie le résultat stocké (aucun débit, aucune IA) ;
+ *  - sinon → débit 1 tirage de base (via le quota-guard standard, dedup inclus),
+ *    génération du conseil IA (4-5 phrases) dans la langue du compte, sauvegarde
+ *    en base + Mes tirages. Corps : { email, flowId? }. */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
-    const email = String(body?.email || '').trim().toLowerCase();
-    const numero = Number(body?.numero);
-    const date = String(body?.date || '') || dayKey();
-    if (!email || !Number.isInteger(numero) || numero < 1 || numero > 64) {
-      return NextResponse.json({ ok: false, error: 'paramètres invalides' }, { status: 400 });
-    }
-    await prisma.dailyDrawView.upsert({
-      where: { email_date: { email, date } },
-      update: { numero },
-      create: { email, date, numero },
+    const claimed = String(body?.email || '').trim().toLowerCase() || null;
+    const sess = requireSessionEmail(req, claimed);
+    if ('error' in sess) return sess.error;
+    const email = sess.email;
+
+    const today = dayKey();
+    const existing = await prisma.dailyDrawView.findUnique({
+      where: { email_date: { email, date: today } },
     });
-    return NextResponse.json({ ok: true });
+    if (existing && existing.mutating !== null) {
+      // Tirage V2 déjà fait aujourd'hui → relire sans repayer (la page
+      // rafraîchit via GET). Une ligne v1 (simple vue) ne bloque pas : le
+      // user consent au vrai tirage par un POST de débit.
+      return NextResponse.json({ ok: true, alreadyDrawn: true });
+    }
+
+    // Verrou de quota : type base 'yi-jing-du-jour' → débit mensuel abonné /
+    // pack / tickets / crédits, avec réponse 402 précise si plafond atteint.
+    const gate = await enforceGate(req, body ?? {}, 'yi-jing-du-jour', null);
+    if (gate) return gate;
+
+    const date = new Date();
+    const { numero, mutating, transformedNum } = drawFor(email, date);
+    const nums = new Set<number>([numero]);
+    if (transformedNum) nums.add(transformedNum);
+    const tomorrowNum = hexForOffset(1, date, email);
+    nums.add(tomorrowNum);
+    const { byNum, byNumEn } = await loadHexas(Array.from(nums));
+    const main = byNum.get(numero);
+    if (!main) {
+      return NextResponse.json({ found: false, error: 'hexagramme absent' }, { status: 500 });
+    }
+
+    // ── Conseil IA : tendres indices personnels, jamais de citation brute ──
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true, firstName: true, lastName: true,
+        dateOfBirth: true, gender: true,
+      },
+    });
+    const lang: LlmLang = resolveLang(body?.lang);
+    const age = user?.dateOfBirth ? calcAge(user.dateOfBirth.toISOString()) : null;
+    const dob = user?.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null;
+    const g = (user?.gender || '').toLowerCase();
+    const gender = g === 'female' ? 'femme' : g === 'male' ? 'homme' : null;
+    const transformed = transformedNum ? byNum.get(transformedNum) : null;
+    const transformedName = transformed
+      ? (lang === 'en' ? byNumEn.get(transformedNum!)?.nameEn
+        : lang === 'es' ? byNumEn.get(transformedNum!)?.nameEs
+        : lang === 'hi' ? byNumEn.get(transformedNum!)?.nameHi : null) || transformed.element
+      : null;
+    const linesHint = mutating.length
+      ? mutating.map((l) => `${l}`).join(', ')
+      : 'aucune (journée stable)';
+
+    const name = user?.firstName || '';
+    const hints = [
+      name ? `prénom : ${name}${user?.lastName ? ` ${user.lastName}` : ''}` : null,
+      dob ? `phase de vie : ${age} ans` : null,
+      gender ? `polarité ressentie : ${gender}` : null,
+    ].filter(Boolean).join(' ; ');
+
+    const base = lang === 'en'
+      ? `Today's personal I Ching draw for this consultant: hexagram #${main.numero} "${main.element}" (${main.pinyin}). Core advice: "${main.conseil}". Strategy: "${main.strategie}". Attitude: "${main.attitude}".${transformed ? ` Moving lines: ${linesHint} — the day matures into hexagram #${transformed!.numero} "${transformedName}".` : ` Moving lines: ${linesHint}.`}
+Consultant's subtle, non-literal cues (TENDENCIES only): ${hints || 'none'}.
+Write guidance of exactly 5 to 6 sentences for THIS day. Soak it in the hexagram's base energy and the day's draw, and BUILD ON the consultant's personal cues: let them shape the stakes, the examples and the advice itself — yet never quote the birth date, age, gender or name as facts. Warm, precise, oracle voice. Reply ONLY in JSON with key "advice" (a single string of 5-6 sentences).`
+      : `Tirage personnel du jour pour ce consultant : hexagramme n°${main.numero} « ${main.element} » (${main.pinyin}). Conseil socle : « ${main.conseil} ». Stratégie : « ${main.strategie} ». Attitude : « ${main.attitude} ».${transformed ? ` Lignes mutantes : ${linesHint} — la journée mûrit vers l'hexagramme n°${transformed!.numero} « ${transformedName} ».` : ` Lignes mutantes : ${linesHint} (journée stable).`}
+Indices fins et non littéraux du consultant (de SIMPLES tendances) : ${hints || 'aucun'}.
+Rédige un conseil de 5 à 6 phrases exactement pour CETTE journée. Impregne-le de l'énergie de base de l'hexagramme et du tirage du jour, et APPUIE-TOI sur les indices personnels du consultant : qu'ils façonnent réellement les enjeux, les exemples et le conseil lui-même — sans jamais citer la date de naissance, l'âge, le sexe ou le nom comme des certitudes. Voix d'oracle, chaleureuse et précise. Réponds UNIQUEMENT en JSON avec la clé "advice" (une seule chaîne de 5-6 phrases).${outputDirective(lang)}`;
+
+    let advice: string | null = null;
+    try {
+      const content = await callOracle(base, { maxTokens: 1100, temperature: 0.8 });
+      if (content) {
+        const parsed = extractJsonObject(content);
+        const raw = typeof parsed?.advice === 'string' ? parsed.advice.trim() : '';
+        if (raw) advice = raw;
+      }
+    } catch {
+      // IA indisponible → le conseil socle de la table prend le relais (page).
+    }
+
+    // Persistance : résultat du jour (relisible sans re-débit) + Mes tirages.
+    await prisma.dailyDrawView.upsert({
+      where: { email_date: { email, date: today } },
+      create: { email, date: today, numero, mutating: JSON.stringify(mutating), advice },
+      update: { numero, mutating: JSON.stringify(mutating), advice },
+    });
+    if (user) {
+      await prisma.reading.create({
+        data: {
+          userId: user.id,
+          type: 'yi-jing-du-jour',
+          question: null,
+          cards: JSON.stringify({ numero, mutating, transformed: transformedNum }),
+          interpretation: advice ? JSON.stringify({ advice }) : null,
+        },
+      }).catch(() => undefined);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      alreadyDrawn: false,
+      date: today,
+      hexagram: shape(main, byNumEn.get(numero) || null),
+      mutating,
+      transformed: transformed && transformedNum
+        ? shape(transformed, byNumEn.get(transformedNum) || null)
+        : null,
+      tomorrow: byNum.get(tomorrowNum)
+        ? { numero: tomorrowNum, caractere: byNum.get(tomorrowNum)!.caractere, pinyin: byNum.get(tomorrowNum)!.pinyin }
+        : null,
+      personalAdvice: advice,
+      hasAdvice: !!advice,
+    });
   } catch (error) {
-    console.error('Erreur POST yi-jing-du-jour:', error);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    console.error('Erreur API yi-jing-du-jour POST:', error);
+    return NextResponse.json(
+      { found: false, error: error instanceof Error ? error.message : 'Erreur interne' },
+      { status: 500 },
+    );
   }
 }

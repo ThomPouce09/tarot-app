@@ -332,6 +332,11 @@ model DailyDrawView {
   date    String   // YYYY-MM-DD (jour local du device)
   numero  Int
   viewedAt DateTime @default(now())
+  // ── Hexagramme du jour, version 2 (personnel) ──
+  // Lignes mutantes (JSON array, ex "[2,5]") + conseil IA stockés au tirage :
+  // relisible toute la journée et dans l'historique sans re-consommation.
+  mutating  String? @db.VarChar(16)
+  advice    String?
   @@unique([email, date])
   @@map("daily_draw_views")
 }

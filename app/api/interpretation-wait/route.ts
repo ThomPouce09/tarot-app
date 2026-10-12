@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { pick4 } from '@/lib/i18n';
-import { resolveLang } from '@/lib/lang';
+import { resolveLang, type LlmLang } from '@/lib/lang';
 import { waitMessages, universeForType } from '@/lib/wait-messages';
 
 // ── Vidéos d'attente : détection dynamique par préfixe ────────────────────
@@ -87,9 +86,16 @@ export async function GET(request: NextRequest) {
   const messages = universe ? waitMessages(universe, lang) : [];
 
   if (!cfg) {
-    // Fallback generique
+    // Fallback generique (message inline : pick4 de lib/i18n est client-only,
+    // hors démo ici).
+    const fb = {
+      fr: 'Chargement de l’interprétation…',
+      en: 'Loading the interpretation…',
+      es: 'Cargando la interpretación…',
+      hi: 'व्याख्या लोड हो रही है…',
+    } as Record<LlmLang, string>;
     return NextResponse.json({
-      messages: [pick4('Chargement de l’interprétation…', 'Loading the interpretation…', "Cargando la interpretación…", "व्याख्या लोड हो रही है…")(lang)],
+      messages: [fb[lang]],
       backgroundType: 'none',
       backgroundUrls: [],
       animation: 'fade',

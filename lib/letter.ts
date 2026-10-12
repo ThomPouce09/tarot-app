@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { collectiveHexNumber } from '@/lib/yi-daily';
+import { dailyHexNumber } from '@/lib/yi-daily';
 import { DICT } from '@/lib/i18n/ui';
 import { summarizeDraw, cleanCut } from '@/lib/letter-summary';
 import { letterBaseUrl, letterUnsubUrl } from '@/lib/letter-links';
@@ -70,13 +70,15 @@ function bestStreak(counts: Map<string, number>): number {
   return best;
 }
 
-// Tirage du jour : hexagramme collectif dérivé du jour de l'année (déterministe,
-// même source que /api/yi-jing-du-jour), nom/synthèse dans la langue de la lettre
-// (tables sœurs hexagrams_en / _es / _hi — `hexagrams` reste la source FR).
+// Tirage du jour : hexagramme PERSONNEL du compte (même seed que
+// /api/yi-jing-du-jour : email + date) — l'abonné retrouve dans la lettre
+// exactement ce que l'app dessine pour lui. Nom/synthèse dans la langue de la
+// lettre (tables sœurs hexagrams_en / _es / _hi — `hexagrams` reste la source FR).
 async function hexOfDay(
+  email: string,
   lang: LetterLang,
 ): Promise<{ numero: number; name: string | null; glyph: string | null; desc: string | null }> {
-  const numero = collectiveHexNumber();
+  const numero = dailyHexNumber(new Date(), email);
   try {
     const h = await prisma.hexagram.findUnique({ where: { numero } });
     let name = h?.element ?? null;
@@ -186,7 +188,7 @@ export async function buildLetterData(email: string): Promise<LetterData | null>
     };
   }
 
-  const daily = await hexOfDay(lang);
+  const daily = await hexOfDay(user.email, lang);
 
   // Augures : échus à vérifier / encore scellés (ligne conditionnelle de la lettre).
   const [echoDus, echoPending] = await Promise.all([
