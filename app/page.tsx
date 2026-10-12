@@ -364,7 +364,7 @@ export default function HomePage() {
             <div
               className="absolute inset-0 flex flex-col items-center justify-center p-2.5 sm:p-3"
               style={{
-                background: 'linear-gradient(135deg, #241014 0%, #0d0609 50%, #241014 100%)',
+                background: 'linear-gradient(135deg, #6c1613 0%, #430e0c 50%, #6c1613 100%)',
               }}
             >
               <div className="absolute inset-1.5 rounded-lg pointer-events-none" style={{ border: '1px solid rgba(243,201,105,0.3)' }} />

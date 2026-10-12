@@ -88,18 +88,19 @@ stepsHi: ["अपने प्रश्न को शब्द दें", "ए�
 titleEs: "El Hexagrama del Día", titleHi: "आज की षटरेखा",
     desc: "Le conseil du jour sous forme d'un hexagramme tiré pour vous.",
     descEn: "The day's advice in a hexagram drawn for you.",
+descEs: "El consejo del día en forma de un hexagrama tirado para usted.", descHi: "दिन का परामर्श — आपके लिए खिंची षटरेखा के रूप में।",
     steps: [
-      'Faites le point sur votre journée',
-      'Tirez l’hexagramme du jour',
-      'Appliquez son conseil',
+      'Chaque jour, un hexagramme est tiré pour votre compte seul — personne d’autre ne reçoit le même.',
+      'L’Oracle en tire un conseil de quelques phrases, ajusté à votre énergie du moment et aux tendances de votre profil.',
+      'Cette consultation utilise un tirage de base. Le résultat reste consultable toute la journée — et dans votre historique — sans rien relancer.',
     ],
     stepsEn: [
-      'Take stock of your day',
-      'Draw today’s hexagram',
-      'Apply its counsel',
+      'Each day, a hexagram is drawn for your account alone — no one else receives the same one.',
+      'The Oracle draws from it a few-sentence guidance, tuned to your energy of the moment and your profile’s tendencies.',
+      'This consultation uses one base draw. The result stays readable all day — and in your history — without relaunching anything.',
     ],
-stepsEs: ["Haga balance de su jornada", "Tire el hexagrama del día", "Aplique su consejo"],
-stepsHi: ["अपने दिन का अवलोकन करें", "आज की षटरेखा निकालें", "उस परामर्श को अपनाएँ"],
+stepsEs: ["Cada día se tira un hexagrama solo para su cuenta; nadie más recibe el mismo.", "El oráculo extrae una guía de pocas frases, ajustada a su energía del momento y a las tendencias de su perfil.", "Esta consulta usa una tirada base. El resultado queda legible todo el día —y en su historial— sin volver a lanzar nada."],
+stepsHi: ["हर दिन आपके खाते के लिए अकेले एक हैक्सग्राम खिंचता है — किसी और को वही नहीं मिलता।", "देववाणी उससे कुछ वाक्यों का मार्गदर्शन निकालती है — आपके क्षण की ऊर्जा और प्रोफ़ाइल की प्रवृत्तियों के अनुकूल।", "यह परामर्श एक आधार-पात लेता है। परिणाम सारा दिन — और आपके इतिहास में — बिना पुनःआरंभ पढ़ा जा सकता है।"],
   },
 ];
 
@@ -300,8 +301,8 @@ export default function YiJingHubPage() {
                   </svg>
                 </button>
               <img
-                src="/images/yi-jing-icon.png"
-                alt="Yi Jing"
+                src="/images/yi-jing-simple.png?v=2"
+                alt="Yi Jing simplifié"
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
                 style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
               />
@@ -376,8 +377,8 @@ export default function YiJingHubPage() {
                   </svg>
                 </button>
               <img
-                src="/images/yi-jing-simple.png"
-                alt={tr('Yi Jing Simple', 'Simplified I Ching', 'Yi Jing simple', 'सरल यी जिंग')}
+                src="/images/yi-jing-precis.png?v=2"
+                alt={tr('Yi Jing précis', 'Precise I Ching', 'Yi Jing preciso', 'सटीक यी जिंग')}
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
                 style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
               />

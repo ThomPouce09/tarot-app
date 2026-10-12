@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useT, useLang } from '@/lib/i18n';
 import SpaceTitle from '@/components/space-title';
-import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
+import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_ICON_IMG, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
 import { UNIVERSES, type Universe } from '@/lib/classification';
 import { api } from '@/lib/api-client';
 import { openExternal, isNative } from '@/lib/capacitor-utils';
@@ -546,7 +546,12 @@ export default function AbonnementPage() {
           const isOne = isOneShot(p);
           return (
             <div key={p} id={p} className={`mystic-panel p-5 flex flex-col scroll-mt-24 ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
-              <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
+              {PLAN_ICON_IMG[p] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={PLAN_ICON_IMG[p]} alt="" className="h-9 w-9 object-contain mb-2" />
+              ) : (
+                <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
+              )}
               <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
               <p className="mystic-subtitle text-sm mb-3">
                 {p === 'bienvenue' ? (
