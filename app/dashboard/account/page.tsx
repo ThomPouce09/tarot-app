@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useT, useLang, tr, type Lang } from '@/lib/i18n';
 const LOC: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' };
 import SpaceTitle from '@/components/space-title';
+import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
+import { composePhone, splitStoredPhone, phoneDisplay } from '@/lib/phone';
+import OracleProfileForm from '@/components/oracle-profile';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -13,8 +16,9 @@ export default function AccountPage() {
   const lang = useLang();
   const [user, setUser] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', gender: 'other', comment: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', dial: DEFAULT_DIAL, dateOfBirth: '', gender: 'other', comment: '' });
   const [message, setMessage] = useState('');
+  const [msgError, setMsgError] = useState(false);
   const [saving, setSaving] = useState(false);
   // Statut d'activation FIABLE (DB) — ne pas se fier au localStorage (périmé).
   const [confirmed, setConfirmed] = useState<boolean | null>(null);
@@ -82,35 +86,41 @@ export default function AccountPage() {
   const handleSave = async () => {
     setSaving(true);
     setMessage('');
+    setMsgError(false);
     try {
       const res = await api('/api/auth/update-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, ...form, dateOfBirth: form.dateOfBirth || null }),
+        body: JSON.stringify({ email: user.email, ...form, phone: composePhone(form.dial, form.phone), dateOfBirth: form.dateOfBirth || null }),
       });
       const data = await res.json();
       if (res.ok) {
-        const updatedUser = { ...user, ...form, dateOfBirth: form.dateOfBirth || null };
+        const updatedUser = { ...user, ...form, phone: composePhone(form.dial, form.phone), dateOfBirth: form.dateOfBirth || null };
         localStorage.setItem('tarot_user', JSON.stringify(updatedUser));
         setUser(updatedUser);
         setEditMode(false);
-        setMessage('Modifications sauvegardées ✦');
+        setMessage(t('account.saved'));
       } else {
         setMessage(data.error || 'Erreur');
+        setMsgError(true);
       }
     } catch {
       setMessage('Erreur de connexion');
+      setMsgError(true);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* En-tête profil : bandeau dégradé harmonisé (modèle /readings) */}
+    <div className="space-y-4">
+      {/* En-tête profil : bandeau dégradé harmonisé, volontairement COMPACT
+          (dense + avatar réduit) pour que le formulaire commence haut — seuls
+          les messages (« Modifications sauvegardées »…) prennent place dessous. */}
       <SpaceTitle
+        dense flush
         icon={
-          <span className="w-20 h-20 shrink-0 rounded-full avatar-mystic flex items-center justify-center relative text-white text-3xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
+          <span className="w-14 h-14 shrink-0 rounded-full avatar-mystic flex items-center justify-center relative text-white text-xl font-bold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>
             {initial}
             <span className="avatar-glass" aria-hidden />
           </span>
@@ -140,8 +150,12 @@ export default function AccountPage() {
       )}
 
       {message && (
-        <p role="status" aria-live="polite" className="text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30">
-          {t('account.saved')}
+        <p role="status" aria-live="polite" className={
+          msgError
+            ? "text-red-300 text-sm px-3 py-2 rounded-lg bg-red-950/30 border border-red-800/40"
+            : "text-amber-200 text-sm px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-700/30"
+        }>
+          {message}
         </p>
       )}
 
@@ -152,10 +166,12 @@ export default function AccountPage() {
           {!editMode && (
             <button
               onClick={() => {
+                const { dial: curDial, national: curNat } = splitStoredPhone(user.phone || '');
                 setForm({
                   firstName: user.firstName || '',
                   lastName: user.lastName || '',
-                  phone: user.phone || '',
+                  phone: curNat,
+                  dial: curDial || DEFAULT_DIAL,
                   dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : '',
                   gender: user.gender || 'other',
                   comment: user.comment || '',
@@ -174,7 +190,26 @@ export default function AccountPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="firstName" label={tr("Prénom", "First name", "Nombre", "नाम")} value={form.firstName} onChange={(e: any) => setForm({ ...form, firstName: e.target.value })} />
               <Field id="lastName" label={t('account.lastName')} value={form.lastName} onChange={(e: any) => setForm({ ...form, lastName: e.target.value })} />
-              <Field id="phone" label={tr("Téléphone", "Phone", "Teléfono", "फ़ोन")} value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} type="tel" />
+              <div className="sm:col-span-2">
+                <label htmlFor="phone" className="mystic-label block mb-1">{tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}</label>
+                <div className="flex items-stretch gap-2">
+                  <select
+                    id="dial" value={form.dial}
+                    onChange={(e: any) => setForm({ ...form, dial: e.target.value })}
+                    aria-label={tr("Indicatif du pays", "Country dial code", "Indicativo del país", "देश कोड")}
+                    className="!w-[92px] shrink-0 !px-1.5 mystic-input [color-scheme:dark]"
+                  >
+                    {DIAL_COUNTRIES.map((c) => (<option key={c.iso} value={c.dial}>{c.short}</option>))}
+                  </select>
+                  <input
+                    id="phone" type="tel" inputMode="tel" autoComplete="tel-national"
+                    value={form.phone}
+                    onChange={(e: any) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="6 12 34 56 78"
+                    className="flex-1 min-w-0 mystic-input"
+                  />
+                </div>
+              </div>
               <Field id="dateOfBirth" label={t('account.birthDate')} value={form.dateOfBirth} onChange={(e: any) => setForm({ ...form, dateOfBirth: e.target.value })} type="date" />
             </div>
             <div>
@@ -200,7 +235,7 @@ export default function AccountPage() {
           <dl className="space-y-3 text-sm">
             <Row label={t('account.firstName')} value={user.firstName} />
             <Row label={t('account.lastName')} value={user.lastName} />
-            <Row label={t('account.phone')} value={user.phone} />
+            <Row label={t('account.phone')} value={user.phone ? phoneDisplay(user.phone) : ''} />
             <Row label={t('account.birthDate')} value={user.dateOfBirth
               ? new Date(user.dateOfBirth).toLocaleDateString(LOC[lang], { day: '2-digit', month: '2-digit', year: 'numeric' })
               : user.age != null ? `(${t('account.yearsOld').replace('{n}', String(user.age))})` : null} />
@@ -209,6 +244,11 @@ export default function AccountPage() {
           </dl>
         )}
       </div>
+
+      {/* ── Profil oracle — juste sous le formulaire d'inscription ──
+          Entièrement optionnel : il aide l'Oracle à affiner ses réponses.
+          (Invoqué ici et non dans la barre de nav : largeur smartphone saturée.) */}
+      <OracleProfileForm />
 
       {/* Déconnexion (mobile) — icône porte comme dans la barre latérale */}
       <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3 flex items-center justify-center gap-2">

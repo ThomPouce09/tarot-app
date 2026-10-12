@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { playSound } from '@/lib/sounds';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api-client';
 import { useT } from '@/lib/i18n';
 
 type Props = {
@@ -19,9 +21,16 @@ type Props = {
   onClose: () => void;
   /** Présent quand le message est un cadeau réclamable → affiche le bouton. */
   onClaim?: () => Promise<boolean>;
+  /** Signalé à l'apparition du message (le renard du Profil y joue magic-4). */
+  onAppear?: () => void;
 };
 
 const GOLD = '#F3C969';
+
+// Un seul popup créature à la fois dans l'app (orbes + renard) : les autres
+// composants interrogent cet état pour ne jamais passer l'un sur l'autre.
+let popupOpenCount = 0;
+export function isCreaturePopupOpen(): boolean { return popupOpenCount > 0; }
 
 // Halo scintillant doré autour de la creature (effet d'origine, doux et continu)
 function SoftHalo({ glow }: { glow: string }) {
@@ -226,13 +235,21 @@ function GiftBurst({ glow }: { glow: string }) {
   );
 }
 
-export default function CreaturePopup({ data, onClaim, onClose }: Props) {
+export default function CreaturePopup({ data, onClaim, onClose, onAppear }: Props) {
   const { creature, text } = data;
   const t = useT();
+  const router = useRouter();
   const [imgError, setImgError] = useState(false);
   const [show, setShow] = useState(true); // tout (créature + texte) visible
   const [claimState, setClaimState] = useState<'idle' | 'claiming' | 'claimed' | 'failed'>('idle');
   const glow = creature.color || GOLD;
+  // Compteur global + fanfare d'apparition (une fois par popup monté).
+  useEffect(() => {
+    popupOpenCount++;
+    onAppear?.();
+    return () => { popupOpenCount = Math.max(0, popupOpenCount - 1); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pas de fermeture automatique : la créature reste affichée jusqu'à ce que
   // l'utilisateur tape EN DEHORS du message (overlay) — il lit à son rythme.
@@ -274,6 +291,30 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
     }
   }, [onClaim, claimState, scheduleClose]);
 
+  // Renard du Profil : « Complétez mon formulaire » ouvre Mon espace (SPA, même
+  // WebView en APK) ; « Pas maintenant » pose le snooze serveur (30 j).
+  const foxReported = useRef(false);
+  // « Refus » = snooze 30 j (2ᵉ refus = définitif). Rapporté UNE fois par
+  // popup : clic extérieur, « Pas maintenant » passent par ce chemin ; le
+  // bouton « Complétez mon formulaire » ne compte pas comme refus.
+  const reportFoxRefusal = useCallback(() => {
+    if (foxReported.current) return;
+    foxReported.current = true;
+    try {
+      const email = JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email ?? '';
+      if (email) void api('/api/profile-prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, action: 'refused' }) }).catch(() => {});
+    } catch { /* hors-ligne : tant pis pour le snooze */ }
+  }, []);
+  const foxGo = useCallback(() => {
+    foxReported.current = true; // ouvrir le formulaire ≠ refus
+    scheduleClose(0, 120);
+    router.push('/dashboard/account');
+  }, [scheduleClose, router]);
+  const foxLater = useCallback(() => {
+    reportFoxRefusal();
+    scheduleClose(300, 300 + 900);
+  }, [scheduleClose, reportFoxRefusal]);
+
   return (
     // Overlay plein écran : clic extérieur = fermeture (aucune fermeture auto).
     // Fond assombri tant que le message est visible (révèle le rendu du sortilège).
@@ -284,7 +325,10 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
       animate={{ opacity: show ? 1 : 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 1.1, ease: 'easeInOut' }}
-      onClick={onClose}
+      onClick={() => {
+        if (data.category === 'profile_prompt') reportFoxRefusal();
+        onClose();
+      }}
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -357,6 +401,38 @@ export default function CreaturePopup({ data, onClaim, onClose }: Props) {
             >
               {text.toLowerCase()}
             </div>
+
+            {/* Renard du Profil : deux sorties — ouvrir Mon espace ou snooze. */}
+            {data.category === 'profile_prompt' && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={foxGo}
+                  className="rounded-full px-4 py-2 text-[13px] font-bold transition-transform hover:scale-[1.04] active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
+                    color: '#1c1206',
+                    fontFamily: 'var(--font-cinzel), serif',
+                    boxShadow: '0 0 18px rgba(243,201,105,0.55), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                  }}
+                >
+                  {t('profile.foxGo')}
+                </button>
+                <button
+                  type="button"
+                  onClick={foxLater}
+                  className="rounded-full px-4 py-2 text-[13px] font-semibold"
+                  style={{
+                    background: 'rgba(20,14,30,0.55)',
+                    border: '1px solid rgba(243,201,105,0.4)',
+                    color: '#F5EAD6',
+                    fontFamily: 'var(--font-cinzel), serif',
+                  }}
+                >
+                  {t('profile.foxLater')}
+                </button>
+              </div>
+            )}
 
             {/* Cadeau d'une créature (message de la famille « credits » réclamable) :
                 bouton de réclamation → célébration dorée quand le tirage offert est crédité. */}

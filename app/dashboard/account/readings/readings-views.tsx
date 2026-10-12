@@ -176,6 +176,120 @@ export function DoubleHexView({ r }: { r: Reading }) {
   );
 }
 
+// ── Hexagramme du Jour : rendu fidèle à la page du tirage ──
+// Historique stockait {numero,mutating,transformed} sans le texte : l'API
+// rattache désormais nom/idéogramme/pinyin/lignes + conseil IA. Ici : identité
+// en or sur laque, 6 lignes pleines/brisées (mutantes marquées d'un cercle
+// rouge), flèche vers l'hexagramme transformé, puis le « Conseil du jour ».
+export function DailyHexView({ r, query = '' }: { r: Reading; query?: string }) {
+  const lang = useLang();
+  const t = useT();
+  const OR = '#F3C969';
+  const OR_DIM = 'rgba(243,201,105,0.55)';
+  const IVORY = '#F5EAD6';
+  const ROUGE = '#FF6B5E';
+  type Card = {
+    numero: number; caractere: string; pinyin: string; name: string;
+    nameBy?: Record<string, string | null>; lignes: string; mutating?: number[];
+    transformed?: number | null; transforming?: boolean;
+  };
+  const cards = (Array.isArray(r.cards) ? r.cards : []) as unknown as Card[];
+  const present = cards.find((c) => c && !c.transforming && Number.isFinite(c.numero));
+  const future = cards.find((c) => c && c.transforming && Number.isFinite(c.numero));
+  if (!present) {
+    return <p className="text-gray-500 text-xs italic mt-3">—</p>;
+  }
+  const name = (c: Card) => (lang !== 'fr' && c.nameBy && c.nameBy[lang]) || c.name || '';
+  const mutSet = new Set((present.mutating || []).map(Number));
+  const Ligne = ({ bit, mut }: { bit: string; mut: boolean }) => (
+    bit === '1' ? (
+      <div className="h-[7px] w-full rounded-full"
+        style={{ background: 'linear-gradient(180deg, #ffe9b0 0%, ' + OR + ' 42%, #9c6d22 100%)',
+                 boxShadow: 'inset 0 1px 0 rgba(255,244,200,0.85), inset 0 -1px 2px rgba(60,30,0,0.5), 0 2px 6px rgba(0,0,0,0.55)' + (mut ? ', 0 0 12px rgba(180,40,45,0.55)' : '') }} />
+    ) : (
+      <div className="flex w-full justify-between">
+        {[0, 1].map((k) => (
+          <div key={k} className="h-[7px] w-[42%] rounded-full"
+            style={{ background: 'linear-gradient(180deg, #ffe9b0 0%, ' + OR + ' 42%, #9c6d22 100%)',
+                     boxShadow: 'inset 0 1px 0 rgba(255,244,200,0.85), inset 0 -1px 2px rgba(60,30,0,0.5), 0 2px 6px rgba(0,0,0,0.55)' + (mut ? ', 0 0 12px rgba(180,40,45,0.55)' : '') }} />
+        ))}
+      </div>
+    )
+  );
+  const Column = ({ c, mutating }: { c: Card; mutating?: boolean }) => (
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-[22px] leading-none" style={{ color: OR, textShadow: '0 0 14px rgba(243,201,105,0.35)' }}>{c.caractere}</p>
+      <p className="text-center text-[11px] font-semibold italic leading-tight" style={{ color: IVORY }}>
+        <Highlight text={name(c)} query={query} />
+      </p>
+      <p className="text-[9px] tracking-[0.25em]" style={{ color: OR_DIM }}>#{c.numero} · {c.pinyin}</p>
+      <div className="mt-1 flex w-full flex-col gap-[7px]">
+        {[...c.lignes].reverse().map((bit, i) => {
+          const lineNo = 6 - i; // numéro réel (1 base … 6 sommet)
+          const mut = !!mutating && mutSet.has(lineNo);
+          return (
+            <div key={i} className="relative flex items-center">
+              <Ligne bit={bit} mut={mut} />
+              {mut && (
+                <span className="absolute right-[-2px] top-1/2 h-[9px] w-[9px] -translate-y-1/2 rounded-full"
+                  style={{ border: `1.5px solid ${ROUGE}`, background: '#140a0e', boxShadow: `0 0 10px ${ROUGE}` }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+  let advice = '';
+  try { advice = String(JSON.parse(r.interpretation || '{}').meditation || ''); } catch { advice = r.interpretation || ''; }
+  const hasMut = mutSet.size > 0 && !!future;
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="rounded-2xl p-4" style={{ background: 'linear-gradient(160deg, rgba(142,28,34,0.22), rgba(0,0,0,0.45))', border: `1px solid ${OR}44` }}>
+        <p className="text-center text-[9px] uppercase tracking-[0.3em]" style={{ color: OR_DIM }}>{t('history.hexagramOf')}</p>
+        <div className="mt-3 flex items-center justify-center gap-5">
+          <div className="w-[110px]"><Column c={present} mutating /></div>
+          {hasMut && (
+            <>
+              <p className="self-center text-lg" style={{ color: `${OR}cc` }}>➔</p>
+              <div className="w-[110px]"><Column c={future!} /></div>
+            </>
+          )}
+        </div>
+        {present.mutating && present.mutating.length > 0 && (
+          <p className="mt-3 text-center text-[10px]" style={{ color: `${OR}99` }}>
+            {t('history.movingLines')} : {[...mutSet].sort((a, b) => a - b).join('·')} ✦
+          </p>
+        )}
+        {present.mutating && present.mutating.length === 0 && (
+          <p className="mt-3 text-center text-[10px]" style={{ color: `${OR}88` }}>{t('history.stableLines')}</p>
+        )}
+      </div>
+      {advice && (
+        <div className="rounded-xl p-4" style={{ background: 'linear-gradient(160deg, rgba(142,28,34,0.14), rgba(0,0,0,0.32))', border: `1px solid ${OR}33` }}>
+          <p className="text-center text-[9px] uppercase tracking-[0.3em]" style={{ color: OR_DIM }}>{t('history.advice')}</p>
+          <p className="mt-2 text-center text-[14px] italic leading-relaxed" style={{ color: IVORY, fontFamily: 'var(--font-cormorant), serif' }}>
+            <Highlight text={`« ${advice.trim()} »`} query={query} />
+          </p>
+        </div>
+      )}
+      {r.echo && (
+        <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(243,201,105,0.06)', border: `1px solid ${OR}44` }}>
+          <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${OR}bb` }}>{t('echo.title')}</p>
+          <p className="mt-1 text-xs italic" style={{ color: IVORY }}>
+            {pickEchoText(r.echo, lang) || `${t('echo.masked')}`}
+          </p>
+          <p className="mt-1 text-[11px]" style={{ color: r.echo.verdict ? OR : '#FF6B5E' }}>
+            {r.echo.verdict
+              ? `✓ ${r.echo.verdictPct ?? (r.echo.verdict === 'oui' ? 100 : r.echo.verdict === 'partiel' ? 50 : 0)}%`
+              : `${t('history.due')} ${new Date(r.echo.dueAt).toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric' })}`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any; query?: string }) {
   const t = useT();
   const isSimpleFormat = r.type === 'yi-jing-simple' || r.type === 'yi-jing-simplifie' || (interp && interp.situation);

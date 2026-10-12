@@ -11,6 +11,7 @@ import { DEFAULT_BACKGROUND, LANDING_BACKGROUNDS, isVideoBackground, resolveBack
 import { api } from '@/lib/api-client';
 import AppLoader from '@/components/app-loader';
 import Firefly from '@/components/firefly';
+import FoxReminder from '@/components/fox-reminder';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
 import { ShimmerChars } from '@/components/shimmer-chars';
@@ -564,6 +565,7 @@ export default function HomePage() {
 
     <PauseRepas />
     <Firefly page="landing" />
+    <FoxReminder />
     <SpeakerToggle top={10} right={8} z={75} />
     <FirstVisitHints flagKey="hints_landing" hints={[{ selector: '[data-cta-account]', textKey: 'hint.landingAccount' }]} />
     {/* Voile « Chargement … » — ne vit qu'au démarrage à froid ; se retire

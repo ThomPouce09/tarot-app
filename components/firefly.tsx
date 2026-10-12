@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
 import { playSound, preloadSound } from '@/lib/sounds';
 import { FIREFLY_CONFIG } from '@/config/firefly';
-import CreaturePopup from './creature-popup';
+import CreaturePopup, { isCreaturePopupOpen } from './creature-popup';
 import { api } from '@/lib/api-client';
 
 type Creature = { id: string; slug: string; name: string; image: string; color: string | null };
@@ -177,8 +177,9 @@ export default function Firefly({ page }: { page: string }) {
               if (!pending) return;
               // Jongle : un des 11 sons créature (creatures0..creatures10)
               // tiré au hasard. Il part IMMÉDIATEMENT au clic sur l'orbe
-              // (plus au timeout d'apparition du popup, ~620 ms) : zéro
-              // décalage perçu. playSound respecte « Effets sonores ».
+              // (plus au timeout d'apparition du popup, ~620 ms + attente
+              // d'un popup concurrent) : zéro décalage perçu. playSound
+              // respecte la préférence « Effets sonores ».
               const n = Math.floor(Math.random() * 11);
               playSound(`creatures${n}`, 0.7);
               // Explosion de la luciole en petites particules qui fondent dans le fond
@@ -192,7 +193,13 @@ export default function Firefly({ page }: { page: string }) {
               setVisible(false); // la luciole s'eteint : les particules prennent le relais
               wanderResolveRef.current?.();
               // Apres l'explosion, le message apparait
-              setTimeout(() => {
+              setTimeout(async () => {
+                // Un autre popup créature est ouvert (ex. renard du Profil) :
+                // on attend qu'il se ferme — jamais deux messages superposés.
+                for (let i = 0; i < 90 && isCreaturePopupOpen(); i++) {
+                  await new Promise((r) => setTimeout(r, 2000));
+                }
+                if (!aliveRef.current) return;
                 setPopup(pending);
                 popupActiveRef.current = true;
                 setBurst(null);

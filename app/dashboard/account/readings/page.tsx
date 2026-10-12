@@ -16,7 +16,7 @@ import { TYPE_META, metaOf, loc, typeLabelOf, FILTERS, type Reading } from './re
 import { ChevronIcon, TrashIcon, ShareIcon, EchoDot, ClockIcon, ReadingThumbs } from './readings-parts';
 
 // Vues de rendu par univers (etape 3 du decoupage).
-import { EmptyState, DoubleHexView, YiJingView, WheelView, TarotView, RuneView, AstroView } from './readings-views';
+import { EmptyState, DoubleHexView, DailyHexView, YiJingView, WheelView, TarotView, RuneView, AstroView } from './readings-views';
 
 export default function ReadingsPage() {
   const router = useRouter();
@@ -513,6 +513,8 @@ export default function ReadingsPage() {
                               <div className="px-4 pb-4 border-t border-amber-800/20 max-h-[60vh] overflow-y-auto">
                                 {r.type === 'yi-jing-double' ? (
                                   <DoubleHexView r={r} />
+                                ) : r.type === 'yi-jing-du-jour' ? (
+                                  <DailyHexView r={r} query={search} />
                                 ) : m.group === 'yijing' ? (
                                   <YiJingView r={r} interp={yiQing} query={search} />
                                 ) : m.group === 'rune' ? (
