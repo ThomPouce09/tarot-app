@@ -4,6 +4,8 @@ import { tr, useLang } from '@/lib/i18n';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
+import { composePhone } from '@/lib/phone';
 // Turnstile désactivé en dev
 // import { Turnstile } from 'react-turnstile';
 
@@ -47,6 +49,7 @@ export default function SignUpPage() {
     confirmPassword: '',
     gender: 'other' as 'male' | 'female' | 'other',
     dateOfBirth: '',
+    dial: DEFAULT_DIAL,
     phone: '',
     comment: '',
   });
@@ -82,7 +85,7 @@ export default function SignUpPage() {
       ...formData,
       dateOfBirth: formData.dateOfBirth || undefined,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
-      phone: formData.phone,
+      phone: composePhone(formData.dial, formData.phone),
       comment: formData.comment === '' ? undefined : formData.comment,
     };
 
@@ -351,17 +354,31 @@ export default function SignUpPage() {
                       <span className="text-amber-500">📞</span>
                       {tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}
                     </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      inputMode="tel"
-                      autoComplete="tel"
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
-                      placeholder={tr("06 12 34 56 78", "06 12 34 56 78", "06 12 34 56 78", "06 12 34 56 78")}
-                    />
+                    <div className="flex items-stretch gap-2">
+                      <select
+                        id="dial"
+                        name="dial"
+                        value={formData.dial}
+                        onChange={handleChange}
+                        aria-label={tr("Indicatif du pays", "Country dial code", "Indicativo del país", "देश कोड")}
+                        className="w-[92px] shrink-0 px-1.5 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 [color-scheme:dark]"
+                      >
+                        {DIAL_COUNTRIES.map((c) => (
+                          <option key={c.iso} value={c.dial}>{c.short}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        inputMode="tel"
+                        autoComplete="tel-national"
+                        className="flex-1 min-w-0 px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
+                        placeholder={tr("6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78")}
+                      />
+                    </div>
                   {errors.phone && <p className="text-red-400 text-[10px] mt-1">{errors.phone}</p>}
                   </div>
                 </div>
