@@ -43,8 +43,14 @@ export function universeOf(type: string): Universe | null {
   return null;
 }
 
-/** Vrai si le type est un tirage de base (1 par univers). */
+// Base « quotidienne » : l'Hexagramme du Jour est PERSONNEL (seed = compte) et
+// compte comme un tirage de BASE — même filière de quota que yi-jing-simplifie.
+// (Le conseil IA est court ; c'est la décision marketing du 2026-10.)
+const EXTRA_BASE_TYPES: string[] = ['yi-jing-du-jour'];
+
+/** Vrai si le type est un tirage de base (1 par univers + cas quotidiens). */
 export function isBaseType(type: string): boolean {
+  if (EXTRA_BASE_TYPES.includes(type)) return true;
   return BASE_TYPES[universeOf(type) as Universe] === type;
 }
 
