@@ -356,6 +356,9 @@ export default function ReadingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Historique = lecture des tirages : le ciel de « Mon espace » y est
+          volontairement ASSOMBRI (voile noir profond, sous le contenu). */}
+      <div className="readings-nightfall" aria-hidden />
       {/* Croix retour accueil retirée : le rond avatar du layout mène à Mon espace */}
 
       <div className="max-w-2xl mx-auto pb-24">

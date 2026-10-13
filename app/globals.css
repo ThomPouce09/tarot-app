@@ -64,18 +64,10 @@
   box-sizing: border-box;
 }
 
-/* ── WebView / mobile reset ─────────────────────────────────────────────
-   Supprime le « rectangle » gris/bleu autour des éléments au tap/clic dans
-   la WebView Android Capacitor (-webkit-tap-highlight-color) ainsi que
-   l'outline de focus au clic. Sans ça, cliquer une image/icône cliquable
-   dessine un surlignage rectangulaire. */
+/* Pas de surbrillance bleue Android/WebView au tap (liens, images cliquables). */
 * {
   -webkit-tap-highlight-color: transparent;
 }
-*:focus:not(:focus-visible) {
-  outline: none;
-}
-theirs
 
 html, body {
   margin: 0;
@@ -83,36 +75,10 @@ html, body {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100vw;
-  min-height: 100dvh;
+  min-height: 100vh;
   background: #1a0e0a;
   -webkit-user-select: none;
   user-select: none;
-}
-
-/* Edge-to-edge (APK plein écran) : fond sombre sur <html> pour que la zone
-   du haut ne soit pas grise, et marges safe-area pour que le contenu ne
-   passe jamais sous la barre d'état ni sous le trait de navigation. */
-html {
-  background: #1a0e0a;
-}
-body {
-  min-height: 100dvh;
-  /* Pleine hauteur : pas de padding-top safe-area pour que le contenu occupe
-     le haut de l'écran (edge-to-edge) ; le fond sombre + immersive natif gèrent
-     la zone la barre d'état. On garde bottom/left/right pour la navigation/notch. */
-  padding-top: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-}
-
-/* user-select:none se propage aux champs dans la WebView Android et casse
-   la sélection/la prédiction de saisie : on restaure l'édition native. */
-input,
-textarea,
-[contenteditable="true"] {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 /* Custom scrollbar for fan area */
@@ -754,11 +720,12 @@ textarea,
    pour que les voiles en z-index:-1 passent AU-DESSUS du fond mais SOUS le
    contenu (aside, main, modales). */
 .cosmos {
+  /* Bleu nuit profond : zénith presque noir, horizon indigo, lueurs froides. */
   background:
-    radial-gradient(1100px 550px at 88% -8%, rgba(72, 220, 205, 0.26), transparent 62%),
-    radial-gradient(900px 520px at -8% 28%, rgba(255, 105, 180, 0.20), transparent 60%),
-    radial-gradient(1000px 650px at 52% 112%, rgba(255, 200, 87, 0.20), transparent 62%),
-    linear-gradient(160deg, #3d1b6e 0%, #52288c 32%, #6b3388 58%, #341758 100%);
+    radial-gradient(1200px 600px at 84% -10%, rgba(110, 160, 255, 0.14), transparent 60%),
+    radial-gradient(900px 520px at -8% 26%, rgba(56, 110, 200, 0.12), transparent 60%),
+    radial-gradient(1050px 640px at 50% 114%, rgba(28, 60, 140, 0.20), transparent 62%),
+    linear-gradient(178deg, #030616 0%, #071028 30%, #0a1a44 58%, #081436 78%, #030714 100%);
 }
 .cosmos-veil { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
 .cosmos-veil::before, .cosmos-veil::after {
@@ -766,19 +733,19 @@ textarea,
 }
 .cosmos-veil::before {
   width: 75vmax; height: 60vmax; left: -20vmax; top: -20vmax;
-  background: radial-gradient(circle, rgba(168, 108, 255, 0.72), transparent 65%);
+  background: radial-gradient(circle, rgba(70, 120, 230, 0.30), transparent 65%);
   animation: nebulaA 46s ease-in-out infinite alternate;
 }
 .cosmos-veil::after {
   width: 65vmax; height: 50vmax; right: -20vmax; bottom: -18vmax;
-  background: radial-gradient(circle, rgba(64, 235, 210, 0.60), transparent 65%);
+  background: radial-gradient(circle, rgba(46, 90, 190, 0.26), transparent 65%);
   animation: nebulaB 58s ease-in-out infinite alternate;
 }
 .cosmos-nebula3 {
   position: fixed; z-index: -1; pointer-events: none;
   width: 50vmax; height: 40vmax; right: -8vmax; top: 22%;
   border-radius: 50%; filter: blur(55px);
-  background: radial-gradient(circle, rgba(255, 130, 190, 0.40), transparent 65%);
+  background: radial-gradient(circle, rgba(96, 148, 255, 0.16), transparent 65%);
   animation: nebulaC 52s ease-in-out infinite alternate;
 }
 @keyframes nebulaA { to { transform: translate(16vmax, 9vmax) scale(1.18); } }
@@ -793,11 +760,11 @@ textarea,
     radial-gradient(1.2px 1.2px at 28% 42%, rgba(255,244,214,.8), transparent 100%),
     radial-gradient(1.8px 1.8px at 44% 12%, rgba(214,246,255,.9), transparent 100%),
     radial-gradient(1.1px 1.1px at 63% 33%, rgba(255,255,255,.75), transparent 100%),
-    radial-gradient(1.6px 1.6px at 78% 8%, rgba(255,230,180,.9), transparent 100%),
+    radial-gradient(1.6px 1.6px at 78% 8%, rgba(200,225,255,.9), transparent 100%),
     radial-gradient(1.2px 1.2px at 90% 27%, rgba(255,255,255,.8), transparent 100%),
     radial-gradient(1.5px 1.5px at 8% 63%, rgba(220,240,255,.85), transparent 100%),
     radial-gradient(1.1px 1.1px at 35% 78%, rgba(255,255,255,.7), transparent 100%),
-    radial-gradient(1.7px 1.7px at 58% 66%, rgba(255,238,200,.9), transparent 100%),
+    radial-gradient(1.7px 1.7px at 58% 66%, rgba(225,240,255,.9), transparent 100%),
     radial-gradient(1.2px 1.2px at 82% 72%, rgba(255,255,255,.8), transparent 100%),
     radial-gradient(1.4px 1.4px at 70% 90%, rgba(210,245,255,.85), transparent 100%),
     radial-gradient(1.1px 1.1px at 18% 92%, rgba(255,255,255,.7), transparent 100%);
@@ -806,19 +773,110 @@ textarea,
 .cosmos-stars2 {
   background-image:
     radial-gradient(1.3px 1.3px at 22% 8%, rgba(255,255,255,.85), transparent 100%),
-    radial-gradient(1.7px 1.7px at 52% 24%, rgba(255,240,200,.9), transparent 100%),
+    radial-gradient(1.7px 1.7px at 52% 24%, rgba(235,245,255,.9), transparent 100%),
     radial-gradient(1.1px 1.1px at 71% 47%, rgba(220,250,255,.75), transparent 100%),
     radial-gradient(1.5px 1.5px at 93% 62%, rgba(255,255,255,.85), transparent 100%),
-    radial-gradient(1.2px 1.2px at 5% 38%, rgba(255,225,235,.8), transparent 100%),
+    radial-gradient(1.2px 1.2px at 5% 38%, rgba(210,228,255,.8), transparent 100%),
     radial-gradient(1.6px 1.6px at 40% 55%, rgba(255,255,255,.9), transparent 100%),
-    radial-gradient(1.1px 1.1px at 66% 82%, rgba(255,244,214,.7), transparent 100%),
+    radial-gradient(1.1px 1.1px at 66% 82%, rgba(224,238,255,.7), transparent 100%),
     radial-gradient(1.4px 1.4px at 26% 70%, rgba(214,246,255,.8), transparent 100%),
     radial-gradient(1.2px 1.2px at 88% 15%, rgba(255,255,255,.8), transparent 100%),
-    radial-gradient(1.5px 1.5px at 48% 95%, rgba(255,230,180,.85), transparent 100%);
+    radial-gradient(1.5px 1.5px at 48% 95%, rgba(200,225,255,.85), transparent 100%);
   animation: starPulse 6.8s ease-in-out infinite alternate-reverse;
 }
 @keyframes starPulse { from { opacity: 0.65; } to { opacity: 1; } }
+
+/* Thème CLAIR de « Mon espace » = l'ancien ciel (violet/magenta/ambre).
+   .cosmos-clar remplace les teintes du thème sombre, pièce par pièce. */
+.cosmos.cosmos-clar {
+  background:
+    radial-gradient(1100px 550px at 88% -8%, rgba(72, 220, 205, 0.26), transparent 62%),
+    radial-gradient(900px 520px at -8% 28%, rgba(255, 105, 180, 0.20), transparent 60%),
+    radial-gradient(1000px 650px at 52% 112%, rgba(255, 200, 87, 0.20), transparent 62%),
+    linear-gradient(160deg, #3d1b6e 0%, #52288c 32%, #6b3388 58%, #341758 100%);
+}
+.cosmos-clar .cosmos-veil::before {
+  background: radial-gradient(circle, rgba(168, 108, 255, 0.72), transparent 65%);
+}
+.cosmos-clar .cosmos-veil::after {
+  background: radial-gradient(circle, rgba(64, 235, 210, 0.60), transparent 65%);
+}
+.cosmos-clar .cosmos-nebula3 {
+  background: radial-gradient(circle, rgba(255, 130, 190, 0.40), transparent 65%);
+}
+.cosmos-clar .cosmos-galaxy,
+.cosmos-clar .cosmos-shoot,
+.cosmos-clar .cosmos-constellation { display: none; }
+
+/* Historique des tirages : ciel volontairement assombri — voile noir profond
+   posé sur le ciel (sombre ou clair), au-dessus des calques décoratifs mais
+   sous le contenu : les cartes gardent leur lisibilité. */
+.readings-nightfall {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(1, 4, 12, 0.40) 0%, rgba(1, 3, 10, 0.58) 55%, rgba(0, 2, 8, 0.70) 100%);
+}
+
+/* Bandeau galactique : fine traînée argentée en diagonale, nappée de
+   micro-étoiles — « notre » ciel, discret, sous les tuiles. */
+.cosmos-galaxy {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(0.8px 0.8px at 24% 34%, rgba(255,255,255,.5), transparent 100%),
+    radial-gradient(0.7px 0.7px at 38% 28%, rgba(255,255,255,.45), transparent 100%),
+    radial-gradient(0.9px 0.9px at 52% 44%, rgba(230,240,255,.5), transparent 100%),
+    radial-gradient(0.7px 0.7px at 60% 38%, rgba(255,255,255,.4), transparent 100%),
+    radial-gradient(0.8px 0.8px at 70% 52%, rgba(220,235,255,.45), transparent 100%),
+    linear-gradient(115deg, transparent 38%,
+      rgba(190, 215, 255, 0.05) 44%,
+      rgba(210, 230, 255, 0.10) 50%,
+      rgba(190, 215, 255, 0.05) 56%,
+      transparent 62%);
+}
+
+/* Étoiles filantes : deux traits d'argent qui traversent le ciel, espacés
+   (cycle 11 s / 17 s, quelques dixièmes de seconde visibles) — pur hasard
+   apparent, zéro interaction. */
+.cosmos-shoot {
+  position: fixed; z-index: -1; pointer-events: none;
+  width: 110px; height: 1.5px; border-radius: 2px; opacity: 0;
+  /* traînée : queue à gauche, tête brillante à droite. */
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(185,212,255,0.5) 55%, #eef4ff 100%);
+  box-shadow: 0 0 8px 1px rgba(190,215,255,0.35);
+}
+/* La tête (+X de l'élément) doit pointer vers le sens du déplacement :
+   trajectoire haut-droite → bas-gauche = ~150°. Rotation CONSTANTE, seule
+   la translation écran (vw/vh) varie → la comète file droit. */
+.cosmos-shoot-a { top: 8%; right: 12%; transform: rotate(150deg); animation: shootA 11s ease-in 3s infinite; }
+.cosmos-shoot-b { top: 24%; right: 38%; width: 80px; transform: rotate(150deg); animation: shootB 17s ease-in 8.5s infinite; }
+@keyframes shootA {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(150deg); }
+  1.2% { opacity: 0.95; }
+  6.8% { opacity: 0; transform: translate3d(-42vw, 26vh, 0) rotate(150deg); }
+  100% { opacity: 0; transform: translate3d(-42vw, 26vh, 0) rotate(150deg); }
+}
+@keyframes shootB {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(150deg); }
+  1%   { opacity: 0.8; }
+  5.5% { opacity: 0; transform: translate3d(-24vw, 14vh, 0) rotate(150deg); }
+  100% { opacity: 0; transform: translate3d(-24vw, 14vh, 0) rotate(150deg); }
+}
+
+/* Constellation « Grande Ourse » : le chariot dessiné au fil d'argent, en
+   haut à droite, qui respire très lentement. Clin d'œil oracle/astro. */
+.cosmos-constellation {
+  position: fixed; z-index: -1; pointer-events: none;
+  top: 6%; right: 3%; width: 240px; height: auto;
+  opacity: 0.5;
+  animation: constellationBreath 14s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 6px rgba(180, 210, 255, 0.5));
+}
+@keyframes constellationBreath { from { opacity: 0.38; } to { opacity: 0.62; } }
+@media (max-width: 640px) {
+  .cosmos-constellation { width: 170px; top: 4%; right: -12px; opacity: 0.35; }
+}
 @media (prefers-reduced-motion: reduce) {
+  .cosmos-shoot-a, .cosmos-shoot-b, .cosmos-constellation { animation: none; }
+  .cosmos-constellation { opacity: 0.45; }
   .cosmos-veil::before, .cosmos-veil::after, .cosmos-stars, .cosmos-stars2,
   .ts-panel::after, .ts-twinkle, .ts-tile-sel, .ts-cast-ready { animation: none; }
 }
