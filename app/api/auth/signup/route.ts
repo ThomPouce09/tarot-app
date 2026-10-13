@@ -49,14 +49,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Garde âge minimum : 16 ans (RGPD consentement). Seule date de naissance
-    // en notre possession — si le futur consultant n'en donne pas encore, la
-    // vérification se fera quand il remplira son profil (Mon espace).
-    if (dateOfBirth) {
-      const age = calcAge(String(dateOfBirth));
-      if (age !== null && age < 16) {
-        return NextResponse.json({ error: authMsg('tooYoung', lang) }, { status: 400 });
-      }
+    // Âge minimum : 16 ans (RGPD consentement). La date de naissance est
+    // DÉSORMAIS OBLIGATOIRE à l'inscription (contrôle client ET serveur).
+    if (!dateOfBirth) {
+      return NextResponse.json({ error: authMsg('birthMissing', lang) }, { status: 400 });
+    }
+    const age = calcAge(String(dateOfBirth));
+    if (age === null) {
+      return NextResponse.json({ error: authMsg('birthMissing', lang) }, { status: 400 });
+    }
+    if (age < 16) {
+      return NextResponse.json({ error: authMsg('tooYoung', lang) }, { status: 400 });
     }
 
     // Téléphone : OBLIGATOIRE, format valide, et UNIQUE (un compte par numéro).

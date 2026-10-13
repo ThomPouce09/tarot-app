@@ -6,6 +6,18 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
 import { composePhone } from '@/lib/phone';
+import { calcAge } from '@/lib/dates';
+// Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
+// hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" />
+      {open ? <circle cx="12" cy="12" r="2.6" /> : <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+
 // Turnstile désactivé en dev
 // import { Turnstile } from 'react-turnstile';
 
@@ -26,7 +38,12 @@ const buildSignupSchema = () => {
     password: passwordSchema,
     confirmPassword: z.string(),
     gender: z.enum(["male", "female", "other"]).optional(),
-    dateOfBirth: z.string().optional().or(z.literal('')),
+    dateOfBirth: z.string()
+      .min(1, tr("La date de naissance est obligatoire", "Date of birth is required", "La fecha de nacimiento es obligatoria", "जन्म तिथि आवश्यक है"))
+      .refine((v) => { const d = new Date(v); return !isNaN(d.getTime()) && d.getTime() < Date.now(); },
+        tr("Date invalide", "Invalid date", "Fecha no válida", "अमान्य तिथि"))
+      .refine((v) => { const a = calcAge(v); return a !== null && a >= 16; },
+        tr("L’oracle accueille les personnes de 16 ans et plus.", "The Oracle welcomes people aged 16 and over.", "El Oráculo acoge a personas de 16 años en adelante.", "देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है।")),
     phone: z.string()
       .min(1, tr("Le numéro de téléphone est obligatoire", "A phone number is required", "El número de teléfono es obligatorio", "फ़ोन नंबर आवश्यक है"))
       .refine((v) => { const n = v.replace(/[^0-9+]/g, '').replace(/^00/, '+'); return /^\+?[0-9]{7,15}$/.test(n); },
@@ -83,7 +100,9 @@ export default function SignUpPage() {
 
     const dataToValidate = {
       ...formData,
-      dateOfBirth: formData.dateOfBirth || undefined,
+      // Chaîne vide ON volontaire : Zod la traite via .min(1) et affiche notre
+      // message localisé (undefined donnerait l'erreur générique « Required »).
+      dateOfBirth: formData.dateOfBirth,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
       phone: composePhone(formData.dial, formData.phone),
       comment: formData.comment === '' ? undefined : formData.comment,
@@ -95,8 +114,11 @@ export default function SignUpPage() {
       if (validationError instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
         validationError.errors.forEach((err) => {
+          // 1er message par champ (le plus spécifique, ex. « obligatoire » passe
+          // avant « invalide »/« 16 ans et plus » qu'un champ vide accumule).
           if (err.path.length > 0) {
-            fieldErrors[err.path[0] as string] = err.message;
+            const k = err.path[0] as string;
+            if (!(k in fieldErrors)) fieldErrors[k] = err.message;
           }
         });
         setErrors(fieldErrors);
@@ -135,40 +157,38 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
-      
-      {/* Fond mystique animé */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-10 left-10 w-32 h-32 border-2 border-amber-600/30 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-20 right-16 w-24 h-24 border-2 border-orange-600/30 rounded-full animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/4 w-16 h-16 border-2 border-yellow-600/30 rounded-full animate-pulse delay-500"></div>
-      </div>
+    <div className="cosmos min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Le ciel de « Mon espace » : bleu nuit profond, voie lactée, étoiles. */}
+      <div className="cosmos-veil" aria-hidden />
+      <div className="cosmos-nebula3" aria-hidden />
+      <div className="cosmos-galaxy" aria-hidden />
+      <div className="cosmos-stars" aria-hidden />
+      <div className="cosmos-stars2" aria-hidden />
 
       <div className="relative w-full max-w-sm sm:max-w-md">
         {showSuccess ? (
-          <div className="bg-gradient-to-b from-gray-900 to-amber-950/50 rounded-xl p-6 border border-amber-700/50 shadow-2xl text-center animate-fadeIn">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-amber-600 to-orange-700 rounded-full flex items-center justify-center">
-              <span className="text-3xl">✨</span>
+          <div className="mystic-panel p-6 shadow-2xl text-center animate-fadeIn">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full border border-amber-500/30 bg-black/30 flex items-center justify-center" style={{ boxShadow: '0 0 24px rgba(218,165,32,0.35)' }}>
+              <img src="/logo-espace.png" alt="" className="h-10 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(218,165,32,0.5))' }} />
             </div>
-            <h2 className="text-2xl font-bold text-amber-300 mb-2">{tr("Inscription Réussie !", "Sign-Up Successful!", "¡Registro completado!", "पंजीकरण सफल रहा!")}</h2>
+            <h2 className="mystic-title text-2xl font-bold mb-2">{tr("Inscription Réussie !", "Sign-Up Successful!", "¡Registro completado!", "पंजीकरण सफल रहा!")}</h2>
             <p className="text-gray-300 mb-4">
               {tr("Consultez vos emails pour activer votre compte et découvrir les mystères du Tarot et du Yi Jing.", "Check your emails to activate your account and discover the mysteries of Tarot and the Yi Jing.", "Consulte sus emails para activar su cuenta y descubrir los misterios del Tarot y del Yi Jing.", "अपने ईमेल देखें ताकि आप अपना खाता सक्रिय कर सकें और टैरो तथा इ चिंग के रहस्य जान सकें।")}
             </p>
             <div className="text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
           </div>
         ) : (
-          <div className="bg-gradient-to-b from-gray-900/80 to-amber-950/30 rounded-xl shadow-2xl border border-amber-800/50 flex flex-col max-h-[90dvh] overflow-hidden">
+          <div className="mystic-panel shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden">
             
-            <div className="text-center p-4 sm:p-5 border-b border-amber-800/30 flex-shrink-0">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="text-3xl">🌙</span>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">
-                  Inscription
+            <div className="text-center p-4 sm:p-5 border-b border-amber-500/20 flex-shrink-0">
+              <div className="flex items-center justify-center gap-2.5 mb-2">
+                <img src="/logo-espace.png" alt="" className="h-8 sm:h-9 w-auto object-contain -mt-0.5" style={{ filter: 'drop-shadow(0 0 8px rgba(218,165,32,0.45))' }} />
+                <h1 className="mystic-title text-xl sm:text-2xl font-bold">
+                  {tr("Inscription", "Sign Up", "Registro", "पंजीकरण")}
                 </h1>
-                <span className="text-3xl">☯️</span>
               </div>
-              <p className="text-gray-400 text-xs">
-                {tr("Accédez aux tirages de Tarot et aux hexagrammes du Yi Jing", "Access Tarot readings and Yi Jing hexagrams", "Acceda a las tiradas de Tarot y a los hexagramas del Yi Jing", "टैरो की विन्यास और इ चिंग के षट्कोण पाएँ")}
+              <p className="text-amber-100/70 text-xs" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                {tr("Bienvenue dans le monde des arcanes et des arts divinatoires", "Welcome to the world of arcana and the divinatory arts", "Bienvenido al mundo de los arcanos y las artes adivinatorias", "अर्काना और दिव्य कलाओं की दुनिया में आपका स्वागत है")}
               </p>
             </div>
 
@@ -176,10 +196,7 @@ export default function SignUpPage() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 
                 <div className="group">
-                  <label htmlFor="email" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                    <span className="text-amber-500">📧</span>
-                    Email *
-                  </label>
+                  <label htmlFor="email" className="mystic-label block mb-1.5">Email *</label>
                   <input
                     type="email"
                     id="email"
@@ -188,7 +205,7 @@ export default function SignUpPage() {
                     onChange={handleChange}
                     inputMode="email"
                     autoComplete="off"
-                    className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all backdrop-blur-sm"
+                    className="mystic-input"
                     placeholder={tr("votre@email.com", "your@email.com", "votre@email.com", "votre@email.com")}
                     required
                   />
@@ -196,10 +213,7 @@ export default function SignUpPage() {
                 </div>
 
                 <div className="group">
-                  <label htmlFor="firstName" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                    <span className="text-amber-500">👤</span>
-                    {tr("Prénom/Pseudo *", "First name/Nickname *", "Nombre/seudónimo *", "नाम / उपनाम *")}
-                  </label>
+                  <label htmlFor="firstName" className="mystic-label block mb-1.5">{tr("Prénom/Pseudo *", "First name/Nickname *", "Nombre/seudónimo *", "नाम / उपनाम *")}</label>
                   <input
                     type="text"
                     id="firstName"
@@ -207,7 +221,7 @@ export default function SignUpPage() {
                     value={formData.firstName}
                     onChange={handleChange}
                     autoComplete="given-name"
-                    className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent transition-all"
+                    className="mystic-input"
                     placeholder={tr("Votre prénom (min 2 lettres)", "Your first name (min 2 letters)", "Su nombre (mín. 2 letras)", "आपका नाम (न्यूनतम 2 अक्षर)")}
                     required
                   />
@@ -216,10 +230,7 @@ export default function SignUpPage() {
 
                 {/* Mot de passe */}
                 <div className="group">
-                  <label htmlFor="password" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                    <span className="text-amber-500">🔒</span>
-                    Mot de passe *
-                  </label>
+                  <label htmlFor="password" className="mystic-label block mb-1.5">Mot de passe *</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -228,16 +239,16 @@ export default function SignUpPage() {
                       value={formData.password}
                       onChange={handleChange}
                       autoComplete="new-password"
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
+                      className="mystic-input pr-10"
                       placeholder={tr("8-20 caractères, A-Z, a-z, 0-9", "8-20 characters, A-Z, a-z, 0-9", "8-20 caractères, A-Z, a-z, 0-9", "8-20 अक्षर, A-Z, a-z, 0-9")}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-200/60 hover:text-amber-300"
                     >
-                      {showPassword ? '👁️' : '👁‍🗨'}
+                      <EyeIcon open={showPassword} />
                     </button>
                   </div>
                   {errors.password && <p className="text-red-400 text-[10px] mt-1">{errors.password}</p>}
@@ -260,10 +271,7 @@ export default function SignUpPage() {
 
                 {/* Confirmation mot de passe */}
                 <div className="group">
-                  <label htmlFor="confirmPassword" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                    <span className="text-amber-500">🔐</span>
-                    Confirmation *
-                  </label>
+                  <label htmlFor="confirmPassword" className="mystic-label block mb-1.5">Confirmation *</label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
@@ -272,16 +280,16 @@ export default function SignUpPage() {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 pr-10"
+                      className="mystic-input pr-10"
                       placeholder={tr("Confirmez le mot de passe", "Confirm password", "Confirme la contraseña", "पासवर्ड की पुष्टि करें")}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-200/60 hover:text-amber-300"
                     >
-                      {showConfirmPassword ? '👁️' : '👁‍🗨'}
+                      <EyeIcon open={showConfirmPassword} />
                     </button>
                   </div>
                   {errors.confirmPassword && <p className="text-red-400 text-[10px] mt-1 animate-shake">{errors.confirmPassword}</p>}
@@ -297,10 +305,7 @@ export default function SignUpPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="lastName" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                      <span className="text-amber-500">🏷️</span>
-                      {tr("Nom", "Last name", "Apellido", "उपनाम")}
-                    </label>
+                    <label htmlFor="lastName" className="mystic-label block mb-1.5">{tr("Nom", "Last name", "Apellido", "उपनाम")}</label>
                     <input
                       type="text"
                       id="lastName"
@@ -308,36 +313,30 @@ export default function SignUpPage() {
                       value={formData.lastName}
                       onChange={handleChange}
                       autoComplete="family-name"
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
+                      className="mystic-input"
                       placeholder={tr("Nom", "Last name", "Apellido", "उपनाम")}
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="gender" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                      <span className="text-amber-500">♂♀</span>
-                      {tr("Sexe", "Gender", "Sexo", "लिंग")}
-                    </label>
+                    <label htmlFor="gender" className="mystic-label block mb-1.5">{tr("Sexe", "Gender", "Sexo", "लिंग")}</label>
                     <select
                       id="gender"
                       name="gender"
                       value={formData.gender}
                       onChange={handleChange}
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 appearance-none"
+                      className="mystic-input appearance-none [color-scheme:dark]"
                     >
-                      <option value="male" className="bg-gray-800">{tr("Homme ♂", "Male ♂", "Hombre ♂", "पुरुष ♂")}</option>
-                      <option value="female" className="bg-gray-800">{tr("Femme ♀", "Female ♀", "Mujer ♀", "महिला ♀")}</option>
-                      <option value="other" className="bg-gray-800">{tr("Autre ☯", "Other ☯", "Otro ☯", "अन्य ☯")}</option>
+                      <option value="male">{tr("Homme", "Male", "Hombre", "पुरुष")}</option>
+                      <option value="female">{tr("Femme", "Female", "Mujer", "महिला")}</option>
+                      <option value="other">{tr("Autre", "Other", "Otro", "अन्य")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="dateOfBirth" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                      <span className="text-amber-500">🎂</span>
-                      {tr("Date de naissance", "Date of birth", "Fecha de nacimiento", "जन्म तिथि")}
-                    </label>
+                    <label htmlFor="dateOfBirth" className="mystic-label block mb-1.5">{tr("Date de naissance *", "Date of birth *", "Fecha de nacimiento *", "जन्म तिथि *")}</label>
                     <input
                       type="date"
                       id="dateOfBirth"
@@ -345,15 +344,16 @@ export default function SignUpPage() {
                       value={formData.dateOfBirth}
                       onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                       max={new Date().toISOString().slice(0, 10)}
-                      className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
+                      // Pas de `required` natif : il court-circuite handleSubmit (bulle
+                      // du navigateur invisible/tronquée selon le device) et nos messages
+                      // multilingues ne s'affichent jamais. Zod ci-dessus = source unique.
+                      className="mystic-input [color-scheme:dark]"
                     />
+                    {errors.dateOfBirth && <p className="text-red-400 text-[10px] mt-1">{errors.dateOfBirth}</p>}
                   </div>
 
-                  <div>
-                    <label htmlFor="phone" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                      <span className="text-amber-500">📞</span>
-                      {tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}
-                    </label>
+                  <div className="col-span-2">
+                    <label htmlFor="phone" className="mystic-label block mb-1.5">{tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}</label>
                     <div className="flex items-stretch gap-2">
                       <select
                         id="dial"
@@ -361,7 +361,7 @@ export default function SignUpPage() {
                         value={formData.dial}
                         onChange={handleChange}
                         aria-label={tr("Indicatif du pays", "Country dial code", "Indicativo del país", "देश कोड")}
-                        className="w-[92px] shrink-0 px-1.5 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 [color-scheme:dark]"
+                        className="!w-[92px] shrink-0 !px-1.5 mystic-input [color-scheme:dark]"
                       >
                         {DIAL_COUNTRIES.map((c) => (
                           <option key={c.iso} value={c.dial}>{c.short}</option>
@@ -375,7 +375,7 @@ export default function SignUpPage() {
                         onChange={handleChange}
                         inputMode="tel"
                         autoComplete="tel-national"
-                        className="flex-1 min-w-0 px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600"
+                        className="flex-1 min-w-0 mystic-input"
                         placeholder={tr("6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78")}
                       />
                     </div>
@@ -384,17 +384,14 @@ export default function SignUpPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="comment" className="flex items-center gap-1 text-gray-300 text-xs font-medium mb-1">
-                    <span className="text-amber-500">💭</span>
-                    {tr("Commentaire", "Comment", "Comentario", "टिप्पणी")}
-                  </label>
+                  <label htmlFor="comment" className="mystic-label block mb-1.5">{tr("Commentaire", "Comment", "Comentario", "टिप्पणी")}</label>
                   <textarea
                     id="comment"
                     name="comment"
                     value={formData.comment}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none"
+                    className="mystic-input resize-none"
                     placeholder={tr("Vos remarques sur l'univers...", "Your comments about the universe...", "Sus observaciones sobre el universo...", "ब्रह्मांड के बारे में आपके विचार...")}
                   ></textarea>
                 </div>
@@ -431,9 +428,8 @@ export default function SignUpPage() {
               </form>
             </div>
 
-            <div className="p-3 text-center text-amber-700/50 text-[10px] border-t border-amber-800/20">
-              <span className="hidden sm:inline">{tr("🔮 Tarot & Yi Jing - L'âme a toutes ses réponses", "🔮 Tarot & Yi Jing - The soul has all the answers", "🔮 Tarot & Yi Jing - El alma tiene todas las respuestas", "🔮 टैरो और इ चिंग - आत्मा के पास सभी उत्तर हैं")}</span>
-              <span className="sm:hidden">🌙 Tarot YiJing</span>
+            <div className="p-3 text-center text-amber-200/60 text-[11px] border-t border-amber-500/15" style={{ fontFamily: 'var(--font-cinzel), serif', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              {tr("✦ L'Oracle des Étoiles ✦", "✦ The Oracle of Stars ✦", "✦ El Oráculo de las Estrellas ✦", "✦ तारों का ओरैकल ✦")}
             </div>
           </div>
         )}

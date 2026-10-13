@@ -4,6 +4,7 @@ import './fonts-local.css'
 import './fonts-google-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
 import { LoginModal } from '@/components/login-modal'
+import EmailConfirmLock from '@/components/email-confirm-lock'
 import { LanguageProvider } from '@/lib/i18n'
 import LanguageGate from '@/components/language-gate'
 import OnboardingTour from '@/components/onboarding-tour'
@@ -135,6 +136,8 @@ export default function RootLayout({
           <MusicAmbience />
           <SpeakerAmbience />
           <LoginModal />
+
+          <EmailConfirmLock />
           <LanguageGate />
           <OnboardingTour />
           {/* Portal root pour affichage garanti au-dessus de tout */}
