@@ -29,15 +29,15 @@ descEs: "El ritual de las tres monedas (zhi gua): seis lanzamientos construyen t
     steps: [
       'Saisis les trois pièces d’un geste : brasse-les dans le bol, puis jette-les six fois vers le haut',
       'Les lignes mutantes ondulent en rouge puis se retournent — le second hexagramme naît en face du premier',
-      'L’oracle lit la paire et annonce une échéance ; scelle l’augure et reviens juger le retournement',
+      'L’oracle lit la paire et annonce une échéance',
     ],
     stepsEn: [
       'Take the three coins: rattle them in the bowl, then cast them upward — six times',
       'The moving lines ripple red, then flip — the second hexagram is born opposite the first',
-      'The oracle reads the pair and names a date; seal the augury and come back to judge the turn',
+      'The oracle reads the pair and names a date',
     ],
-stepsEs: ["Toma las tres monedas de un solo gesto: agítalas en el bol y lánzalas seis veces hacia arriba", "Las líneas mutantes ondean en rojo y luego se voltean — el segundo hexagrama nace frente al primero", "El oráculo lee la pareja y anuncia un plazo; sella el augurio y vuelve a juzgar el volteo"],
-stepsHi: ["एक ही संवेग में तीन सिक्के ग्रहण करो: कटोरी में उन्हें हिलाओ, फिर छह बार ऊपर की ओर फेंको", "परिवर्तन-रेखाएँ लाल में लहराती हैं, फिर पलट जाती हैं — दूसरी षटरेखा पहली के सामने जन्म लेती है", "भविष्यवेत्ता जोड़ी पढ़ता है और एक अवधि सुनाता है; शुभसूचन सील करो और लौटकर पलटन का न्याय करो"],
+stepsEs: ["Toma las tres monedas de un solo gesto: agítalas en el bol y lánzalas seis veces hacia arriba", "Las líneas mutantes ondean en rojo y luego se voltean — el segundo hexagrama nace frente al primero", "El oráculo lee la pareja y anuncia un plazo"],
+stepsHi: ["एक ही संवेग में तीन सिक्के ग्रहण करो: कटोरी में उन्हें हिलाओ, फिर छह बार ऊपर की ओर फेंको", "परिवर्तन-रेखाएँ लाल में लहराती हैं, फिर पलट जाती हैं — दूसरी षटरेखा पहली के सामने जन्म लेती है", "भविष्यवेत्ता जोड़ी पढ़ता है और एक अवधि सुनाता है"],
   },
   {
     iconImg: '/images/yi-jing-icon.png',
