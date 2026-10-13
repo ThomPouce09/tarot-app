@@ -9,6 +9,13 @@ type Row = { textFr: string; textEn: string; textEs: string | null; textHi: stri
 
 export async function GET(req: NextRequest) {
   const lang = resolveLang(req.nextUrl.searchParams.get('lang'));
+  // Mode test (BARMAN_RANDOM côté app) : ?rand=1 → message pioché au hasard
+  // parmi les 365, pour vérifier l'ajustement texte/zones sur des longueurs
+  // variées. ?day=N (1-365) → force un jour précis (test ciblé du même texte
+  // sur les 3 supports). Sans ces paramètres : comportement normal (jour du jour).
+  const rand = req.nextUrl.searchParams.get('rand') === '1';
+  const forced = parseInt(req.nextUrl.searchParams.get('day') || '0', 10);
+  const dayParam = forced >= 1 && forced <= 365 ? forced : 0;
 
   try {
     // Jour de l'année (1-365), stable toute la journée. Les années bissextiles
@@ -16,11 +23,7 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 1);
     const doy = Math.floor((now.getTime() - start.getTime()) / 86400000); // 0-365
-    const day = (doy % 365) + 1;
-
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
-      `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" WHERE "day" = $1 LIMIT 1`, day,
-    );
+    const day = rand ? 0 : (dayParam || (doy % 365) + 1);
 
     const pick = (r: Row): string =>
       lang === 'en' ? (r.textEn || r.textFr)
@@ -29,15 +32,25 @@ export async function GET(req: NextRequest) {
       : r.textFr;
 
     let text = '';
-    if (rows.length) {
-      text = pick(rows[0]);
-    } else {
-      // Sécurité : aucun enregistrement pour ce jour → on en pioche un au hasard.
+    if (rand) {
       const any = await prisma.$queryRawUnsafe<Row[]>(
         `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" ORDER BY RANDOM() LIMIT 1`,
       );
-      if (any.length) {
-        text = pick(any[0]);
+      if (any.length) text = pick(any[0]);
+    } else {
+      const rows = await prisma.$queryRawUnsafe<Row[]>(
+        `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" WHERE "day" = $1 LIMIT 1`, day,
+      );
+      if (rows.length) {
+        text = pick(rows[0]);
+      } else {
+        // Sécurité : aucun enregistrement pour ce jour → on en pioche un au hasard.
+        const any = await prisma.$queryRawUnsafe<Row[]>(
+          `SELECT "textFr","textEn","textEs","textHi" FROM "DailyMessage" ORDER BY RANDOM() LIMIT 1`,
+        );
+        if (any.length) {
+          text = pick(any[0]);
+        }
       }
     }
 

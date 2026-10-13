@@ -60,10 +60,11 @@ type VideoLayout = {
   rotate?: number;     // rotation du layer, en degrés (négatif = antihoraire).
   color?: string;      // couleur du message. Défaut = MESSAGE_COLOR.
   shadow?: string;     // ombre/glow du message. Défaut = MESSAGE_SHADOW.
+  maxFontPx?: number;  // plafond de la taille auto (message court → pas énorme). Défaut 30.
 };
 const VIDEO_LAYOUT: Record<string, VideoLayout> = {
   the:     { zoom: 3,   zoomOrigin: '50% 68%', layer: { top: '5%', left: '40.5%', width: '35%', height: '55%' }, rotate: -8 },
-  cafe:    { zoom: 2.5, layer: { top: '19%', left: '26%', width: '49%', height: '56%' } },
+  cafe:    { zoom: 2.5, maxFontPx: 24, layer: { top: '19%', left: '26%', width: '49%', height: '56%' } },
   cracker: { zoom: 2.5, layer: { top: '38%', left: '17.5%', width: '65%', height: '24%' }, color: '#2E2A26', shadow: '0 0 12px rgba(255,246,224,0.5), 0 2px 5px rgba(255,255,255,0.6)' },
 };
 
@@ -94,6 +95,12 @@ type Stage = 'barman' | 'plateau' | 'video';
 // apparition. Remettre TEST_BARMAN=false (et les localStorage 'tarot_pr_*'
 // reprendront leur effet) une fois les tests terminés.
 const TEST_BARMAN = false;
+// ⚠️ MODE TEST TEMPORAIRE (2026-10-13) : BARMAN_RANDOM=true → à chaque ouverture
+// du barman, le message est pioché AU HASARD dans les 365 (au lieu du message
+// du jour), pour tester l'ajustement texte/zones (crackers, café, thé) sur des
+// longueurs variées. Remettre false après validation. NE JAMAIS pousser true
+// en production (tous les users verraient le barman toute la journée).
+const BARMAN_RANDOM = false;
 // Fenêtre A : 12:00–12:30 ; fenêtre B : 21:00–21:30 (minutes depuis minuit).
 const WINDOW_A = [12 * 60, 12 * 60 + 30];
 const WINDOW_B = [21 * 60, 21 * 60 + 30];
@@ -208,39 +215,63 @@ export default function PauseRepas() {
     }
   }, []);
 
+  // Résolution du layout par vidéo (zoom + layer du message) selon videoSrc.
+  const videoId = videoSrc?.split('/').pop()?.replace('.mp4', '') || 'cafe';
+  const videoCfg = VIDEO_LAYOUT[videoId] || VIDEO_LAYOUT.cafe;
+
   // Ajuste la TAILLE DE POLICE pour REMPLIR le layer : la plus grande police qui
   // tient dans la hauteur (recherche binaire — le retour à la ligne est non-linéaire).
   // Conserve la pleine largeur (width:100%, retour à la ligne).
   useEffect(() => {
     if (stage !== 'video' || !videoDone) return;
     setFitFont(null);
-    const t = setTimeout(() => {
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
       const box = layerRef.current, txt = textRef.current;
       if (!box || !txt) return;
       const basePx = parseFloat(getComputedStyle(txt).fontSize) || 16;
       const bh = box.clientHeight;
-      let lo = 6, hi = basePx * 2.5;
+      const cap = videoCfg.maxFontPx ?? 30; // plafond : un message court ne doit pas devenir énorme
+      let lo = 6, hi = Math.min(basePx * 2.5, cap);
       for (let i = 0; i < 14; i++) {
         const mid = (lo + hi) / 2;
         txt.style.fontSize = mid + 'px';
-        if (txt.scrollHeight <= bh) lo = mid;
+        // -2px de garde : les italiques/décoratives (Cormorant) débordent de la
+        // boîte de ligne ; sans marge on colle au bord → visuel « qui déborde ».
+        if (txt.scrollHeight <= bh - 2) lo = mid;
         else hi = mid;
       }
       txt.style.fontSize = '';
-      setFitFont(Math.round(lo * 10) / 10 + 'px');
-    }, 450);
-    return () => clearTimeout(t);
-  }, [stage, videoDone]);
+      // 0.92 : on rend 8% sous le max mesuré (sécurité métriques + ascendants).
+      setFitFont(Math.round(Math.min(lo, cap) * 0.92 * 10) / 10 + 'px');
+    };
+    // On mesure APRÈS le chargement des webfonts : sinon la police de
+    // substitution (métriques différentes) fausse le calcul → overflow.
+    const ready = (document as any).fonts?.ready ?? Promise.resolve();
+    const t1 = setTimeout(() => ready.then(() => setTimeout(measure, 260)), 200);
+    return () => { cancelled = true; clearTimeout(t1); };
+  }, [stage, videoDone, videoCfg]);
 
   // Charge le message du jour (bilingue selon la langue). Relancé au changement de langue.
-  useEffect(() => {
-    let mounted = true;
-    fetch(`/api/daily-message?lang=${lang}`)
+  // Mode test BARMAN_RANDOM : ?rand=1 → tirage aléatoire, NOUVEAU message à chaque ouverture.
+  const loadMessage = useCallback(() => {
+    // Test : localStorage 'tarot_pr_testday' = N (1-365) → force le message du
+    // jour N (périmètre des cas longs) au lieu du hasard. Vider la clé = retour
+    // au comportement normal. Uniquement actif en mode BARMAN_RANDOM.
+    let q = BARMAN_RANDOM ? "&rand=1" : "";
+    if (BARMAN_RANDOM) {
+      try {
+        const d = parseInt(localStorage.getItem("tarot_pr_testday") || "0", 10);
+        if (d >= 1 && d <= 365) q = `&day=${d}`;
+      } catch { /* ignore */ }
+    }
+    fetch(`/api/daily-message?lang=${lang}${q}`)
       .then((r) => r.json())
-      .then((d) => { if (mounted && typeof d?.text === 'string') setDailyMessage(d.text); })
+      .then((d) => { if (typeof d?.text === 'string') setDailyMessage(d.text); })
       .catch(() => {});
-    return () => { mounted = false; };
   }, [lang]);
+  useEffect(() => { loadMessage(); }, [loadMessage]);
 
   const clearBarmanTimer = useCallback(() => {
     if (barmanTimer.current) clearTimeout(barmanTimer.current);
@@ -284,13 +315,14 @@ export default function PauseRepas() {
     setVideoDone(false);
     setStage('barman');
     setOpen(true);
+    if (BARMAN_RANDOM) loadMessage(); // test : nouveau message tiré à chaque ouverture
     // Révélation au clic : un « sort » aléatoire (spell2..spell5).
     playRandom('spell2', 'spell3', 'spell4', 'spell5');
     // Une fois cliqué → consommé (lié au compte) → caché jusqu'au lendemain.
     markConsumed();
     // Le barman s'agrandit, bulle de dialogue, reste 4 secondes, puis le plateau.
     barmanTimer.current = setTimeout(() => setStage('plateau'), 4000);
-  }, [clearBarmanTimer, markConsumed]);
+  }, [clearBarmanTimer, markConsumed, loadMessage]);
 
   const closeModal = useCallback(() => {
     clearBarmanTimer();
@@ -324,9 +356,6 @@ export default function PauseRepas() {
     if (v && !videoDone) v.playbackRate = 4;
   }, [videoDone]);
 
-  // Résolution du layout par vidéo (zoom + layer du message) selon videoSrc.
-  const videoId = videoSrc?.split('/').pop()?.replace('.mp4', '') || 'cafe';
-  const videoCfg = VIDEO_LAYOUT[videoId] || VIDEO_LAYOUT.cafe;
 
   return (
     <>
@@ -589,12 +618,12 @@ export default function PauseRepas() {
                             fontFamily: MESSAGE_FONT,
                             color: videoCfg.color || MESSAGE_COLOR,
                             fontSize: fitFont || MESSAGE_FONT_SIZE,
-                            letterSpacing: '0.06em',
+                            letterSpacing: '0.04em',
                             fontStyle: 'italic',
                             textShadow: videoCfg.shadow || MESSAGE_SHADOW,
                             width: '100%',
                             textAlign: 'center',
-                            lineHeight: 1.25,
+                            lineHeight: 1.15,
                           }}
                         >
                           {dailyMessage}
