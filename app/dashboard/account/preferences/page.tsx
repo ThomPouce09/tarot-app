@@ -9,6 +9,7 @@ import { getMusicPrefs, type MusicTrackId } from '@/lib/music';
 import { resetAllTutorials } from '@/lib/tutorials';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
+import { setSpaceTheme, type SpaceTheme } from '@/lib/theme';
 
 type Prefs = {
   dailyReminder: boolean;
@@ -19,6 +20,7 @@ type Prefs = {
   voices: boolean;
   musicOn: boolean;
   musicTrack: MusicTrackId;
+  theme: SpaceTheme;
 };
 
 const DEFAULT_PREFS: Prefs = {
@@ -30,6 +32,7 @@ const DEFAULT_PREFS: Prefs = {
   voices: true,
   musicOn: true,
   musicTrack: 'vibrations',
+  theme: 'sombre',
 };
 
 // Langues proposées, dans l'ordre d'affichage des pastilles.
@@ -84,6 +87,7 @@ export default function PreferencesPage() {
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
             musicOn: typeof d.musicOn === 'boolean' ? d.musicOn : p.musicOn,
             musicTrack: d.musicTrack === "silverwell" ? "silverwell" : d.musicTrack === "constellations" ? "constellations" : (d.musicTrack === "promenades" || d.musicTrack === "premium" ? "promenades" : "vibrations"),
+            theme: d.theme === "clair" ? "clair" : "sombre",
           };
           localStorage.setItem('tarot_prefs', JSON.stringify(next));
           setSoundPrefs(next.soundEffects, next.voices);
@@ -110,7 +114,7 @@ export default function PreferencesPage() {
     fetch('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language, theme: next.theme }),
     }).catch(() => {});
   };
 
@@ -226,6 +230,46 @@ export default function PreferencesPage() {
         </div>
         <p className="text-gray-400 text-xs leading-relaxed">{t('prefs.musicHint')}</p>
         <MusicPlayer level={level} ready={loaded && (!email || !!sub)} />
+      </div>
+
+      {/* Thème du ciel de Mon espace — entre musique et fonds d'écran.
+          Pastilles dorées façon « langue » : Sombre (bleu nuit étoilé) /
+          Clair (ancien ciel violet). Bascule instantanée : la layout écoute
+          l'événement spacetheme-changed. */}
+      <div className="mystic-panel p-5 space-y-3">
+        <h2 className="mystic-subtitle text-sm">{t('prefs.sky')}</h2>
+        <p className="text-gray-400 text-xs leading-relaxed">{t('prefs.skyHint')}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(['sombre', 'clair'] as const).map((th) => {
+            const on = prefs.theme === th;
+            return (
+              <button
+                key={th}
+                type="button"
+                onClick={() => { setSpaceTheme(th); update({ theme: th }); }}
+                aria-pressed={on}
+                className="rounded-[0.6rem] py-2.5 text-sm font-semibold transition-all duration-200 hover:brightness-110"
+                style={
+                  on
+                    ? {
+                        background:
+                          'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 58%), linear-gradient(135deg, #F0C75E, #B8860B)',
+                        color: '#34121F',
+                        border: '1px solid rgba(240,199,94,0.9)',
+                        boxShadow: '0 4px 14px rgba(218,165,32,0.4), inset 0 -3px 8px rgba(122,74,4,0.45)',
+                      }
+                    : {
+                        background: 'rgba(255,255,255,0.04)',
+                        color: 'rgba(245,234,214,0.75)',
+                        border: '1px solid rgba(240,199,94,0.25)',
+                      }
+                }
+              >
+                {th === 'sombre' ? t('prefs.skySombre') : t('prefs.skyClair')}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Fond d'écran de l'accueil — rangée compacte ; seuls les fonds du

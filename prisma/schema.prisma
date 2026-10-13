@@ -46,6 +46,9 @@ model User {
   // 'promenades' n'est jouable que pour Initié/Arkane (contrôle aussi côté UI).
   musicOn           Boolean  @default(true)
   musicTrack        String   @default("classique")
+  // Thème du ciel de « Mon espace » : 'sombre' (bleu nuit étoilé, défaut) ou
+  // 'clair' (ancien ciel violet). Regardé par la layout + l'UI Préférences.
+  theme             String   @default("sombre")
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
   // Fuseau IANA de l'appareil (ex. 'Europe/Paris'), capturé au lancement natif.
   // Sert à déclencher le rappel quotidien à l'heure LOCALE du user (cron par heure UTC).

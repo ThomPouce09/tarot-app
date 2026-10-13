@@ -355,6 +355,11 @@ export default function ReadingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Historique = lecture des tirages : le ciel de « Mon espace » y est
+          volontairement ASSOMBRI (voile noir profond, sous le contenu) —
+          l'ambiance « nuit close sous les étoiles » de la salle de lecture.
+          Uniquement sur cette page, les autres sous-pages gardent le ciel net. */}
+      <div className="readings-nightfall" aria-hidden />
       {/* Croix retour accueil retirée : le rond avatar du layout mène à Mon espace */}
 
       <div className="max-w-2xl mx-auto pb-24">
