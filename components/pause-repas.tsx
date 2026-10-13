@@ -102,9 +102,10 @@ const TEST_BARMAN = false;
 // longueurs variées. Remettre false après validation. NE JAMAIS pousser true
 // en production (tous les users verraient le barman toute la journée).
 const BARMAN_RANDOM = false;
-// Fenêtre A : 12:00–12:30 ; fenêtre B : 21:00–21:30 (minutes depuis minuit).
+// Fenêtre A : 12:00–12:30 ; fenêtre B : 19:30–20:00 (minutes depuis minuit,
+// heure LOCALE du device — identique quel que soit le pays).
 const WINDOW_A = [12 * 60, 12 * 60 + 30];
-const WINDOW_B = [21 * 60, 21 * 60 + 30];
+const WINDOW_B = [19 * 60 + 30, 20 * 60];
 const inWindowNow = () => {
   if (TEST_BARMAN) return true;
   const d = new Date();

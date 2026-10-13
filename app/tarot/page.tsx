@@ -136,17 +136,15 @@ descEs: "Siete arcanos mayores, uno por día: su semana se despliega día tras d
     steps: [
       'Posez la roue (un seul geste, un grand tirage)',
       'Chaque jour, ouvrez la carte qui luit — les jours passés se révèlent seuls',
-      'À la fin de la semaine, tissez le fil rouge et scellez-le en augure',
-      'Notez votre semaine en pourcentage — la Ferveur s’en souvient',
+      'À la fin de la semaine, tissez le fil rouge et scellez-le en augure (si le cœur vous en dit)',
     ],
     stepsEn: [
       'Cast the wheel (one gesture, one advanced reading)',
       'Each day, open the glowing card — past days reveal themselves',
-      'At week’s end, weave the red thread and seal it as an augury',
-      'Score your week in percent — the Fervor remembers',
+      'At week’s end, weave the red thread and seal it as an augury (if your heart so desires)',
     ],
-stepsEs: ["Despliegue la rueda (un solo gesto, una gran tirada)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio", "Puntúe su semana en porcentaje — el Fervor lo recuerda"],
-stepsHi: ["चक्र बिछाइए (एक ही क्रिया, एक बृहत् वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें", "अपने सप्ताह को प्रतिशत में अंकित करें — उत्ताप इसे याद रखता है"],
+stepsEs: ["Despliegue la rueda (un solo gesto, una gran tirada)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio (si su corazón se lo pide)"],
+stepsHi: ["चक्र बिछाइए (एक ही क्रिया, एक बृहत् वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें (यदि आपका मन चाहे)"],
   },
   {
     iconImg: '/images/5 cartes manuelles.png',
