@@ -95,6 +95,12 @@ export const AUTH_MSG = {
     es: 'El Oráculo acoge a personas de 16 años en adelante. Podrás unirte más tarde.',
     hi: 'देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है। आप बाद में शामिल हो सकते हैं।',
   },
+  birthMissing: {
+    fr: 'La date de naissance est obligatoire.',
+    en: 'Date of birth is required.',
+    es: 'La fecha de nacimiento es obligatoria.',
+    hi: 'जन्म तिथि आवश्यक है।',
+  },
   phoneMissing: {
     fr: 'Le numéro de téléphone est obligatoire.',
     en: 'A phone number is required.',

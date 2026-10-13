@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useT } from '@/lib/i18n';
+import { useT, tr } from '@/lib/i18n';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { isTutorialSeen, markTutorialSeen, hydrateTutorials } from '@/lib/tutorials';
 
@@ -16,12 +16,17 @@ const LINKS = [
   { href: '/dashboard/account/preferences', img: '/images/nav-preferences.png', key: 'nav.preferences' },
 ];
 
-export default function AccountNav({ user }: { user: any }) {
+export default function AccountNav({ user, locked = false }: { user: any; locked?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useT();
   // Les Augures sont visibles par tous (vitrine) ; le scellage reste Initié/Arkane.
   const links = LINKS;
+  // Email non validé : les rubriques sont « cantonnées » (grisées, inertes) —
+  // le layout pousse la redirection ; ici on évite juste le clic inutile.
+  const lockTitle = locked
+    ? tr("Validez d'abord votre email depuis Mon compte", "Validate your email first from My account", "Valide primero su email desde Mi cuenta", "पहले अपने खाते से ईमेल सत्यापित करें")
+    : undefined;
   const initial = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '') || user?.email?.[0] || '?').toUpperCase();
 
   // Visite guidée (une fois par COMPTE, persistée en base) : bulles à bouton « OK »,
@@ -92,8 +97,11 @@ export default function AccountNav({ user }: { user: any }) {
           {links.map((l) => (
             <Link
               key={l.href}
-              href={l.href}
-              className={`nav-link-mystic ${pathname === l.href ? 'active' : ''}`}
+              href={locked ? '/dashboard/account' : l.href}
+              title={lockTitle}
+              onClick={locked ? (e) => { if (l.href !== '/dashboard/account') e.preventDefault(); } : undefined}
+              aria-disabled={locked || undefined}
+              className={`nav-link-mystic ${pathname === l.href ? 'active' : ''} ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <span className="w-5 flex justify-center">
                 <img src={l.img} alt="" className="h-5 w-5 object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.35))' }} />

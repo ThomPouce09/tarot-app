@@ -2,9 +2,10 @@
 
 import { tr } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import AccountNav from '@/components/account-nav';
 import { readSpaceTheme, SPACE_THEME_EVENT, type SpaceTheme } from '@/lib/theme';
+import { api } from '@/lib/api-client'; // APK : /api/* n'existe pas en local → proxy backend
 
 // Ciel de « Mon espace » : bleu nuit profond dégradé + voile nébuleux froid,
 // deux nappes d'étoiles scintillantes, bandeau galactique, deux étoiles
@@ -39,8 +40,13 @@ function CosmosSky() {
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
+  // Statut d'activation (DB) — false = email non validé : l'utilisateur reste
+  // CANTONNÉ à /dashboard/account (bannière + renvoi de l'email) tant qu'il
+  // n'a pas cliqué le lien d'activation.
+  const [confirmed, setConfirmed] = useState<boolean | null>(null);
   // Thème du ciel (Préférences) : 'sombre' = bleu nuit étoilé (défaut),
   // 'clair' = l'ancien ciel violet. Relu au montage + à l'événement de bascule.
   const [theme, setTheme] = useState<SpaceTheme>('sombre');
@@ -67,7 +73,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     const email = user?.email;
     if (!email) return;
     let alive = true;
-    fetch('/api/auth/refresh-status', {
+    api('/api/auth/refresh-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -76,11 +82,41 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         if (r.status === 404 && alive) {
           try { localStorage.removeItem('tarot_user'); localStorage.removeItem('arkane_session_token'); } catch {}
           setUser(null);
+          return;
         }
+        const d = await r.json().catch(() => null);
+        if (alive && typeof d?.confirmed === 'boolean') setConfirmed(d.confirmed);
       })
       .catch(() => {}); // réseau KO -> on ne déconnecte pas
     return () => { alive = false; };
   }, [user?.email]);
+
+  // Cantonnement : email non validé → seule la page « Mon compte » est ouverte.
+  // (Re-vérifié au retour dans l'onglet : après un clic sur le lien d'activation
+  // consulté ailleurs, le statut se rafraîchit et le blocage se lève.)
+  useEffect(() => {
+    if (confirmed === false && pathname !== '/dashboard/account') {
+      router.replace('/dashboard/account');
+    }
+  }, [confirmed, pathname, router]);
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible' && user?.email) refreshConfirmed(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refreshConfirmed = () => {
+    const email = user?.email;
+    if (!email) return;
+    api('/api/auth/refresh-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (typeof d?.confirmed === 'boolean') setConfirmed(d.confirmed); })
+      .catch(() => {});
+  };
 
   if (!ready) {
     return (
@@ -107,7 +143,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   return (
     <div className={`min-h-screen cosmos relative isolate md:flex${theme === 'clair' ? ' cosmos-clar' : ''}`}>
       <CosmosSky />
-      <AccountNav user={user} />
+      <AccountNav user={user} locked={confirmed === false} />
       <main className="flex-1 min-w-0 pb-24 md:pb-8 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
         <div className="max-w-3xl mx-auto">
           {children}
