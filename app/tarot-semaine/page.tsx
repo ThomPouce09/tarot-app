@@ -202,7 +202,7 @@ function SemainePage() {
       // Jour passé (carte déjà lisible) : pas de flip, juste la vedette qui
       // bascule sur son éclat — la relecture est immédiate, sans aller-retour.
       if (!wheel.cards[day]?.revealed) return;
-      playSound('flip-day-card', 0.55);
+      playSound('soft-pop', 0.8); // relecture : petit « pop » discret, pas le grand voile magique
       setReviewDay(day);
       focusWheel();
       return;
@@ -210,7 +210,7 @@ function SemainePage() {
     if (day !== wheel.nowDay) return; // l'avenir reste scellé
     if (wheel.cards[day]?.revealed || flipNow === day) {
       // Déjà retournée : un nouveau tap remet la vedette sur le jour courant si on relisait un passé.
-      if (wheel.cards[day]?.revealed && reviewDay !== null) { playSound('flip-day-card', 0.4); setReviewDay(null); focusWheel(); }
+      if (wheel.cards[day]?.revealed && reviewDay !== null) { playSound('soft-pop', 0.7); setReviewDay(null); focusWheel(); }
       return;
     }
     setReviewDay(null); // revenir au jour courant écrase la relecture
