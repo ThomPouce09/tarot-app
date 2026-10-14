@@ -1,18 +1,31 @@
 import nodemailer from 'nodemailer';
 
 // Transporteur SMTP partagé (config identique à forgot-password).
-// Utilisé par : lettre mystique (letter-send + cron/letters).
+// Utilisé par : lettre mystique (letter-send + cron/letters),
+// emails d'activation (signup + resend-confirmation), mot de passe oublié.
+//
+// Fournisseur : variable selon l'environnement (Vercel → Secrets) :
+//   Brevo  : SMTP_HOST=smtp-relay.brevo.com  SMTP_PORT=587
+//            SMTP_LOGIN=<email compte>       SMTP_KEY=<clé SMTP>
+//   Gmail  : SMTP_HOST=smtp.gmail.com        GMAIL_USER / GMAIL_PASS (repli)
+// Si rien n'est défini, on NE casse pas le build : l'envoi échoue au moment
+// de l'envoi avec un log explicite (au lieu d'un « Missing credentials »
+// silencieux chez le client).
+const SMTP_USER = process.env.SMTP_LOGIN || process.env.GMAIL_USER || '';
+const SMTP_PASS = process.env.SMTP_KEY || process.env.GMAIL_PASS || '';
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+if (!SMTP_USER || !SMTP_PASS) {
+  console.warn('[mailer] identifiants SMTP absents (SMTP_LOGIN/SMTP_KEY ou GMAIL_USER/GMAIL_PASS) : les envois échoueront.');
+}
 export const mailer = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  host: SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
+  auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
 });
 
-export const MAIL_FROM = process.env.GMAIL_USER;
+// Expéditeur : MAIL_FROM (adresse vérifiée chez le fournisseur) > login SMTP.
+export const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER;
 
 // URL de base absolue pour les liens d'email (priorité : NEXT_PUBLIC_APP_URL,
 // puis APP_URL, puis localhost). Sans quoi un lien est cassé ("undefined/...").

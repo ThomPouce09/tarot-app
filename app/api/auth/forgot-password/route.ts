@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
-import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
+import { mailer as transporter, MAIL_FROM } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
-
-// Create a generic transporter (configure in .env)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-});
+// Transporteur partagé (lib/mailer) : Brevo/Gmail pilotés par les mêmes
+// variables d'environnement — pas de configuration SMTP dupliquée ici.
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +34,7 @@ export async function POST(request: NextRequest) {
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'}/auth/confirm?token=${resetToken}`;
 
     await transporter.sendMail({
-      from: process.env.GMAIL_USER,
+      from: MAIL_FROM,
       to: email,
       subject: 'Réinitialisation du mot de passe',
       html: `<p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe.</p>`,
