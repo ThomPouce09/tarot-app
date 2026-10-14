@@ -29,6 +29,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n';
 
 const HOME = '/dashboard/account';
+// Normalisation APK : l'export statique (trailingSlash:true, servi par la
+// WebView) donne des usePathname en formes variables — « /dashboard/account »,
+// « /dashboard/account/ », parfois le chemin physique « …/index.html » (cf.
+// speaker-ambience qui traitait déjà « /index.html »). Sans coupe, HOME ne
+// correspond JAMAIS sur APK : le voile reste posé sur la page d'accueil et
+// « Aller à Mon espace » paraît mort. norm() ramène tout à la route logique.
+const norm = (p: string) => {
+  if (!p) return p;
+  let q = p.replace(/\/index\.html\/?$/i, ''); // /dashboard/account/index.html → /dashboard/account
+  if (!q || q === '.') return '/';             // racine du site
+  if (q.length > 1) q = q.replace(/\/+$/, ''); // slash final (trailingSlash)
+  return q;
+};
 // Chemins autorisés avant activation : la page qui porte la bannière + les
 // flux auth (lien d'activation, connexion, inscription, mot de passe oublié).
 const ALLOWED = (p: string) =>
@@ -74,7 +87,8 @@ export default function EmailConfirmLock() {
   const [resendErr, setResendErr] = useState(false);
 
   const locked = confirmed === false || hint;         // clics interceptés
-  const trapped = !!(confirmed === false && pathname && !ALLOWED(pathname)); // voile : vérité serveur/cache only
+  const path = norm(pathname);                        // APK: slash final (trailingSlash) — voir norm()
+  const trapped = !!(confirmed === false && path && !ALLOWED(path)); // voile : vérité serveur/cache only
   const visible = trapped || open;
 
   // Identité + statut SYNCHRONES avant peinture : caches sessionStorage →
@@ -140,7 +154,7 @@ export default function EmailConfirmLock() {
       try {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return; // externe : on ne touche pas
-        if (ALLOWED(url.pathname)) return;
+        if (ALLOWED(norm(url.pathname))) return;
       } catch { return; }
       e.preventDefault();
       e.stopPropagation();
@@ -185,7 +199,7 @@ export default function EmailConfirmLock() {
 
   const goHome = () => {
     setOpen(false);
-    if (pathname !== HOME) router.replace(HOME);
+    if (path !== HOME) router.replace(HOME); // path normalisé : sur APK le pathname a un slash final
   };
 
   const logout = () => {
@@ -198,7 +212,7 @@ export default function EmailConfirmLock() {
     setConfirmed(null);
     setHint(false);
     setOpen(false);
-    if (pathname && !ALLOWED(pathname)) router.replace('/');
+    if (path && !ALLOWED(path)) router.replace('/');
   };
 
   return (
