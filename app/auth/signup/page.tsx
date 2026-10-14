@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
 import { composePhone } from '@/lib/phone';
+import { api } from '@/lib/api-client'; // APK : /api/* n'existe pas en local → proxy backend Vercel
 import { calcAge } from '@/lib/dates';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
@@ -133,7 +134,7 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await api('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...dataToValidate, turnstileToken, lang }),
