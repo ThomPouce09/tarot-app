@@ -40,6 +40,8 @@ export default function ConfirmPasswordPage() {
           const u = JSON.parse(raw);
           u.confirmed = true;
           localStorage.setItem('tarot_user', JSON.stringify(u));
+          // Libère aussi le cache de la modale d'activation globale (EmailConfirmLock).
+          if (u.email) { sessionStorage.removeItem('tarot_ucf_' + u.email); sessionStorage.setItem('tarot_cf_' + u.email, '1'); }
         } else if (data?.user) {
           localStorage.setItem('tarot_user', JSON.stringify({
             id: data.user.id,

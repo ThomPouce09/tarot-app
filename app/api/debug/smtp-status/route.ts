@@ -11,7 +11,7 @@
 // Aucune clé imprimée : uniquement des booléens présents/absents et le host.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { mailer, MAIL_FROM } from '@/lib/mailer';
+import { mailer, MAIL_FROM, SMTP_PROVIDER } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
   }
 
   const env = {
-    SMTP_HOST: process.env.SMTP_HOST || '(défaut smtp.gmail.com)',
+    fournisseur_resolu: SMTP_PROVIDER, // brevo | gmail | none (résolu par PAIRE, jamais par host seul)
+    SMTP_HOST: process.env.SMTP_HOST || '(défaut selon fournisseur)',
     SMTP_PORT: process.env.SMTP_PORT || '(défaut 587)',
     SMTP_LOGIN_present: bool(process.env.SMTP_LOGIN),
     SMTP_KEY_present: bool(process.env.SMTP_KEY),

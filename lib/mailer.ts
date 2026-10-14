@@ -11,11 +11,31 @@ import nodemailer from 'nodemailer';
 // Si rien n'est défini, on NE casse pas le build : l'envoi échoue au moment
 // de l'envoi avec un log explicite (au lieu d'un « Missing credentials »
 // silencieux chez le client).
-const SMTP_USER = process.env.SMTP_LOGIN || process.env.GMAIL_USER || '';
-const SMTP_PASS = process.env.SMTP_KEY || process.env.GMAIL_PASS || '';
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-if (!SMTP_USER || !SMTP_PASS) {
-  console.warn('[mailer] identifiants SMTP absents (SMTP_LOGIN/SMTP_KEY ou GMAIL_USER/GMAIL_PASS) : les envois échoueront.');
+// ── Fournisseur résolu par PAIRE de credentials, JAMAIS par l'hôte seul ──
+// Brevo : SMTP_LOGIN+SMTP_KEY tous deux présents → relais Brevo (SMTP_HOST
+//         optionnel, défaut smtp-relay.brevo.com).
+// Gmail : sinon, GMAIL_USER+GMAIL_PASS → smtp.gmail.com IMPOSÉ. Une paire
+//         Gmail ne doit jamais partir vers un hôte Brevo resté dans .env
+//         (cause vécue du « 535 5.7.8 » : host=brevo + identifiants Gmail).
+const hasBrevo = Boolean(process.env.SMTP_LOGIN?.trim() && process.env.SMTP_KEY?.trim());
+const hasGmail = Boolean(process.env.GMAIL_USER?.trim() && process.env.GMAIL_PASS?.trim());
+export const SMTP_PROVIDER: 'brevo' | 'gmail' | 'none' = hasBrevo ? 'brevo' : hasGmail ? 'gmail' : 'none';
+
+let SMTP_USER = '';
+let SMTP_PASS = '';
+let SMTP_HOST = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
+if (SMTP_PROVIDER === 'brevo') {
+  SMTP_USER = (process.env.SMTP_LOGIN as string).trim();
+  SMTP_PASS = (process.env.SMTP_KEY as string).trim();
+  SMTP_HOST = process.env.SMTP_HOST?.trim() || 'smtp-relay.brevo.com';
+} else if (SMTP_PROVIDER === 'gmail') {
+  SMTP_USER = (process.env.GMAIL_USER as string).trim();
+  // Mot de passe d'application Gmail : affiché avec espaces par Google, attendu
+  // SANS espaces par le serveur → on normalise (sinon 535 5.7.8).
+  SMTP_PASS = (process.env.GMAIL_PASS as string).replace(/\s+/g, '');
+  SMTP_HOST = 'smtp.gmail.com';
+} else {
+  console.warn('[mailer] aucune paire complète (SMTP_LOGIN+SMTP_KEY ou GMAIL_USER+GMAIL_PASS) : les envois échoueront.');
 }
 export const mailer = nodemailer.createTransport({
   host: SMTP_HOST,
@@ -25,7 +45,7 @@ export const mailer = nodemailer.createTransport({
 });
 
 // Expéditeur : MAIL_FROM (adresse vérifiée chez le fournisseur) > login SMTP.
-export const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER;
+export const MAIL_FROM = process.env.MAIL_FROM?.trim() || SMTP_USER;
 
 // URL de base absolue pour les liens d'email (priorité : NEXT_PUBLIC_APP_URL,
 // puis APP_URL, puis localhost). Sans quoi un lien est cassé ("undefined/...").
