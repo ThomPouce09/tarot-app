@@ -49,8 +49,14 @@ export const MAIL_FROM = process.env.MAIL_FROM?.trim() || SMTP_USER;
 
 // URL de base absolue pour les liens d'email (priorité : NEXT_PUBLIC_APP_URL,
 // puis APP_URL, puis localhost). Sans quoi un lien est cassé ("undefined/...").
-const BASE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+// ⚠️ Le slash FINAL est TOUJOURS retiré : NEXT_PUBLIC_APP_URL est souvent saisie
+// avec un « / » de fin (Vercel) → sans ça on génère « …app//auth/confirm », lien
+// mort sur App Links / clients mail stricts.
+export function appBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+  return raw.trim().replace(/\/+$/, '');
+}
+const BASE_URL = appBaseUrl();
 
 // Envoi de l'email d'activation (utilisée par : signup + resend-confirmation).
 // Factorisée ici pour ne pas dupliquer le gabarit d'email.

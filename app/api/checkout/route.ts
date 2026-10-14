@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Paiements désactivés (clé Stripe manquante)' }, { status: 503 });
     }
 
-    const baseUrl = process.env.APP_URL || 'http://localhost:3007';
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3007').trim().replace(/\/+$/, ''); // jamais de slash final : //pay-return casserait le retour Stripe
     const { plan, billing = 'month', email, native } = await request.json();
     // Retour de paiement : l'APK passe par /pay-return (page relais qui bascule
     // dans l'app via tarotdivination:// — Stripe n'accepte que de l'https).

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Aucun abonnement Stripe actif' }, { status: 404 });
     }
 
-    const baseUrl = process.env.APP_URL || 'http://localhost:3007';
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3007').trim().replace(/\/+$/, ''); // jamais de slash final : //pay-return casserait le retour Stripe
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripeCustomerId,
       return_url: native

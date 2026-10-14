@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { mailer as transporter, MAIL_FROM } from '@/lib/mailer';
+import { mailer as transporter, MAIL_FROM, appBaseUrl } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 // Transporteur partagé (lib/mailer) : Brevo/Gmail pilotés par les mêmes
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       data: { confirmationToken: resetToken },
     });
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'}/auth/confirm?token=${resetToken}`;
+    const resetUrl = `${appBaseUrl()}/auth/confirm?token=${resetToken}`;
 
     await transporter.sendMail({
       from: MAIL_FROM,
