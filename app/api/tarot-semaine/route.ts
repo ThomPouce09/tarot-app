@@ -49,17 +49,38 @@ type WheelState = {
 async function findUser(email: string) {
   return prisma.user.findUnique({
     where: { email: String(email || '').trim().toLowerCase() },
-    select: { id: true },
+    select: { id: true, timezone: true },
   });
 }
 
 // Minuit local : les jours de la roue basculent à minuit, pas à l'heure exacte du tirage.
 const sod = (t: number | string | Date) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
-function nowDayIndex(castAt: string): number {
-  return Math.floor((sod(Date.now()) - sod(castAt)) / DAY_MS);
+// Jours calculés dans le FUSEAU DU USER (User.timezone, défaut Europe/Paris) :
+// le serveur Vercel tourne en UTC — un cast à 00 h 59 heure de Paris (22 h 59 UTC
+// la veille) décalerait sinon la roue d'un jour entier (« le message parle de
+// mardi alors qu'on est mercredi »). On découpe le calendrier en dates locales,
+// pas en instants.
+const FALLBACK_TZ = 'Europe/Paris';
+const userTz = (u: { timezone?: string | null } | null | undefined) => u?.timezone || FALLBACK_TZ;
+const WD_IDX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const _fmtDay = new Map<string, Intl.DateTimeFormat>();
+const _fmtWd = new Map<string, Intl.DateTimeFormat>();
+function sodTz(t: number | string | Date, tz: string): number {
+  // "YYYY-MM-DD" dans le fuseau du user (en-CA = ISO), puis minuit UTC de cette
+  // date = nombre de jours pair, à l'abri des bascules d'heure d'été.
+  let f = _fmtDay.get(tz);
+  if (!f) { f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }); _fmtDay.set(tz, f); }
+  return Date.parse(`${f.format(new Date(t))}T00:00:00Z`);
 }
-// Jour de semaine réel (0=dim…6=sam) de la carte n° `day` de la roue.
-const castWeekday = (castAt: string) => new Date(castAt).getDay();
+function nowDayIndexTz(castAt: string, tz: string): number {
+  return Math.max(0, Math.floor((sodTz(Date.now(), tz) - sodTz(castAt, tz)) / DAY_MS));
+}
+// Jour de semaine réel (0=dim…6=sam) du cast, dans le fuseau du user.
+function castWeekdayTz(castAt: string, tz: string): number {
+  let f = _fmtWd.get(tz);
+  if (!f) { f = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }); _fmtWd.set(tz, f); }
+  return WD_IDX[f.format(new Date(castAt))] ?? new Date(castAt).getDay();
+}
 
 // Grâce de scellement : 5 jours après la fin de la semaine (jour 7) pour sceller
 // l'augure (SEAL_GRACE_DAYS + EXPIRY_DAY vivent dans lib/tarot-semaine.ts — un
@@ -75,11 +96,11 @@ type ReadingRow = { id: string; interpretation: string | null; echo?: any };
  * lecture — éventuellement réécrite. C'est ce qui libère la place de « roue
  * active » : l'augure scellée ou non, le user peut poser la semaine suivante.
  */
-async function autoArchiveIfDone<T extends ReadingRow>(reading: T): Promise<T> {
+async function autoArchiveIfDone<T extends ReadingRow>(reading: T, tz: string): Promise<T> {
   let st: WheelState;
   try { st = JSON.parse(reading.interpretation || '{}'); } catch { return reading; }
   if (!st?.castAt || st.archived) return reading;
-  if (nowDayIndex(st.castAt) < 7) return reading;   // semaine encore en cours
+  if (nowDayIndexTz(st.castAt, tz) < 7) return reading;   // semaine encore en cours
   const updated = await prisma.reading.update({
     where: { id: reading.id },
     data: { interpretation: JSON.stringify({ ...st, archived: true, archivedAt: new Date().toISOString() }) },
@@ -92,23 +113,24 @@ async function autoArchiveIfDone<T extends ReadingRow>(reading: T): Promise<T> {
  *  page retombe sur « Poser la roue de la semaine » (la lecture reste archivée
  *  dans l'historique). Une roue scellée (echo) ne périmera jamais : son bilan
  *  reste dû. */
-function isExpiredUnsealed(reading: ReadingRow): boolean {
+function isExpiredUnsealed(reading: ReadingRow, tz: string): boolean {
   if (reading.echo) return false;
   let st: Partial<WheelState> = {};
   try { st = JSON.parse(reading.interpretation || '{}'); } catch { return false; }
-  return !!st.castAt && nowDayIndex(st.castAt) >= EXPIRY_DAY;
+  return !!st.castAt && nowDayIndexTz(st.castAt, tz) >= EXPIRY_DAY;
 }
 
 /** État public de la roue (avec jours passés auto-révélés + résonances). */
-function wheelView(reading: { id: string; createdAt: Date; cards: string; interpretation: string | null }, echo: any) {
+function wheelView(reading: { id: string; createdAt: Date; cards: string; interpretation: string | null }, echo: any, tz: string) {
   let st: WheelState;
   try { st = JSON.parse(reading.interpretation || '{}'); } catch { return null; }
   if (!st.cards || st.cards.length !== 7) return null;
-  const nowDay = Math.min(nowDayIndex(st.castAt), 7);
+  const nowDay = Math.min(nowDayIndexTz(st.castAt, tz), 7);
   const revealedSet = new Set<number>([...st.revealed, ...Array.from({ length: Math.min(nowDay, 7) }, (_, i) => i)]);
   return {
     readingId: reading.id,
     castAt: st.castAt,
+    tz,                          // fuseau de référence des jours (labels de dates)
     nowDay,                      // 0..7 (7 = semaine bouclée)
     archived: !!st.archived,     // semaine écoulée → roue archivée dans l'historique
     // Une nouvelle roue est proposée dès que la semaine est bouclée (augure
@@ -118,7 +140,7 @@ function wheelView(reading: { id: string; createdAt: Date; cards: string; interp
     cards: st.cards.map((id: number, day: number) => {
       const open = revealedSet.has(day);
       const card = open ? TAROT_CARDS[id] : null;
-      const weekday = (castWeekday(st.castAt) + day) % 7;   // jour réel (0=dim…6=sam)
+      const weekday = (castWeekdayTz(st.castAt, tz) + day) % 7;   // jour réel (0=dim…6=sam)
       // Anti-spoiler serveur : un jour non révélé ne livre NI son id NI son nom
       // NI ses mots-clés NI sa résonance — le JSON public ne peut pas trahir l'avenir.
       return {
@@ -146,6 +168,7 @@ export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email') || '';
   const user = await findUser(email);
   if (!user) return NextResponse.json({ wheel: null });
+  const tz = userTz(user);
   const readings = await prisma.reading.findMany({
     where: { userId: user.id, type: 'tarot-semaine' },
     orderBy: { createdAt: 'desc' },
@@ -162,13 +185,13 @@ export async function GET(request: NextRequest) {
   // roue. Une roue scellée (echo) ne périmera jamais : son bilan reste dû.
   let current: (typeof readings)[number] | null = null;
   for (const r of readings) {
-    const done = await autoArchiveIfDone(r);
-    if (isExpiredUnsealed(done)) continue;
+    const done = await autoArchiveIfDone(r, tz);
+    if (isExpiredUnsealed(done, tz)) continue;
     current = done;
     break;
   }
   if (!current) return NextResponse.json({ wheel: null });
-  return NextResponse.json({ wheel: wheelView(current, current.echo) });
+  return NextResponse.json({ wheel: wheelView(current, current.echo, tz) });
 }
 
 export async function POST(request: NextRequest) {
@@ -179,6 +202,7 @@ export async function POST(request: NextRequest) {
   const email = String(body.email || '').trim();
   const user = await findUser(email);
   if (!user) return NextResponse.json({ error: 'Compte introuvable.' }, { status: 404 });
+  const tz = userTz(user);
 
   // Session serveur : le jeton X-Session doit correspondre au compte utilisé.
   const sess = requireSessionEmail(request, email);
@@ -203,10 +227,10 @@ export async function POST(request: NextRequest) {
         let prev: Partial<WheelState> = {};
         try { prev = JSON.parse(latest.interpretation || '{}'); } catch { prev = {}; }
         const prevCastAt = prev?.castAt;
-        if (prevCastAt && nowDayIndex(prevCastAt) < 7) {
+        if (prevCastAt && nowDayIndexTz(prevCastAt, tz) < 7) {
           return NextResponse.json({ error: 'Une roue est déjà en cours.', reason: 'active' }, { status: 409 });
         }
-        await autoArchiveIfDone(latest);
+        await autoArchiveIfDone(latest, tz);
       }
       const cards = Array.isArray(body.cards) ? (body.cards as unknown[]).map(Number) : [];
       const valid = cards.length === 7 && cards.every((n) => Number.isInteger(n) && n >= 0 && n <= 21)
@@ -222,7 +246,7 @@ export async function POST(request: NextRequest) {
           interpretation: JSON.stringify(st),
         },
       });
-      return NextResponse.json({ readingId: reading.id, wheel: wheelView(reading, null) });
+      return NextResponse.json({ readingId: reading.id, wheel: wheelView(reading, null, tz) });
     }
 
     // ── Ouvrir le jour courant ───────────────────────────────────────
@@ -230,9 +254,9 @@ export async function POST(request: NextRequest) {
       if (!latest) return NextResponse.json({ error: 'Aucune roue.' }, { status: 404 });
       const st: WheelState = JSON.parse(latest.interpretation || '{}');
       const day = Number(body.day);
-      if (day === nowDayIndex(st.castAt) && !st.revealed.includes(day)) st.revealed.push(day);
+      if (day <= nowDayIndexTz(st.castAt, tz) && !st.revealed.includes(day)) st.revealed.push(day);
       await prisma.reading.update({ where: { id: latest.id }, data: { interpretation: JSON.stringify(st) } });
-      return NextResponse.json({ wheel: wheelView({ ...latest, interpretation: JSON.stringify(st) }, latest.echo) });
+      return NextResponse.json({ wheel: wheelView({ ...latest, interpretation: JSON.stringify(st) }, latest.echo, tz) });
     }
 
     // ── Tissage : UN seul appel IA produit les 7 éclats quotidiens + le fil rouge.
@@ -242,10 +266,10 @@ export async function POST(request: NextRequest) {
       if (!latest) return NextResponse.json({ error: 'Aucune roue.' }, { status: 404 });
       const st: WheelState = JSON.parse(latest.interpretation || '{}');
       if (st.filRouge && Array.isArray(st.days) && st.days.length === 7) {
-        return NextResponse.json({ filRouge: st.filRouge, wheel: wheelView(latest, latest.echo) });
+        return NextResponse.json({ filRouge: st.filRouge, wheel: wheelView(latest, latest.echo, tz) });
       }
       const lines = st.cards.map((id, d) => {
-        const wd = (castWeekday(st.castAt) + d) % 7; // jour réel de la carte
+        const wd = (castWeekdayTz(st.castAt, tz) + d) % 7; // jour réel de la carte
         return `${['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][wd]} : ${TAROT_CARDS[id]?.name} (${(TAROT_CARDS[id]?.keywords || []).slice(0, 2).join(', ')})`;
       }).join('\n');
       // Richesse de l'éclairage selon le rang : 1 phrase (Apprenti) ou 2-3 (Initié/Arkane).
@@ -284,7 +308,7 @@ Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{
       if (days) st.days = days;
       if (fil) st.filRouge = fil;
       await prisma.reading.update({ where: { id: latest.id }, data: { interpretation: JSON.stringify(st) } });
-      return NextResponse.json({ filRouge: fil, wheel: wheelView({ ...latest, interpretation: JSON.stringify(st) }, latest.echo) });
+      return NextResponse.json({ filRouge: fil, wheel: wheelView({ ...latest, interpretation: JSON.stringify(st) }, latest.echo, tz) });
     }
 
     // ── Sceller l'augure (le fil rouge, échéance = fin de semaine) ───
@@ -292,7 +316,7 @@ Réponds STRICTEMENT en JSON (rien d'autre) : {"days":[{"fr":"...","en":"..."},{
       if (!latest) return NextResponse.json({ error: 'Aucune roue.' }, { status: 404 });
       // Sceller une roue périmée (au-delà de la grâce, jamais scellée) n'a plus
       // de sens : elle a été masquée, un nouveau cycle a commencé.
-      if (isExpiredUnsealed(latest)) {
+      if (isExpiredUnsealed(latest, tz)) {
         return NextResponse.json({ error: 'La semaine de cette roue est close sans augure scellé.', reason: 'expired' }, { status: 409 });
       }
       const st: WheelState = JSON.parse(latest.interpretation || '{}');

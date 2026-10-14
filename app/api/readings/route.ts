@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     // Find user by email - handle potential Prisma errors
-    let user;
+    let user: { id: string; timezone?: string | null } | null;
     try {
       user = await prisma.user.findUnique({
         where: { email },
@@ -101,7 +101,7 @@ export async function GET(request: Request) {
           } catch { /* carte illisible : la vue affichera sobrement '—' */ }
         }
         if (r.type === 'tarot-semaine') {
-          interpretation = sanitizeWheelInterpretation(interpretation, !!r.echo);
+          interpretation = sanitizeWheelInterpretation(interpretation, !!r.echo, user?.timezone);
           try {
             const st = JSON.parse(interpretation || '{}');
             const rev = new Set<number>(st.revealed || []);

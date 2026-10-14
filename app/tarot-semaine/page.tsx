@@ -45,7 +45,7 @@ interface CardView {
   insight: { fr: string; en: string } | null;
 }
 interface Wheel {
-  readingId: string; castAt: string; nowDay: number; dueAt: string;
+  readingId: string; castAt: string; nowDay: number; dueAt: string; tz?: string;
   cards: CardView[];
   woven: boolean;
   filRouge: { fr: string; en: string } | null;
@@ -65,14 +65,18 @@ function emailLocal(): string {
 // minuit local). L'ordre des composants suit la langue : JJ/MM en français,
 // MM/JJ en anglais. L'année n'est ajoutée que si la roue n'est pas de l'année
 // en cours (utile pour une roue archivée dans l'historique).
-function wheelDayLabel(castAt: string, day: number, lang: string): string {
+function wheelDayLabel(castAt: string, day: number, lang: string, tz?: string): string {
   const d = new Date(castAt);
   if (Number.isNaN(d.getTime())) return '';
-  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  base.setDate(base.getDate() + day);
-  const dd = String(base.getDate()).padStart(2, '0');
-  const mm = String(base.getMonth() + 1).padStart(2, '0');
-  const yyyy = base.getFullYear();
+  // Même découpe de calendrier que le serveur : le « jour 0 » de la roue est la
+  // DATE du cast dans le fuseau de référence (pas le jour du navigateur/UTC).
+  const zone = tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris';
+  const iso = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const base = new Date(`${iso}T00:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + day);
+  const dd = String(base.getUTCDate()).padStart(2, '0');
+  const mm = String(base.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = base.getUTCFullYear();
   const dm = lang === 'en' ? `${mm}/${dd}` : `${dd}/${mm}`;
   return yyyy === new Date().getFullYear() ? dm : `${dm}/${String(yyyy).slice(2)}`;
 }
@@ -179,22 +183,48 @@ function SemainePage() {
       const d = await res.json();
       if (!res.ok) { flash(d.error || 'Le tirage a échoué.'); return; }
       await reload();
+      setReviewDay(null);
       focusWheel();
       flash(pick4('La roue est posée. Le jour 1 luit.', 'The wheel is cast. Day one glows.', "La rueda está lanzada. El día 1 resplandece.", "चक्र बिछा दिया गया है। दिन 1 दमक रहा है।")(lang));
     } finally { setBusy(false); }
   };
 
-  /* ── Ouvrir le jour courant ── */
+  /* ── Ouvrir le jour courant ──
+     Retournement optimiste : la bascule visuelle part au clic, en même temps
+     que le son. L'appel serveur confirme en arrière-plan et rejoint l'état
+     `revealed` ; s'il échoue, la carte reprend son dos et le clic est rejouable. */
+  const [flipNow, setFlipNow] = useState<number | null>(null);
+  // Relecture : le jour qu'on a choisi de relire (null = éclat du jour courant).
+  const [reviewDay, setReviewDay] = useState<number | null>(null);
   const reveal = async (day: number) => {
-    if (!wheel || day !== wheel.nowDay) return;
-    if (wheel.cards[day]?.revealed) return; // déjà retournée : plus de son ni d'appel
+    if (!wheel) return;
+    if (day < wheel.nowDay) {
+      // Jour passé (carte déjà lisible) : pas de flip, juste la vedette qui
+      // bascule sur son éclat — la relecture est immédiate, sans aller-retour.
+      if (!wheel.cards[day]?.revealed) return;
+      playSound('flip-day-card', 0.55);
+      setReviewDay(day);
+      focusWheel();
+      return;
+    }
+    if (day !== wheel.nowDay) return; // l'avenir reste scellé
+    if (wheel.cards[day]?.revealed || flipNow === day) {
+      // Déjà retournée : un nouveau tap remet la vedette sur le jour courant si on relisait un passé.
+      if (wheel.cards[day]?.revealed && reviewDay !== null) { playSound('flip-day-card', 0.4); setReviewDay(null); focusWheel(); }
+      return;
+    }
+    setReviewDay(null); // revenir au jour courant écrase la relecture
     playSound('flip-day-card', 0.9); // froissement du voile au retournement
+    setFlipNow(day); // le flip démarre avec le son, pas après l'aller-retour réseau
     const e = emailLocal();
-    const res = await api('/api/tarot-semaine', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: e, action: 'reveal', day }),
-    });
-    if (res.ok) { const d = await res.json(); setWheel(d.wheel); focusWheel(); }
+    try {
+      const res = await api('/api/tarot-semaine', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: e, action: 'reveal', day }),
+      });
+      if (res.ok) { const d = await res.json(); setWheel(d.wheel); setFlipNow(null); focusWheel(); }
+      else setFlipNow(null); // échec : retour au dos, l'utilisateur peut réessayer
+    } catch { setFlipNow(null); }
   };
 
   /* ── Tissage : UN seul appel IA → 7 éclats + fil rouge (auto après le cast) ── */
@@ -305,14 +335,14 @@ function SemainePage() {
                   {row?.map((c, i) => {
                     const idx = ri === 0 ? i : i + 4;
                     const isToday = idx === wheel.nowDay;
-                    const open = c.revealed;
+                    const open = c.revealed || flipNow === idx; // bascule immédiate au clic (optimiste)
                     const lift = Math.abs(i - (ri === 0 ? 1.5 : 1)) * 5;
                     return (
                       <motion.button key={c.day} type="button" onClick={() => reveal(idx)}
                         className="relative" animate={{ y: lift }}
-                        whileHover={!open && isToday ? { y: lift - 8 } : undefined}
+                        whileHover={(!open && isToday) || (open && idx < wheel.nowDay) ? { y: lift - 6 } : undefined}
                         style={{ rotate: (i - (ri === 0 ? 1.5 : 1)) * -1.2 }}>
-                        <div className="relative h-24 w-16 overflow-hidden rounded-lg border-2 sm:h-36 sm:w-24" style={{
+                        <div className={"relative h-24 w-16 overflow-hidden rounded-lg border-2 sm:h-36 sm:w-24" + (isToday && !open ? ' tarot-card-call' : '')} style={{
                           borderColor: isToday ? GOLD_PALE : 'rgba(218,165,32,0.4)',
                           boxShadow: isToday ? '0 0 22px rgba(218,165,32,0.65)' : '0 4px 14px rgba(0,0,0,0.6)',
                         }}>
@@ -343,7 +373,7 @@ function SemainePage() {
                           {/* Date du jour de la roue — discrète, pour situer le tirage
                               dans le calendrier (jour local). */}
                           <div className="text-[8px] sm:text-[9px] tabular-nums" style={{ color: isToday ? GOLD_PALE : `${GOLD}88`, opacity: isToday ? 0.8 : 0.5, letterSpacing: '0.06em' }}>
-                            {wheelDayLabel(wheel.castAt, idx, lang)}
+                            {wheelDayLabel(wheel.castAt, idx, lang, wheel.tz)}
                           </div>
                         </div>
                       </motion.button>
@@ -355,15 +385,17 @@ function SemainePage() {
             <p className="mt-2 text-center text-[10px]" style={{ color: `${GOLD}aa` }}>
               {pick4('✦ = la carte résonne avec la planète du jour', '✦ = the card resonates with its day’s planet', "✦ = la carta resuena con el planeta del día", "✦ = पत्र उस दिन के ग्रह से गूँजता है")(lang)}
               {' · '}
-              {weekDone ? (pick4('semaine bouclée — tisse le fil', 'week complete — weave the thread', "semana completada — teje el hilo", "सप्ताह पूर्ण — धागा बुनो")(lang)) :
-                `${pick4('jour', 'day', "día", "दिन")(lang)} ${wheel.nowDay + 1}/7 — ${pick4('touche la carte qui luit', 'tap the glowing card', "toca la carta que resplandece", "दमकते पत्र को छूओ")(lang)}`}
+              {weekDone ? (pick4('semaine bouclée — tisse le fil · touche une carte pour la relire', 'week complete — weave the thread · tap any card to reread it', "semana completada — teje el hilo · toca una carta para releerla", "सप्ताह पूर्ण — धागा बुनो · दोबारा पढ़ने हेतु पत्र छूओ")(lang)) :
+                `${pick4('jour', 'day', "día", "दिन")(lang)} ${wheel.nowDay + 1}/7 — ${pick4('touche la carte qui luit', 'tap the glowing card', "toca la carta que resplandece", "दमकते पत्र को छूओ")(lang)} · ${pick4('les jours passés se relisent au toucher', 'past days can be reread with a tap', "los días pasados se releen con un toque", "बीते दिन स्पर्श से पुनः पढ़े जा सकते हैं")(lang)}`}
             </p>
 
             {/* ── L'éclat du jour : la portion IA de LA carte courante, mise en vedette ── */}
             {(() => {
               const today = wheel.cards[wheel.nowDay];
-              const shown = today?.revealed ? today : wheel.cards.slice(0, Math.min(wheel.nowDay, 7)).reverse().find(c => c.revealed);
-              if (!shown || wheel.nowDay >= 7) return null;
+              const relit = reviewDay !== null && reviewDay < Math.min(wheel.nowDay, 7) ? wheel.cards[reviewDay] : null;
+              const shown = relit?.revealed ? relit : today?.revealed ? today : wheel.cards.slice(0, Math.min(wheel.nowDay, 7)).reverse().find(c => c.revealed);
+              if (!shown) return null;
+              if (wheel.nowDay >= 7 && reviewDay === null) return null; // semaine bouclée : plus d'éclat du jour, sauf en relecture
               if (weaving) return (
                 <p className="mt-4 text-center text-xs italic" style={{ color: IVORY, opacity: 0.7 }}>
                   {pick4('L’oracle éclaire tes sept jours…', 'The oracle is lighting your seven days…', "El oráculo ilumina tus siete días…", "ओरैकल तुम्हारे सातों दिन रोशन कर रहा है…")(lang)}
@@ -419,7 +451,9 @@ function SemainePage() {
                     textShadow: `0 0 14px ${GOLD}77, 0 1px 2px rgba(0,0,0,0.8)`,
                   }}>
                     {'✦ '}
-                    {pick4('N’oubliez pas de venir consulter l’influence de votre prochaine arcane demain !', 'Remember to come consult the influence of your next arcana tomorrow!', "¡No olvide venir mañana a consultar la influencia de su próxima arcana!", "कल अपनी अगली अर्कान का प्रभाव ज़रूर देख आइए!")(lang)}
+                    {shown.day === wheel.nowDay
+                      ? pick4('N’oubliez pas de venir consulter l’influence de votre prochaine arcane demain !', 'Remember to come consult the influence of your next arcana tomorrow!', "¡No olvide venir mañana a consultar la influencia de su próxima arcana!", "कल अपनी अगली अर्कान का प्रभाव ज़रूर देख आइए!")(lang)
+                      : pick4('Relecture — revisite le conseil que le jour te donnait.', 'Rereading — revisit the counsel that day gave you.', "Relectura — revisita el consejo que te dio ese día.", "पुनःपाठ — उस दिन दिया गया परामर्श दोबारा देखें।")(lang)}
                   </p>
                 </motion.div>
               );

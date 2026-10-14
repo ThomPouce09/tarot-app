@@ -1011,3 +1011,12 @@ html, body {
 @media (prefers-reduced-motion: reduce){
   .ow-core,.ow-dust,.ow-ring,.ow-sweep,.ow-edge,.ow-star,.ow-halo,.ow-zodiac,.ow-ticks,.ow-needle{animation:none}
 }
+
+/* Carte du jour /tarot-semaine : appel discret a l'action (soulevement + halo pulse).
+   La carte luit deja ; ce mouvement signale qu'elle se retourne au toucher. */
+@keyframes cardCall {
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 14px rgba(218,165,32,0.45); }
+  50%      { transform: translateY(-6px); box-shadow: 0 0 30px rgba(218,165,32,0.85); }
+}
+.tarot-card-call { animation: cardCall 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce){ .tarot-card-call { animation: none; } }
