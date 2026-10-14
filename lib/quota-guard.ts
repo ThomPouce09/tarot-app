@@ -4,6 +4,9 @@
 //      body. Sans jeton → 401 { reason: 'session' } (l'app demande à
 //      l'utilisateur de se reconnecter — les comptes existants reconnectent
 //      une fois après le déploiement, choix assumé).
+//   1b. ACTIVATION : compte non confirmé (email non activé) → 403
+//      { reason: 'email-unconfirmed' } — le client ouvre la modale globale
+//      d'activation (EmailConfirmLock, événement 'arkane-email-lock').
 //   2. QUOTA : canDo + consume (lib/entitlements) — la vérité des droits vit
 //      dans la DB, plus dans le client.
 //   3. FLUX : un même tirage client (flowId) ne débite QU'UNE FOIS, même si
@@ -86,9 +89,19 @@ export async function guardRequest(
   const flowKey = typeof body.flowId === 'string' && body.flowId.length >= 8
     ? `x${body.flowId.slice(0, 64)}`
     : `w${Math.floor(Date.now() / 300_000)}`; // bucket implicite 5 min
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, confirmed: true } });
   if (!user) {
     return { error: NextResponse.json({ error: 'Compte introuvable.', reason: 'not-logged', gated: true }, { status: 401 }) };
+  }
+  // Verrou d'activation : un compte dont l'email n'est pas activé ne peut PAS
+  // consommer d'interprétation IA, même si l'UI était contournée. Le client
+  // écoute 403 { reason:'email-unconfirmed' } et ouvre la modale d'activation
+  // (événement 'arkane-email-lock' — lib/api-client, lib/session-client).
+  if (!user.confirmed) {
+    return { error: NextResponse.json(
+      { error: 'Activez votre compte : un email de confirmation vous a été envoyé.', reason: 'email-unconfirmed', gated: true },
+      { status: 403 },
+    ) };
   }
   const isNewFlow = await claimFlow(user.id, `${type}:${flowKey}`, type);
   void purgeOldFlows();

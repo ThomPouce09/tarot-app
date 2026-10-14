@@ -384,6 +384,15 @@ export const DICT = {
   'gate.verifyText': { fr: "Votre compte doit être vérifié par email pour accéder aux univers. Vérifiez votre boîte de réception (et vos spams) puis connectez-vous à nouveau.", en: "Your email must be verified to access the realms. Check your inbox (and spam) then sign in again.", es: "Su cuenta debe verificarse por email para acceder a los universos. Revise su bandeja de entrada (y el spam) y vuelva a conectarse.", hi: "ब्रह्मांडों तक पहुँचने के लिए आपके खाते की ईमेल से पुष्टि आवश्यक है। अपना इनबॉक्स (और स्पैम) जाँचें, फिर दोबारा प्रवेश करें।" },
   'gate.logout': { fr: "Se déconnecter", en: "Sign out", es: "Cerrar sesión", hi: "लॉग आउट करें" },
   'gate.reconnect': { fr: "Me connecter", en: "Sign in", es: "Iniciar sesión", hi: "प्रवेश करें" },
+  // ─── Verrou d'activation email (modale globale EmailConfirmLock) ───
+  'lock.title': { fr: "Activez votre compte", en: "Activate your account", es: "Active su cuenta", hi: "अपना खाता सक्रिय करें" },
+  'lock.text': { fr: "Votre email n'a pas encore été activé. Les univers vous restent fermés jusqu'à ce que vous ayez cliqué le lien reçu par email.", en: "Your email has not been activated yet. The realms stay closed until you click the link received by email.", es: "Su email aún no ha sido activado. Los universos permanecen cerrados hasta que haga clic en el enlace recibido por email.", hi: "आपका ईमेल अभी सक्रिय नहीं हुआ है। ईमेल द्वारा प्राप्त लिंक पर क्लिक करने तक ब्रह्मांड बंद रहेंगे।" },
+  'lock.sentTo': { fr: "Un lien d'activation a été envoyé à :", en: "An activation link was sent to:", es: "Se ha enviado un enlace de activación a:", hi: "सक्रियण लिंक इस पते पर भेजा गया था:" },
+  'lock.spam': { fr: "Pensez à vérifier vos courriers indésirables (spams).", en: "Remember to check your spam folder.", es: "Recuerde revisar su carpeta de spam.", hi: "अपना स्पैम फ़ोल्डर ज़रूर जाँचें।" },
+  'lock.resend': { fr: "Renvoyer l'email d'activation", en: "Resend activation email", es: "Reenviar el email de activación", hi: "सक्रियण ईमेल दोबारा भेजें" },
+  'lock.goHome': { fr: "Aller à Mon espace", en: "Go to My space", es: "Ir a Mi espacio", hi: "मेरा स्थान पर जाएँ" },
+  'lock.sent': { fr: "Un nouveau lien vient de partir — consultez votre boîte mail.", en: "A new link is on its way — check your inbox.", es: "Un nuevo enlace acaba de salir — revise su correo.", hi: "नया लिंक भेजा गया है — अपना इनबॉक्स देखें।" },
+  'lock.error': { fr: "Envoi impossible pour le moment. Réessayez dans un instant.", en: "Cannot send right now. Please try again in a moment.", es: "No se puede enviar ahora. Inténtelo de nuevo en un momento.", hi: "अभी भेजा नहीं जा सका। कुछ पलों में फिर प्रयास करें।" },
   // ─── Statistics ───
   'stats.title': { fr: "Statistiques", en: "Statistics", es: "Estadísticas", hi: "आँकड़े" },
   'stats.subtitle': { fr: "Votre parcours divinatoire.", en: "Your divinatory journey.", es: "Su recorrido adivinatorio.", hi: "आपकी भविष्यवेदी यात्रा।" },

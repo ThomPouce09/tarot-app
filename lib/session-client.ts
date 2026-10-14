@@ -58,5 +58,15 @@ export async function sessionFetch(input: string, init?: RequestInit & { headers
       }
     } catch { /* pas JSON : ignoré */ }
   }
+  if (res.status === 403) {
+    // Compte non activé (verrou serveur quota-guard) : ouvre la modale globale
+    // d'activation (EmailConfirmLock écoute 'arkane-email-lock').
+    try {
+      const data = await res.clone().json();
+      if (data && data.reason === 'email-unconfirmed') {
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('arkane-email-lock'));
+      }
+    } catch { /* pas JSON : ignoré */ }
+  }
   return res;
 }
