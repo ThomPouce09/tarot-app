@@ -85,6 +85,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'yi-jing', file: '/audio/yi-jing.mp3', files: { fr: '/audio/yi-jing.mp3', en: '/audio/yi-jing-en.mp3', es: '/audio/yi-jing-es.mp3', hi: '/audio/yi-jing-hi.mp3' }, category: 'ambient', label: 'Ouverture Yi Jing', duration: 8.12, usage: 'Jingle à l\'ouverture de la page /yi-jing', voice: true },
   { key: 'scroll1', file: '/audio/scroll1.mp3', category: 'ui', label: 'Parchemin 1', duration: 0.90, usage: 'Menu parchemin — ouverture' },
   { key: 'flip-day-card', file: '/audio/flip-day-card.mp3', category: 'cards', label: 'Retourner la carte du jour', duration: 2.35, usage: 'Semaine — clic pour révéler la carte du jour' },
+  { key: 'soft-pop', file: '/audio/soft-pop.mp3', category: 'ui', label: 'Petit « pop » discret', duration: 0.28, usage: 'Semaine — toucher une carte déjà dévoilée (relecture d’un jour passé)' },
   { key: 'mute-unmute', file: '/audio/mute-unmute.mp3', category: 'ui', label: 'Micro coupé/rouvert', duration: 0.21, usage: 'Enceinte — couper voix / remettre voix et effets' },
   { key: 'you-win', file: '/audio/you-win.mp3', category: 'ui', label: 'Grand tirage gagné', duration: 5.04, usage: 'Créature — cadeau d\'un GRAND tirage réclamé' },
   { key: 'artemis-secret', file: '/audio/artemis-secret.mp3', category: 'ui', label: 'Secret d\'Artémis', duration: 3.74, usage: 'Dés zodiacaux — révélation du secret d\'Artémis' },
