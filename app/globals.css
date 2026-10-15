@@ -669,6 +669,8 @@ html, body {
   filter: drop-shadow(0 0 14px rgba(218, 165, 32, 0.45));
 }
 .app-loader-text {
+  text-align: center;
+  padding-left: 0.35em; /* compense l'espace de letter-spacing après la dernière lettre -> centrage optique */
   font-family: var(--font-cinzel), serif;
   font-size: 15px;
   letter-spacing: 0.35em;

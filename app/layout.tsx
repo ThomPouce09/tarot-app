@@ -90,7 +90,7 @@ export default function RootLayout({
           <div className="app-loader-stars2" aria-hidden />
           <div className="app-loader-inner">
             <img src="/logo-espace.png" alt="" className="app-loader-logo" width="300" height="212" />
-            <p className="app-loader-text" id="boot-veil-text">Chargement ...</p>
+            <p className="app-loader-text" id="boot-veil-text">Chargement</p>
             <div className="app-loader-dots" aria-hidden>
               <span />
               <span />
