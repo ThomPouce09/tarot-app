@@ -120,7 +120,7 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-40 w-full flex items-center justify-between px-4 py-3 bg-[#0a0514]/90 backdrop-blur border-b border-amber-800/25">
         <Link href="/" title={t('nav.backHome')} className="relative flex items-center gap-2 group">
-          <img src="/logo-espace.png" alt="" className="w-8 h-8 object-contain" />
+          <img src="/logo-espace.png" alt="" className="h-7 w-auto object-contain" />
           <span className="brand-oracle text-xl transition-all duration-200 group-hover:brightness-125">
             {t('brand.name')}
           </span>
@@ -160,7 +160,7 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
             key={l.href}
             href={l.href}
             onClick={(e) => { e.preventDefault(); router.push(l.href); }}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
+            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
             style={{ pointerEvents: 'auto' }}
           >
             <span className="text-lg">

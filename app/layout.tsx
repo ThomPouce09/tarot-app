@@ -84,21 +84,11 @@ export default function RootLayout({
             fraction de seconde. Le <AppLoader /> de la landing prend le relais
             (relais détecté par le script : fondu du voile SSR puis retrait). */}
         <div id="boot-veil" className="app-loader" role="status" aria-live="polite">
+          <div className="app-loader-stars" aria-hidden />
+          <div className="app-loader-stars2" aria-hidden />
           <div className="app-loader-inner">
-            <svg className="app-loader-star" width="64" height="64" viewBox="0 0 64 64" aria-hidden>
-              <defs>
-                <radialGradient id="loaderGold" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#F0C75E" />
-                  <stop offset="60%" stopColor="#DAA520" />
-                  <stop offset="100%" stopColor="#8a6a1d" />
-                </radialGradient>
-              </defs>
-              <g fill="url(#loaderGold)">
-                <path d="M32 2 L36 26 L60 32 L36 38 L32 62 L28 38 L4 32 L28 26 Z" />
-                <path d="M32 10 L34.8 29.2 L54 32 L34.8 34.8 L32 54 L29.2 34.8 L10 32 L29.2 29.2 Z" opacity="0.55" transform="rotate(45 32 32)" />
-              </g>
-            </svg>
-            <p className="app-loader-text" id="boot-veil-text">Chargement ...</p>
+            <img src="/logo-espace.png" alt="" className="app-loader-logo" width="300" height="212" />
+            <p className="app-loader-text" id="boot-veil-text">Chargement</p>
             <div className="app-loader-dots" aria-hidden>
               <span />
               <span />

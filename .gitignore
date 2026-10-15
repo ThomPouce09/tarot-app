@@ -84,3 +84,4 @@ apk_artifact.zip
 .hermes/
 
 .vercel
+__pycache__/

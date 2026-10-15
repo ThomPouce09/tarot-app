@@ -3,7 +3,7 @@
 // Les clients mail ne chargent pas les polices web : figer la typographie dans
 // une image est le seul moyen fiable d'avoir le rendu de la marque.
 import { Resvg } from '@resvg/resvg-js';
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 const W = 1200;
@@ -16,7 +16,8 @@ const FONT_DIR = join(process.cwd(), 'public', 'fonts', '_email');
 
 console.log('polices trouvées :', readdirSync(FONT_DIR).filter((f) => f.endsWith('.woff2') || f.endsWith('.ttf') || f.endsWith('.otf')).join(', '));
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+const LOGO_B64 = readFileSync(join(process.cwd(), 'public', 'logo-espace.png')).toString('base64');
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <radialGradient id="sky" cx="50%" cy="0%" r="85%">
       <stop offset="0%" stop-color="#3a2456"/>
@@ -44,10 +45,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
     <circle cx="560" cy="272" r="1.4"/><circle cx="880" cy="246" r="1.5"/>
     <circle cx="410" cy="120" r="1.5"/><circle cx="760" cy="230" r="1.4"/>
   </g>
-  <g transform="translate(600 94)">
-    <circle r="35" fill="none" stroke="url(#gold)" stroke-width="3"/>
-    <path d="M -12 -23 A 25 25 0 1 0 -12 23 A 19 19 0 1 1 -12 -23" fill="#F0C75E" opacity="0.95"/>
-  </g>
+  <image xlink:href="data:image/png;base64,__LOGO_B64__" x="525" y="32" width="150" height="106" preserveAspectRatio="xMidYMid meet"/>
   <text x="600" y="234" text-anchor="middle" font-family="Cinzel Decorative" font-weight="700"
         font-size="62" letter-spacing="4" fill="url(#gold)">LETTRE MYSTIQUE</text>
   <line x1="350" y1="264" x2="850" y2="264" stroke="#DAA520" stroke-opacity="0.55" stroke-width="1.5"/>
@@ -57,7 +55,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
 
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 
-const r = new Resvg(svg, {
+const r = new Resvg(svg.replace('__LOGO_B64__', LOGO_B64), {
   fitTo: { mode: 'width', value: W },
   font: { fontDirs: [FONT_DIR], loadSystemFonts: true, defaultFontFamily: 'Cinzel Decorative' },
 });

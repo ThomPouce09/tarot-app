@@ -35,7 +35,7 @@ export const DICT = {
   'landing.runes.building': { fr: "En cours de construction", en: "Under construction", es: "En construcción", hi: "निर्माणाधीन" },
   'landing.runes.close': { fr: "Fermer", en: "Close", es: "Cerrar", hi: "बंद करें" },
   // ─── Voile de démarrage ───
-  'loader.text': { fr: "Chargement ...", en: "Loading...", es: "Cargando ...", hi: "लोड हो रहा है ..." },
+  'loader.text': { fr: "Chargement", en: "Loading", es: "Cargando", hi: "लोड हो रहा है" },
 
   // ─── Login modal ───
   'login.title': { fr: "Connexion ✨", en: "Sign in ✨", es: "Iniciar sesión ✨", hi: "प्रवेश ✨" },
