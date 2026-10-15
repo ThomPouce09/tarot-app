@@ -31,7 +31,10 @@
              sur fond brun-noir. PAS d'icône forcée : le logo garde sa taille
              d'avant (l'attribut AnimatedIcon l'agrandissait dans le conteneur
              circulaire système). -->
-        <item name="windowSplashScreenBackground">#FF0A0A1A</item>
+        <item name="windowSplashScreenBackground">#FF0A0720</item>
+        <!-- 2026-10-15 : icone = NOUVEAU logo (drawable-nodpi/splash_logo, marges de ~45%
+             -> reste dans le cercle sur du masque systeme, pas rognee). -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

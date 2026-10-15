@@ -19,7 +19,7 @@ const config: CapacitorConfig = {
     },
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: '#0a0a1a', // bleu exact de l'icône + du splash (chaîne de démarrage uniforme)
+      backgroundColor: '#0a0720', // coeur de la nuit profonde du splash genere (chaîne de démarrage uniforme 2026-10-15)
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
     },
