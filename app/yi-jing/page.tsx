@@ -266,8 +266,8 @@ export default function YiJingHubPage() {
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 20px rgba(180,40,45,0.4), 0 4px 12px rgba(0,0,0,0.5)",
-              border: "2px solid rgba(180,40,45,0.35)",
+                "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
+              border: "2px solid rgba(178,48,32,0.5)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
@@ -276,7 +276,7 @@ export default function YiJingHubPage() {
               className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #140a0e 0%, #0a0507 50%, #140a0e 100%)",
+                  "linear-gradient(135deg, #1E0909 0%, #33100C 50%, #1E0909 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
@@ -304,14 +304,14 @@ export default function YiJingHubPage() {
                 src="/images/yi-jing-simple.png?v=2"
                 alt="Yi Jing simplifié"
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
+                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#F5EAD6",
-                  textShadow: "0 0 8px rgba(180,40,45,0.5)",
+                  color: "#E2BC6C",
+                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.base')}
@@ -330,7 +330,7 @@ export default function YiJingHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(180,40,45,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(196,62,38,0.22) 0%, transparent 70%)",
               }}
             />
           </motion.div>
@@ -342,8 +342,8 @@ export default function YiJingHubPage() {
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 20px rgba(180,40,45,0.4), 0 4px 12px rgba(0,0,0,0.5)",
-              border: "2px solid rgba(180,40,45,0.35)",
+                "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
+              border: "2px solid rgba(168,40,66,0.5)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
@@ -352,7 +352,7 @@ export default function YiJingHubPage() {
               className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #140a0e 0%, #0a0507 50%, #140a0e 100%)",
+                  "linear-gradient(135deg, #1C0810 0%, #31101A 50%, #1C0810 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
@@ -380,14 +380,14 @@ export default function YiJingHubPage() {
                 src="/images/yi-jing-precis.png?v=2"
                 alt={tr('Yi Jing précis', 'Precise I Ching', 'Yi Jing preciso', 'सटीक यी जिंग')}
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
+                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#F5EAD6",
-                  textShadow: "0 0 8px rgba(180,40,45,0.5)",
+                  color: "#E2BC6C",
+                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.simple')}
@@ -406,7 +406,7 @@ export default function YiJingHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(180,40,45,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(184,52,80,0.22) 0%, transparent 70%)",
               }}
             />
           </motion.div>
@@ -418,8 +418,8 @@ export default function YiJingHubPage() {
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 20px rgba(180,40,45,0.4), 0 4px 12px rgba(0,0,0,0.5)",
-              border: "2px solid rgba(180,40,45,0.35)",
+                "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
+              border: "2px solid rgba(186,62,34,0.5)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
@@ -428,7 +428,7 @@ export default function YiJingHubPage() {
               className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #140a0e 0%, #0a0507 50%, #140a0e 100%)",
+                  "linear-gradient(135deg, #200A06 0%, #36110A 50%, #200A06 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
@@ -456,14 +456,14 @@ export default function YiJingHubPage() {
                 src="/images/yi-jing-du-jour.png"
                 alt={tr('Hexagramme du Jour', 'Hexagram of the Day', 'Hexagrama del Día', 'आज का हैक्सग्राम')}
                 className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 8px rgba(180,40,45,0.6))" }}
+                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
                 className="text-base font-bold text-center leading-tight mb-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#F5EAD6",
-                  textShadow: "0 0 8px rgba(180,40,45,0.5)",
+                  color: "#E2BC6C",
+                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.day')}
@@ -482,7 +482,7 @@ export default function YiJingHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(180,40,45,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(206,74,40,0.22) 0%, transparent 70%)",
               }}
             />
           </motion.div>
@@ -494,8 +494,8 @@ export default function YiJingHubPage() {
             className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
-                "0 0 20px rgba(180,40,45,0.4), 0 4px 12px rgba(0,0,0,0.5)",
-              border: "2px solid rgba(180,40,45,0.35)",
+                "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
+              border: "2px solid rgba(150,38,60,0.5)",
             }}
             whileHover={{ scale: 1.04, y: -3 }}
             whileTap={{ scale: 0.98 }}
@@ -504,7 +504,7 @@ export default function YiJingHubPage() {
               className="relative p-3 flex flex-col items-center justify-center h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #140a0e 0%, #1a0a10 50%, #241014 100%)",
+                  "linear-gradient(135deg, #190610 0%, #2C0B18 50%, #190610 100%)",
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
@@ -541,8 +541,8 @@ export default function YiJingHubPage() {
                 className="text-base font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#F5EAD6",
-                  textShadow: "0 0 8px rgba(243,201,105,0.5)",
+                  color: "#E2BC6C",
+                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.double')}
@@ -561,7 +561,7 @@ export default function YiJingHubPage() {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(180,40,45,0.18) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(166,46,74,0.22) 0%, transparent 70%)",
               }}
             />
           </motion.div>
