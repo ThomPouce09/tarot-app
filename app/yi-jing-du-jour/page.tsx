@@ -370,6 +370,7 @@ const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () =>
       <video
         ref={videoRef}
         src={SEAL_VIDEO}
+        poster="/images/sceau-poster.jpg"
         muted
         playsInline
         preload="auto"
