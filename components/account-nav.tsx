@@ -160,7 +160,7 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
             key={l.href}
             href={l.href}
             onClick={(e) => { e.preventDefault(); router.push(l.href); }}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
+            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
             style={{ pointerEvents: 'auto' }}
           >
             <span className="text-lg">
