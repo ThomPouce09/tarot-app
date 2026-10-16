@@ -146,7 +146,8 @@ function HexLines({ lignes, mutating = [], size = 1 }: { lignes: boolean[]; muta
       animate={{ x: '380%' }}
       transition={{ duration: 2.8, ease: 'easeInOut', repeat: Infinity, repeatDelay: 3.4 }}
     />
-    <div className="flex flex-col justify-between" style={{ height: 66 * size, width: 96 * size, gap: 6 * size }}>
+    {/* 6 traits de 10px + 5 espaces de 6px = 90px — sinon le 6e (trait du bas) est rogné par overflow-hidden */}
+    <div className="flex flex-col justify-between" style={{ height: 90 * size, width: 96 * size, gap: 6 * size }}>
       {rows.map((yang, i) => {
         const lineNo = 6 - i; // numéro réel (1 base … 6 sommet)
         const mut = mutating.includes(lineNo);
