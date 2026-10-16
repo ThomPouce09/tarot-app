@@ -71,9 +71,33 @@ async function loadHexas(numList: number[]) {
   return { byNum, byNumEn };
 }
 
+/** TEMPORAIRE (tests animation) — si true, le verrou du tirage quotidien
+ *  saute : le sceau se rejoue a volonte. Remettre false AVANT commit. */
+const TEST_UNLOCK_DAILY = false;
+function dayUnlock() { return TEST_UNLOCK_DAILY; }
+
+/** Énergie de la période (calendrier fixe commun à tous) : hexagramme dont la
+ *  plage dateDebut→dateFin est la plus récemment débutée avant le jour donné.
+ *  Le « report » du dernier début couvre aussi les rares trous du calendrier. */
+type PeriodHex = { numero: number; caractere: string; pinyin: string; name: string; from: string; to: string; conseil: string };
+function mdKey(s: string): number { const [d, m] = String(s).split('/').map(Number); return (m || 0) * 100 + (d || 0); }
+async function periodHexFor(date: Date): Promise<PeriodHex | null> {
+  const rows = await prisma.hexagram.findMany({
+    select: { numero: true, caractere: true, pinyin: true, element: true, dateDebut: true, dateFin: true, conseil: true },
+  });
+  const today = (date.getMonth() + 1) * 100 + date.getDate();
+  let best: PeriodHex | null = null;
+  let bestK = -1;
+  for (const r of rows) {
+    const k = mdKey(r.dateDebut);
+    if (k <= today && k > bestK) { bestK = k; best = { numero: r.numero, caractere: r.caractere, pinyin: r.pinyin, name: r.element, from: r.dateDebut, to: r.dateFin, conseil: r.conseil }; }
+  }
+  return best;
+}
+
 /** Contexte dessiné pour un compte et un jour (déterministe, stable 24 h). */
-function drawFor(email: string, date: Date) {
-  const numero = dailyHexNumber(date, email);
+function drawFor(email: string, date: Date, periodNumero?: number | null) {
+  const numero = periodNumero ?? dailyHexNumber(date, email);
   const mutating = dailyMutatingLines(date, email);
   return { numero, mutating, transformedNum: transformedHexagram(numero, mutating) };
 }
@@ -104,7 +128,7 @@ export async function GET(req: NextRequest) {
     // `mutating` est posé (trace du nouveau flux). Les lignes héritées de la
     // v1 (simple vue, sans conseil stocké) ne court-circuitent PAS le
     // consentement : le user peut (et doit) tirer « pour de vrai » aujourd'hui.
-    const v2Draw = row && row.mutating !== null;
+    const v2Draw = row && row.mutating !== null && !dayUnlock();
 
     // Collection + streak (lecture seule, aucun débit).
     const views = await prisma.dailyDrawView.findMany({
@@ -140,10 +164,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Déjà tiré → résultat complet, relu en base (aucun appel IA).
-    const { numero, mutating, transformedNum } = drawFor(email, date);
+    const period = await periodHexFor(date).catch(() => null);
+    const { numero, mutating, transformedNum } = drawFor(email, date, period?.numero ?? null);
     const nums = new Set<number>([numero]);
     if (transformedNum) nums.add(transformedNum);
-    const tomorrowNum = hexForOffset(1, date, email);
+    const dTomorrow = new Date(date); dTomorrow.setDate(dTomorrow.getDate() + 1);
+    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, email);
     nums.add(tomorrowNum);
     const { byNum, byNumEn } = await loadHexas(Array.from(nums));
     const main = byNum.get(numero);
@@ -171,6 +197,7 @@ export async function GET(req: NextRequest) {
         ? { numero: tomorrowNum, caractere: byNum.get(tomorrowNum)!.caractere, pinyin: byNum.get(tomorrowNum)!.pinyin }
         : null,
       personalAdvice: row.advice ?? null,
+      period,
     });
   } catch (error) {
     console.error('Erreur API yi-jing-du-jour GET:', error);
@@ -199,6 +226,41 @@ export async function POST(req: NextRequest) {
       where: { email_date: { email, date: today } },
     });
     if (existing && existing.mutating !== null) {
+      if (dayUnlock()) {
+        // TEMPORAIRE (tests) : rejoue le sceau SANS débit, SANS IA, sans
+        // écriture — renvoie le résultat stocké comme une fraîche révélation.
+        const dNow = new Date();
+        const replayPeriod = await periodHexFor(dNow).catch(() => null);
+        const numero = replayPeriod?.numero ?? existing.numero;
+        const savedMutating = (() => {
+          try { const a = JSON.parse(String(existing.mutating || '[]')); return Array.isArray(a) ? a : []; }
+          catch { return []; }
+        })();
+        const transformedNum = transformedHexagram(numero, savedMutating);
+        const tomorrowNum = hexForOffset(1, dNow, email);
+        const nums = new Set<number>([numero, tomorrowNum]);
+        if (transformedNum) nums.add(transformedNum);
+        const { byNum, byNumEn } = await loadHexas(Array.from(nums));
+        const main = byNum.get(numero);
+        if (!main) return NextResponse.json({ found: false, error: 'hexagramme absent' }, { status: 500 });
+        const transformed = transformedNum ? byNum.get(transformedNum) : null;
+        return NextResponse.json({
+          ok: true,
+          alreadyDrawn: false,
+          date: today,
+          hexagram: shape(main, byNumEn.get(numero) || null),
+          mutating: savedMutating,
+          transformed: transformed && transformedNum
+            ? shape(transformed, byNumEn.get(transformedNum) || null)
+            : null,
+          tomorrow: byNum.get(tomorrowNum)
+            ? { numero: tomorrowNum, caractere: byNum.get(tomorrowNum)!.caractere, pinyin: byNum.get(tomorrowNum)!.pinyin }
+            : null,
+          personalAdvice: existing.advice ?? null,
+          hasAdvice: !!existing.advice,
+          period: replayPeriod,
+        });
+      }
       // Tirage V2 déjà fait aujourd'hui → relire sans repayer (la page
       // rafraîchit via GET). Une ligne v1 (simple vue) ne bloque pas : le
       // user consent au vrai tirage par un POST de débit.
@@ -211,10 +273,12 @@ export async function POST(req: NextRequest) {
     if (gate) return gate;
 
     const date = new Date();
-    const { numero, mutating, transformedNum } = drawFor(email, date);
+    const period = await periodHexFor(date).catch(() => null);
+    const { numero, mutating, transformedNum } = drawFor(email, date, period?.numero ?? null);
     const nums = new Set<number>([numero]);
     if (transformedNum) nums.add(transformedNum);
-    const tomorrowNum = hexForOffset(1, date, email);
+    const dTomorrow = new Date(date); dTomorrow.setDate(dTomorrow.getDate() + 1);
+    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, email);
     nums.add(tomorrowNum);
     const { byNum, byNumEn } = await loadHexas(Array.from(nums));
     const main = byNum.get(numero);
@@ -254,17 +318,24 @@ export async function POST(req: NextRequest) {
     // Profil oracle (pastilles volontaires) — complète les indices fins.
     const yjProfile = await buildProfileBlock(email);
 
+    const periodBits: Record<string, string> = period
+      ? { '{PERIODE_FROM}': period.from, '{PERIODE_TO}': period.to }
+      : {};
+    const weavePeriod = (s: string) => period
+      ? s.replace(/\{PERIODE_[A-Z]+\}/g, (m) => periodBits[m] || '')
+      : s.replace(/(?:Ce tirage inscrit[^\n]*?personnelle — appuie-toi sur elles\.\s*|This draw situates[^\n]*?variation — lean on them\.\s*)/g, '');
     const base = lang === 'en'
       ? `Today's personal I Ching draw for this consultant: hexagram #${main.numero} "${main.element}" (${main.pinyin}). Core advice: "${main.conseil}". Strategy: "${main.strategie}". Attitude: "${main.attitude}".${transformed ? ` Moving lines: ${linesHint} — the day matures into hexagram #${transformed!.numero} "${transformedName}".` : ` Moving lines: ${linesHint}.`}
 Consultant's subtle, non-literal cues (TENDENCIES only): ${hints || 'none'}.${yjProfile}
-Write guidance of exactly 5 to 6 sentences for THIS day. Soak it in the hexagram's base energy and the day's draw, and BUILD ON the consultant's personal cues: let them shape the stakes, the examples and the advice itself — yet never quote the birth date, age, gender or name as facts. Warm, precise, oracle voice. Reply ONLY in JSON with key "advice" (a single string of 5-6 sentences).`
+This draw situates the day within the period's energy ({PERIODE_FROM} to {PERIODE_TO}); your moving lines are its strictly personal variation — lean on them. Write guidance of exactly 5 to 6 sentences for THIS day. Soak it in the hexagram's base energy and the day's draw, and BUILD ON the consultant's personal cues: let them shape the stakes, the examples and the advice itself — yet never quote the birth date, age, gender or name as facts. Warm, precise, oracle voice. Reply ONLY in JSON with key "advice" (a single string of 5-6 sentences).`
       : `Tirage personnel du jour pour ce consultant : hexagramme n°${main.numero} « ${main.element} » (${main.pinyin}). Conseil socle : « ${main.conseil} ». Stratégie : « ${main.strategie} ». Attitude : « ${main.attitude} ».${transformed ? ` Lignes mutantes : ${linesHint} — la journée mûrit vers l'hexagramme n°${transformed!.numero} « ${transformedName} ».` : ` Lignes mutantes : ${linesHint} (journée stable).`}
 Indices fins et non littéraux du consultant (de SIMPLES tendances) : ${hints || 'aucun'}.${yjProfile}
-Rédige un conseil de 5 à 6 phrases exactement pour CETTE journée. Impregne-le de l'énergie de base de l'hexagramme et du tirage du jour, et APPUIE-TOI sur les indices personnels du consultant : qu'ils façonnent réellement les enjeux, les exemples et le conseil lui-même — sans jamais citer la date de naissance, l'âge, le sexe ou le nom comme des certitudes. Voix d'oracle, chaleureuse et précise. Réponds UNIQUEMENT en JSON avec la clé "advice" (une seule chaîne de 5-6 phrases).${outputDirective(lang)}`;
+Ce tirage inscrit la journée dans l'énergie de la période (du {PERIODE_FROM} au {PERIODE_TO}) ; tes lignes mutantes en sont la variation strictement personnelle — appuie-toi sur elles. Rédige un conseil de 5 à 6 phrases exactement pour CETTE journée. Impregne-le de l'énergie de base de l'hexagramme et du tirage du jour, et APPUIE-TOI sur les indices personnels du consultant : qu'ils façonnent réellement les enjeux, les exemples et le conseil lui-même — sans jamais citer la date de naissance, l'âge, le sexe ou le nom comme des certitudes. Voix d'oracle, chaleureuse et précise. Réponds UNIQUEMENT en JSON avec la clé "advice" (une seule chaîne de 5-6 phrases).${outputDirective(lang)}`;
+    const woven = weavePeriod(base);
 
     let advice: string | null = null;
     try {
-      const content = await callOracle(base, { maxTokens: 1100, temperature: 0.8 });
+      const content = await callOracle(woven, { maxTokens: 1100, temperature: 0.8 });
       if (content) {
         const parsed = extractJsonObject(content);
         const raw = typeof parsed?.advice === 'string' ? parsed.advice.trim() : '';
@@ -306,6 +377,7 @@ Rédige un conseil de 5 à 6 phrases exactement pour CETTE journée. Impregne-le
         : null,
       personalAdvice: advice,
       hasAdvice: !!advice,
+      period,
     });
   } catch (error) {
     console.error('Erreur API yi-jing-du-jour POST:', error);
