@@ -7,8 +7,9 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import WaitPoolLine from '@/components/wait-pool-line';
-import { playSound } from '@/lib/sounds';
+import { playRandom } from '@/lib/sounds';
 import { api } from '@/lib/api-client';
+import { isNative } from '@/lib/capacitor-utils';
 
 // ─── Charte laque noir / rouge / or (identité Yi Jing) ─────────────────────
 const L = {
@@ -56,6 +57,7 @@ type ApiResponse = {
   tomorrow?: { numero: number; caractere: string; pinyin: string } | null;
   collection?: { viewed: number; streak: number; total: number } | null;
   personalAdvice?: string | null;
+  period?: { numero: number; caractere: string; pinyin: string; name: string; from: string; to: string; conseil: string } | null;
   error?: string;
   // erreurs gate (402)
   reason?: string;
@@ -69,19 +71,37 @@ const hexVariant = (lang: string, en?: string | null, es?: string | null, hi?: s
 const T = {
   eyebrow: { fr: 'LE YI JING · ORACLE DU JOUR', en: 'THE I CHING · ORACLE OF THE DAY', es: 'EL YI JING · ORÁCULO DEL DÍA', hi: 'ई चिंग · दिन की देववाणी' },
   title: { fr: 'Hexagramme du jour', en: "Today's Hexagram", es: 'Hexagrama del día', hi: 'आज का हैक्सग्राम' },
-  sealed: { fr: 'Un sceau vous attend', en: 'A seal awaits you', es: 'Un sello le espera', hi: 'एक मुहर आपकी प्रतीक्षा करती है' },
-  open: { fr: 'Briser le sceau et consulter', en: 'Break the seal and consult', es: 'Romper el sello y consultar', hi: 'मुहर तोड़ें और पूछें' },
+  sealed: { fr: 'Votre hexagramme du jour personnalisé !', en: 'Your personalized hexagram of the day!', es: '¡Tu hexagrama personalizado del día!', hi: 'आपका व्यक्तिगत आज का षट्कोण!' },
+  open: { fr: 'Briser le sceau du jour', en: 'Break the seal of the day', es: 'Romper el sello del día', hi: 'आज की मुहर तोड़ें' },
   // Encadré « comment ça marche » — le user comprend avant de consentir.
   dobHint: { fr: 'Sans date de naissance dans votre profil, le conseil reste juste un peu moins ajusté.', en: 'Without a birth date in your profile, the guidance stays just slightly less tailored.', es: 'Sin fecha de nacimiento en su perfil, la guía queda solo un poco menos ajustada.', hi: 'प्रोफ़ाइल में जन्म तिथि न होने पर मार्गदर्शन थोड़ा कम अनुकूल रहता है।' },
   dobCta: { fr: 'Compléter mon profil', en: 'Complete my profile', es: 'Completar mi perfil', hi: 'अपनी प्रोफ़ाइल पूरी करें' },
   advice: { fr: 'Conseil du jour', en: "Today's guidance", es: 'Consejo del día', hi: 'आज का मार्गदर्शन' },
   strategy: { fr: 'Stratégie', en: 'Strategy', es: 'Estrategia', hi: 'रणनीति' },
   attitude: { fr: 'Attitude', en: 'Attitude', es: 'Actitud', hi: 'दृष्टिकोण' },
+  periodTitle: { fr: 'Énergie de la période', en: 'Energy of the period', es: 'Energía del período', hi: 'अवधि की ऊर्जा' },
+  periodFrom: { fr: 'du', en: 'from', es: 'del', hi: 'से' },
   synthesis: { fr: 'Synthèse', en: 'Synthesis', es: 'Síntesis', hi: 'सारांश' },
   readMore: { fr: 'Lire la synthèse', en: 'Read the synthesis', es: 'Leer la síntesis', hi: 'सारांश पढ़ें' },
   close: { fr: 'Fermer', en: 'Close', es: 'Cerrar', hi: 'बंद करें' },
   mutating: { fr: 'Lignes mutantes', en: 'Changing lines', es: 'Líneas mutantes', hi: 'परिवर्तन रेखाएँ' },
   mutatingNone: { fr: 'Journée stable — aucune ligne ne bouge.', en: 'A stable day — no line is moving.', es: 'Jornada estable — ninguna línea se mueve.', hi: 'स्थिर दिन — कोई रेखा नहीं हिलती।' },
+  fateTitle: { fr: 'Le devenir de la journ\u2019\u00e9e', en: 'The day\u2019s unfolding', es: 'El devenir de la jornada', hi: 'दिन की गति' },
+  becomes: { fr: 'devient', en: 'becomes', es: 'se vuelve', hi: 'बन जाता है' },
+  fateIntro: { fr: 'Votre journ\u00e9e bascule l\u00e0 o\u00f9 un trait mute :', en: 'Your day turns where a line changes:', es: 'Tu jornada vuelca donde una línea cambia:', hi: 'आपका दिन वहीं पलटता है जहाँ एक रेखा बदलती है:' },
+  flipYang: { fr: 'le plein c\u00e8de au cass\u00e9', en: 'the solid yields to the broken', es: 'lo lleno cede a lo roto', hi: 'ठोस, टूटे के सामने झुकता है' },
+  flipYin: { fr: 'le cass\u00e9 s\u2019affirme en plein', en: 'the broken firms up into the solid', es: 'lo roto se afirma en lleno', hi: 'टूटा, ठोस में दृढ़ होता है' },
+  helpTitle: { fr: 'Comprendre les lignes mutantes', en: 'Understanding the changing lines', es: 'Comprender las líneas mutantes', hi: 'परिवर्तन रेखाओं को समझना' },
+  helpWhat: { fr: 'Une ligne mutante est un trait de votre hexagramme en train de basculer : le plein (\u00e9nergie en place) c\u00e8de au cass\u00e9, ou le cass\u00e9 (disponibilit\u00e9) s\u2019affirme en plein. C\u2019est le signe que cette zone de la journ\u00e9e n\u2019est pas fig\u00e9e.', en: 'A changing line is a stroke of your hexagram mid-turn: the solid (settled energy) yields to the broken, or the broken (openness) firms up. It marks the part of your day that is not fixed.', es: 'Una línea mutante es un trazo de su hexagrama en pleno vuelco: lo lleno (energía asentada) cede a lo roto, o lo roto (disponibilidad) se afirma en lleno. Señala la zona del día que no está fijada.', hi: 'परिवर्तन रेखा आपकी षट्कोण की वह भूमिका है जो पलट रही है: ठोस (स्थापित ऊर्जा) टूटे को स्थान देता है, या टूटा (खुलापन) ठोस में दृढ़ होता है। यह दिन के उस भाग का चिह्न है जो स्थिर नहीं है।' },
+  helpWhy: { fr: 'Elles indiquent o\u00f9 agir avec lucidit\u00e9 : le trait qui mute est le point exact o\u00f9 la situation se d\u00e9cide aujourd\u2019hui \u2014 l\u00e0 o\u00f9 un geste, une parole ou un l\u00e2cher-prise fera basculer la journ\u00e9e vers l\u2019hexagramme du soir.', en: 'They show where to act with clarity: the changing line is the exact point where the situation decides itself today \u2014 where a gesture, a word or a letting-go tips the day toward its evening hexagram.', es: 'Indican dónde actuar con lucidez: la línea mutante es el punto exacto donde la situación se decide hoy; allí un gesto, una palabra o un soltará inclinará la jornada hacia su hexagrama de la tarde.', hi: 'वे बताते हैं कहाँ स्पष्टता से कर्म करें: परिवर्तन रेखा ठीक वही बिंदु है जहाँ आज परिस्थति तय होती है — एक इशारा, शब्द या त्याग दिन को संध्या के षट्कोण की ओर मोड़ देता है।' },
+  helpYou: { fr: 'Concr\u00e8tement : l\u00e0 o\u00f9 le plein c\u00e8de, ne forcez pas ce qui se desserre \u2014 accompagnez le changement. L\u00e0 o\u00f9 le cass\u00e9 s\u2019affirme, une d\u00e9cision m\u00fbrit \u2014 osez la nommer. Le second hexagramme d\u00e9crit la journ\u00e9e une fois ces bascules int\u00e9gr\u00e9es : c\u2019est son cap, plus que sa photo.', en: 'In practice: where the solid yields, do not force what is loosening \u2014 ease the change along. Where the broken firms up, a decision is ripening \u2014 dare to name it. The second hexagram describes the day once these turns settle: its heading, more than its snapshot.', es: 'En concreto: donde lo lleno cede, no fuerce lo que se afloja — acompañe el cambio. Donde lo roto se afirma, una decisión madura — atrévase a nombrarla. El segundo hexagrama describe la jornada una vez integrados estos vuelcos: su rumbo, más que su foto.', hi: 'व्यावहारिक रूप से: जहाँ ठोस झुकता है, ढीला हो रहे को न थोड़ें — परिवर्तन का साथ दें। जहाँ टूटा दृढ़ होता है, निर्णय पक रहा है — उसे नाम दें। दूसरा षट्कोण इन मोड़ों के जुड़ने के बाद के दिन का वर्णन है: इसकी दिशा, तस्वीर से अधिक।' },
+  tableTitle: { fr: 'Les six positions', en: 'The six positions', es: 'Las seis posiciones', hi: 'छह स्थितियाँ' },
+  pos1: { fr: 'Le d\u00e9but cach\u00e9 \u2014 ce qui se pose sans encore se voir.', en: 'The hidden beginning \u2014 what settles without showing yet.', es: 'El comienzo oculto — lo que se asienta sin verse aún.', hi: 'गोप्य आरंभ — जो अभी दिखाई दिए बिना जम रहा है।' },
+  pos2: { fr: 'Le c\u0153ur discret \u2014 la situation int\u00e9rieure ; agir juste sans para\u00eetre.', en: 'The quiet core \u2014 the inner situation; acting rightly without display.', es: 'El núcleo discreto — la situación interior; obrar con acierto sin aparecer.', hi: 'मौन हृदय — आंतरिक स्थिति; दिखे बिना सम्यक कर्म।' },
+  pos3: { fr: 'Le seuil \u2014 travers\u00e9e du dedans vers le dehors ; zone d\u00e9licate, o\u00f9 l\u2019on est tent\u00e9 de forcer.', en: 'The threshold \u2014 crossing from inside to outside; a delicate zone tempting one to force.', es: 'El umbral — cruce de dentro a fuera; zona delicada donde se tienta forzar.', hi: 'देहरी — भीतर से बाहर की आर-पार; नाज़ुक जगह, जहाँ ज़ोर देने का लालच।' },
+  pos4: { fr: 'L\u2019approche des hauteurs \u2014 on fr\u00f4le le pouvoir sans le d\u00e9tenir ; influence, prudence.', en: 'Near the heights \u2014 brushing power without holding it; influence, caution.', es: 'Cerca de las alturas — se roza el poder sin poseerlo; influir con cautela.', hi: 'उच्चता के निकट — शक्ति को छूते हुए, पकड़े बिना; प्रभाव, संभाल।' },
+  pos5: { fr: 'Le sommet \u2014 l\u2019apog\u00e9e visible ; le moment o\u00f9 les choses se gouvernent d\u2019elles-m\u00eames.', en: 'The summit \u2014 the visible apex; the moment things govern themselves.', es: 'La cumbre — el ápice visible; el momento en que las cosas se gobiernan solas.', hi: 'शिखर — दृश्योच्च क्षण; चीज़ें स्वयं को संचालित करती हैं।' },
+  pos6: { fr: 'L\u2019au-del\u00e0 \u2014 la fin du cycle ; exc\u00e8s \u00e0 \u00e9viter, ou retraite g\u00e9n\u00e9reuse.', en: 'Beyond \u2014 the cycle\u2019s end; excess to avoid, or a gracious retreat.', es: 'Más allá — el fin del ciclo; exceso a evitar, o retiro generoso.', hi: 'पार — चक्र का अंत; अति से बचें, या उदार निवृत्ति।' },
   // Légende pédagogique : ce que « mutant » veut dire, en une phrase.
   mutatingLegend: { fr: 'Une ligne mutante est un trait de votre journée en train de basculer : le plein cède, le cassé s\u2019affirme. Elles disent où la journée bouge.', en: 'A changing line is a stroke of your day mid-turn: the solid yields, the broken firms up. They show where the day is moving.', es: 'Una línea mutante es un trazo de su jornada en pleno vuelco: el lleno cede, el roto se afirma. Indican dónde se mueve el día.', hi: 'परिवर्तनशील रेखा आपकी दिन की वह रेखा है जो पलट रही है: ठोस झुकता है, टूटा दृढ़ होता है। वे बताती हैं दिन कहाँ हिल रहा है।' },
   lineNames: { fr: ['', 'ligne initiale', '2ᵉ ligne', '3ᵉ ligne', '4ᵉ ligne', '5ᵉ ligne', 'ligne du haut'], en: ['', 'bottom line', '2nd line', '3rd line', '4th line', '5th line', 'top line'], es: ['', 'línea inicial', '2.ª línea', '3.ª línea', '4.ª línea', '5.ª línea', 'línea superior'], hi: ['', 'प्रारंभिक रेखा', 'दूसरी रेखा', 'तीसरी रेखा', 'चौथी रेखा', 'पाँचवीं रेखा', 'ऊपरी रेखा'] },
@@ -192,7 +212,7 @@ function HexLines({ lignes, mutating = [], size = 1 }: { lignes: boolean[]; muta
 function SkyLoader({ lang }: { lang: Lang }) {
   const t = (k: keyof typeof T) => pickContent(T[k] as { fr: string }, lang);
   return (
-    <div className="flex w-full items-center justify-center" style={{ minHeight: '54vh' }}>
+    <div className="pointer-events-none fixed inset-x-0 z-20 flex justify-center" style={{ top: 'calc((100dvh - 168px) / 2)' }}>
     <div className="flex flex-col items-center gap-7">
       <div className="relative" style={{ width: 168, height: 168 }}>
         {/* halo de fond qui respire */}
@@ -318,49 +338,31 @@ const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () =>
   const tap = () => {
     if (playing || busy || firedRef.current) return;
     onSealTap(); // le parent fait fondre le CTA « Briser le sceau » (~2 s)
-    playSound('open-seal'); // sceau qui se brise — simultané à l'animation
+    playRandom('opening1', 'opening2'); // fanfare du sceau — variantes aléatoires, synchrones à l'animation
     const v = videoRef.current;
     if (!v) { open(); return; } // vidéo indisponible → on ouvre quand même
     setPlaying(true);
     v.play().catch(() => open());
-    // Filet : certains WebViews ne déclenchent jamais 'ended' (5 s de vidéo).
-    setTimeout(open, 6200);
+    // Filet : certains WebViews ne déclenchent jamais 'ended' (10 s de vidéo).
+    setTimeout(open, 11500);
   };
 
-  // Le CTA « Briser le sceau et consulter » (extérieur) passe par ici :
+  // Le CTA « Briser le sceau du jour » (extérieur) passe par ici :
   // même parcours que le tap sur la vidéo — lecture, puis tirage à la fin.
   useImperativeHandle(ref, () => ({ play: () => tap() }));
 
   return (
     <div className="mx-auto flex w-full flex-col items-center">
-      {/* Plaque du sceau : AU-DESSUS de la vidéo, plus large et plus épaisse.
-          Décor (易經 en grand) — le libellé se lit sous la vidéo. */}
-      <div
-        className="pointer-events-none mb-3 flex w-[320px] items-center justify-center rounded-2xl py-4"
-        style={{
-          background: 'linear-gradient(160deg, rgba(20,10,14,0.92), rgba(13,6,9,0.95))',
-          border: '1.5px solid rgba(243,201,105,0.34)',
-          boxShadow: '0 6px 22px rgba(0,0,0,0.55), inset 0 0 16px rgba(243,201,105,0.06)',
-        }}
-        aria-hidden
-      >
-        <div className="flex flex-col items-center gap-1">
-          <span className="font-[family-name:var(--font-cinzel-deco)] text-[20px] leading-none tracking-[0.55em]" style={{ color: 'rgba(243,201,105,0.85)', textShadow: '0 0 16px rgba(243,201,105,0.25)' }}>
-            易經
-          </span>
-          <span className="text-[9.5px] italic tracking-[0.14em]" style={{ color: 'rgba(245,234,214,0.55)', fontFamily: 'var(--font-cormorant), serif' }}>
-            {pick4('Yì Jīng — Le Livre des Mutations', 'Yì Jīng — The Book of Changes', 'Yì Jīng — El Libro de las Mutaciones', 'ई चिंग — परिवर्तनों का ग्रंथ')(lang)}
-          </span>
-        </div>
-      </div>
       <motion.button
         type="button"
         onClick={tap}
         whileTap={{ scale: 0.97 }}
         className="relative mx-auto block overflow-hidden rounded-2xl"
         style={{
-          width: 260,
-          height: 360,
+          // Cadre ajusté à la vidéo elle-même (450×800, fond du coffre inclus) :
+          // ratio exact, la vidéo plein-cadre — l'anneau doré épouse le contour.
+          width: 'min(92vw, 380px, 35vh)',   // hauteur ≈ 62vh max — la page garde de l'air
+          aspectRatio: '450 / 800',
           background: `linear-gradient(165deg, ${L.rouge} 0%, ${L.rougeDeep} 55%, #3a070c 100%)`,
           border: `1.5px solid ${L.or}66`,
           boxShadow: `0 18px 50px rgba(0,0,0,0.6), 0 0 40px ${L.rougeGlow}, inset 0 0 30px rgba(0,0,0,0.35)`,
@@ -383,8 +385,18 @@ const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () =>
         }}
         onEnded={open}
         onError={() => { /* vidéo absente : la carte reste, le CLIC ouvrira (consentement) */ }}
-        className="absolute inset-0 h-full w-full rounded-[12px] object-cover"
+        disablePictureInPicture
+        className="seal-video absolute inset-0 h-full w-full rounded-[12px] object-cover"
+        style={{
+          // Léger vignettage or pour souder le contour de la vidéo à l'anneau.
+          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.4)',
+        }}
       />
+      {/* Halo pulsé sur le cadenas (mesuré sur la frame 0 : 48,5% / 69,2%) —
+          invite au clic, se tait dès que la lecture commence. */}
+      {!playing && (
+        <div className="seal-padlock-glow" aria-hidden />
+      )}
       {/* Cadre or posé AU-DESSUS de la vidéo. Base universelle : anneau 4 px
           « or massif » (filets sombre/clair + halo). */}
       <div
@@ -445,7 +457,7 @@ const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () =>
         />
       ) : (
         <p
-          className="mt-4 max-w-[20rem] text-center text-[17px] italic leading-relaxed font-semibold"
+          className="mt-4 w-full whitespace-nowrap text-center italic leading-relaxed font-semibold text-[clamp(11px,3.6vw,17px)]"
           style={{ color: L.or, fontFamily: 'var(--font-cormorant), serif', textShadow: '0 0 16px rgba(243,201,105,0.45), 0 1px 4px rgba(0,0,0,0.9)' }}
         >
           {playing ? (SEAL_PLAYING_LABEL[lang] || SEAL_PLAYING_LABEL.fr) : pickContent(T.sealed, lang)}
@@ -454,6 +466,113 @@ const SealedCard = forwardRef<SealHandle, { onOpen: () => void; onSealTap: () =>
     </div>
   );
 });
+
+// ─── Devenir de la journée : mutations rendues lisibles ────────────────────
+// Panneau : aujourd'hui → hexagramme du soir, traits mutants pulsant des deux
+// côtés ; une phrase automatique nomme chaque bascule ; le ⓘ déplie l'explication
+// pour les curieux (3 paragraphes + table des six positions, statique).
+function InfoGlyph({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 10.5v5.5" />
+      <path d="M12 7.4v.2" />
+    </svg>
+  );
+}
+
+function FatePanel({ lang, hex, transformed, mutating }: { lang: Lang; hex: HexShape; transformed: HexShape | null; mutating: number[] }) {
+  const [help, setHelp] = useState(false);
+  const P = (k: keyof typeof T) => pickContent(T[k] as { fr: string; en?: string | null; es?: string | null; hi?: string | null }, lang);
+  const names = (({ fr: T.lineNames.fr, en: T.lineNames.en, es: T.lineNames.es, hi: T.lineNames.hi } as unknown as Record<string, readonly string[]>)[lang] ?? T.lineNames.fr);
+  if (mutating.length === 0) {
+    return (
+      <div className="mt-4 rounded-xl px-4 py-3" style={{ background: 'rgba(0,0,0,0.3)', border: `1px dashed ${L.or}33` }}>
+        <p className="text-[12px] italic" style={{ color: `${L.ivoire}88` }}>{P('mutatingNone')}</p>
+      </div>
+    );
+  }
+  const sorted = [...mutating].sort((a, b) => a - b);
+  return (
+    <div className="relative mt-4 rounded-xl px-4 py-3" style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${L.or}33` }}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[9px] tracking-[0.3em]" style={{ color: L.orDim }}>{P('fateTitle').toUpperCase()}</p>
+        <button
+          type="button"
+          onClick={() => setHelp((v) => !v)}
+          aria-expanded={help}
+          aria-label={P('helpTitle')}
+          className="shrink-0 flex items-center justify-center"
+          style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${L.or}44`, background: help ? `${L.or}22` : 'rgba(0,0,0,0.35)', color: L.orSoft }}
+        >
+          <InfoGlyph />
+        </button>
+      </div>
+      {/* aujourd'hui → ce soir : mêmes lignes mutantes, pulsées des deux côtés */}
+      <div className="mt-2 flex items-center justify-center gap-4">
+        <HexLines lignes={hex.lignes} mutating={sorted} size={0.62} />
+        <div className="flex flex-col items-center" style={{ color: L.orSoft }}>
+          <span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>→</span>
+          <span className="mt-1 text-[9px] italic tracking-wide">{P('becomes')}</span>
+        </div>
+        {transformed ? (
+          <div className="flex flex-col items-center">
+            <HexLines lignes={transformed.lignes} mutating={sorted} size={0.62} />
+            <p className="mt-1 max-w-[132px] truncate text-center text-[10px]" style={{ color: `${L.ivoire}bb` }}>
+              {transformed.caractere} #{transformed.numero} {hexVariant(lang, transformed.nameEn, transformed.nameEs, transformed.nameHi, transformed.name)}
+            </p>
+          </div>
+        ) : (
+          <span className="text-[11px] italic" style={{ color: `${L.ivoire}77` }}>—</span>
+        )}
+      </div>
+      {/* une phrase automatique, sans jargon, pour chaque bascule */}
+      <p className="mt-2 text-[11.5px] leading-snug" style={{ color: `${L.ivoire}cc` }}>
+        {P('fateIntro')}
+        {' '}
+        {sorted.map((n, i) => (
+          <span key={n}>
+            {i > 0 && <span style={{ color: `${L.or}55` }}> · </span>}
+            <span style={{ color: L.ivoire }}>{names[n]}</span>
+            <span style={{ color: `${L.ivoire}99` }}> — {hex.lignes[n - 1] ? P('flipYang') : P('flipYin')}</span>
+          </span>
+        ))}
+      </p>
+      <AnimatePresence initial={false}>
+        {help && (
+          <motion.div
+            key="mut-help"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 border-t pt-3" style={{ borderColor: `${L.or}22` }}>
+              <p className="text-[10px] tracking-[0.25em]" style={{ color: L.orSoft }}>{P('helpTitle').toUpperCase()}</p>
+              <p className="mt-2 text-[11.5px] leading-relaxed" style={{ color: `${L.ivoire}bb` }}>{P('helpWhat')}</p>
+              <p className="mt-2 text-[11.5px] leading-relaxed" style={{ color: `${L.ivoire}bb` }}>{P('helpWhy')}</p>
+              <p className="mt-2 text-[11.5px] leading-relaxed" style={{ color: `${L.ivoire}bb` }}>{P('helpYou')}</p>
+              <p className="mt-3 text-[9px] tracking-[0.25em]" style={{ color: L.orDim }}>{P('tableTitle').toUpperCase()}</p>
+              <div className="mt-1.5 flex flex-col gap-1">
+                {[1, 2, 3, 4, 5, 6].map((n) => {
+                  const on = sorted.includes(n);
+                  return (
+                    <div key={n} className="rounded-md px-2 py-1" style={{ background: on ? `${L.or}14` : 'transparent', border: on ? `1px solid ${L.or}33` : '1px solid transparent' }}>
+                      <p className="text-[10.5px] font-semibold" style={{ color: on ? L.orSoft : `${L.ivoire}99` }}>{names[n]}</p>
+                      <p className="text-[10.5px] leading-snug" style={{ color: `${L.ivoire}99` }}>{P(('pos' + n) as keyof typeof T)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 // ─── Export PNG de la carte du jour ────────────────────────────────────────
 // Rendu soigné dans l'esprit de la page : fond laque + halo rouge, cadre or double,
@@ -745,8 +864,33 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
 
   const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
   if (!blob) throw new Error('toBlob');
-  const url = URL.createObjectURL(blob);
   const fname = `hexagramme-${data.date}.png`;
+  // ── APK natif : le Web Share API est indisponible dans la WebView et le
+  // plugin Capacitor Share n'accepte que des fichiers réels (jamais de blob).
+  // On écrit la carte dans le cache de l'app (Filesystem → chemin couvert
+  // par le FileProvider), puis Share.share({ files: [uri] }) ouvre le vrai
+  // panneau Android (WhatsApp, Gmail, Drive, Photos…).
+  if (isNative()) {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Share } = await import('@capacitor/share');
+      const dataUrl = canvas.toDataURL('image/png');
+      const written = await Filesystem.writeFile({
+        path: fname,
+        data: dataUrl.split(',')[1], // base64 sans préfixe data:
+        directory: Directory.Cache,
+      });
+      await Share.share({
+        title: pickContent(T.title, lang),
+        dialogTitle: pickContent(T.share, lang),
+        files: [written.uri],
+      });
+      return 'shared';
+    } catch {
+      /* refus/erreur du panneau natif → on tente quand même le web, puis le lien */
+    }
+  }
+  const url = URL.createObjectURL(blob);
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare && nav.canShare({ files: [new File([blob], fname, { type: 'image/png' })] })) {
     try {
@@ -874,7 +1018,7 @@ function YiJingDuJourPage() {
         </div>
 
         {/* Corps */}
-        <div className="mt-1 flex-1">
+        <div className="mt-1 flex flex-1 flex-col">
           {loading && <SkyLoader lang={lang} />}
 
           {!loading && error && !data && (
@@ -908,7 +1052,7 @@ function YiJingDuJourPage() {
                   <button
                     type="button"
                     onClick={() => { if (sealRef.current) sealRef.current.play(); else draw(); }}
-                    className="yi-btn rounded-xl border border-[#f3c969]/40 px-7 py-2.5 text-[13.5px] tracking-[0.06em]"
+                    className="yi-btn yi-btn-seal rounded-xl border border-[#f3c969]/40 px-7 py-2.5 text-[13.5px] tracking-[0.06em]"
                   >
                     {t('open')}
                   </button>
@@ -939,6 +1083,11 @@ function YiJingDuJourPage() {
                     <p className="whitespace-nowrap text-[10px] tracking-[0.3em]" style={{ color: L.orDim }}>#{hex.numero} · {hex.pinyin}</p>
                     <h2 className={`mt-1 whitespace-nowrap font-[family-name:var(--font-cinzel-deco)] ${displayName.length > 26 ? 'text-base' : displayName.length > 18 ? 'text-lg' : 'text-xl'}`} style={{ color: L.or }}>{displayName}</h2>
                     <p className="mt-0.5 whitespace-nowrap text-xs italic" style={{ color: `${L.ivoire}88` }}>{hex.caractere} · {hex.name}</p>
+                    {data.period && (
+                      <p className="mt-1 whitespace-nowrap text-[10.5px] tracking-[0.06em]" style={{ color: `${L.or}99` }}>
+                        {pickContent(T.periodTitle, lang)} · {pickContent(T.periodFrom, lang)} {data.period.from} → {data.period.to}
+                      </p>
+                    )}
                     {trigramPair(hex.lignes, lang) && (
                       <p className="mt-0.5 text-[10px] tracking-[0.08em]" style={{ color: `${L.or}66` }}>{trigramPair(hex.lignes, lang)}</p>
                     )}
@@ -972,29 +1121,8 @@ function YiJingDuJourPage() {
                   {t('readMore')}
                 </button>
 
-                {/* Lignes mutantes + légende + transformé nommé */}
-                <div className="mt-4 rounded-xl px-4 py-3" style={{ background: 'rgba(0,0,0,0.3)', border: `1px dashed ${L.or}33` }}>
-                  {mutating.length === 0 ? (
-                    <p className="text-[12px] italic" style={{ color: `${L.ivoire}88` }}>{t('mutatingNone')}</p>
-                  ) : (
-                    <>
-                      <p className="text-[9px] tracking-[0.3em]" style={{ color: L.orDim }}>{t('mutating').toUpperCase()}</p>
-                      <p className="mt-1 text-[12.5px]" style={{ color: L.ivoire }}>
-                        {mutating.map((l) => (({ fr: T.lineNames.fr, en: T.lineNames.en, es: T.lineNames.es, hi: T.lineNames.hi } as unknown as Record<string, readonly string[]>)[lang] ?? T.lineNames.fr)[l]).join(', ')}
-                      </p>
-                      <p className="mt-2 text-[11.5px] leading-snug" style={{ color: `${L.ivoire}99` }}>{t('mutatingLegend')}</p>
-                      {data.transformed && (
-                        <div className="mt-3 flex items-center gap-3 border-t pt-3" style={{ borderColor: `${L.or}22` }}>
-                          <span className="text-[11px] italic" style={{ color: `${L.ivoire}99` }}>{t('transformsInto')}</span>
-                          <span className="text-2xl" style={{ color: L.or }}>{data.transformed.caractere}</span>
-                          <span className="min-w-0 text-[11.5px] leading-snug" style={{ color: `${L.ivoire}cc` }}>
-                            #{data.transformed.numero} {hexVariant(lang, data.transformed.nameEn, data.transformed.nameEs, data.transformed.nameHi, data.transformed.name)}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                {/* Devenir de la journée : mutations lues d'un coup d'œil + ⓘ explicatif */}
+                <FatePanel lang={lang} hex={hex} transformed={data.transformed ?? null} mutating={mutating} />
               </motion.div>
 
               {/* Aujourd'hui (résultat) + Demain (teaser scellé) — pas de Hier */}

@@ -1069,3 +1069,46 @@ html, body {
 }
 .tarot-card-call { animation: cardCall 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce){ .tarot-card-call { animation: none; } }
+
+
+/* ── Coffre du jour (Yi Jing) : bouton scellé + halo cadenas ─────────────── */
+/* Rouge grenat précieux, plus profond que le laqué standard (filet or fin). */
+.yi-btn.yi-btn-seal {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.06) 38%, rgba(255,255,255,0) 58%),
+    linear-gradient(135deg, #b32444 0%, #8e1230 55%, #6d0f22 100%);
+  animation: sealBtnPulse 2.8s ease-in-out infinite;
+}
+@keyframes sealBtnPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(120, 18, 40, 0.5), inset 0 -3px 8px rgba(74, 10, 26, 0.55), 0 0 0 rgba(243,201,105,0); }
+  50% { transform: scale(1.03); box-shadow: 0 8px 26px rgba(150, 22, 50, 0.65), inset 0 -3px 8px rgba(74, 10, 26, 0.55), 0 0 28px rgba(243,201,105,0.30); }
+}
+.seal-padlock-glow {
+  position: absolute;
+  left: 48.5%;
+  top: 69.2%;
+  width: 20%;
+  height: 10%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(225, 62, 78, 0.55), rgba(180, 40, 45, 0) 100%);
+  animation: padlockPulse 2.4s ease-in-out infinite;
+}
+@keyframes padlockPulse {
+  0%, 100% { opacity: 0.25; transform: translate(-50%, -50%) scale(0.85); }
+  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.18); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yi-btn.yi-btn-seal { animation: none; }
+  .seal-padlock-glow { animation: none; opacity: 0.5; }
+}
+/* WebViews Android/iOS : aucun contrôle superposé à la vidéo du sceau
+   (le « triangle » de lecture est masqué, on garde poster + object-cover). */
+.seal-video::-webkit-media-controls-enclosure,
+.seal-video::-webkit-media-controls-panel,
+.seal-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+}
