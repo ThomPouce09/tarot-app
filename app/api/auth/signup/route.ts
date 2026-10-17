@@ -6,7 +6,7 @@ import { sendConfirmationEmail } from '@/lib/mailer';
 import { calcAge, daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
 import { resolveLang, authMsg, localDate, durationPhrase } from '@/lib/lang';
 import { isDisposableEmail } from '@/lib/disposable-emails';
-import { createHash } from 'crypto';
+import { hashDeviceToken } from '@/lib/device';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,20 +68,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: authMsg('tooYoung', lang) }, { status: 400 });
     }
 
-    // Téléphone : OBLIGATOIRE, format valide, et UNIQUE (un compte par numéro).
-    // Normalisé à la clé (chiffres + '+' éventuel) : 06.12.15.39.23 et 0033…
-    // se réduisent au même numéro ; le @unique de User.phone est le filet de
-    // sécurité contre la course — le pré-check ci-dessous donne le message.
-    const phoneNorm = normalizePhone(phone);
-    if (!phoneNorm) {
-      return NextResponse.json({ error: authMsg('phoneMissing', lang) }, { status: 400 });
-    }
-    if (!isValidPhone(phoneNorm)) {
-      return NextResponse.json({ error: authMsg('phoneInvalid', lang) }, { status: 400 });
-    }
-    const phoneTaken = await prisma.user.findUnique({ where: { phone: phoneNorm }, select: { id: true } });
-    if (phoneTaken) {
-      return NextResponse.json({ error: authMsg('phoneTaken', lang), code: 'PHONE_TAKEN' }, { status: 409 });
+    // ── Anti-abus étage 1 : jeton d'appareil (friction multi-comptes) ──
+    // Le client envoie un UUID aléatoire persisté localement (localStorage /
+    // Capacitor Preferences). On n'en stocke que le HMAC (jamais le jeton en
+    // clair, jamais l'IP). À partir de N créations de comptes sur le même
+    // appareil (fenêtre glissante), le PACK BIENVENUE est supprimé du nouveau
+    // compte — la création reste possible (pas de blocage dur, pas de faux
+    // positif punitive sur le partage familial léger).
+    const WELCOME_DEVICE_LIMIT = 2; // 2 comptes welcome max par appareil ; le 3e est sec
+    const WELCOME_DEVICE_WINDOW_DAYS = 365;
+    let welcomeSuppressed = false;
+    const devHash = hashDeviceToken(String(deviceToken || ''));
+    if (devHash) {
+      const since = new Date(Date.now() - WELCOME_DEVICE_WINDOW_DAYS * 86400000);
+      const sameDevice = await prisma.user.count({
+        where: { deviceTokenHash: devHash, createdAt: { gte: since } },
+      });
+      welcomeSuppressed = sameDevice >= WELCOME_DEVICE_LIMIT;
     }
 
     const hashedPassword = await (bcrypt as any).hash(password, 12);
@@ -96,9 +99,14 @@ export async function POST(request: NextRequest) {
         gender,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         age: dateOfBirth ? calcAge(dateOfBirth) : null,
-        phone: phoneNorm,
+        deviceTokenHash: devHash || null,
         comment,
         confirmationToken,
+        // Anti-abus : le 3e compte sur le même appareil démarre SANS pack de
+        // bienvenue — on pré-consomme les compteurs (compte créé quand même).
+        ...(welcomeSuppressed ? {
+          usage: { create: { welcomeBaseUsed: ['tarot', 'yijing', 'des', 'runes'], welcomeGrandUsed: true } },
+        } : {}),
       },
     });
 
@@ -123,7 +131,6 @@ export async function POST(request: NextRequest) {
         gender: user.gender,
         age: user.age,
         dateOfBirth: user.dateOfBirth,
-        phone: user.phone,
         comment: user.comment,
         confirmed: user.confirmed,
         createdAt: user.createdAt,

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { calcAge } from '@/lib/dates';
+import { getDeviceToken } from '@/lib/device-client';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
 function EyeIcon({ open }: { open: boolean }) {
@@ -127,7 +128,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...dataToValidate, turnstileToken, lang }),
+        body: JSON.stringify({ ...dataToValidate, turnstileToken, lang, deviceToken: getDeviceToken() }),
       });
 
       if (res.ok) {

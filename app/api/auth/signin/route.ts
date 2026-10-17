@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
         gender: user.gender,
         age: user.age,
-        phone: user.phone,
         confirmed: user.confirmed,
         createdAt: user.createdAt,
       }

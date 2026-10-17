@@ -16,8 +16,12 @@ model User {
   lastName          String?
   age               Int?
   dateOfBirth       DateTime?
-  deletedAt         DateTime?  // tombstone : compte supprimé, garde anti-reconnexion (40 j)
-  phone             String?             @unique // obligatoire + unique à l'inscription (lib/phone.ts)
+  deletedAt         DateTime?  // tombstone : compte tombstone, garde anti-reconnexion (40 j)
+  phone             String?    @unique // COLONNE HÉRITÉE : plus collectée ni
+  // validée depuis oct. 2026 (champ retiré du formulaire, unicité supprimée).
+  // Conservée en base pour ne rien perdre des comptes existants ; toujours
+  // null pour les nouveaux. À purger manuellement le jour où c'est décidé.
+  deviceTokenHash   String?             // HMAC du jeton d'appareil (anti-abus multi-comptes — lib/device.ts)
   confirmationToken String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -76,6 +80,8 @@ model User {
   profilePromptSeen Boolean   @default(false)   // créature-rappel déjà passée (1re fois)
   profilePromptAt   DateTime?                   // dernier affichage ( snooze 30 j )
   profilePromptRefusals Int     @default(0)     // « Pas maintenant » (2 = on ne redemande plus)
+
+  @@index([deviceTokenHash])
 }
 
 model Subscription {

@@ -101,23 +101,11 @@ export const AUTH_MSG = {
     es: 'La fecha de nacimiento es obligatoria.',
     hi: 'जन्म तिथि आवश्यक है।',
   },
-  phoneMissing: {
-    fr: 'Le numéro de téléphone est obligatoire.',
-    en: 'A phone number is required.',
-    es: 'El número de teléfono es obligatorio.',
-    hi: 'फ़ोन नंबर आवश्यक है।',
-  },
-  phoneInvalid: {
-    fr: 'Numéro de téléphone invalide (7 à 15 chiffres).',
-    en: 'Invalid phone number (7 to 15 digits).',
-    es: 'Número de teléfono no válido (7 a 15 dígitos).',
-    hi: 'अमान्य फ़ोन नंबर (7 से 15 अंक)।',
-  },
-  phoneTaken: {
-    fr: 'Ce numéro de téléphone est déjà utilisé par un compte.',
-    en: 'This phone number is already used by an account.',
-    es: 'Este número de teléfono ya lo usa una cuenta.',
-    hi: 'यह फ़ोन नंबर पहले से किसी खाते में है।',
+  disposableEmail: {
+    fr: 'Les adresses temporaires ou jetables ne peuvent pas créer de compte. Utilise une vraie adresse email.',
+    en: 'Temporary or disposable addresses cannot create an account. Please use a real email address.',
+    es: 'Las direcciones temporales o desechables no pueden crear una cuenta. Use una dirección de correo real.',
+    hi: 'अस्थायी या एकबारगी पते से खाता नहीं बनाया जा सकता। कृपया एक वास्तविक ईमेल पता उपयोग करें।',
   },
   emailTaken: {
     fr: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.',

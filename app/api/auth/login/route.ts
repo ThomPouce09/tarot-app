@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
         gender: user.gender,
         age: user.age,
         dateOfBirth: user.dateOfBirth,
-        phone: user.phone,
         comment: user.comment,
         confirmed: user.confirmed,
         createdAt: user.createdAt,
