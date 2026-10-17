@@ -723,7 +723,7 @@ export function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
   );
 }
 
-// --- Vue détaillée : Dés du Zodiaque ---
+// --- Vue détaillée : Dés zodiacaux ---
 export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
   const t = useT();
   const cards: any[] = Array.isArray(r.cards) ? r.cards : [];

@@ -133,7 +133,7 @@ const RAW: Array<{ universe: ReminderUniverse; url: string; title: L10n; body: L
     } },
   // ── Dés zodiacaux ──
   { universe: 'des', url: '/des-divinatoires',
-    title: { fr: 'Dés du Zodiaque', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
+    title: { fr: 'Dés zodiacaux', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
     body: {
       fr: 'Les astres se sont alignés pour jeter les dés. Vois ce que les étoiles ont à te murmurer.',
       en: 'The stars have aligned to cast the dice. See what the heavens whisper to you.',
@@ -141,7 +141,7 @@ const RAW: Array<{ universe: ReminderUniverse; url: string; title: L10n; body: L
       hi: 'पाशे फेंकने के लिए नक्षत्र कतार में आ गए हैं। देखो तारे तुम्हें क्या कानाफूसी करना चाहते हैं।',
     } },
   { universe: 'des', url: '/des-divinatoires',
-    title: { fr: 'Dés du Zodiaque', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
+    title: { fr: 'Dés zodiacaux', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
     body: {
       fr: 'Les dés roulent sous l\u2019impulsion du ciel : quelle tendance se dessine pour toi ?',
       en: 'The dice roll at the sky\u2019s bidding: which trend is shaping up for you?',
@@ -149,7 +149,7 @@ const RAW: Array<{ universe: ReminderUniverse; url: string; title: L10n; body: L
       hi: 'आकाश के आदेश पर पाशे लुढ़क रहे हैं: तुम्हारे लिए कौन-सी लहर बन रही है?',
     } },
   { universe: 'des', url: '/des-divinatoires',
-    title: { fr: 'Dés du Zodiaque', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
+    title: { fr: 'Dés zodiacaux', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
     body: {
       fr: 'Alchimie du zodiaque et du hasard : les dés t\u2019attendent dans leur gobelet.',
       en: 'Alchemy of zodiac and chance: the dice await you in their cup.',
@@ -157,7 +157,7 @@ const RAW: Array<{ universe: ReminderUniverse; url: string; title: L10n; body: L
       hi: 'राशिचक्र और संयोग की रसायन: पाशे अपने गिलास में तुम्हारा इंतज़ार कर रहे हैं।',
     } },
   { universe: 'des', url: '/des-divinatoires',
-    title: { fr: 'Dés du Zodiaque', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
+    title: { fr: 'Dés zodiacaux', en: 'Zodiac Dice', es: 'Dados del Zodíaco', hi: 'राशि के पाशे' },
     body: {
       fr: 'Un simple jet de dés suffit parfois à y voir plus clair dans son zodiaque personnel.',
       en: 'A single cast of the dice is sometimes enough to see your personal zodiac more clearly.',

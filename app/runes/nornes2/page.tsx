@@ -355,30 +355,6 @@ function Nornes2Page() {
           />
         )}
 
-        {/* Variation "Briser le Destin" — réservée aux abonnés Initié et
-            Arkane, et uniquement APRÈS l'affichage de l'interprétation IA du
-            tirage initial. */}
-        <AnimatePresence>
-          {phase === 'done' && !hasAdvice && mainAnalysisDone && canOdinAdvice && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8 text-center"
-            >
-              <p
-                className="mb-4 text-sm italic"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
-              >
-                {tr("Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une", "If the future (Skuld) feels heavy, you may weave a", "Si el porvenir (Skuld) le parece pesado, puede urdir una", "यदि भविष्य (स्कल्ड) आपको भारी प्रतीत हो, तो आप बुन सकते हैं एक")}
-                nouvelle voie.
-              </p>
-              <RuneButton variant="save" onClick={adviceRoll}>
-                {t('runes.nornes.advice')}
-              </RuneButton>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
             ré-affiché pour ce round : count=1, layout horizontal. */}
         {phase === 'advice' && (

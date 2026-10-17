@@ -1,6 +1,6 @@
 'use client';
 
-// app/des-divinatoires-simplifie/page.tsx — « Les Dés du Zodiaque Simplifié »
+// app/des-divinatoires-simplifie/page.tsx — « Les Dés zodiacaux Simplifié »
 //
 // Même mécanique que /tarot-3-cartes-simplifie et /yi-jing-simplifie :
 //   ÉTAPE 1 — l'intention : 4 Éléments astrologiques × 5 intentions

@@ -28,7 +28,7 @@ const DOMAIN_LORE: Record<EchoDomain, { fr: string; en: string; es?: string; hi?
   tarot: { fr: 'un tirage de Tarot', en: 'a Tarot reading' , es: "una tirada de Tarot", hi: "तारो का एक वाचन"},
   'yi-jing': { fr: 'un hexagramme du Yi Jing', en: 'an I Ching hexagram' , es: "un hexagrama del Yi Jing", hi: "इ चिंग का एक षट्कोण चिह्न"},
   runes: { fr: 'un tirage de Runes scandinaves', en: 'a Norse rune casting' , es: "una tirada de Runas nórdicas", hi: "स्कैंडिनेवियाई रुनों का एक वाचन"},
-  des: { fr: 'une lecture des Dés du Zodiaque', en: 'an Astrological Dice reading' , es: "una lectura de los Dados del Zodiaco", hi: "राशि चक्र के पासों का एक वाचन"},
+  des: { fr: 'une lecture des Dés zodiacaux', en: 'an Astrological Dice reading' , es: "una lectura de los Dados del Zodiaco", hi: "राशि चक्र के पासों का एक वाचन"},
 };
 
 export function buildEchoPrompt(

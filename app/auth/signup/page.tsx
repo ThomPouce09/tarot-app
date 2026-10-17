@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
 import { composePhone } from '@/lib/phone';
-import { api } from '@/lib/api-client'; // APK : /api/* n'existe pas en local → proxy backend Vercel
+import { api } from '@/lib/api-client';
 import { calcAge } from '@/lib/dates';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
@@ -176,7 +176,22 @@ export default function SignUpPage() {
             <p className="text-gray-300 mb-4">
               {tr("Consultez vos emails pour activer votre compte et découvrir les mystères du Tarot et du Yi Jing.", "Check your emails to activate your account and discover the mysteries of Tarot and the Yi Jing.", "Consulte sus emails para activar su cuenta y descubrir los misterios del Tarot y del Yi Jing.", "अपने ईमेल देखें ताकि आप अपना खाता सक्रिय कर सकें और टैरो तथा इ चिंग के रहस्य जान सकें।")}
             </p>
-            <div className="text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
+            {/* Formulaire Oracle PROPOSÉ ici, jamais imposé : le compte reste
+                utilisable sans lui, et il reste accessible plus tard dans
+                « Mon espace ». */}
+            <div className="mt-4 rounded-xl border border-amber-500/25 bg-black/25 p-3 text-left">
+              <p className="text-amber-200/90 text-[12.5px] leading-snug" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                {tr("Optionnel : le formulaire Oracle affinitise vos tirages (questions, thèmes, sensibilité). Vous pouvez le remplir tout de suite — ou plus tard, tranquillement, depuis « Mon espace ».", "Optional: the Oracle form fine-tunes your readings (questions, themes, sensitivity). Fill it now — or later, at your leisure, from “My space”.", "Opcional: el formulario Oráculo afina sus tiradas (preguntas, temas, sensibilidad). Puede rellenarlo ahora… o más tarde, con calma, desde «Mi espacio».", "वैकल्पिक: ओरैकल फ़ॉर्म आपके पाठों को अनुकूलित करता है (प्रश्न, विषय, संवेदनशीलता)। इसे अभी भरें — या बाद में, आराम से, «मेरा क्षेत्र» से।")}
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/account')}
+                className="mt-2 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[12px] font-semibold text-amber-200 transition hover:bg-amber-500/20"
+              >
+                {tr("Compléter le formulaire Oracle maintenant", "Complete the Oracle form now", "Rellenar el formulario Oráculo ahora", "अभी ओरैकल फ़ॉर्म पूरा करें")}
+              </button>
+            </div>
+            <div className="mt-3 text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
           </div>
         ) : (
           <div className="mystic-panel shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden">

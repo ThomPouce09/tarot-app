@@ -2,7 +2,7 @@
 
 // components/starry-night.tsx
 //
-// Nuit étoilée animée — fond pour les pages Dés du Zodiaque.
+// Nuit étoilée animée — fond pour les pages Dés zodiacaux.
 // Canvas 2D léger (rAF, zéro dépendance) :
 //   • dégradé bleu nuit profond (radial, très sombre sur les bords)
 //   • ~180 étoiles fixes qui SCINTILLENT lentement (sinusoïde lente,

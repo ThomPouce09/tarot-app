@@ -5,7 +5,7 @@
 // Le rituel des TROIS PIÈCES (méthode traditionnelle au bol).
 //
 // Le bol est vu DE DESSUS, les trois pièces (rond à trou carré) reposent
-// DEDANS. La mécanique de lancer est celle du gobelet des Dés du Zodiaque
+// DEDANS. La mécanique de lancer est celle du gobelet des Dés zodiacaux
 // (AstroDiceCup) adaptée au bol :
 //   • brassage   — glisser horizontalement sur le bol (ou secouette
 //                  capteur) : le bol tangé, les pièces rebondissent dedans,

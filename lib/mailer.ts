@@ -69,7 +69,13 @@ export async function sendConfirmationEmail({
   firstName?: string | null;
   token: string;
 }) {
-  const confirmUrl = `${BASE_URL}/auth/confirm?token=${token}&mode=activate`;
+  // Deep-link natif : sous Android installé, le lien ouvre l'APK (intent
+  // tarotdivination:// → routeAppUrl → /auth/confirm interne : pas de passage
+  // par le navigateur Vercel, pas de re-login, pas de modale de langue).
+  // Les clients mail sans handler natif retombent sur l'URL web équivalente.
+  const confirmPath = `/auth/confirm?token=${token}&mode=activate`;
+  const confirmWeb = `${BASE_URL}${confirmPath}`;
+  const confirmUrl = `tarotdivination://open?url=${encodeURIComponent(confirmPath)}`;
   const salutation = firstName ? ` Bonjour ${firstName},` : ' Bonjour,';
   await mailer.sendMail({
     from: MAIL_FROM,
@@ -79,13 +85,16 @@ export async function sendConfirmationEmail({
       `${salutation}\n\n` +
       `Pour activer votre compte et accéder aux univers, cliquez sur ce lien :\n` +
       `${confirmUrl}\n\n` +
-      `Si le lien ne fonctionne pas, copiez-collez-le dans votre navigateur.`,
+      `Si le bouton ne fonctionne pas (app non installée), copiez-collez ce lien web :
+` +
+      `${confirmWeb}`,
     html:
       `<div style="font-family:sans-serif;line-height:1.5;color:#2a1700">` +
       `<p>${firstName ? 'Bonjour <strong>' + firstName + '</strong>,' : 'Bonjour,'}</p>` +
       `<p>Pour <strong>activer votre compte</strong> et accéder aux univers, cliquez sur le lien ci-dessous :</p>` +
       `<p><a href="${confirmUrl}" style="display:inline-block;padding:10px 18px;background:#DAA520;color:#1a0e0a;text-decoration:none;border-radius:6px;font-weight:600">Activer mon compte</a></p>` +
-      `<p style="opacity:.7">Si le bouton ne fonctionne pas, copiez-collez : ${confirmUrl}</p>` +
+      `<p style="opacity:.7">Si le bouton ne s'ouvre pas dans l'application, utilisez ce lien web : ` +
+      `<a href="${confirmWeb}" style="color:#DAA520">${confirmWeb}</a></p>` +
       `</div>`,
   });
 }

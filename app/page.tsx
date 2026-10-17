@@ -12,6 +12,7 @@ import { api } from '@/lib/api-client';
 import AppLoader from '@/components/app-loader';
 import Firefly from '@/components/firefly';
 import FoxReminder from '@/components/fox-reminder';
+import TourReminder from '@/components/tour-reminder';
 import BrandTitle from '@/components/brand-title';
 import { useShimmer } from '@/lib/use-shimmer';
 import { ShimmerChars } from '@/components/shimmer-chars';
@@ -463,7 +464,7 @@ export default function HomePage() {
           </motion.div>
         </Link>
 
-        {/* Dés du zodiaque Card Button */}
+        {/* Dés zodiacaux Card Button */}
         <Link href="/des-divinatoires" className="block">
           <motion.div
             className="group relative w-[120px] sm:w-[136px] md:w-[152px] lg:w-[168px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
@@ -484,7 +485,7 @@ export default function HomePage() {
               <div className="absolute inset-1.5 border border-amber-300/25 rounded-lg pointer-events-none" />
               <img
                 src="/images/des-zodiaque.png"
-                alt={tr('Les dés du zodiaque', 'Zodiac dice', 'Los dados del zodíaco', 'राशि चक्र के पासे')}
+                alt={tr('Les dés zodiacaux', 'Zodiac dice', 'Los dados del zodíaco', 'राशि चक्र के पासे')}
                 className="w-11 h-11 mb-2 object-contain"
                 style={{ filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.55))' }}
               />
@@ -566,6 +567,7 @@ export default function HomePage() {
     <PauseRepas />
     <Firefly page="landing" />
     <FoxReminder />
+      <TourReminder />
     <SpeakerToggle top={10} right={8} z={75} />
     <FirstVisitHints flagKey="hints_landing" hints={[{ selector: '[data-cta-account]', textKey: 'hint.landingAccount' }]} />
     {/* Voile « Chargement … » — ne vit qu'au démarrage à froid ; se retire

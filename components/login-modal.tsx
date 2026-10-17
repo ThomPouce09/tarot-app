@@ -15,6 +15,17 @@ import { onAccountChanged } from '@/lib/tutorials';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
 
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" />
+      {open ? <circle cx="12" cy="12" r="2.6" /> : <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+
+
+
 export function LoginModal() {
   const router = useRouter();
   const t = useT();
@@ -22,6 +33,7 @@ export function LoginModal() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -132,24 +144,35 @@ export function LoginModal() {
             >
               {t('login.password')}
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
-              style={{
-                background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(218,165,32,0.3)',
-                color: '#FFE9B0',
-                fontFamily: 'var(--font-cormorant), serif',
-                fontSize: '1.1rem',
-                letterSpacing: '0.02em',
-                textTransform: 'lowercase',
-              }}
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40 pr-10"
+                style={{
+                  background: 'rgba(0,0,0,0.45)',
+                  border: '1px solid rgba(218,165,32,0.3)',
+                  color: '#FFE9B0',
+                  fontFamily: 'var(--font-cormorant), serif',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.02em',
+                  textTransform: 'lowercase',
+                }}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-amber-300"
+                style={{ color: '#8A5A28', textShadow: '0 0 6px rgba(218,165,32,0.35)' }}
+                aria-label={tr("Afficher le mot de passe", "Show password", "Mostrar la contraseña", "पासवर्ड दिखाएँ")}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </div>
           </div>
           <button
             type="submit"

@@ -44,8 +44,10 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let stop = false;
+    const resume = (() => { try { return new URLSearchParams(window.location.search).get('tour') === '1'; } catch { return false; } })();
+    if (resume) { try { const u = new URL(window.location.href); u.searchParams.delete('tour'); window.history.replaceState(null, '', u.pathname + (u.search || '')); } catch {} }
     const start = () => {
-      if (stop || isTutorialSeen(TOUR_FLAG)) return;
+      if (stop || (!resume && isTutorialSeen(TOUR_FLAG))) return;
       const check = () => {
         try {
           if (localStorage.getItem(LANG_FLAG)) {
@@ -282,6 +284,12 @@ function SlideBody({
         <div className="py-2">
           <SlideTitle>{t('tour.s1.title')}</SlideTitle>
           {body('tour.s1.body')}
+          <p
+            className="mx-auto mt-3 max-w-sm text-center text-[13px] leading-relaxed font-bold"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: GOLD_PALE }}
+          >
+            {t('tour.s1.tip')}
+          </p>
           <div className="mt-5 flex justify-center">
             <button
               onClick={onAdvance}

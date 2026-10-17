@@ -1,5 +1,5 @@
 // components/astro-dice/meanings.ts
-// Significations statiques des trois dés du zodiaque (analyse immédiate,
+// Significations statiques des trois dés zodiacaux (analyse immédiate,
 // 100% client, aucun appel réseau). Textes courts et évocateurs, ton
 // d'oracle bienveillant, pour « faire patienter » pendant le chargement LLM.
 //

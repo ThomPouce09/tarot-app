@@ -1,6 +1,6 @@
 'use client';
 
-// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés du Zodiaque
+// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés zodiacaux
 
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -335,9 +335,9 @@ export default function DesDivinatoiresHub() {
   return (
     <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_des" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <DiceTitle
-        title={tr("Les Dés du zodiaque", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
+        title={tr("Les Dés zodiacaux", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
         subtitle={tr("Trois dés, trois clés : Planète, signe et vision pour décoder votre situation.", "Three dice, three keys: Planet, sign and vision to decode your situation.", "Tres dados, tres claves: Planeta, signo y visión para descodificar su situación.", "तीन पासे, तीन कुंजियाँ: ग्रह, राशि और दृष्टि — अपनी स्थिति को सुलझाने के लिए।")}
       />
 

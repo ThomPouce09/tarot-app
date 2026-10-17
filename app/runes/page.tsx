@@ -262,7 +262,7 @@ export default function RunesHub() {
     <RuneBackground>
       <RunesRandomBackdrop />
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_runes" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <RuneTitle
         title={tr("Runes Scandinaves : Interroger le Futhark", "Scandinavian Runes: Question the Futhark", "Runas Escandinavas: Interrogar el Futhark", "स्कैंडिनेवियाई रून: फुथार्क से पूछें")}
         subtitle={tr("Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin.", "The Elder Futhark, 24 runes carved in stone, reveals the currents of destiny.", "El Futhark Antiguo, 24 runas grabadas en piedra, revela las corrientes del destino.", "प्राचीन फुथार्क, पत्थर पर उत्कीर्ण 24 रून, भाग्य की धाराएँ प्रकट करता है।")}

@@ -234,7 +234,7 @@ export default function TarotHubPage() {
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_tarot" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
       <div

@@ -3,7 +3,7 @@ import { api } from '@/lib/api-client';
 
 // lib/save-reading.ts
 // Helper partagé : persiste un tirage dans l'historique (POST /api/readings).
-// Utilisé par les pages Runes et Dés du Zodiaque pour alimenter
+// Utilisé par les pages Runes et Dés zodiacaux pour alimenter
 // /dashboard/account/readings. Ne fait rien si l'utilisateur n'est pas connecté.
 
 export interface SaveReadingInput {
