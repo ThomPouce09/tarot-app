@@ -1,6 +1,6 @@
 'use client';
 
-// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés du Zodiaque
+// app/des-divinatoires/page.tsx — Niveau 1 : Tableau de bord des Dés zodiacaux
 
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -9,6 +9,7 @@ import FirstVisitHints from '@/components/first-visit-hints';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { DrawTypeCorner } from '@/components/draw-type-badge';
 import { useLang, pick4, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
@@ -196,6 +197,7 @@ descEs: "2 tiradas para comprender un bloqueo y obtener un consejo para su soluc
 const TUTORIALS: TutorialSlide[] = [
   {
     icon: '✦',
+    base: true,
     title: 'Dés Simplifié',
     titleEn: 'Dice Simplified',
 titleEs: "Dados Simplificados", titleHi: "सरल पासा",
@@ -219,6 +221,7 @@ stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्व
   },
   {
     icon: '🔍',
+    base: false,
     title: 'Tirage par Affinage',
     titleEn: 'Refinement Reading',
 titleEs: "Tirada por Refinamiento", titleHi: "परिष्करण-वाचन",
@@ -240,6 +243,7 @@ stepsHi: ["अपना प्रारंभिक प्रश्न रखे
   },
   {
     icon: '⚖️',
+    base: false,
     title: 'Le tirage du choix',
     titleEn: 'The Choice Reading',
 titleEs: "La tirada de la elección", titleHi: "चयन का वाचन",
@@ -260,6 +264,7 @@ stepsHi: ["अपने दोनों विकल्प स्पष्ट �
   },
   {
     icon: '🗝️',
+    base: false,
     title: 'Obstacle & Solution',
     titleEn: 'Obstacle & Solution',
 titleEs: "Obstáculo & Solución", titleHi: "रुकावट & समाधान",
@@ -335,9 +340,9 @@ export default function DesDivinatoiresHub() {
   return (
     <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_des" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <DiceTitle
-        title={tr("Les Dés du zodiaque", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
+        title={tr("Les Dés zodiacaux", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
         subtitle={tr("Trois dés, trois clés : Planète, signe et vision pour décoder votre situation.", "Three dice, three keys: Planet, sign and vision to decode your situation.", "Tres dados, tres claves: Planeta, signo y visión para descodificar su situación.", "तीन पासे, तीन कुंजियाँ: ग्रह, राशि और दृष्टि — अपनी स्थिति को सुलझाने के लिए।")}
       />
 
@@ -410,6 +415,7 @@ export default function DesDivinatoiresHub() {
                   <path d="M12 8h.01" />
                 </svg>
               </button>
+              <DrawTypeCorner base={TUTORIALS[i]?.base} color={DICE_THEME.ocreLight} title={(lang === 'en' ? (TUTORIALS[i]?.base ? 'Base draw' : 'Advanced draw') : TUTORIALS[i]?.base ? 'Tirage de base' : 'Tirage avancé')} />
               {mounted && <ZodiacFrieze position="top" />}
               {mounted && <ZodiacFrieze position="bottom" />}
 

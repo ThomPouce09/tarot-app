@@ -1,9 +1,9 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// « Dés du Zodiaque Simplifié » — sélecteur d'intention.
+// « Dés zodiacaux Simplifié » — sélecteur d'intention.
 // Même mécanique que /tarot-3-cartes-simplifie et /yi-jing-simplifie
-// (4 thèmes × 5 intentions), mais aux couleurs des Dés du Zodiaque :
+// (4 thèmes × 5 intentions), mais aux couleurs des Dés zodiacaux :
 // les 4 ÉLÉMENTS astrologiques (Feu, Terre, Air, Eau) sur bleu nuit &
 // or (palette du hub). La question composée « Élément — intention »
 // est transmise à l'analyse (prompt ancré sur l'intention).

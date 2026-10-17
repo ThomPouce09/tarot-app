@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
   if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 });
   const u = await prisma.user.findUnique({
     where: { email },
-    select: { domains: true, lifeStage: true, tone: true, familiarity: true, birthTown: true, birthHour: true },
+    select: { domains: true, lifeStage: true, tone: true, familiarity: true, birthTown: true, birthHour: true, birthCountry: true },
   });
   if (!u) return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
   return NextResponse.json({
     domains: u.domains, lifeStage: u.lifeStage, tone: u.tone,
-    familiarity: u.familiarity, birthTown: u.birthTown, birthHour: u.birthHour,
+    familiarity: u.familiarity, birthTown: u.birthTown, birthHour: u.birthHour, birthCountry: u.birthCountry,
     hasData: profileHasData(u),
   });
 }
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       tone: b.tone === null ? null : p.tone,
       familiarity: b.familiarity === null ? null : p.familiarity,
       birthTown: b.birthTown === null ? null : p.birthTown,
+      birthCountry: b.birthCountry === null ? null : p.birthCountry,
       birthHour: b.birthHour === null ? null : p.birthHour,
     };
     // Ville non reconnue (chiffres/adresse) alors qu'une saisie était faite →

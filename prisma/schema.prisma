@@ -70,6 +70,7 @@ model User {
   lifeStage         String?                  // etudes|active|reconversion|parenthese|retraite|installation|separation|nouveau-depart
   tone              String?                  // direct|poetique|concret|introspection
   familiarity       String?                  // debutant|habitue|praticien
+  birthCountry      String?
   birthTown         String?
   birthHour         String?    @db.VarChar(5) // "HH:MM" saisie native, null = inconnue
   profilePromptSeen Boolean   @default(false)   // créature-rappel déjà passée (1re fois)

@@ -5,7 +5,7 @@
 // Le rituel des TROIS PIÈCES (méthode traditionnelle au bol).
 //
 // Le bol est vu DE DESSUS, les trois pièces (rond à trou carré) reposent
-// DEDANS. La mécanique de lancer est celle du gobelet des Dés du Zodiaque
+// DEDANS. La mécanique de lancer est celle du gobelet des Dés zodiacaux
 // (AstroDiceCup) adaptée au bol :
 //   • brassage   — glisser horizontalement sur le bol (ou secouette
 //                  capteur) : le bol tangé, les pièces rebondissent dedans,
@@ -419,7 +419,7 @@ export default function CoinRitual({ L, onPickup, onDone, onProgress, onBlocked,
         </AnimatePresence>
 
         <p className="mt-1 text-[10px]" style={{ color: 'rgba(243,201,105,0.45)' }}>
-          {tr("1 grand tirage · les pièces sèment, le ciel décide", "1 grand reading · the coins sow, heaven decides", "1 gran tirada · las monedas siembran, el cielo decide", "1 बड़ी खींच · सिक्के बोते हैं, आसमान फ़ैसला करता है")}
+          {tr("1 tirage avancé · les pièces sèment, le ciel décide", "1 advanced draw · the coins sow, heaven decides", "1 tirada avanzada · las monedas siembran, el cielo decide", "1 उन्नत पात · सिक्के बोते हैं, आसमान फ़ैसला करता है")}
         </p>
       </div>
     </div>

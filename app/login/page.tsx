@@ -195,11 +195,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/70 hover:text-amber-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-amber-300"
+                style={{ color: '#8A5A28', textShadow: '0 0 6px rgba(218,165,32,0.35)' }}
                 disabled={isBlocked}
                 aria-label={tr("Afficher le mot de passe", "Show password", "Mostrar la contraseña", "पासवर्ड दिखाएँ")}
               >
-                {showPassword ? '◉' : '○'}
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" />
+                {showPassword ? <circle cx="12" cy="12" r="2.6" /> : <path d="M4 4l16 16" />}
+              </svg>
               </button>
             </div>
           </div>

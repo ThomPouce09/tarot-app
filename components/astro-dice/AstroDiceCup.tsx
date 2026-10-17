@@ -45,6 +45,7 @@ const SHAKE_KEYS = ['dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1
 function cutShake() { for (const k of SHAKE_KEYS) stopSound(k); }
 import { PLANET_NAMES, SIGN_NAMES, planetName, signName, houseName } from './names';
 import { getRuntimeLang, tr} from '@/lib/i18n';
+import { usePouchShake } from '@/components/rune-stones/use-pouch-shake';
 import { ConstellationStrike } from './constellation';
 
 /* -------------------------------------------------------------------------- */
@@ -323,6 +324,51 @@ export default function AstroDiceCup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);
 
+  /* --- Secouage du smartphone + poussée verticale franche (comme baguettes/runes)
+     Même mécanique que le pochon des runes : usePouchShake compte les
+     demi-balancements (gamma) et les frappes en translation (accelération),
+     avec un « last » partagé = une seule poussée par balancement. Ici, trois
+     poussées franches arment le renversement du gobelet. En complément, un
+     Flick vertical énergique (chute d'accélération Y franche en < 250 ms)
+     renverse immédiatement : le push seul suffit, comme pour le pouce. */
+  const cupActive = !revealed && (phase === 'idle' || phase === 'shake');
+  const shakeCountRef = useRef(0);
+  const lastFlickRef = useRef(0);
+  const { requestPermissions } = usePouchShake(cupActive, () => {
+    if (!cupActive) return;
+    shakeCountRef.current += 1;
+    const n = shakeCountRef.current;
+    if (n === 1) onShake?.();
+    if (n >= 3) { shakeCountRef.current = 0; launch(); }
+  }, (gamma) => {
+    if (cupActive && !revealed) x.set(Math.max(-14, Math.min(14, gamma * 0.8)));
+  });
+  useEffect(() => {
+    if (!cupActive) return;
+    let prevY: number | null = null;
+    let prevT = 0;
+    const onMotion = (e: DeviceMotionEvent) => {
+      const a = e.accelerationIncludingGravity;
+      if (!a || a.y == null) return;
+      const now = Date.now();
+      if (
+        prevY != null &&
+        now - prevT < 250 &&
+        prevY - a.y >= 4.5 &&
+        now - lastFlickRef.current > 800 &&
+        !revealed
+      ) {
+        lastFlickRef.current = now;
+        launch();
+      }
+      prevY = a.y;
+      prevT = now;
+    };
+    window.addEventListener('devicemotion', onMotion);
+    return () => window.removeEventListener('devicemotion', onMotion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cupActive, revealed]);
+
   /* --- Déclenchement programmatique (bouton « Lancer ») ------------------- */
   // Même cascade que le push tactile : gobelet2 → 0.4s → gobelet3 + lancer.
   const launch = useCallback(() => {
@@ -365,6 +411,7 @@ export default function AstroDiceCup({
       // revealed à false / remonte le composant).
       if (revealed) return;
       (e.target as Element).setPointerCapture?.(e.pointerId);
+      void requestPermissions(); // iOS 13+ : autorisation des capteurs de secouage
       if (phase === 'idle' || phase === 'shake') {
         shaking.current = true;
         lastX.current = e.clientX;

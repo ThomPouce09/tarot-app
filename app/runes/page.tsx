@@ -13,6 +13,7 @@ import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { DrawTypeCorner } from '@/components/draw-type-badge';
 import { useLang, pick4, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
@@ -124,6 +125,7 @@ const TILES = [
 const TUTORIALS: TutorialSlide[] = [
   {
     glyph: 'ᚾ',
+    base: true,
     title: 'Le fil des Nornes (simplifié)',
     titleEn: 'The Thread of the Norns (Simplified)',
 titleEs: "El hilo de las Nornir (simplificado)", titleHi: "नॉर्न का धागा (सरल)",
@@ -145,6 +147,7 @@ stepsHi: ["नॉर्न का क्षेत्र और संकल्�
   },
   {
     glyph: 'ᚢ',
+    base: false,
     title: 'Le Fil des Nornes — Précis',
     titleEn: 'The Thread of the Norns — Precise',
 titleEs: "El Hilo de las Nornir — Preciso", titleHi: "नॉर्न का धागा — सटीक",
@@ -166,6 +169,7 @@ stepsHi: ["अपने प्रश्न को शब्द दें", "त�
   },
   {
     glyph: 'ᛗ',
+    base: false,
     title: 'Le Marteau de Mjölnir',
     titleEn: "Mjölnir's Hammer",
     desc: 'Le plan de bataille du forgeron : cinq runes en T, du manche à la crête.',
@@ -192,6 +196,7 @@ stepsHi: ["उस रुकावट का नाम बताओ जो वि
   },
   {
     glyph: 'ᛟ',
+    base: false,
     title: "Les Racines d'Yggdrasil",
     titleEn: "The Roots of Yggdrasil",
     desc: 'Le bilan de l’Arbre-Monde : cinq runes, des racines à la couronne.',
@@ -262,7 +267,7 @@ export default function RunesHub() {
     <RuneBackground>
       <RunesRandomBackdrop />
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_runes" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <RuneTitle
         title={tr("Runes Scandinaves : Interroger le Futhark", "Scandinavian Runes: Question the Futhark", "Runas Escandinavas: Interrogar el Futhark", "स्कैंडिनेवियाई रून: फुथार्क से पूछें")}
         subtitle={tr("Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin.", "The Elder Futhark, 24 runes carved in stone, reveals the currents of destiny.", "El Futhark Antiguo, 24 runas grabadas en piedra, revela las corrientes del destino.", "प्राचीन फुथार्क, पत्थर पर उत्कीर्ण 24 रून, भाग्य की धाराएँ प्रकट करता है।")}
@@ -321,6 +326,7 @@ export default function RunesHub() {
                   <path d="M12 8h.01" />
                 </svg>
               </button>
+              <DrawTypeCorner base={TUTORIALS[i]?.base} color={RUNE_THEME.goldPale} title={(lang === 'en' ? (TUTORIALS[i]?.base ? 'Base draw' : 'Advanced draw') : TUTORIALS[i]?.base ? 'Tirage de base' : 'Tirage avancé')} />
 
               {/* frise de runes discrètes le long du liseré (après hydratation) */}
               {mounted && <RuneFrieze position="top" />}

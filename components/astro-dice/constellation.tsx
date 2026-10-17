@@ -1,7 +1,7 @@
 'use client';
 
 // components/astro-dice/constellation.tsx
-// Signature visuelle des Dés du Zodiaque (moule Yggdrasil/Mjölnir) :
+// Signature visuelle des Dés zodiacaux (moule Yggdrasil/Mjölnir) :
 //  - ConstellationStrike : à l'immobilisation, les 3 glyphes tombés s'allument
 //    un à un (son sec = rune-hit-1) reliés par un trait d'or, puis l'anneau
 //    cosmique pulse et le fil se dissout → l'analyse peut commencer.
@@ -364,7 +364,7 @@ export function HintLegende({ open, onClose }: { open: boolean; onClose?: () => 
   ] as const;
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="pointer-events-auto absolute inset-x-0 top-1 z-20 flex cursor-pointer flex-col items-center gap-1.5 px-2" onClick={onClose}>
+      className="pointer-events-auto relative z-20 mx-auto flex w-full max-w-2xl cursor-pointer flex-col items-center gap-1.5 px-2" onClick={onClose}>
       {items.map(([g, t, d], i) => (
         <motion.p key={t} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 * i }}
           className="rounded-full px-3 py-0.5 text-[10.5px]"

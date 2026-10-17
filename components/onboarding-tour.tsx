@@ -37,6 +37,11 @@ export default function OnboardingTour() {
   const [ready, setReady] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const closedRef = useRef(false);
+  // Progression du tour : 'tour_end' = l'utilisateur a vu l'avant-
+  // dernière slide (le rappel renard ne se déclenchera plus) ; 'tour_stopped'
+  // = tour ouvert puis interrompu avant ce seuil (le rappel pourra proposer).
+  const reachedEndRef = useRef(false);
+  const advancedRef = useRef(false);
 
   // Ouverture : sur '/' uniquement, langue déjà choisie, tour jamais vu
   // (drapeau lié au compte, hydraté depuis le serveur — voir lib/tutorials).
@@ -44,8 +49,10 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let stop = false;
+    const resume = (() => { try { return new URLSearchParams(window.location.search).get('tour') === '1'; } catch { return false; } })();
+    if (resume) { try { const u = new URL(window.location.href); u.searchParams.delete('tour'); window.history.replaceState(null, '', u.pathname + (u.search || '')); } catch {} }
     const start = () => {
-      if (stop || isTutorialSeen(TOUR_FLAG)) return;
+      if (stop || (!resume && isTutorialSeen(TOUR_FLAG))) return;
       const check = () => {
         try {
           if (localStorage.getItem(LANG_FLAG)) {
@@ -71,8 +78,15 @@ export default function OnboardingTour() {
     }
   }, [ready, pathname, open]);
 
+  useEffect(() => {
+    if (slide >= TOTAL - 2) reachedEndRef.current = true; // avant-dernière slide atteinte
+    if (slide > 0) advancedRef.current = true;
+  }, [slide]);
+
   const close = useCallback(() => {
     markTutorialSeen(TOUR_FLAG); // compte (base) + cache local
+    if (reachedEndRef.current) markTutorialSeen('tour_end');
+    else if (advancedRef.current) markTutorialSeen('tour_stopped');
     closedRef.current = true;
     setOpen(false);
     stopAllSounds(); // aucune piste ne survit à la sortie du tour (exigence user)
@@ -282,6 +296,12 @@ function SlideBody({
         <div className="py-2">
           <SlideTitle>{t('tour.s1.title')}</SlideTitle>
           {body('tour.s1.body')}
+          <p
+            className="mx-auto mt-3 max-w-sm text-center text-[13px] leading-relaxed font-bold"
+            style={{ fontFamily: 'var(--font-cinzel), serif', color: GOLD_PALE }}
+          >
+            {t('tour.s1.tip')}
+          </p>
           <div className="mt-5 flex justify-center">
             <button
               onClick={onAdvance}

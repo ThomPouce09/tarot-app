@@ -8,7 +8,8 @@
 // APK : toutes les requêtes passent par api() (en-tête X-Session).
 
 import { useCallback, useEffect, useState } from 'react';
-import { useT } from '@/lib/i18n';
+import { useT, useLang } from '@/lib/i18n';
+import { countryName, DEFAULT_COUNTRY, COUNTRY_OPTIONS } from '@/lib/country-names';
 import { api } from '@/lib/api-client';
 
 type Profile = {
@@ -16,11 +17,12 @@ type Profile = {
   lifeStage: string | null;
   tone: string | null;
   familiarity: string | null;
+  birthCountry: string | null;
   birthTown: string | null;
   birthHour: string | null;
 };
 
-const EMPTY: Profile = { domains: [], lifeStage: null, tone: null, familiarity: null, birthTown: null, birthHour: null };
+const EMPTY: Profile = { domains: [], lifeStage: null, tone: null, familiarity: null, birthCountry: null, birthTown: null, birthHour: null };
 
 const DOMAINS = ['amour', 'famille', 'travail', 'etudes', 'argent', 'projets', 'serenite'];
 const STAGES = ['etudes', 'active', 'reconversion', 'parenthese', 'retraite', 'installation', 'separation', 'nouveau-depart'];
@@ -60,6 +62,7 @@ function Pill({ on, label, onClick }: { on: boolean; label: string; onClick: () 
 
 export default function OracleProfileForm() {
   const t = useT();
+  const lang = useLang();
   const [p, setP] = useState<Profile>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -85,7 +88,7 @@ export default function OracleProfileForm() {
         setP({
           domains: Array.isArray(d.domains) ? d.domains : [],
           lifeStage: d.lifeStage ?? null, tone: d.tone ?? null, familiarity: d.familiarity ?? null,
-          birthTown: d.birthTown ?? null, birthHour: d.birthHour ?? null,
+          birthCountry: d.birthCountry ?? null, birthTown: d.birthTown ?? null, birthHour: d.birthHour ?? null,
         });
       })
       .catch(() => { /* profil vide affiché — jamais bloquant */ })
@@ -183,6 +186,18 @@ export default function OracleProfileForm() {
             <p className="text-amber-100/70 text-xs mb-3">{t('profile.birthHint')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
+                <span className="text-xs text-amber-200/80">{t('profile.birthCountry')}</span>
+                <select
+                  value={p.birthCountry ?? DEFAULT_COUNTRY}
+                  onChange={(e) => setP((s) => ({ ...s, birthCountry: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-violet-500/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-violet-400/70 [color-scheme:dark]"
+                >
+                  {COUNTRY_OPTIONS.map((iso) => (
+                    <option key={iso} value={iso}>{countryName(iso, lang)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
                 <span className="text-xs text-amber-200/80">{t('profile.birthTown')}</span>
                 <input
                   type="text"
@@ -194,7 +209,7 @@ export default function OracleProfileForm() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs text-amber-200/80">{t('profile.birthHour')} · {t('profile.optionalShort')}</span>
+                <span className="text-xs text-amber-200/80">{t('profile.birthHour')}</span>
                 <input
                   type="time"
                   value={p.birthHour ?? ''}

@@ -301,7 +301,7 @@ function SemainePage() {
           </p>
           {wheel === null && !booting && (
             <p className="mt-1 text-[10px] tracking-widest" style={{ color: `${GOLD}99` }}>
-              {pick4('poser la roue débite un grand tirage', 'casting the wheel spends one advanced reading', "lanzar la rueda consume una tirada avanzada", "चक्र बिछाने पर एक उन्नत वाचन खर्च होता है")(lang)}
+              {pick4('poser la roue débite un tirage avancé', 'casting the wheel spends one advanced reading', "lanzar la rueda consume una tirada avanzada", "चक्र बिछाने पर एक उन्नत वाचन खर्च होता है")(lang)}
             </p>
           )}
         </div>

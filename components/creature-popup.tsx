@@ -23,6 +23,8 @@ type Props = {
   onClaim?: () => Promise<boolean>;
   /** Signalé à l'apparition du message (le renard du Profil y joue magic-4). */
   onAppear?: () => void;
+  /** Présent pour le rappel « reprendre le tutoriel » : bouton principal. */
+  onAccept?: () => void;
 };
 
 const GOLD = '#F3C969';
@@ -235,7 +237,7 @@ function GiftBurst({ glow }: { glow: string }) {
   );
 }
 
-export default function CreaturePopup({ data, onClaim, onClose, onAppear }: Props) {
+export default function CreaturePopup({ data, onClaim, onClose, onAppear, onAccept }: Props) {
   const { creature, text } = data;
   const t = useT();
   const router = useRouter();
@@ -401,6 +403,38 @@ export default function CreaturePopup({ data, onClaim, onClose, onAppear }: Prop
             >
               {text.toLowerCase()}
             </div>
+
+            {/* Renard du Tutoriel : reprendre la visite (dorado) ou remettre à plus tard. */}
+            {data.category === 'tour_prompt' && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { onAccept?.(); }}
+                  className="rounded-full px-4 py-2 text-[13px] font-bold transition-transform hover:scale-[1.04] active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, #FFF3CF 0%, #F3C969 42%, #C9962E 100%)',
+                    color: '#1c1206',
+                    fontFamily: 'var(--font-cinzel), serif',
+                    boxShadow: '0 0 18px rgba(243,201,105,0.55), inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 5px rgba(120,80,10,0.4)',
+                  }}
+                >
+                  {t('tourRenard.accept')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onClose(); }}
+                  className="rounded-full px-4 py-2 text-[13px] font-semibold"
+                  style={{
+                    background: 'rgba(20,14,30,0.55)',
+                    border: '1px solid rgba(243,201,105,0.4)',
+                    color: '#F5EAD6',
+                    fontFamily: 'var(--font-cinzel), serif',
+                  }}
+                >
+                  {t('tourRenard.refuse')}
+                </button>
+              </div>
+            )}
 
             {/* Renard du Profil : deux sorties — ouvrir Mon espace ou snooze. */}
             {data.category === 'profile_prompt' && (

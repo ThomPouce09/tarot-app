@@ -36,7 +36,7 @@ function NornesPage() {
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
   // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
-  // « Tisser une nouvelle voie » n'apparaît qu'après — jamais avant).
+  // « Tirer le Conseil d’Odin » n'apparaît qu'après — jamais avant).
   const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
   // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
   // réservée aux abonnés — Initié : 1 Conseil/mois (quota serveur, la modale
@@ -79,7 +79,7 @@ function NornesPage() {
     readingIdRef.current = null;
     setReadingId(null);
     // Nouveau tirage → l'interprétation doit être (re)affichée avant que
-    // l'action « Tisser une nouvelle voie » réapparaisse.
+    // l'action « Tirer le Conseil d’Odin » réapparaisse.
     setMainAnalysisDone(false);
     mainAnalysisRef.current = null;
   }, []);
@@ -133,7 +133,7 @@ function NornesPage() {
     setIsRolling(true);
   }, []);
 
-  // « Tisser une nouvelle voie » : le clic a lieu en bas de page → recentrer
+  // « Tirer le Conseil d’Odin » : le clic a lieu en bas de page → recentrer
   // la vue sur le sac du Conseil d'Odin dès qu'il apparaît (laisse le temps
   // au sac de se monter avant le scroll).
   const adviceBagRef = useRef<HTMLDivElement>(null);
@@ -344,11 +344,10 @@ function NornesPage() {
                 className="mb-4 text-sm italic"
                 style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
               >
-                {tr("Si l’avenir (Skuld) vous paraît lourd, vous pouvez tisser une", "If the future (Skuld) feels heavy, you may weave a", "Si el porvenir (Skuld) le parece pesado, puede urdir una", "यदि भविष्य (स्कल्ड) आपको भारी प्रतीत हो, तो आप बुन सकते हैं एक")}
-                nouvelle voie.
+                {tr("Le Conseil d’Odin éclaire ce que Skuld garde en réserve : une rune de plus, à jouer avec lucidité.", "Odin’s Counsel lights what Skuld keeps in reserve: one more rune, to play with lucidity.", "El Consejo de Odín ilumina lo que Skuld guarda en reserva: una runa más, para jugar con lucidez.", "यदि भविष्य (स्कल्ड) आपको भारी प्रतीत हो तो ओदिन-मार्गदर्शन वह चाना जलाता है जो स्कल्ड संभाल रखता है: एक और रून, स्पष्टता से खेलना।")}
               </p>
               <RuneButton variant="save" onClick={adviceRoll}>
-                {t('runes.nornes.advice')}
+                {t('runes.nornes.odin')}
               </RuneButton>
             </motion.div>
           )}

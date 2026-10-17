@@ -55,7 +55,7 @@ const CREATURES = [
   { slug: 'elfe1-runes', name: 'Elfe Aëlin', image: '/images/creatures/elfe1.png', page: 'runes', color: '#FFE9A8' },
   { slug: 'elfe2-runes', name: 'Elfe Bëor', image: '/images/creatures/elfe2.png', page: 'runes', color: '#E0CFF0' },
   { slug: 'trollinet2', name: 'Trollinet Bûrr', image: '/images/creatures/trollinet2.png', page: 'runes', color: '#D4B483' },
-  // Dés du Zodiaque : elfes + bohémien
+  // Dés zodiacaux : elfes + bohémien
   { slug: 'elfe3-des', name: 'Elfe Cael', image: '/images/creatures/elfe3.png', page: 'des-divinatoires', color: '#C8E6FF' },
   { slug: 'elfe4-des', name: 'Elfe Dore', image: '/images/creatures/elfe4.png', page: 'des-divinatoires', color: '#FFD700' },
   { slug: 'bohemien1-des', name: 'Bohémien Lou', image: '/images/creatures/bohemien1.png', page: 'des-divinatoires', color: '#D4B483' },
@@ -130,7 +130,7 @@ const MESSAGES: Record<string, { category: string; textFr: string; textEn: strin
     { category: 'lore', textFr: 'Sous la terre, les runes dorment. Le trollinet les réveille.', textEn: 'Beneath the earth, runes sleep. The trollkin wakes them.' },
   ],
   'elfe3-des': [
-    { category: 'advice', textFr: 'Dés du Zodiaque : laisse le hasard choisir la face. La planète, le signe et la maison parleront.', textEn: 'Dice of the Zodiac: let chance choose the face. Planet, sign and house will speak.' },
+    { category: 'advice', textFr: 'Dés zodiacaux : laisse le hasard choisir la face. La planète, le signe et la maison parleront.', textEn: 'Dice of the Zodiac: let chance choose the face. Planet, sign and house will speak.' },
     { category: 'lore', textFr: 'Trois dés, douze faces : un mini-univers pour éclairer ta question.', textEn: 'Three dice, twelve faces: a mini-universe to light your question.' },
   ],
   'elfe4-des': [

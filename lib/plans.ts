@@ -72,7 +72,7 @@ export type ActiveLevel = PlanId;
 // plafond mensuel (le quota journalier/welcom/crédits gouverne alors).
 export const PLAN_CAPACITY: Record<SubscriptionPlanId | 'apprenti', { baseUnlimited: boolean; baseMonthly: number | null; grandMonthly: number | null; perkMonthly: number | null }> = {
   apprenti: { baseUnlimited: false, baseMonthly: null, grandMonthly: 0, perkMonthly: 0 },
-  initie: { baseUnlimited: false, baseMonthly: 90, grandMonthly: 10, perkMonthly: 1 }, // 1 Conseil d'Odin + 1 Secret d'Artémis / mois
+  initie: { baseUnlimited: false, baseMonthly: 90, grandMonthly: 12, perkMonthly: 1 }, // 1 Conseil d'Odin + 1 Secret d'Artémis / mois
   arkane: { baseUnlimited: false, baseMonthly: 120, grandMonthly: 120, perkMonthly: null }, // perks illimités
 };
 

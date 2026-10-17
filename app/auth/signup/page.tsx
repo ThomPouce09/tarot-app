@@ -4,8 +4,6 @@ import { tr, useLang } from '@/lib/i18n';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { DIAL_COUNTRIES, DEFAULT_DIAL } from '@/lib/countries';
-import { composePhone } from '@/lib/phone';
 import { calcAge } from '@/lib/dates';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
@@ -44,10 +42,6 @@ const buildSignupSchema = () => {
         tr("Date invalide", "Invalid date", "Fecha no válida", "अमान्य तिथि"))
       .refine((v) => { const a = calcAge(v); return a !== null && a >= 16; },
         tr("L’oracle accueille les personnes de 16 ans et plus.", "The Oracle welcomes people aged 16 and over.", "El Oráculo acoge a personas de 16 años en adelante.", "देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है।")),
-    phone: z.string()
-      .min(1, tr("Le numéro de téléphone est obligatoire", "A phone number is required", "El número de teléfono es obligatorio", "फ़ोन नंबर आवश्यक है"))
-      .refine((v) => { const n = v.replace(/[^0-9+]/g, '').replace(/^00/, '+'); return /^\+?[0-9]{7,15}$/.test(n); },
-        tr("Numéro invalide (7 à 15 chiffres)", "Invalid number (7 to 15 digits)", "Número no válido (7 a 15 dígitos)", "अमान्य नंबर (7 से 15 अंक)")),
     comment: z.string().optional().or(z.literal('')),
   }).refine((data) => data.password === data.confirmPassword, {
     message: tr("Les mots de passe ne correspondent pas", "Passwords do not match", "Las contraseñas no coinciden", "पासवर्ड मेल नहीं खाते"),
@@ -66,8 +60,6 @@ export default function SignUpPage() {
     confirmPassword: '',
     gender: 'other' as 'male' | 'female' | 'other',
     dateOfBirth: '',
-    dial: DEFAULT_DIAL,
-    phone: '',
     comment: '',
   });
   const [turnstileToken, setTurnstileToken] = useState<string | null>("skip");
@@ -104,7 +96,6 @@ export default function SignUpPage() {
       // message localisé (undefined donnerait l'erreur générique « Required »).
       dateOfBirth: formData.dateOfBirth,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
-      phone: composePhone(formData.dial, formData.phone),
       comment: formData.comment === '' ? undefined : formData.comment,
     };
 
@@ -175,7 +166,22 @@ export default function SignUpPage() {
             <p className="text-gray-300 mb-4">
               {tr("Consultez vos emails pour activer votre compte et découvrir les mystères du Tarot et du Yi Jing.", "Check your emails to activate your account and discover the mysteries of Tarot and the Yi Jing.", "Consulte sus emails para activar su cuenta y descubrir los misterios del Tarot y del Yi Jing.", "अपने ईमेल देखें ताकि आप अपना खाता सक्रिय कर सकें और टैरो तथा इ चिंग के रहस्य जान सकें।")}
             </p>
-            <div className="text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
+            {/* Formulaire Oracle PROPOSÉ ici, jamais imposé : le compte reste
+                utilisable sans lui, et il reste accessible plus tard dans
+                « Mon espace ». */}
+            <div className="mt-4 rounded-xl border border-amber-500/25 bg-black/25 p-3 text-left">
+              <p className="text-amber-200/90 text-[12.5px] leading-snug" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+                {tr("Optionnel : le formulaire Oracle affinitise vos tirages (questions, thèmes, sensibilité). Vous pouvez le remplir tout de suite — ou plus tard, tranquillement, depuis « Mon espace ».", "Optional: the Oracle form fine-tunes your readings (questions, themes, sensitivity). Fill it now — or later, at your leisure, from “My space”.", "Opcional: el formulario Oráculo afina sus tiradas (preguntas, temas, sensibilidad). Puede rellenarlo ahora… o más tarde, con calma, desde «Mi espacio».", "वैकल्पिक: ओरैकल फ़ॉर्म आपके पाठों को अनुकूलित करता है (प्रश्न, विषय, संवेदनशीलता)। इसे अभी भरें — या बाद में, आराम से, «मेरा क्षेत्र» से।")}
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/account')}
+                className="mt-2 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[12px] font-semibold text-amber-200 transition hover:bg-amber-500/20"
+              >
+                {tr("Compléter le formulaire Oracle maintenant", "Complete the Oracle form now", "Rellenar el formulario Oráculo ahora", "अभी ओरैकल फ़ॉर्म पूरा करें")}
+              </button>
+            </div>
+            <div className="mt-3 text-amber-500/70 text-sm">{tr("Redirection vers la connexion...", "Redirecting to login...", "Redirigiendo a la conexión...", "लॉगिन की ओर ले जाया जा रहा है...")}</div>
           </div>
         ) : (
           <div className="mystic-panel shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden">
@@ -352,35 +358,6 @@ export default function SignUpPage() {
                     {errors.dateOfBirth && <p className="text-red-400 text-[10px] mt-1">{errors.dateOfBirth}</p>}
                   </div>
 
-                  <div className="col-span-2">
-                    <label htmlFor="phone" className="mystic-label block mb-1.5">{tr("Téléphone *", "Phone *", "Teléfono *", "फ़ोन *")}</label>
-                    <div className="flex items-stretch gap-2">
-                      <select
-                        id="dial"
-                        name="dial"
-                        value={formData.dial}
-                        onChange={handleChange}
-                        aria-label={tr("Indicatif du pays", "Country dial code", "Indicativo del país", "देश कोड")}
-                        className="!w-[92px] shrink-0 !px-1.5 mystic-input [color-scheme:dark]"
-                      >
-                        {DIAL_COUNTRIES.map((c) => (
-                          <option key={c.iso} value={c.dial}>{c.short}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        inputMode="tel"
-                        autoComplete="tel-national"
-                        className="flex-1 min-w-0 mystic-input"
-                        placeholder={tr("6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78", "6 12 34 56 78")}
-                      />
-                    </div>
-                  {errors.phone && <p className="text-red-400 text-[10px] mt-1">{errors.phone}</p>}
-                  </div>
                 </div>
 
                 <div>

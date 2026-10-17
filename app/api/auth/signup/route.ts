@@ -4,19 +4,25 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendConfirmationEmail } from '@/lib/mailer';
 import { calcAge, daysSince, DELETION_GRACE_DAYS } from '@/lib/dates';
-import { normalizePhone, isValidPhone } from '@/lib/phone';
 import { resolveLang, authMsg, localDate, durationPhrase } from '@/lib/lang';
+import { isDisposableEmail } from '@/lib/disposable-emails';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, gender, dateOfBirth, phone, comment } = body;
+    const { email, password, firstName, lastName, gender, dateOfBirth, comment, deviceToken } = body;
     const lang = resolveLang(body.lang);
 
     if (!email || !password) {
       return NextResponse.json({ error: authMsg('missing', lang) }, { status: 400 });
+    }
+
+    // ── Anti-abus étage 1 : emails jetables refusés ──
+    if (isDisposableEmail(String(email))) {
+      return NextResponse.json({ error: authMsg('disposableEmail', lang), code: 'DISPOSABLE_EMAIL' }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({

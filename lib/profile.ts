@@ -70,11 +70,11 @@ export function cleanHour(v: unknown): string | null {
 
 export type ProfilePayload = {
   domains: string[]; lifeStage: string | null; tone: string | null;
-  familiarity: string | null; birthTown: string | null; birthHour: string | null;
+  familiarity: string | null; birthTown: string | null; birthHour: string | null; birthCountry?: string | null;
 };
 export type ProfileShape = {
   domains: ProfileDomain[]; lifeStage: ProfileLifeStage | null; tone: ProfileTone | null;
-  familiarity: ProfileFamiliarity | null; birthTown: string | null; birthHour: string | null;
+  familiarity: ProfileFamiliarity | null; birthTown: string | null; birthHour: string | null; birthCountry: string | null;
 };
 
 /** Normalise un corps (ou null) ; renvoie null si rien d'exploitable. */
@@ -85,20 +85,23 @@ export function sanitizeProfile(body: unknown): ProfileShape | null {
   const tone = isOneOf(b.tone, PROFILE_TONES) ? b.tone : null;
   const familiarity = isOneOf(b.familiarity, PROFILE_FAMILIARITY) ? b.familiarity : null;
   const birthTown = cleanCity(b.birthTown);
+  // Pays de naissance : code ISO 3166-1 uniquement (facultatif).
+  const birthCountry =
+    typeof b.birthCountry === 'string' && /^[A-Za-z]{2}$/.test(b.birthCountry) ? b.birthCountry.toUpperCase() : null;
   const birthHour = b.birthHour === null ? null : cleanHour(b.birthHour);
   return {
     domains: cleanDomains(b.domains),
-    lifeStage, tone, familiarity, birthTown, birthHour,
+    lifeStage, tone, familiarity, birthTown, birthHour, birthCountry,
   };
 }
 
 /** Le profil contient-il au moins une réponse utile ? (sinon = vide) */
 export function profileHasData(p: {
   domains: readonly string[]; lifeStage: string | null; tone: string | null;
-  familiarity: string | null; birthTown: string | null; birthHour: string | null;
+  familiarity: string | null; birthTown: string | null; birthHour: string | null; birthCountry?: string | null;
 } | null | undefined): boolean {
   if (!p) return false;
-  return p.domains.length > 0 || !!p.lifeStage || !!p.tone || !!p.familiarity || !!p.birthTown || !!p.birthHour;
+  return p.domains.length > 0 || !!p.lifeStage || !!p.tone || !!p.familiarity || !!p.birthTown || !!p.birthHour || !!p.birthCountry;
 }
 
 // Signe solaire depuis la date de naissance (bornes classiques, approximation
@@ -142,7 +145,7 @@ export async function buildProfileBlock(email: string | null | undefined): Promi
       select: {
         dateOfBirth: true,
         domains: true, lifeStage: true, tone: true, familiarity: true,
-        birthTown: true, birthHour: true,
+        birthTown: true, birthHour: true, birthCountry: true,
       },
     });
   } catch {
@@ -155,10 +158,11 @@ export async function buildProfileBlock(email: string | null | undefined): Promi
   // Identité symbolique : uniquement si l'utilisateur a REMPLI le bloc
   // naissance du formulaire (consentement explicite) — la date de naissance du
   // compte n'est jamais injectée seule. On obtient signe (+ ascendant possible).
-  if (u.birthTown || u.birthHour) {
+  if (u.birthTown || u.birthHour || u.birthCountry) {
     const bits: string[] = [];
     if (u.dateOfBirth) bits.push(`né le ${u.dateOfBirth.toISOString().slice(0, 10)}`);
     if (u.birthTown) bits.push(`à ${u.birthTown}`);
+    if (u.birthCountry) bits.push(`pays : ${u.birthCountry}`);
     if (u.birthHour) bits.push(`à ${u.birthHour}`);
     const sign = sunSign(u.dateOfBirth);
     if (sign) bits.push(`signe solaire : ${sign}`);

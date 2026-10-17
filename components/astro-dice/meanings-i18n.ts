@@ -1,4 +1,4 @@
-// components/astro-dice/meanings-i18n.ts — Significations des dés du zodiaque
+// components/astro-dice/meanings-i18n.ts — Significations des dés zodiacaux
 // en anglais / espagnol / hindi (le FR reste la source dans meanings.ts).
 // GÉNÉRÉ par scripts/gen-dice-meanings-i18n.cjs (+ retry-house-en.cjs) via
 // b.ai qwen3.8-flash — relancer ces scripts pour régénérer. Ne pas éditer à la main.

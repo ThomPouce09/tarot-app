@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment, type ReactNode } from 'react';
 import { useT, useLang } from '@/lib/i18n';
 import SpaceTitle from '@/components/space-title';
 import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_ICON_IMG, PLAN_PRICE_EUR, PLAN_PRICE_YEAR_EUR, CREDITS_BASE, CREDITS_GRAND, type PlanId } from '@/lib/plans';
-import { UNIVERSES, type Universe } from '@/lib/classification';
+import { type Universe } from '@/lib/classification';
+import { BaseDrawGlyph, AdvancedDrawGlyph } from '@/components/draw-type-badge';
 import { openExternal, isNative } from '@/lib/capacitor-utils';
 
 // Code BCP-47 pour dates localisées selon la langue de l'app.
@@ -35,12 +36,6 @@ function isOneShot(p: PlanId): boolean {
 }
 
 // Libellés des univers pour le tableau de bord (clés i18n du bloc sub.universe.*).
-const UNIVERSE_LABEL_KEY: Record<Universe, string> = {
-  tarot: 'sub.universeTarot',
-  yijing: 'sub.universeYijing',
-  des: 'sub.universeDes',
-  runes: 'sub.universeRunes',
-};
 
 interface SubState {
   plan: string;
@@ -50,6 +45,37 @@ interface SubState {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   usage: any;
+}
+
+// Pédagogie des logos : à CHAQUE mention de « tirages de base » / « tirages
+// avancés » (compteurs, lignes de forfaits, recharges, cadeaux, titres de
+// sections), le logo correspondant est rappelé entre parenthèses — les
+// utilisateurs font le lien avec les badges des tuiles et des modales ⓘ.
+const KIND_RX = /tirages?\s+de\s+base|tirages?\s+avanc[ée]s?|base\s+draws?|advanced\s+draws?|tiradas?\s+b[áa]sic[ao]s?|tiradas?\s+avanzadas?|bases\s+restantes|आधार[\p{L}\p{M}\-–]*(?:\s+भविष्यकथन)?|मूल[\p{L}\p{M}\-–]*(?:\s+पा[ठत])?|उन्नत[\p{L}\p{M}\-–]*(?:\s+पा[ठत]|\s+भविष्यकथन)?|\bavanc[ée]s?\b|\badvanced\b|\bb[áa]sicas?\b|\bavanzadas?\b|\bbases?\b|आधार|मूल|उन्नत/giu;
+
+function withKindLogos(text: string, t: (k: string) => string) {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  let k = 0;
+  KIND_RX.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = KIND_RX.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    nodes.push(<Fragment key={`t-${k}`}>{m[0]}</Fragment>);
+    const advanced = /avanc|advanced|avanzad|उन्नत/i.test(m[0]);
+    nodes.push(
+      <span
+        key={`g-${k++}`}
+        title={advanced ? t('sub.meterGrand') : t('sub.meterBase')}
+        className="mx-0.5 inline-flex shrink-0 items-center whitespace-nowrap text-amber-300/90"
+      >
+        {'('}{advanced ? <AdvancedDrawGlyph size={12} color="currentColor" /> : <BaseDrawGlyph size={12} color="currentColor" />}{')'}
+      </span>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
 }
 
 export default function AbonnementPage() {
@@ -299,10 +325,10 @@ export default function AbonnementPage() {
   const hasSubscription = current === 'initie' || current === 'arkane';
   const currentRank = hasSubscription ? (RANK[current] ?? 2) : 0;
   const isLocked = (p: PlanId): boolean => {
-    // La recharge cosmique est utile pour Initié (crédits limités) mais sans
-    // objet pour Arkane (consommation illimitée). Proposable pour un compte
-    // sans abonnement ou Initié ; bloquée pour Arkane.
-    if (p === 'recharge') return current === 'arkane';
+    // La recharge cosmique reste TOUJOURS achetable — y compris pour Arkane :
+    // les 120+120 tirages mensuels ne sont pas illimités ; au-delà du quota,
+    // les credits de recharge prolongent la consommation dans tous les univers.
+    if (p === 'recharge') return false;
     // On ne peut pas choisir un plan inférieur au plan actif (sans résilier).
     return hasSubscription && RANK[p] < currentRank;
   };
@@ -337,15 +363,6 @@ export default function AbonnementPage() {
   const rechargeBaseLeft = Math.floor(credits / CREDITS_BASE);
   const rechargeGrandLeft = Math.floor(credits / CREDITS_GRAND);
 
-  const universeStatus = (u: Universe): 'welcome' | 'credits' | 'none' => {
-    if (baseUnlimited) return 'welcome';
-    // Non-abonné : le Pack Apprenti n'offre QU'UNE base, sur l'univers choisi
-    // en premier. Les autres univers ne s'ouvrent que par crédits.
-    if (welcomeBaseUsed.length === 0) return 'welcome';
-    if (welcomeBaseUsed.includes(u)) return 'welcome';
-    if (credits >= CREDITS_BASE) return 'credits';
-    return 'none';
-  };
 
   const fmt = (n: number | 'inf') => (n === 'inf' ? '∞' : n.toString());
 
@@ -416,11 +433,11 @@ export default function AbonnementPage() {
           {/* Tirages restants : base & avancés */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-gray-900/40 border border-gray-700/40 p-3">
-              <div className="text-gray-500 text-xs">{t('sub.meterBase')}</div>
+              <div className="flex items-center justify-center gap-0.5 whitespace-nowrap text-xs text-gray-500">{withKindLogos(t('sub.meterBase'), t)}</div>
               <div className="text-2xl font-bold text-amber-200">{fmt(baseRemaining)}</div>
             </div>
             <div className="rounded-lg bg-gray-900/40 border border-gray-700/40 p-3">
-              <div className="text-gray-500 text-xs">{t('sub.meterGrand')}</div>
+              <div className="flex items-center justify-center gap-0.5 whitespace-nowrap text-xs text-gray-500">{withKindLogos(t('sub.meterGrand'), t)}</div>
               <div className="text-2xl font-bold text-amber-200">{fmt(grandRemaining)}</div>
             </div>
           </div>
@@ -453,8 +470,8 @@ export default function AbonnementPage() {
             <div className="rounded-lg bg-amber-900/20 border border-amber-700/30 p-3 text-sm">
               <div className="font-semibold text-amber-200 mb-1.5">{t('sub.rechargeState')}</div>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-300">
-                <span>≈ {rechargeGrandLeft} {t('sub.meterGrandShort')}</span>
-                <span>≈ {rechargeBaseLeft} {t('sub.meterBaseShort')}</span>
+                <span>≈ {rechargeGrandLeft} {withKindLogos(t('sub.meterGrandShort'), t)}</span>
+                <span>≈ {rechargeBaseLeft} {withKindLogos(t('sub.meterBaseShort'), t)}</span>
               </div>
             </div>
           )}
@@ -489,7 +506,7 @@ export default function AbonnementPage() {
                     <path d="M12 8.2c0-2.6 1.6-4.4 3.4-4.4 1.7 0 2.7 1.2 1.6 3-1 .9-2.8 1.2-5 1.4z" />
                     <path d="M12 8.2c0-2.6-1.6-4.4-3.4-4.4C6.9 3.8 5.9 5 7 6.8c1 .9 2.8 1.2 5 1.4z" />
                   </svg>
-                  {t('sub.meterGiftGrand')}
+                  {withKindLogos(t('sub.meterGiftGrand'), t)}
                 </span>
                 <span className="text-lg font-bold text-amber-100">+{giftGrandTickets}</span>
               </div>
@@ -505,24 +522,6 @@ export default function AbonnementPage() {
               )}
             </div>
           )}
-
-          {/* Tirages de base restants PAR UNIVERS */}
-          <div>
-            <div className="text-gray-500 text-xs mb-2">{t('sub.universeBaseTitle')}</div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {UNIVERSES.map((u) => {
-                const st = universeStatus(u);
-                return (
-                  <div key={u} className={`rounded-lg p-2.5 border text-center ${st === 'none' ? 'border-gray-700/40 bg-gray-900/30 opacity-60' : 'border-emerald-600/40 bg-emerald-900/10'}`}>
-                    <div className="text-amber-200 font-semibold text-sm">{t(UNIVERSE_LABEL_KEY[u])}</div>
-                    <div className="text-xs mt-1 text-gray-400">
-                      {st === 'welcome' ? t('sub.universeAvail') : st === 'credits' ? t('sub.universeViaCredits') : t('sub.universeNone')}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Bonus hérités (bonus streak supprimé : les comptes anciens peuvent
               encore porter un bonusGrand — il reste consommable et affiché). */}
@@ -593,7 +592,7 @@ export default function AbonnementPage() {
                   <div className="flex-1">
                     <ul className="space-y-1.5 text-sm text-gray-300">
                       {shown.map((f) => (
-                        <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{f}</span></li>
+                        <li key={f} className="flex gap-2"><span className="text-amber-400">✦</span><span>{withKindLogos(f, t)}</span></li>
                       ))}
                     </ul>
                     {features.length > 2 && (

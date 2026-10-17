@@ -85,7 +85,7 @@ const KIND_LABEL: Record<DieKind, string> = {
   house: 'Maison',
 };
 
-// Helpers de sérialisation pour l'historique (dés du zodiaque).
+// Helpers de sérialisation pour l'historique (dés zodiacaux).
 function diceCardsFor(f: TargetFaces, kinds: DieKind[]) {
   return kinds.map((k) => ({
     kind: k,

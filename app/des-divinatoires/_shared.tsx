@@ -1,7 +1,7 @@
 'use client';
 
 // app/des-divinatoires/_shared.tsx
-// Primitives visuelles partagées de la section "Dés du Zodiaque".
+// Primitives visuelles partagées de la section "Dés zodiacaux".
 // Palette provisoire : rouge brique + ocre (à remplacer par tes visuels définitifs).
 
 import Link from 'next/link';
@@ -462,7 +462,7 @@ export function BackToHub() {
         className="text-sm underline-offset-4 hover:underline"
         style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.ocreLight }}
       >
-        ← Retour aux Dés du zodiaque
+        ← Retour aux Dés zodiacaux
       </Link>
     </div>
   );
@@ -471,7 +471,7 @@ export function BackToHub() {
 /* Encart Analyse du tirage : statique immédiate (glyphes + meanings) +
    bouton IA qui interroge /api/astro-dice-interpretation et rend les
    sections (Planète / Signe / Maison) + synthèse en belles cartes.
-   Partagé par toutes les pages Dés du Zodiaque pour un rendu harmonieux. */
+   Partagé par toutes les pages Dés zodiacaux pour un rendu harmonieux. */
 export function DiceAnalysis({
   faces,
   activeKinds,

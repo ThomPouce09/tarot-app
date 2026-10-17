@@ -143,7 +143,7 @@ function menuLabel(l: { href: string; label: string }, lang: Lang): string {
     '/tarot': ['Tarot', 'Tarot', 'Tarot', 'टैरो'],
     '/yi-jing': ['Yi Jing', 'Yi Jing', 'Yi Jing', 'इ चिंग'],
     '/runes': ['Runes', 'Runes', 'Runas', 'रून'],
-    '/des-divinatoires': ['Dés du zodiaque', 'Zodiac Dice', 'Dados del Zodiaco', 'राशि पासे'],
+    '/des-divinatoires': ['Dés zodiacaux', 'Zodiac Dice', 'Dados del Zodiaco', 'राशि पासे'],
     '/dashboard/account': ['Mon espace', 'My space', 'Mi espacio', 'मेरा क्षेत्र'],
   };
   const e = M[l.href];
@@ -155,6 +155,6 @@ const MENU_LINKS: { href: string; label: string; disabled?: boolean }[] = [
   { href: '/tarot', label: 'Tarot' },
   { href: '/yi-jing', label: 'Yi Jing' },
   { href: '/runes', label: 'Runes' },
-  { href: '/des-divinatoires', label: 'Dés du zodiaque' },
+  { href: '/des-divinatoires', label: 'Dés zodiacaux' },
   { href: '/dashboard/account', label: 'Mon espace' },
 ];

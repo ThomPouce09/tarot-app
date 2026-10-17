@@ -8,8 +8,9 @@
 // Flags :
 //   'tour'         → visite guidée « Le hall des Etoiles » (landing)
 //   'login_tour'   → mini-visite du menu après connexion (account-nav)
-//   'hints_landing' / 'hints_runes' / 'hints_tarot' / 'hints_yijing' / 'hints_des'
-//                  → mini-tutots des hubs (FirstVisitHints)
+//   'hints_landing' → mini-tutots de la landing (FirstVisitHints)
+//   'hints_hubs'    → mini-tutots des 4 hubs — GLOBAUX : un seul cycle complet
+//                     pour Tarot/Runes/Yi Jing/Dés (ancien flags hints_<hub> migrés)
 
 const LOCAL_KEY = 'tarot…s';
 /** Événement window dispatché quand le cache local change (hydratation, marquage). */
@@ -39,6 +40,12 @@ function migrateLegacy() {
     if (localStorage.getItem('tarot_tour_done')) seeded.push('login_tour');
     for (const k of ['hints_landing', 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des']) {
       if (localStorage.getItem(k)) seeded.push(k);
+    }
+    // Les mini-tutots des hubs sont devenus GLOBAUX (un seul cycle pour les 4
+    // univers, flag 'hints_hubs') : un compte qui a déjà vu le cycle dans
+    // n'importe quel hub ne doit pas le revoir ailleurs.
+    if (['hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des'].some((k) => seeded.includes(k))) {
+      seeded.push('hints_hubs');
     }
     writeLocal(seeded);
   } catch {
@@ -145,7 +152,7 @@ export function onAccountChanged() {
 export async function resetAllTutorials(): Promise<void> {
   try {
     localStorage.removeItem(LOCAL_KEY);
-    for (const k of ['tarot_seen_tour', 'tarot_tour_done', 'hints_landing', 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des']) {
+    for (const k of ['tarot_seen_tour', 'tarot_tour_done', 'hints_landing', 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des', 'hints_hubs']) {
       localStorage.removeItem(k);
     }
   } catch {

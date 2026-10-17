@@ -1,6 +1,6 @@
 // app/api/astro-dice-interpretation/route.ts
 //
-// Interprétation LLM des Dés du Zodiaque. Reçoit les faces tirées + le mode,
+// Interprétation LLM des Dés zodiacaux. Reçoit les faces tirées + le mode,
 // un texte optionnel d'interprétation DB (astroInterpretation) qui sert
 // de BASE à l'analyse, et une question utilisateur optionnelle pour
 // personnaliser la réponse.
@@ -119,13 +119,13 @@ RÉPONDS STRICTEMENT EN FORMAT JSON (pas de texte avant ni après, pas de markdo
   }
 
   if (mode === 'zoom-action') {
-    return `Tirage de base des Dés du Zodiaque :
+    return `Tirage de base des Dés zodiacaux :
 ${tirage}${db}${q}
 On a relancé le dé des Signes pour préciser l'action à mener. En te basant sur ce nouveau signe, le contexte astrologique et la question posée, indique quelle attitude ou action concrète adopter MAINTENANT pour débloquer la situation.
 Ton de conseil pratique et oracle, à la 2e personne, en français. 150-250 mots. Sois très concret : donne des actions précises, pas des généralités. Réponds UNIQUEMENT en texte libre (pas de JSON).`;
   }
 
-  return `Tirage de base des Dés du Zodiaque :
+  return `Tirage de base des Dés zodiacaux :
 ${tirage}${db}${q}
 On a relancé le dé des Maisons pour préciser le domaine impacté par ricochet. Indique quel(s) autre(s) domaine(s) de la vie de la personne va/vent être impacté(s) par cette décision, en lien avec sa question et le contexte astrologique donné.
 Ton prospectif, à la 2e personne, en français. 150-250 mots. Cite des domaines concrets, pas des généralités. Réponds UNIQUEMENT en texte libre (pas de JSON).`;
@@ -267,7 +267,7 @@ function buildZoomWithArtemisPrompt(
 
   return `Tu es une astrologue d'une grande finesse : lucide, bienveillante, ancrée — une sagesse féminine incarnée, jamais mièvre. Tu ne nommes JAMAIS le « féminin » ni la « féminité » : tu l'incarnes par le ton.
 
-Tirage de base des Dés du Zodiaque (Planète × Signe × Maison) :
+Tirage de base des Dés zodiacaux (Planète × Signe × Maison) :
 ${lines(originalFaces)}
 
 On a relancé ${rolled} — tirage après affinage :

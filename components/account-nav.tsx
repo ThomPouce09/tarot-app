@@ -160,13 +160,21 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
             key={l.href}
             href={l.href}
             onClick={(e) => { e.preventDefault(); router.push(l.href); }}
-            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg text-[10px] ${pathname === l.href ? 'text-amber-300' : 'text-gray-500'}`}
-            style={{ pointerEvents: 'auto' }}
+            className={`relative flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 text-[10px] transition-colors ${pathname === l.href ? 'text-amber-300' : 'text-gray-400 hover:text-amber-200/80'}`}
+            style={{
+              pointerEvents: 'auto',
+              background: pathname === l.href ? 'rgba(217,180,92,0.14)' : 'transparent',
+              boxShadow: pathname === l.href ? 'inset 0 0 0 1px rgba(217,180,92,0.35), 0 0 10px rgba(217,180,92,0.22)' : 'none',
+            }}
+            aria-current={pathname === l.href ? 'page' : undefined}
           >
             <span className="text-lg">
               <img src={l.img} alt="" className="h-5 w-5 object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.35))' }} />
             </span>
             <span className="whitespace-nowrap">{t(l.key)}</span>
+            {pathname === l.href && (
+              <span aria-hidden className="absolute -bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, #DAA520, transparent)', boxShadow: '0 0 6px rgba(218,165,32,0.7)' }} />
+            )}
           </Link>
         ))}
       </nav>

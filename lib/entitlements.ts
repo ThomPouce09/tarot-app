@@ -237,7 +237,7 @@ export async function canDo(email: string, type: string, question: string | null
   return {
     allowed: false,
     reason: 'limit-grand',
-    message: 'Aucun grand tirage disponible. Abonnez-vous pour en débloquer.',
+    message: 'Aucun tirage avancé disponible. Abonnez-vous pour en débloquer.',
   };
 }
 
