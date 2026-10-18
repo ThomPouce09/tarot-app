@@ -10,11 +10,14 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useLang } from '@/lib/i18n';
+import { DrawTypePill } from '@/components/draw-type-badge';
 import { RUNE_THEME } from './_shared';
 
 export interface TutorialSlide {
   glyph: string;
   title: string;
+  /** Type du tirage (badge + modale) : vrai = base, faux = avancé. */
+  base?: boolean;
   titleEn: string;
   desc: string;
   descEn: string;
@@ -127,6 +130,11 @@ export function TutorialModal({
               >
                 {pickL(s.title, s.titleEn, s.titleEs, s.titleHi)}
               </h2>
+              {s.base !== undefined && (
+                <div className="mt-2 flex justify-center">
+                  <DrawTypePill base={s.base} color={RUNE_THEME.goldPale} label={pickL(s.base ? 'Tirage de base' : 'Tirage avancé', s.base ? 'Base draw' : 'Advanced draw', s.base ? 'Tirada base' : 'Tirada avanzada', s.base ? 'मूल पात' : 'उन्नत पात')} />
+                </div>
+              )}
               <p
                 className="relative mt-2 text-xs leading-relaxed sm:text-sm"
                 style={{

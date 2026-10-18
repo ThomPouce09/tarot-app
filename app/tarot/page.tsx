@@ -13,6 +13,7 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { DrawTypeCorner } from '@/components/draw-type-badge';
 // Liste AUTO-GÉNÉRÉE au build/dev (scripts/gen-backdrops.cjs lit
 // public/backgrounds/tarot-bg*.jpg|.mp4) : déposer un nouveau fichier
 // numéroté suffit, aucune édition de code.
@@ -85,6 +86,7 @@ function TarotRandomBackdrop() {
 const TAROT_TUTORIALS: TutorialSlide[] = [
   {
     iconImg: '/images/tirage-3-cartes.png',
+    base: true,
     title: '3 Cartes Simplifié',
     titleEn: '3 Cards Simplified',
 titleEs: "3 Cartas Simple", titleHi: "3 पत्ते सरल",
@@ -106,6 +108,7 @@ stepsHi: ["अपना अर्काना-मार्गदर्शक च
   },
   {
     iconImg: '/images/tirage-3-cartes.png',
+    base: false,
     title: '3 Cartes · Précis',
     titleEn: '3 Cards · Precise',
 titleEs: "3 Cartas · Preciso", titleHi: "3 पत्ते · संक्षिप्त",
@@ -127,6 +130,7 @@ stepsHi: ["अपने प्रश्न को शब्द दें", "ग�
   },
   {
     iconImg: '/images/roue-semaine.svg',
+    base: false,
     title: 'Les Arcanes de la Semaine',
     titleEn: 'Arcana of the Week',
 titleEs: "Los Arcanos de la Semana", titleHi: "सप्ताह के आर्काना",
@@ -134,7 +138,7 @@ titleEs: "Los Arcanos de la Semana", titleHi: "सप्ताह के आर�
     descEn: 'Seven major arcana, one per day: your week unfolds day by day, then the red thread seals as an augury.',
 descEs: "Siete arcanos mayores, uno por día: su semana se despliega día tras día, y luego el hilo rojo se sella en augurio.", descHi: "सात बृहत् अर्काना, एक-एक दिन: आपका सप्ताह दिन-प्रतिदिन खुलता है, फिर लाल धागा शुभसूचन बनकर मुद्रित हो जाता है।",
     steps: [
-      'Posez la roue (un seul geste, un grand tirage)',
+      'Posez la roue (un seul geste, un tirage avancé)',
       'Chaque jour, ouvrez la carte qui luit — les jours passés se révèlent seuls',
       'À la fin de la semaine, tissez le fil rouge et scellez-le en augure (si le cœur vous en dit)',
     ],
@@ -143,11 +147,12 @@ descEs: "Siete arcanos mayores, uno por día: su semana se despliega día tras d
       'Each day, open the glowing card — past days reveal themselves',
       'At week’s end, weave the red thread and seal it as an augury (if your heart so desires)',
     ],
-stepsEs: ["Despliegue la rueda (un solo gesto, una gran tirada)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio (si su corazón se lo pide)"],
+stepsEs: ["Despliegue la rueda (un solo gesto, una tirada avanzada)", "Cada día, abra la carta que brilla — los días pasados se revelan solos", "Al final de la semana, teja el hilo rojo y séllelo en augurio (si su corazón se lo pide)"],
 stepsHi: ["चक्र बिछाइए (एक ही क्रिया, एक बृहत् वाचन)", "हर दिन वह पत्ता खोलें जो चमकता है — बीते दिन स्वयं प्रकट हो जाते हैं", "सप्ताह के अंत में लाल धागा बुनें और उसे शुभसूचन में मुद्रित करें (यदि आपका मन चाहे)"],
   },
   {
     iconImg: '/images/5 cartes manuelles.png',
+    base: false,
     title: '5 cartes manuelles',
     titleEn: 'Manual 5-Card Reading',
 titleEs: "5 cartas manuales", titleHi: "5 पत्ते, हाथ से चुने",
@@ -169,6 +174,7 @@ stepsHi: ["गड्डी का अवलोकन करें", "अपन�
   },
 ];
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -241,11 +247,15 @@ export default function TarotHubPage() {
         className="absolute top-[6%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none"
       >
         <h1
-          className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
+          className="title-glow px-4 tracking-wide uppercase mb-3 whitespace-nowrap"
           style={{
             fontFamily: "var(--font-cinzel-deco), serif",
             color: "#DAA520",
-            letterSpacing: "0.18em",
+            letterSpacing: "0.16em",
+            // Titre sur UNE ligne quoi qu'il arrive : la taille s'adapte à la
+            // largeur de l'écran (clamp) au lieu de casser en 2 lignes sur
+            // petits téléphones.
+            fontSize: "clamp(1.5rem, 8.5vw, 3.75rem)",
             textShadow:
               "0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)",
           }}
@@ -310,6 +320,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={TAROT_TUTORIALS[0]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[0]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[0]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Simplifié', '3 Cards Simplified', '3 cartas simplificado', '3 पत्ते सरल')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
@@ -381,6 +392,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={TAROT_TUTORIALS[1]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[1]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[1]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Précis', '3 Cards Precise', '3 cartas preciso', '3 पत्ते सटीक')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
@@ -452,6 +464,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={TAROT_TUTORIALS[2]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[2]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[2]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img src="/images/roue-semaine.svg" alt={tr('Roue des sept arcanes', 'Wheel of the seven arcana', 'Rueda de los siete arcanos', 'सात अर्कानों का चक्र')} className="w-16 h-16 mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
                 className="text-sm font-bold text-center leading-tight mb-1"
@@ -524,6 +537,7 @@ export default function TarotHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={TAROT_TUTORIALS[3]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[3]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[3]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/5 cartes manuelles.png" alt={tr('5 cartes manuelles', '5 manual cards', '5 cartas manuales', '5 पत्ते, हाथ से चुने')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
                   className="text-sm font-bold text-center leading-tight mb-1"
@@ -596,6 +610,13 @@ export default function TarotHubPage() {
             </motion.div>
           </div>
         )}
+
+        {/* MODE INVITÉ : dans la grille absolue → dernière ligne pleine largeur,
+            donc collée sous les tuiles (un fixed ici serait re-pivoté par le
+            transform du conteneur : d'où la dérive du bandeau flottant). */}
+        <div className="col-span-2 w-full max-w-xs justify-self-center -mt-4">
+          <GuestModeBanner tone="gold" />
+        </div>
       </div>
 
       {/* Login prompt message */}

@@ -15,11 +15,13 @@ import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { DrawTypeCorner } from '@/components/draw-type-badge';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
 const YI_TUTORIALS: TutorialSlide[] = [
   {
     iconImg: '/images/yi-jing-double.png',
+    base: false,
     title: 'Le Double Hexagramme',
     titleEn: 'The Double Hexagram',
 titleEs: "El Doble Hexagrama", titleHi: "दोहरी षटरेखा",
@@ -41,6 +43,7 @@ stepsHi: ["एक ही संवेग में तीन सिक्के 
   },
   {
     iconImg: '/images/yi-jing-icon.png',
+    base: true,
     title: 'Yi Jing simplifié',
     titleEn: 'Simplified I Ching',
 titleEs: "Yi Jing simplificado", titleHi: "सरल यी जिंग",
@@ -62,6 +65,7 @@ stepsHi: ["अपना क्षेत्र चुनें", "अपना �
   },
   {
     iconImg: '/images/yi-jing-simple.png',
+    base: false,
     title: 'Yi Jing précis',
     titleEn: 'Precise I Ching',
 titleEs: "Yi Jing preciso", titleHi: "सटीक यी जिंग",
@@ -83,6 +87,7 @@ stepsHi: ["अपने प्रश्न को शब्द दें", "ए�
   },
   {
     iconImg: '/images/yi-jing-du-jour.png',
+    base: true,
     title: 'Hexagramme du Jour',
     titleEn: 'Hexagram of the Day',
 titleEs: "El Hexagrama del Día", titleHi: "आज की षटरेखा",
@@ -166,6 +171,7 @@ function YiJingRandomBackdrop() {
   );
 }
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -258,8 +264,11 @@ export default function YiJingHubPage() {
         </p>
       </div>
 
+      {/* Colonne unique (la racine est un flex-row centré) : grille + bandeau
+          invité empilés — sans ce wrapper le bandeau partirait À CÔTÉ. */}
+      <div className="relative z-30 flex w-full flex-col items-center">
       {/* GRILLE : 2 colonnes sur smartphone */}
-      <div className="relative z-30 grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
+      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
         {/* TUILE — YI JING (base : baguettes d'achillée) */}
         <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
@@ -300,6 +309,7 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={YI_TUTORIALS[1]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[1]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[1]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-simple.png?v=2"
                 alt="Yi Jing simplifié"
@@ -376,6 +386,7 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={YI_TUTORIALS[2]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[2]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[2]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-precis.png?v=2"
                 alt={tr('Yi Jing précis', 'Precise I Ching', 'Yi Jing preciso', 'सटीक यी जिंग')}
@@ -452,6 +463,7 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={YI_TUTORIALS[3]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[3]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[3]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-du-jour.png"
                 alt={tr('Hexagramme du Jour', 'Hexagram of the Day', 'Hexagrama del Día', 'आज का हैक्सग्राम')}
@@ -528,6 +540,7 @@ export default function YiJingHubPage() {
                     <path d="M12 8h.01" />
                   </svg>
                 </button>
+                <DrawTypeCorner base={YI_TUTORIALS[0]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[0]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[0]?.base ? "Tirage de base" : "Tirage avancé")} />
                 {/* Icône de tuile — double hexagramme (image fournie) */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -566,6 +579,12 @@ export default function YiJingHubPage() {
             />
           </motion.div>
         </GatedTile>
+      </div>
+
+      {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
+      <div className="mx-auto -mt-1 mb-4 w-[92%] max-w-md">
+        <GuestModeBanner tone="lacquer" />
+      </div>
       </div>
 
       {/* Login prompt message */}

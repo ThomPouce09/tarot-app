@@ -9,6 +9,7 @@ import FirstVisitHints from '@/components/first-visit-hints';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { DrawTypeCorner } from '@/components/draw-type-badge';
 import { useLang, pick4, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
@@ -196,6 +197,7 @@ descEs: "2 tiradas para comprender un bloqueo y obtener un consejo para su soluc
 const TUTORIALS: TutorialSlide[] = [
   {
     icon: '✦',
+    base: true,
     title: 'Dés Simplifié',
     titleEn: 'Dice Simplified',
 titleEs: "Dados Simplificados", titleHi: "सरल पासा",
@@ -219,6 +221,7 @@ stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्व
   },
   {
     icon: '🔍',
+    base: false,
     title: 'Tirage par Affinage',
     titleEn: 'Refinement Reading',
 titleEs: "Tirada por Refinamiento", titleHi: "परिष्करण-वाचन",
@@ -240,6 +243,7 @@ stepsHi: ["अपना प्रारंभिक प्रश्न रखे
   },
   {
     icon: '⚖️',
+    base: false,
     title: 'Le tirage du choix',
     titleEn: 'The Choice Reading',
 titleEs: "La tirada de la elección", titleHi: "चयन का वाचन",
@@ -260,6 +264,7 @@ stepsHi: ["अपने दोनों विकल्प स्पष्ट �
   },
   {
     icon: '🗝️',
+    base: false,
     title: 'Obstacle & Solution',
     titleEn: 'Obstacle & Solution',
 titleEs: "Obstáculo & Solución", titleHi: "रुकावट & समाधान",
@@ -280,6 +285,7 @@ stepsHi: ["अवरोध की पहचान के लिए फेंक�
   },
 ] satisfies readonly TutorialSlide[];
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function DesDivinatoiresHub() {
   const [mounted, setMounted] = useState(false);
   const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
@@ -410,6 +416,7 @@ export default function DesDivinatoiresHub() {
                   <path d="M12 8h.01" />
                 </svg>
               </button>
+              <DrawTypeCorner base={TUTORIALS[i]?.base} color={DICE_THEME.ocreLight} title={(lang === 'en' ? (TUTORIALS[i]?.base ? 'Base draw' : 'Advanced draw') : TUTORIALS[i]?.base ? 'Tirage de base' : 'Tirage avancé')} />
               {mounted && <ZodiacFrieze position="top" />}
               {mounted && <ZodiacFrieze position="bottom" />}
 
@@ -444,6 +451,11 @@ export default function DesDivinatoiresHub() {
           </GatedTile>
           );
         })}
+      </div>
+
+      {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
+      <div className="relative z-30 mx-auto -mt-3 mb-4 w-[92%] max-w-md">
+        <GuestModeBanner tone="celeste" />
       </div>
 
       <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />

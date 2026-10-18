@@ -1,10 +1,12 @@
 'use client';
-import { api } from '@/lib/api-client';
 
 // lib/save-reading.ts
 // Helper partagé : persiste un tirage dans l'historique (POST /api/readings).
 // Utilisé par les pages Runes et Dés zodiacaux pour alimenter
 // /dashboard/account/readings. Ne fait rien si l'utilisateur n'est pas connecté.
+
+import { guestCached } from './guest-client';
+import { api } from './api-client';
 
 export interface SaveReadingInput {
   /** type de tirage, ex: 'runes-nornes', 'des-choix' */
@@ -26,6 +28,9 @@ export async function saveReading(input: SaveReadingInput): Promise<string | nul
     const u = JSON.parse(raw);
     const userId = u?.email;
     if (!userId) return null;
+    // Mode Invité : rien n'entre dans l'historique de l'hôte (le serveur
+    // refuse déjà ; on évite un appel inutile et un warning console).
+    if (guestCached()) return null;
 
     const res = await api('/api/readings', {
       method: 'POST',

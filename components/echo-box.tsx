@@ -12,9 +12,10 @@ import { useLang, useT, contentLang } from '@/lib/i18n';
 import { pickEchoText } from '@/lib/i18n/echo-text';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { EntitlementGateModal } from '@/lib/use-entitlement';
-import { api } from '@/lib/api-client';
 import { RuneButton } from '@/app/runes/_shared';
 import { playSound } from '@/lib/sounds';
+import { api } from '@/lib/api-client';
+import { useGuestMode } from '@/lib/guest-client';
 import { useFitOneLine } from '@/lib/fit-one-line';
 
 export interface EchoData {
@@ -198,6 +199,7 @@ export default function EchoBox({
     [current, apply, reload],
   );
 
+  const guest = useGuestMode();
   const email = typeof window !== 'undefined' ? readEmail() : '';
   const text = current ? pickEchoText(current, lang) : '';
   const dueMs = current ? new Date(current.dueAt).getTime() : 0;
@@ -206,7 +208,9 @@ export default function EchoBox({
   const due = current && now >= dueMs;
 
   // ── Non connecté : on ne scelle rien (l'écho vit dans le compte) ──
-  if (!email) return null;
+  // Mode Invité : idem — un augure rattaché au compte trahirait l'anonymat
+  // du prêt (et le serveur le refuse déjà).
+  if (!email || guest) return null;
 
   return (
     <div
