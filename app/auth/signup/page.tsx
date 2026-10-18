@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { calcAge } from '@/lib/dates';
 import { getDeviceToken } from '@/lib/device-client';
+import { isDisposableEmail } from '@/lib/disposable-emails';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
 function EyeIcon({ open }: { open: boolean }) {
@@ -31,7 +32,8 @@ const buildSignupSchema = () => {
     .regex(/[0-9]/, tr("1 chiffre obligatoire", "1 digit required", "1 cifra obligatoria", "1 अंक आवश्यक"));
 
   return z.object({
-    email: z.string().email(tr("Format email invalide", "Invalid email format", "Formato de email no válido", "ईमेल प्रारूप अमान्य")).min(1, tr("L'email est obligatoire", "Email is required", "El email es obligatorio", "ईमेल आवश्यक है")),
+    email: z.string().email(tr("Format email invalide", "Invalid email format", "Formato de email no válido", "ईमेल प्रारूप अमान्य")).min(1, tr("L'email est obligatoire", "Email is required", "El email es obligatorio", "ईमेल आवश्यक है")).refine((v) => !isDisposableEmail(v),
+      tr("Cette adresse email n'est pas acceptée. Utilise une adresse personnelle.", "This email address is not accepted. Please use a personal address.", "Esta dirección de correo no se acepta. Use una dirección personal.", "यह ईमेल पता स्वीकार्य नहीं है। कृपया एक व्यक्तिगत पता उपयोग करें।")),
     firstName: z.string().min(2, tr("2 lettres minimum requises pour le prénom", "First name needs at least 2 letters", "El nombre requiere al menos 2 letras", "नाम में कम से कम 2 अक्षर आवश्यक")),
     lastName: z.string().optional().or(z.literal('')),
     password: passwordSchema,
@@ -43,7 +45,6 @@ const buildSignupSchema = () => {
         tr("Date invalide", "Invalid date", "Fecha no válida", "अमान्य तिथि"))
       .refine((v) => { const a = calcAge(v); return a !== null && a >= 16; },
         tr("L’oracle accueille les personnes de 16 ans et plus.", "The Oracle welcomes people aged 16 and over.", "El Oráculo acoge a personas de 16 años en adelante.", "देववाणी 16 वर्ष और उससे अधिक आयु के लोगों का स्वागत करती है।")),
-    comment: z.string().optional().or(z.literal('')),
   }).refine((data) => data.password === data.confirmPassword, {
     message: tr("Les mots de passe ne correspondent pas", "Passwords do not match", "Las contraseñas no coinciden", "पासवर्ड मेल नहीं खाते"),
     path: ["confirmPassword"],
@@ -61,7 +62,6 @@ export default function SignUpPage() {
     confirmPassword: '',
     gender: 'other' as 'male' | 'female' | 'other',
     dateOfBirth: '',
-    comment: '',
   });
   const [turnstileToken, setTurnstileToken] = useState<string | null>("skip");
   const [isLoading, setIsLoading] = useState(false);
@@ -97,7 +97,6 @@ export default function SignUpPage() {
       // message localisé (undefined donnerait l'erreur générique « Required »).
       dateOfBirth: formData.dateOfBirth,
       lastName: formData.lastName === '' ? undefined : formData.lastName,
-      comment: formData.comment === '' ? undefined : formData.comment,
     };
 
     try {
@@ -361,18 +360,6 @@ export default function SignUpPage() {
 
                 </div>
 
-                <div>
-                  <label htmlFor="comment" className="mystic-label block mb-1.5">{tr("Commentaire", "Comment", "Comentario", "टिप्पणी")}</label>
-                  <textarea
-                    id="comment"
-                    name="comment"
-                    value={formData.comment}
-                    onChange={handleChange}
-                    rows={2}
-                    className="mystic-input resize-none"
-                    placeholder={tr("Vos remarques sur l'univers...", "Your comments about the universe...", "Sus observaciones sobre el universo...", "ब्रह्मांड के बारे में आपके विचार...")}
-                  ></textarea>
-                </div>
 
 
                 {apiError && (

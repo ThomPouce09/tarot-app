@@ -102,10 +102,10 @@ export const AUTH_MSG = {
     hi: 'जन्म तिथि आवश्यक है।',
   },
   disposableEmail: {
-    fr: 'Les adresses temporaires ou jetables ne peuvent pas créer de compte. Utilise une vraie adresse email.',
-    en: 'Temporary or disposable addresses cannot create an account. Please use a real email address.',
-    es: 'Las direcciones temporales o desechables no pueden crear una cuenta. Use una dirección de correo real.',
-    hi: 'अस्थायी या एकबारगी पते से खाता नहीं बनाया जा सकता। कृपया एक वास्तविक ईमेल पता उपयोग करें।',
+    fr: 'Cette adresse email n\u2019est pas acceptée. Utilise une adresse personnelle.',
+    en: 'This email address is not accepted. Please use a personal address.',
+    es: 'Esta dirección de correo no se acepta. Use una dirección personal.',
+    hi: 'यह ईमेल पता स्वीकार्य नहीं है। कृपया एक व्यक्तिगत पता उपयोग करें।',
   },
   emailTaken: {
     fr: 'Cet email est déjà inscrit. Connectez-vous ou utilisez un autre email.',

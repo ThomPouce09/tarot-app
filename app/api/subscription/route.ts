@@ -68,6 +68,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+      guestMode: !!user.guestMode,
+      // Tirages prêtés en mode Invité ce mois-ci (rappel page Abonnement).
+      guestUsedMonth: (rights as { guestUsedMonth?: number })?.guestUsedMonth ?? 0,
       plan: sub?.plan ?? 'apprenti',
       level,
       status: sub?.status ?? null,

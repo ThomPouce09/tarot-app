@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isGuestMode } from '@/lib/guest';
 import {
   generateAndSaveEcho,
   serializeEcho,
@@ -34,6 +35,11 @@ export async function POST(request: NextRequest) {
   const email = String(body.userId || '').trim();
   const domain = body.domain as EchoDomain;
   if (!email) return NextResponse.json({ error: 'userId requis' }, { status: 400 });
+  // MODE INVITÉ : pas d'augure — un sceau daté rattacherait la lecture anonyme
+  // au compte hôte (rappel push, échéance, vitrine). Refus serveur, non négociable.
+  if (await isGuestMode(email)) {
+    return NextResponse.json({ error: 'mode invite : augure indisponible', reason: 'guest' }, { status: 403 });
+  }
   if (!ECHO_DOMAINS.includes(domain)) {
     return NextResponse.json({ error: 'domain invalide' }, { status: 400 });
   }

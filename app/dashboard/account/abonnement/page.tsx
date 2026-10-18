@@ -95,6 +95,9 @@ export default function AbonnementPage() {
   const [activating, setActivating] = useState(false);
   const [email, setEmail] = useState<string>('');
   const [usage, setUsage] = useState<any>(null);
+  // Mode Invité : { on: flag serveur, lent: tirages prêtés ce mois-ci } — rappel
+  // affiché sous le tableau de consommation (la bascule vit sur les hubs).
+  const [guest, setGuest] = useState<{ on: boolean; lent: number }>({ on: false, lent: 0 });
   // Modale de confirmation de résiliation (plan ciblé : 'initie' | 'arkane' | null).
   const [confirmCancel, setConfirmCancel] = useState<PlanId | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -128,6 +131,7 @@ export default function AbonnementPage() {
     setCancelAtPeriodEnd(!!d.cancelAtPeriodEnd);
     setCurrentPeriodEnd(d.currentPeriodEnd ?? null);
     setUsage(d.usage ?? null);
+    setGuest({ on: !!d.guestMode, lent: d.guestUsedMonth ?? 0 });
   }, []);
 
   const loadState = useCallback(async (emailArg?: string) => {
@@ -441,6 +445,17 @@ export default function AbonnementPage() {
               <div className="text-2xl font-bold text-amber-200">{fmt(grandRemaining)}</div>
             </div>
           </div>
+
+          {/* Mode Invité : rappel des prêts du mois (flag + compteur serveur). */}
+          {(guest.on || guest.lent > 0) && (
+            <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm"
+                 style={guest.on
+                   ? { background: 'rgba(120,16,12,0.35)', border: '1px solid rgba(224,86,63,0.55)' }
+                   : { background: 'rgba(17,24,39,0.4)', border: '1px solid rgba(107,114,128,0.3)' }}>
+              <span style={{ color: guest.on ? '#FFD9CF' : '#9CA3AF' }}>{t('guest.meter')}</span>
+              <span className="font-bold" style={{ color: guest.on ? '#FFB4A2' : '#F3D9A6' }}>{guest.lent}</span>
+            </div>
+          )}
 
           {/* Privilèges du mois — Initié uniquement (Apprenti : non accessible ;
               Arkane : illimité, rien à compter). Restants servis par le serveur

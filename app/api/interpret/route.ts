@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { calcAge } from '@/lib/dates';
 import { resolveLang, outputDirective, type LlmLang } from '@/lib/lang';
+import { isGuestMode } from '@/lib/guest';
 
 interface Interpretation {
   situation?: string;
@@ -241,7 +242,8 @@ export async function POST(request: NextRequest) {
       : 'Le consultant a formulé librement cette question personnelle.');
   }
   try {
-    if (userId && typeof userId === 'string' && userId.trim()) {
+    // MODE INVITÉ : ni date de naissance ni sexe dans le prompt.
+    if (userId && typeof userId === 'string' && userId.trim() && !(await isGuestMode(userId))) {
       const prof = await prisma.user.findUnique({
         where: { email: userId },
         select: { dateOfBirth: true, gender: true },
@@ -348,9 +350,9 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
       : generateYijingInterpretation(question, language === 'en' ? 'en' : 'fr');
   }
 
-  // Sauvegarde DB
+  // Sauvegarde DB (jamais pour un tirage prêté : pas d'historique hôte)
   let savedReadingId: string | null = null;
-  if (userId) {
+  if (userId && !(await isGuestMode(String(userId)))) {
     try {
       const user = await prisma.user.findUnique({ where: { email: userId } });
       if (user) {

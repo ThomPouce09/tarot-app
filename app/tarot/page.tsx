@@ -174,6 +174,7 @@ stepsHi: ["गड्डी का अवलोकन करें", "अपन�
   },
 ];
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -246,11 +247,15 @@ export default function TarotHubPage() {
         className="absolute top-[6%] left-1/2 -translate-x-1/2 z-30 text-center px-4 pointer-events-none"
       >
         <h1
-          className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
+          className="title-glow px-4 tracking-wide uppercase mb-3 whitespace-nowrap"
           style={{
             fontFamily: "var(--font-cinzel-deco), serif",
             color: "#DAA520",
-            letterSpacing: "0.18em",
+            letterSpacing: "0.16em",
+            // Titre sur UNE ligne quoi qu'il arrive : la taille s'adapte à la
+            // largeur de l'écran (clamp) au lieu de casser en 2 lignes sur
+            // petits téléphones.
+            fontSize: "clamp(1.5rem, 8.5vw, 3.75rem)",
             textShadow:
               "0 0 40px rgba(218,165,32,0.7), 0 0 80px rgba(218,165,32,0.4)",
           }}
@@ -605,6 +610,13 @@ export default function TarotHubPage() {
             </motion.div>
           </div>
         )}
+
+        {/* MODE INVITÉ : dans la grille absolue → dernière ligne pleine largeur,
+            donc collée sous les tuiles (un fixed ici serait re-pivoté par le
+            transform du conteneur : d'où la dérive du bandeau flottant). */}
+        <div className="col-span-2 w-full max-w-xs justify-self-center -mt-4">
+          <GuestModeBanner tone="gold" />
+        </div>
       </div>
 
       {/* Login prompt message */}

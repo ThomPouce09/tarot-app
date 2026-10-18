@@ -20,9 +20,10 @@ type Profile = {
   birthCountry: string | null;
   birthTown: string | null;
   birthHour: string | null;
+  comment: string | null;
 };
 
-const EMPTY: Profile = { domains: [], lifeStage: null, tone: null, familiarity: null, birthCountry: null, birthTown: null, birthHour: null };
+const EMPTY: Profile = { domains: [], lifeStage: null, tone: null, familiarity: null, birthCountry: null, birthTown: null, birthHour: null, comment: null };
 
 const DOMAINS = ['amour', 'famille', 'travail', 'etudes', 'argent', 'projets', 'serenite'];
 const STAGES = ['etudes', 'active', 'reconversion', 'parenthese', 'retraite', 'installation', 'separation', 'nouveau-depart'];
@@ -89,6 +90,7 @@ export default function OracleProfileForm() {
           domains: Array.isArray(d.domains) ? d.domains : [],
           lifeStage: d.lifeStage ?? null, tone: d.tone ?? null, familiarity: d.familiarity ?? null,
           birthCountry: d.birthCountry ?? null, birthTown: d.birthTown ?? null, birthHour: d.birthHour ?? null,
+          comment: d.comment ?? null,
         });
       })
       .catch(() => { /* profil vide affiché — jamais bloquant */ })
@@ -218,6 +220,21 @@ export default function OracleProfileForm() {
                 />
               </label>
             </div>
+          </div>
+
+          {/* 7 — Mot libre : ce que le consultant veut partager sur lui-même.
+              Alimente le prompt de l'Oracle (« sa propre description »). */}
+          <div className="rounded-xl border border-amber-800/25 bg-black/20 p-4">
+            <label htmlFor="profile-comment" className="mystic-subtitle text-sm block mb-2">{t('profile.comment')}</label>
+            <textarea
+              id="profile-comment"
+              value={p.comment ?? ''}
+              onChange={(e) => setP((s) => ({ ...s, comment: e.target.value }))}
+              rows={3}
+              maxLength={200}
+              className="w-full rounded-lg border border-violet-500/40 bg-black/30 px-3 py-2 text-sm text-amber-50 outline-none focus:border-violet-400/70 resize-none"
+              placeholder={t('profile.commentPh')}
+            />
           </div>
 
           {msg === 'saved' && (

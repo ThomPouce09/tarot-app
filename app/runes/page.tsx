@@ -221,6 +221,7 @@ stepsHi: ["Urðr — स्रोत: जो तुम्हें पोषि�
   },
 ] satisfies readonly TutorialSlide[];
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function RunesHub() {
   const [mounted, setMounted] = useState(false);
   const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
@@ -374,6 +375,11 @@ export default function RunesHub() {
           );
         })}
       </div>
+      {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
+      <div className="relative z-30 mx-auto -mt-3 mb-4 w-[92%] max-w-md">
+        <GuestModeBanner tone="teal" />
+      </div>
+
       <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <Firefly page="runes" />

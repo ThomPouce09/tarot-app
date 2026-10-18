@@ -7,6 +7,8 @@
 //  - afficher une modale élégante si le tirage est bloqué (limite / paywall)
 
 import { useCallback, useEffect, useState } from 'react';
+import { GuestExitButton } from '@/components/guest-mode-banner';
+import { GUEST_EVENT } from '@/lib/guest-client';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
 
@@ -40,7 +42,7 @@ export interface SubscriptionState {
   usage: UsageState | null;
 }
 
-export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-pack' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit' | 'session';
+export type GateReason = 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-pack' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'personal-only' | 'perk-tier' | 'perk-limit' | 'guest-locked' | 'session';
 
 export interface GateDecision {
   allowed: boolean;
@@ -94,6 +96,13 @@ export function useEntitlement() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  // Bascule du mode Invité (banner des hubs → événement global) : les tuiles
+  // grisées (roue/double → 'guest-locked') doivent suivre l'état immédiatement.
+  useEffect(() => {
+    const sync = () => { load(); loadTiles(); };
+    window.addEventListener(GUEST_EVENT, sync);
+    return () => window.removeEventListener(GUEST_EVENT, sync);
+  }, [load, loadTiles]);
 
   // Vérifie ET consomme un tirage. Renvoie la décision.
   const consume = useCallback(async (type: string, question?: string | null): Promise<GateDecision> => {
@@ -141,10 +150,12 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
   // Privilèges d'abonnement (Conseil d'Odin / Secret d'Artémis).
   const isPerkTier = reason === 'perk-tier';
   const isPerkLimit = reason === 'perk-limit';
+  // Mode Invité : tirage rattaché au compte (roue) ou espace personnel — fermés.
+  const isGuestLocked = reason === 'guest-locked';
 
-  const title = isBaseDaily ? t('gate.baseDailyTitle') : isBasePack ? t('gate.basePackTitle') : isBaseMonthly ? t('gate.baseMonthlyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
+  const title = isGuestLocked ? t('guest.lockedTitle') : isBaseDaily ? t('gate.baseDailyTitle') : isBasePack ? t('gate.basePackTitle') : isBaseMonthly ? t('gate.baseMonthlyTitle') : isGrand ? t('gate.grandLimitTitle') : isPersonalOnly ? t('gate.personalOnlyTitle')
     : isPerkTier ? t('gate.perkTierTitle') : isPerkLimit ? t('gate.perkLimitTitle') : t('gate.paywallTitle');
-  const text = isBaseDaily ? t('gate.baseDailyText') : isBasePack ? t('gate.basePackText') : isBaseMonthly ? t('gate.baseMonthlyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
+  const text = isGuestLocked ? t('guest.lockedText') : isBaseDaily ? t('gate.baseDailyText') : isBasePack ? t('gate.basePackText') : isBaseMonthly ? t('gate.baseMonthlyText') : isGrand ? t('gate.grandLimitText') : isPersonalOnly ? t('gate.personalOnlyText')
     : isPerkTier ? t('gate.perkTierText') : isPerkLimit ? t('gate.perkLimitText') : t('gate.paywallText');
 
   return (
@@ -156,10 +167,19 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
         <h3 className="mystic-title text-lg mb-2" style={{ color: '#DAA520' }}>{title}</h3>
         <p className="text-gray-300 text-sm leading-relaxed mb-4">{text}</p>
         <div className="flex gap-3">
-          <a href="/dashboard/account/abonnement" className="mystic-btn flex-1 text-center" onClick={onClose}>
-            {t('gate.upgrade')}
-          </a>
-          <button onClick={onClose} className="mystic-btn-ghost flex-1">{t('gate.close')}</button>
+          {isGuestLocked ? (
+            <>
+              <GuestExitButton onDone={onClose} />
+              <button onClick={onClose} className="mystic-btn-ghost flex-1">{t('gate.close')}</button>
+            </>
+          ) : (
+            <>
+              <a href="/dashboard/account/abonnement" className="mystic-btn flex-1 text-center" onClick={onClose}>
+                {t('gate.upgrade')}
+              </a>
+              <button onClick={onClose} className="mystic-btn-ghost flex-1">{t('gate.close')}</button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -194,10 +194,6 @@ export default function AccountPage() {
                 <option value="other">{t('account.gender.other')}</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="comment" className="mystic-label block mb-1">{t('account.comment')}</label>
-              <textarea id="comment" value={form.comment} onChange={(e: any) => setForm({ ...form, comment: e.target.value })} rows={3} className="mystic-input resize-none" />
-            </div>
             <div className="flex gap-3 pt-1">
               <button onClick={handleSave} disabled={saving} className="mystic-btn flex-1 disabled:opacity-60">
                 {saving ? '...' : t('account.validate')}
@@ -213,7 +209,6 @@ export default function AccountPage() {
               ? new Date(user.dateOfBirth).toLocaleDateString(LOC[lang], { day: '2-digit', month: '2-digit', year: 'numeric' })
               : user.age != null ? `(${t('account.yearsOld').replace('{n}', String(user.age))})` : null} />
             <Row label={t('account.gender')} value={genderLabel} />
-            <Row label={t('account.comment')} value={user.comment} />
           </dl>
         )}
       </div>

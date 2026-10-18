@@ -53,6 +53,9 @@ model User {
   // Thème du ciel de « Mon espace » : 'sombre' (bleu nuit étoilé, défaut) ou
   // 'clair' (ancien ciel violet). Regardé par la layout + l'UI Préférences.
   theme             String   @default("sombre")
+  // Mode Invité actif : tirages débités du compte mais anonymes (aucun
+  // profil envoyé à l'IA), sans historique ni augure scellable.
+  guestMode         Boolean   @default(false)
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
   // Fuseau IANA de l'appareil (ex. 'Europe/Paris'), capturé au lancement natif.
   // Sert à déclencher le rappel quotidien à l'heure LOCALE du user (cron par heure UTC).
@@ -130,6 +133,8 @@ model Usage {
   // Solde de la recharge cosmique (one-shot) : pool de crédits mixable.
   // 2€ = 105 crédits ; base = 7 crédits ; avancé = 15 crédits (15x7 = 105 = 7x15).
   rechargeCredits Int      @default(0)
+  // Compteur mensuel des tirages effectués en mode Invité (rappel UI).
+  guestUsedMonth  Int      @default(0)
   // Cadeau des créatures : tickets de tirage offerts par filière — base et
   // avancée — consommés avant les crédits. giftLastAt = réclamation (validité
   // 5 jours) ; giftNextOkAt = prochaine réclamation possible (cooldown
@@ -176,6 +181,9 @@ model Reading {
   type           String
   userId         String
   question       String?
+  // true = lecture effectuée en mode Invité (prêt) : invisible dans
+  // « Mes tirages » ; le tirage n'appartient pas à l'hôte.
+  guest          Boolean   @default(false)
   spread         String?
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   echo           Echo?

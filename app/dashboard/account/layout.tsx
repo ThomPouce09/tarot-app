@@ -1,9 +1,12 @@
 'use client';
-
+// helpers invités
+import { GuestExitButton } from '@/components/guest-mode-banner';
+import { refreshGuestState, GUEST_EVENT } from '@/lib/guest-client';
 import { tr } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import AccountNav from '@/components/account-nav';
+import SpaceTour from '@/components/space-tour';
 import { readSpaceTheme, SPACE_THEME_EVENT, type SpaceTheme } from '@/lib/theme';
 
 // Ciel de « Mon espace » : bleu nuit profond dégradé + voile nébuleux froid,
@@ -49,6 +52,21 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   // Thème du ciel (Préférences) : 'sombre' = bleu nuit étoilé (défaut),
   // 'clair' = l'ancien ciel violet. Relu au montage + à l'événement de bascule.
   const [theme, setTheme] = useState<SpaceTheme>('sombre');
+  // Mode Invité : « Mon espace » est FERMÉ (l'invité tient le téléphone).
+  // Relu à chaque focus/événement — la sortie de mode réouvre immédiatement.
+  const [guestLocked, setGuestLocked] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      let em = '';
+      try { em = JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch {}
+      refreshGuestState(em).then(setGuestLocked);
+    };
+    check();
+    window.addEventListener('focus', check);
+    window.addEventListener(GUEST_EVENT, check);
+    return () => { window.removeEventListener('focus', check); window.removeEventListener(GUEST_EVENT, check); };
+  }, []);
+
   useEffect(() => {
     setTheme(readSpaceTheme());
     const sync = () => setTheme(readSpaceTheme());
@@ -143,9 +161,23 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     <div className={`min-h-screen cosmos relative isolate md:flex${theme === 'clair' ? ' cosmos-clar' : ''}`}>
       <CosmosSky />
       <AccountNav user={user} locked={confirmed === false} />
+      <SpaceTour active={confirmed !== false} />
       <main className="flex-1 min-w-0 pb-24 md:pb-8 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
         <div className="max-w-3xl mx-auto">
-          {children}
+          {guestLocked ? (
+            <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+              <div className="relative z-10 w-full max-w-sm mystic-panel p-6 text-center">
+                <img src="/logo-espace.png" alt="" className="mx-auto mb-3 h-[34px] w-auto object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(218,165,32,0.45))' }} />
+                <h3 className="mystic-title text-lg mb-2" style={{ color: '#DAA520' }}>{tr('Espace personnel protégé', 'Personal space protected', 'Espacio personal protegido', 'व्यक्तिगत क्षेत्र सुरक्षित')}</h3>
+                <p className="text-gray-300 text-sm leading-relaxed mb-5">{tr('Tant que le mode Invité est actif, votre espace personnel (Mon espace, historique, abonnement) reste fermé : personne d\u2019autre ne peut y accéder.', 'While Guest mode is on, your personal space (My space, history, subscription) stays closed: no one else can reach it.', 'Mientras el modo Invitado está activo, su espacio personal (Mi espacio, historial, suscripción) permanece cerrado: nadie más puede acceder.', 'जब तक अतिथी मोड सक्रिय है, आपका व्यक्तिगत क्षेत्र (मेरा क्षेत्र, इतिहास, सदस्यता) बंद रहता है: कोई अन्य उस तक नहीं पहुँच सकता।')}</p>
+                <div className="flex gap-3">
+                  <GuestExitButton onDone={() => setGuestLocked(false)} />
+                  <a href="/tarot" className="mystic-btn-ghost flex-1 text-center">{tr('Retour aux univers', 'Back to the universes', 'Volver a los universos', 'ब्रह्मांडों में लौटें')}</a>
+                </div>
+              </div>
+            </div>
+          ) : children}
         </div>
       </main>
     </div>

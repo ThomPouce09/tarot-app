@@ -171,6 +171,7 @@ function YiJingRandomBackdrop() {
   );
 }
 
+import GuestModeBanner from '@/components/guest-mode-banner';
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -263,8 +264,11 @@ export default function YiJingHubPage() {
         </p>
       </div>
 
+      {/* Colonne unique (la racine est un flex-row centré) : grille + bandeau
+          invité empilés — sans ce wrapper le bandeau partirait À CÔTÉ. */}
+      <div className="relative z-30 flex w-full flex-col items-center">
       {/* GRILLE : 2 colonnes sur smartphone */}
-      <div className="relative z-30 grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
+      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
         {/* TUILE — YI JING (base : baguettes d'achillée) */}
         <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
@@ -575,6 +579,12 @@ export default function YiJingHubPage() {
             />
           </motion.div>
         </GatedTile>
+      </div>
+
+      {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
+      <div className="mx-auto -mt-1 mb-4 w-[92%] max-w-md">
+        <GuestModeBanner tone="lacquer" />
+      </div>
       </div>
 
       {/* Login prompt message */}

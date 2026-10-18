@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOracle } from '@/lib/llm';
 import { requireSessionEmail } from '@/lib/session';
+import { isGuestMode } from '@/lib/guest';
 import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { guardRequest } from '@/lib/quota-guard';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
@@ -168,6 +169,8 @@ export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email') || '';
   const user = await findUser(email);
   if (!user) return NextResponse.json({ wheel: null });
+  // MODE INVITÉ : la roue (celle du compte) n'est pas consultable.
+  if (await isGuestMode(email)) return NextResponse.json({ wheel: null, guest: true });
   const tz = userTz(user);
   const readings = await prisma.reading.findMany({
     where: { userId: user.id, type: 'tarot-semaine' },
@@ -207,6 +210,12 @@ export async function POST(request: NextRequest) {
   // Session serveur : le jeton X-Session doit correspondre au compte utilisé.
   const sess = requireSessionEmail(request, email);
   if ('error' in sess) return sess.error as NextResponse;
+  // MODE INVITÉ : la Roue de la Semaine est un tirage RATTACHÉ au compte (roue
+  // en cours, archivage, augures de la semaine) — elle n'a aucun sens prêtée à
+  // un tiers. Refus serveur ; la tile du hub affiche la modale « protégée ».
+  if (await isGuestMode(sess.email)) {
+    return NextResponse.json({ error: 'mode-invite', reason: 'guest' }, { status: 403 });
+  }
 
   const latest = await prisma.reading.findFirst({
     where: { userId: user.id, type: 'tarot-semaine' },

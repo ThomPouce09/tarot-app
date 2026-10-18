@@ -755,6 +755,18 @@ html, body {
   50% { opacity: 1; }
 }
 
+/* Visite « Mon espace » (SpaceTour) : halo doré épais + respiration autour de
+   la cible forcée. Posé au-dessus du voile, sous la bulle (z via inline). */
+.space-tour-ring {
+  border: 2.5px solid rgba(232,197,106,0.95);
+  box-shadow: 0 0 0 4px rgba(218,165,32,0.18), 0 0 22px rgba(218,165,32,0.65), inset 0 0 14px rgba(218,165,32,0.35);
+  animation: spaceTourPulse 1.5s ease-in-out infinite;
+}
+@keyframes spaceTourPulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
 /* Luciole : rester SOUS les contrôles UI (CTA landing z-index 70).
    Framer-motion impose position:absolute en animant left/top ; on force
    fixed + z-index bas via !important pour ne jamais capter les taps UI. */

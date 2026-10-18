@@ -20,6 +20,7 @@
 // tickets, bonus hérités), puis 15 crédits de recharge, puis le quota mensuel.
 
 import { prisma } from './prisma';
+import { isGuestMode } from './guest';
 import { classify, type Universe } from './classification';
 import { PLAN_CAPACITY, RECHARGE_CREDITS, CREDITS_BASE, CREDITS_GRAND, type SubscriptionPlanId } from './plans';
 import { giftStillValid, giftExpiresAt } from './gift';
@@ -33,6 +34,8 @@ export type EntitlementLevel = 'apprenti' | 'initie' | 'arkane';
 export interface Rights {
   level: EntitlementLevel;
   baseUnlimited: boolean;
+  // Mode Invité : prêt anonyme — ne change AUCUN quota, sert à l'UI.
+  guestMode: boolean;
   baseMonthly: number | null; // plafond mensuel de bases (Initié 90, Arkane 120)
   baseUsedMonth: number;
   grandMonthly: number | null; // null = illimité
@@ -50,12 +53,14 @@ export interface Rights {
   // nombre RESTANT dans le mois ; null = illimité (Arkane).
   odinRemaining: number | null;
   artemisRemaining: number | null;
+  // Tirages prêtés en mode Invité ce mois-ci (affichage Abonnement).
+  guestUsedMonth: number;
 }
 
 export interface Decision {
   allowed: boolean;
   // Motif machine pour la couche UI (message déjà i18n-é côté client).
-  reason: 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'limit-base-pack' | 'session';
+  reason: 'guest-locked' | 'ok' | 'not-logged' | 'welcome-base-ok' | 'welcome-grand-ok' | 'limit-base-daily' | 'limit-base-monthly' | 'limit-grand' | 'limit-base-one-universe' | 'limit-base-pack' | 'session';
   message: string;
 }
 
@@ -105,6 +110,7 @@ async function loadUsage(userId: string) {
   // Reset mensuel : bases + grands + privilèges abonnement (Conseil d'Odin, Secret d'Artémis).
   if (existing.monthKey !== mk) {
     patch.monthKey = mk;
+    patch.guestUsedMonth = 0;
     patch.baseUsedMonth = 0;
     patch.grandUsedMonth = 0;
     patch.odinUsedMonth = 0;
@@ -141,6 +147,7 @@ export async function getRights(email: string): Promise<Rights | null> {
 
   return {
     level: effective,
+    guestMode: !!user.guestMode,
     baseUnlimited: cap.baseUnlimited,
     baseMonthly: cap.baseMonthly ?? null,
     baseUsedMonth: (u as { baseUsedMonth?: number }).baseUsedMonth ?? 0,
@@ -157,6 +164,7 @@ export async function getRights(email: string): Promise<Rights | null> {
     streakDays: u.streakDays,
     odinRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { odinUsedMonth?: number }).odinUsedMonth ?? 0)),
     artemisRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { artemisUsedMonth?: number }).artemisUsedMonth ?? 0)),
+    guestUsedMonth: (u as { guestUsedMonth?: number }).guestUsedMonth ?? 0,
   };
 }
 
@@ -167,6 +175,16 @@ export async function canDo(email: string, type: string, question: string | null
     include: { subscription: true },
   });
   if (!user) return { allowed: false, reason: 'not-logged', message: 'Connectez-vous pour faire un tirage.' };
+
+  // MODE INVITÉ : les tirages RATTACHÉS au compte sont fermés — la Roue de la
+  // Semaine (roue en cours, archivage, augures de la semaine) et le Double
+  // Hexagramme (lecture archivée et relue plus tard) n'ont aucun sens prêtés :
+  // l'invité ne pourra rien en relire, et l'hôte verrait son compte encombré.
+  // L'Hexagramme du Jour, lui, reste ouvert : sa vue est déliée du compte
+  // (app/api/yi-jing-du-jour/route.ts — guestDayKey).
+  if (user.guestMode && (type === 'tarot-semaine' || type === 'yi-jing-double')) {
+    return { allowed: false, reason: 'guest-locked', message: 'Espace personnel protégé : tirage rattaché au compte, indisponible en mode Invité.' };
+  }
 
   // L'Hexagramme du Jour est désormais un tirage de BASE personnel ordinaire
   // (classification EXTRA_BASE_TYPES) : il suit le quota normal (mensuel
@@ -269,6 +287,12 @@ export async function consume(email: string, type: string, question: string | nu
     dateKey: tk,
     monthKey: mk,
   };
+
+  // MODE INVITÉ : le tirage débite le compte hôte comme à l'habitude ; on
+  // compte aussi le prêt (rappel affiché page Abonnement). Pas de quota de plus.
+  if (await isGuestMode(email)) {
+    patch.guestUsedMonth = ((u as { guestUsedMonth?: number }).guestUsedMonth ?? 0) + 1;
+  }
 
   // Met à jour le streak AVANT consommation (le fait de tirer un jour compte).
   const streakPatch = computeStreakPatch(u.lastStreakDate, u.streakDays, u.bonusGrand);

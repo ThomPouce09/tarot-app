@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { sanitizeWheelInterpretation } from '@/lib/tarot-semaine';
 import { echoIsRevealed } from '@/lib/echo';
+import { isGuestMode } from '@/lib/guest';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
     // Get user's readings (avec l'écho scellé éventuel → badge horloge)
     try {
       const userReadings = await prisma.reading.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, guest: false },
         orderBy: { createdAt: 'desc' },
         include: { echo: { select: { id: true, dueAt: true, verdict: true, verdictPct: true, bestCardIndex: true, textFr: true, textEn: true, textEs: true, textHi: true } } },
       });
@@ -218,6 +219,13 @@ export async function POST(request: Request) {
       data.interpretation = JSON.stringify(data.interpretation);
     } else {
       data.interpretation = null;
+    }
+
+    // MODE INVITÉ : rien n'est enregistré (pas d'historique, pas de vitrine
+    // d'augures, pas de stats pour l'hôte). Réponse identique, id null — la page
+    // affiche son résultat, simplement non conservé.
+    if (await isGuestMode(email)) {
+      return NextResponse.json({ success: true, id: null, guest: true });
     }
 
     // Create the reading record

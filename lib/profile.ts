@@ -10,6 +10,7 @@
 //  - l'utilisateur garde la souveraineté : tout champ est effaçable.
 
 import { prisma } from './prisma';
+import { isGuestMode } from './guest';
 
 // ── Univers (clé de familiarité) ─────────────────────────────────────────────
 export const PROFILE_DOMAINS = ['amour', 'famille', 'travail', 'etudes', 'argent', 'projets', 'serenite'] as const;
@@ -71,11 +72,22 @@ export function cleanHour(v: unknown): string | null {
 export type ProfilePayload = {
   domains: string[]; lifeStage: string | null; tone: string | null;
   familiarity: string | null; birthTown: string | null; birthHour: string | null; birthCountry?: string | null;
+  comment?: string | null;
 };
 export type ProfileShape = {
   domains: ProfileDomain[]; lifeStage: ProfileLifeStage | null; tone: ProfileTone | null;
   familiarity: ProfileFamiliarity | null; birthTown: string | null; birthHour: string | null; birthCountry: string | null;
+  comment: string | null;
 };
+
+// Le mot que l'utilisateur choisit librement pour dire qui il est : texte
+// nettoyé (espaces, longueur bornée à 200 — assez pour une phrase, trop court
+// pour détourner le prompt).
+export function cleanComment(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.replace(/\s+/g, ' ').trim().slice(0, 200);
+  return s || null;
+}
 
 /** Normalise un corps (ou null) ; renvoie null si rien d'exploitable. */
 export function sanitizeProfile(body: unknown): ProfileShape | null {
@@ -89,9 +101,10 @@ export function sanitizeProfile(body: unknown): ProfileShape | null {
   const birthCountry =
     typeof b.birthCountry === 'string' && /^[A-Za-z]{2}$/.test(b.birthCountry) ? b.birthCountry.toUpperCase() : null;
   const birthHour = b.birthHour === null ? null : cleanHour(b.birthHour);
+  const comment = b.comment === null ? null : cleanComment(b.comment);
   return {
     domains: cleanDomains(b.domains),
-    lifeStage, tone, familiarity, birthTown, birthHour, birthCountry,
+    lifeStage, tone, familiarity, birthTown, birthHour, birthCountry, comment,
   };
 }
 
@@ -99,9 +112,10 @@ export function sanitizeProfile(body: unknown): ProfileShape | null {
 export function profileHasData(p: {
   domains: readonly string[]; lifeStage: string | null; tone: string | null;
   familiarity: string | null; birthTown: string | null; birthHour: string | null; birthCountry?: string | null;
+  comment?: string | null;
 } | null | undefined): boolean {
   if (!p) return false;
-  return p.domains.length > 0 || !!p.lifeStage || !!p.tone || !!p.familiarity || !!p.birthTown || !!p.birthHour || !!p.birthCountry;
+  return p.domains.length > 0 || !!p.lifeStage || !!p.tone || !!p.familiarity || !!p.birthTown || !!p.birthHour || !!p.birthCountry || !!p.comment;
 }
 
 // Signe solaire depuis la date de naissance (bornes classiques, approximation
@@ -138,6 +152,10 @@ export function sunSign(dob: Date | null): string | null {
 export async function buildProfileBlock(email: string | null | undefined): Promise<string> {
   const e = (email || '').trim().toLowerCase();
   if (!e) return '';
+  // MODE INVITÉ : le tirage est prêté à un tiers — AUCUNE donnée personnelle
+  // du compte hôte ne part à l'IA (prompt structurellement identique). Point de
+  // passage obligé : TOUTES les injections de profil du projet viennent ici.
+  if (await isGuestMode(e)) return '';
   let u;
   try {
     u = await prisma.user.findUnique({
@@ -145,7 +163,7 @@ export async function buildProfileBlock(email: string | null | undefined): Promi
       select: {
         dateOfBirth: true,
         domains: true, lifeStage: true, tone: true, familiarity: true,
-        birthTown: true, birthHour: true, birthCountry: true,
+        birthTown: true, birthHour: true, birthCountry: true, comment: true,
       },
     });
   } catch {
@@ -180,7 +198,12 @@ export async function buildProfileBlock(email: string | null | undefined): Promi
     lines.push('Le ton qu’il/elle attend : de préférence ' + TONE_FR[u.tone as ProfileTone] + '.');
   }
   if (u.familiarity && FAM_FR[u.familiarity as ProfileFamiliarity]) {
-    lines.push('Son rapport aux traditions divinatoires : ' + FAM_FR[u.familiarity as ProfileFamiliarity] + '.');
+    lines.push('Son rapport aux tirages de voyance : ' + FAM_FR[u.familiarity as ProfileFamiliarity] + '.');
+  }
+  // Mot libre choisi par le consultant (« Que voulez-vous partager sur vous ? ») :
+  // verbatim, sans interprétation — c'est sa propre définition de soi.
+  if (u.comment) {
+    lines.push('Sa propre description, en ses mots : « ' + u.comment + ' »');
   }
 
   if (!lines.length) return '';

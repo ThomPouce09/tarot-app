@@ -3,6 +3,15 @@ import { buildProfileBlock } from '@/lib/profile';
 import { prisma } from '@/lib/prisma';
 import { enforceGate } from '@/lib/gate-server';
 import { requireSessionEmail } from '@/lib/session';
+import { isGuestMode } from '@/lib/guest';
+import { createHash } from 'crypto';
+
+/** Vue « du jour » DÉLIÉE du compte en mode Invité : même jour + même hôte
+ *  = même invité (clé stable dans la journée), mais rien ne touche ni ne lit
+ *  la collection, le streak, l'historique ou le tirage du jour du compte. */
+function guestDayKey(hostEmail: string, day: string): string {
+  return 'guest:' + createHash('sha256').update(hostEmail + '|' + day).digest('hex').slice(0, 24);
+}
 import { calcAge } from '@/lib/dates';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { resolveLang, outputDirective, type LlmLang } from '@/lib/lang';
@@ -120,9 +129,11 @@ export async function GET(req: NextRequest) {
     const dateStr = searchParams.get('date') || dayKey();
     const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T12:00:00`) : new Date();
     const today = dayKey(date);
+    // Invité : vue propre à l'invité pour la journée (déliée du compte hôte).
+    const viewEmailG = (await isGuestMode(email)) ? guestDayKey(email, today) : email;
 
     const row = await prisma.dailyDrawView.findUnique({
-      where: { email_date: { email, date: today } },
+      where: { email_date: { email: viewEmailG, date: today } },
     });
     // V2 uniquement : une ligne « déjà tirée » ne compte que si le champ
     // `mutating` est posé (trace du nouveau flux). Les lignes héritées de la
@@ -132,7 +143,7 @@ export async function GET(req: NextRequest) {
 
     // Collection + streak (lecture seule, aucun débit).
     const views = await prisma.dailyDrawView.findMany({
-      where: { email },
+      where: { email: viewEmailG },
       orderBy: { date: 'desc' },
       take: 400,
       select: { date: true, numero: true },
@@ -165,11 +176,11 @@ export async function GET(req: NextRequest) {
 
     // Déjà tiré → résultat complet, relu en base (aucun appel IA).
     const period = await periodHexFor(date).catch(() => null);
-    const { numero, mutating, transformedNum } = drawFor(email, date, period?.numero ?? null);
+    const { numero, mutating, transformedNum } = drawFor(viewEmailG, date, period?.numero ?? null);
     const nums = new Set<number>([numero]);
     if (transformedNum) nums.add(transformedNum);
     const dTomorrow = new Date(date); dTomorrow.setDate(dTomorrow.getDate() + 1);
-    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, email);
+    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, viewEmailG);
     nums.add(tomorrowNum);
     const { byNum, byNumEn } = await loadHexas(Array.from(nums));
     const main = byNum.get(numero);
@@ -222,8 +233,13 @@ export async function POST(req: NextRequest) {
     const email = sess.email;
 
     const today = dayKey();
+    // Invité : jour + tirage DÉLIÉS du compte (l'hôte garde SON hexagramme du
+    // jour, sa collection, son streak). Le quota du prêt sort bien du compte
+    // hôte — enforceGate ci-dessous ne change pas.
+    const guest = await isGuestMode(email);
+    const viewEmail = guest ? guestDayKey(email, today) : email;
     const existing = await prisma.dailyDrawView.findUnique({
-      where: { email_date: { email, date: today } },
+      where: { email_date: { email: viewEmail, date: today } },
     });
     if (existing && existing.mutating !== null) {
       if (dayUnlock()) {
@@ -274,11 +290,11 @@ export async function POST(req: NextRequest) {
 
     const date = new Date();
     const period = await periodHexFor(date).catch(() => null);
-    const { numero, mutating, transformedNum } = drawFor(email, date, period?.numero ?? null);
+    const { numero, mutating, transformedNum } = drawFor(viewEmail, date, period?.numero ?? null);
     const nums = new Set<number>([numero]);
     if (transformedNum) nums.add(transformedNum);
     const dTomorrow = new Date(date); dTomorrow.setDate(dTomorrow.getDate() + 1);
-    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, email);
+    const tomorrowNum = (await periodHexFor(dTomorrow).catch(() => null))?.numero ?? hexForOffset(1, date, viewEmail);
     nums.add(tomorrowNum);
     const { byNum, byNumEn } = await loadHexas(Array.from(nums));
     const main = byNum.get(numero);
@@ -309,11 +325,12 @@ export async function POST(req: NextRequest) {
       ? mutating.map((l) => `${l}`).join(', ')
       : 'aucune (journée stable)';
 
-    const name = user?.firstName || '';
+    // MODE INVITÉ : conseil écrit SANS aucune donnée personnelle de l'hôte.
+    const name = guest ? '' : (user?.firstName || '');
     const hints = [
       name ? `prénom : ${name}${user?.lastName ? ` ${user.lastName}` : ''}` : null,
-      dob ? `phase de vie : ${age} ans` : null,
-      gender ? `polarité ressentie : ${gender}` : null,
+      !guest && dob ? `phase de vie : ${age} ans` : null,
+      !guest && gender ? `polarité ressentie : ${gender}` : null,
     ].filter(Boolean).join(' ; ');
     // Profil oracle (pastilles volontaires) — complète les indices fins.
     const yjProfile = await buildProfileBlock(email);
@@ -347,11 +364,11 @@ Ce tirage inscrit la journée dans l'énergie de la période (du {PERIODE_FROM} 
 
     // Persistance : résultat du jour (relisible sans re-débit) + Mes tirages.
     await prisma.dailyDrawView.upsert({
-      where: { email_date: { email, date: today } },
-      create: { email, date: today, numero, mutating: JSON.stringify(mutating), advice },
+      where: { email_date: { email: viewEmail, date: today } },
+      create: { email: viewEmail, date: today, numero, mutating: JSON.stringify(mutating), advice },
       update: { numero, mutating: JSON.stringify(mutating), advice },
     });
-    if (user) {
+    if (user && !guest) {
       await prisma.reading.create({
         data: {
           userId: user.id,
