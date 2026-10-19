@@ -70,6 +70,7 @@ function GoogleDoneInner() {
       if (!ready) {
         setMsg(t('auth.google.failed'));
         try { localStorage.removeItem(HANDOFF_KEY); } catch {}
+        window.dispatchEvent(new Event('close-login'));
         setTimeout(() => router.replace('/login'), 2500);
         return;
       }
@@ -84,10 +85,16 @@ function GoogleDoneInner() {
         try { localStorage.removeItem(HANDOFF_KEY); } catch {}
         try { localStorage.setItem('tarot_user', JSON.stringify(data.user)); } catch {}
         try { localStorage.setItem('arkane_session_token', data.session); } catch {}
+        // La modale de connexion mondiale doit disparaître : le compte
+        // est là. (Sinon elle flotte au-dessus de /dashboard/account.)
+        window.dispatchEvent(new Event('close-login'));
+        // Fermer l'onglet système si possible (Custom Tab rattaché à l'app).
+        try { (window as any).Capacitor?.Plugins?.Browser?.close?.()?.catch?.(() => {}); } catch {}
         router.replace('/dashboard/account');
       } catch {
         setMsg(t('auth.google.failed'));
         try { localStorage.removeItem(HANDOFF_KEY); } catch {}
+        window.dispatchEvent(new Event('close-login'));
         setTimeout(() => router.replace('/login'), 2500);
       }
     })();
