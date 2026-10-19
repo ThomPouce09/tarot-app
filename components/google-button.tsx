@@ -51,6 +51,7 @@ function applySession(data: any, router: ReturnType<typeof useRouter>) {
   try { localStorage.setItem('tarot_user', JSON.stringify(data.user)); } catch {}
   if (data.session) { try { localStorage.setItem('arkane_session_token', data.session); } catch {} }
   onAccountChanged();
+  window.dispatchEvent(new Event('close-login'));
   router.push('/dashboard/account');
 }
 

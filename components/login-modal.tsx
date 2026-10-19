@@ -39,7 +39,9 @@ export function LoginModal() {
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener(OPEN_LOGIN_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_LOGIN_EVENT, onOpen);
+    const onClose = () => setOpen(false);
+    window.addEventListener('close-login', onClose);
+    return () => { window.removeEventListener(OPEN_LOGIN_EVENT, onOpen); window.removeEventListener('close-login', onClose); };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
