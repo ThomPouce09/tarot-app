@@ -21,6 +21,7 @@ export default function AccountPage() {
   // Statut d'activation FIABLE (DB) — ne pas se fier au localStorage (périmé).
   const [confirmed, setConfirmed] = useState<boolean | null>(null);
   const [resending, setResending] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false); // hook au niveau racine (avant le return early !user)
   const [resendMsg, setResendMsg] = useState('');
 
   // Chargement initial depuis localStorage — HORS du rendu, sinon :
@@ -75,7 +76,9 @@ export default function AccountPage() {
     : '—';
   const genderLabel = user.gender === 'male' ? t('account.gender.male') : user.gender === 'female' ? t('account.gender.female') : user.gender === 'other' ? t('account.gender.other') : user.gender || '—';
 
-  const handleLogout = () => {
+  const doLogout = () => {
+    // Drapeau lu une seule fois par la landing : message « déconnecté » après redirection.
+    localStorage.setItem('logged_out_notice', '1');
     localStorage.removeItem('tarot_user');
     localStorage.removeItem('arkane_session_token');
     router.push('/');
@@ -220,10 +223,26 @@ export default function AccountPage() {
       <OracleProfileForm />
 
       {/* Déconnexion (mobile) — icône porte comme dans la barre latérale */}
-      <button onClick={handleLogout} className="md:hidden w-full mystic-btn-ghost py-3 flex items-center justify-center gap-2">
+      <button onClick={() => setConfirmLogout(true)} className="md:hidden w-full mystic-btn-ghost py-3 flex items-center justify-center gap-2">
         <img src="/images/door-exit.png" alt="" className="h-5 w-auto object-contain" />
         <span>{t('account.logout')}</span>
       </button>
+
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmLogout(false)} />
+          <div className="relative z-10 w-full max-w-xs rounded-xl p-5 text-center"
+               style={{ background: 'rgba(22,11,42,0.97)', border: '1px solid rgba(218,165,32,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.7)' }}>
+            <p className="mb-4 text-[15px] leading-relaxed" style={{ color: '#F5EAD6', fontFamily: 'var(--font-cinzel), serif' }}>{t('account.logoutConfirm')}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmLogout(false)} className="flex-1 rounded-full py-2 text-sm font-semibold"
+                style={{ border: '1px solid rgba(218,165,32,0.4)', color: '#F5EAD6' }}>{t('guest.cancel')}</button>
+              <button onClick={doLogout} className="flex-1 rounded-full py-2 text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg,#b91c1c,#7f1d1d)', color: '#fff' }}>{t('gate.logout')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

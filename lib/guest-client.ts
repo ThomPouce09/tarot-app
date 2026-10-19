@@ -10,6 +10,9 @@ import { api } from '@/lib/api-client';
 export const GUEST_EVENT = 'arkane-guest';
 
 let cached: boolean | null = null;
+let allowed: boolean | null = null; // mode Invité = abonnés Initié/Arkane seulement (cache GET /api/guest-mode)
+
+export function guestAllowedCached(): boolean { return allowed !== false; }
 
 export function guestCached(): boolean { return cached === true; }
 
@@ -60,6 +63,7 @@ export async function refreshGuestState(email: string): Promise<boolean> {
     const res = await api(`/api/guest-mode?email=${encodeURIComponent(email)}`);
     const d = await res.json();
     const next = !!d.guestMode;
+    if (typeof d.canGuest === 'boolean') allowed = d.canGuest;
     if (next !== cached) {
       cached = next;
       // Prévenons les composants abonnés (echo-box, sauvegardes) — mais PAS

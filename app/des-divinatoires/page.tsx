@@ -354,7 +354,7 @@ export default function DesDivinatoiresHub() {
           return (
           <GatedTile key={tile.href} href={tile.href} className="block" allowed={tiles?.[desType]?.allowed} reason={tiles?.[desType]?.reason} onBlocked={openGate}>
             <motion.div
-              className="group relative flex min-h-[180px] h-full w-full flex-col items-center rounded-2xl p-4 text-center"
+              className="group relative flex min-h-[150px] h-full w-full flex-col items-center rounded-2xl p-3.5 text-center"
               style={{
                 background: tile.bg,
                 border: `1.5px solid ${DICE_THEME.ocre}66`,
@@ -421,14 +421,14 @@ export default function DesDivinatoiresHub() {
               {mounted && <ZodiacFrieze position="bottom" />}
 
               {tile.iconImg ? (
-                <img src={tile.iconImg} alt="" className="relative mb-3 w-12 h-auto object-contain transition-transform duration-500 group-hover:scale-110" />
+                <img src={tile.iconImg} alt="" className="relative mb-2 w-10 h-auto object-contain transition-transform duration-500 group-hover:scale-110" />
               ) : (
-                <span className="relative mb-3 text-4xl transition-transform duration-500 group-hover:scale-110">
+                <span className="relative mb-2 text-3xl transition-transform duration-500 group-hover:scale-110">
                   {tile.icon}
                 </span>
               )}
               <h2
-                className="relative mb-2 text-lg font-bold"
+                className="relative mb-1.5 text-base font-bold"
                 style={{
                   fontFamily: 'var(--font-cinzel-deco), serif',
                   color: DICE_THEME.ocreLight,
@@ -438,7 +438,7 @@ export default function DesDivinatoiresHub() {
                 {lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}
               </h2>
               <p
-                className="relative text-xs sm:text-sm leading-relaxed"
+                className="relative text-[11px] sm:text-xs leading-snug"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
                   color: DICE_THEME.glyph,

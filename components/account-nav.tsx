@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useT, tr } from '@/lib/i18n';
 import { useEntitlement } from '@/lib/use-entitlement';
@@ -31,9 +32,12 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
   // assure la 1re visite par clics forcés — drapeau compte 'login_tour'. Les cibles
   // sont marquées ci-dessous via data-tour="home|avatar|nav|navitem".
 
-  const handleLogout = () => {
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const doLogout = () => {
+    // Drapeau lu une seule fois par la landing : message « déconnecté » après redirection.
+    localStorage.setItem('logged_out_notice', '1');
     localStorage.removeItem('tarot_user');
-      localStorage.removeItem('arkane_session_token');
+    localStorage.removeItem('arkane_session_token');
     router.push('/');
   };
 
@@ -82,7 +86,7 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
           ))}
         </nav>
 
-        <button onClick={handleLogout} className="nav-link-mystic mt-2 text-red-400/90 hover:text-red-300">
+        <button onClick={() => setConfirmLogout(true)} className="nav-link-mystic mt-2 text-red-400/90 hover:text-red-300">
           <span className="w-5 flex justify-center"><img src="/images/door-exit.png" alt="" className="h-4 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(248,113,113,0.35))' }} /></span>
           <span>{t('nav.logout')}</span>
         </button>
@@ -108,31 +112,43 @@ export default function AccountNav({ user, locked = false }: { user: any; locked
       </header>
 
       {/* Mobile bottom nav */}
-      <nav data-tour="nav" className="md:hidden fixed bottom-0 inset-x-0 z-50 flex justify-around items-center px-1 py-1.5 bg-gray-950/95 backdrop-blur border-t border-amber-800/20" style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}>
+      <nav data-tour="nav" className="md:hidden fixed bottom-0 inset-x-0 z-50 flex justify-between items-center px-1 py-1.5 bg-gray-950/95 backdrop-blur border-t border-amber-800/20" style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}>
         {links.map((l) => (
           <Link
             key={l.href}
             data-tour="navitem"
             href={l.href}
             onClick={(e) => { e.preventDefault(); router.push(l.href); }}
-            className={`relative flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 text-[10px] transition-colors ${pathname === l.href ? 'text-amber-300' : 'text-gray-400 hover:text-amber-200/80'}`}
-            style={{
-              pointerEvents: 'auto',
-              background: pathname === l.href ? 'rgba(217,180,92,0.14)' : 'transparent',
-              boxShadow: pathname === l.href ? 'inset 0 0 0 1px rgba(217,180,92,0.35), 0 0 10px rgba(217,180,92,0.22)' : 'none',
-            }}
+            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-0.5 py-1 text-[9px] transition-colors duration-200 ${pathname === l.href ? 'text-amber-300 font-semibold' : 'text-gray-400 hover:text-amber-200/80'}`}
+            style={{ pointerEvents: 'auto' }}
             aria-current={pathname === l.href ? 'page' : undefined}
           >
-            <span className="text-lg">
-              <img src={l.img} alt="" className="h-5 w-5 object-contain" style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.35))' }} />
+            <span className="relative flex items-center justify-center py-[3px]">
+              <img src={l.img} alt="" className={`h-5 w-5 object-contain ${pathname === l.href ? 'nav-icon-pulse' : ''}`} style={{ filter: 'drop-shadow(0 0 4px rgba(245,180,80,0.4))' }} />
+              {pathname === l.href && (
+                <span aria-hidden className="absolute bottom-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, #F0C75E, transparent)', boxShadow: '0 0 6px rgba(218,165,32,0.75)' }} />
+              )}
             </span>
             <span className="whitespace-nowrap">{t(l.key)}</span>
-            {pathname === l.href && (
-              <span aria-hidden className="absolute -bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, #DAA520, transparent)', boxShadow: '0 0 6px rgba(218,165,32,0.7)' }} />
-            )}
           </Link>
         ))}
       </nav>
+
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmLogout(false)} />
+          <div className="relative z-10 w-full max-w-xs rounded-xl p-5 text-center"
+               style={{ background: 'rgba(22,11,42,0.97)', border: '1px solid rgba(218,165,32,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.7)' }}>
+            <p className="mb-4 text-[15px] leading-relaxed" style={{ color: '#F5EAD6', fontFamily: 'var(--font-cinzel), serif' }}>{t('account.logoutConfirm')}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmLogout(false)} className="flex-1 rounded-full py-2 text-sm font-semibold"
+                style={{ border: '1px solid rgba(218,165,32,0.4)', color: '#F5EAD6' }}>{t('guest.cancel')}</button>
+              <button onClick={doLogout} className="flex-1 rounded-full py-2 text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg,#b91c1c,#7f1d1d)', color: '#fff' }}>{t('gate.logout')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

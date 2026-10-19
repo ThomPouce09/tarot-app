@@ -113,6 +113,12 @@ export const AUTH_MSG = {
     es: 'Este email ya está registrado. Inicie sesión o use otro email.',
     hi: 'यह ईमेल पहले से पंजीकृत है। प्रवेश करें या दूसरा ईमेल उपयोग करें।',
   },
+  googleFailed: {
+    fr: 'Connexion Google impossible. R\u00e9essayez ou utilisez votre email.',
+    en: 'Google sign-in failed. Please retry or use your email.',
+    es: 'El inicio de sesi\u00f3n con Google fall\u00f3. Int\u00e9ntelo de nuevo o use su email.',
+    hi: 'Google \u0938\u093e\u0907\u0928-\u0907\u0928 \u0935\u093f\u092b\u0932 \u0930\u0939\u093e\u092a\u0942\u0902\u0925\u0940\u0930\u0947\u0928\u094d\u0928 \u092a\u094d\u0930\u092f\u093e\u0938 \u0915\u0930\u0947\u0902 \u0910\u0935\u0902 \u0905\u092a\u0928\u093e \u0908\u092e\u0947\u0932 \u0909\u092a\u092f\u094b\u0917 \u0915\u0930\u0947\u0902\u0964',
+  },
   deletedLogin: {
     fr: 'Votre compte a été supprimé. Vous pourrez recréer un compte à partir du {date} (dans {n}).',
     en: 'Your account was deleted. You can create a new one from {date} (in {n}).',

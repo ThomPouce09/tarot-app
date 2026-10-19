@@ -7,6 +7,7 @@ import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_ICON_IMG, PLAN_PRICE_
 import { type Universe } from '@/lib/classification';
 import { BaseDrawGlyph, AdvancedDrawGlyph } from '@/components/draw-type-badge';
 import { openExternal, isNative } from '@/lib/capacitor-utils';
+import { api } from '@/lib/api-client';
 
 // Code BCP-47 pour dates localisées selon la langue de l'app.
 const loc = (lang: string): string => ({ fr: 'fr-FR', en: 'en-GB', es: 'es-ES', hi: 'hi-IN' } as Record<string, string>)[lang] ?? 'fr-FR';
@@ -138,7 +139,7 @@ export default function AbonnementPage() {
     const e = emailArg ?? email;
     if (!e) return null;
     try {
-      const res = await fetch(`/api/subscription?email=${encodeURIComponent(e)}`);
+      const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
       const d = await res.json();
       hydrate(d);
       return d;
@@ -176,7 +177,7 @@ export default function AbonnementPage() {
       let confirmEmail = userEmail;
       try {
         setActivating(true);
-        const confirmRes = await fetch(`/api/checkout/confirm?session_id=${sessionId}`);
+        const confirmRes = await api(`/api/checkout/confirm?session_id=${sessionId}`);
         const confirmData = await confirmRes.json();
         if (confirmData.email) confirmEmail = confirmData.email;
         if (confirmData.plan && confirmData.plan !== 'apprenti') {
@@ -237,7 +238,7 @@ export default function AbonnementPage() {
     try {
       const body: any = { plan: p, email, native: isNative() };
       if (isSubscription(p)) body.billing = billing[p as 'initie' | 'arkane'];
-      const res = await fetch('/api/checkout', {
+      const res = await api('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -262,7 +263,7 @@ export default function AbonnementPage() {
     }
     setLoading('recharge');
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await api('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: 'recharge', email, native: isNative() }),
@@ -284,7 +285,7 @@ export default function AbonnementPage() {
     if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi pour gérer.'); return; }
     setManageLoading(true);
     try {
-      const res = await fetch('/api/billing-portal', {
+      const res = await api('/api/billing-portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, native: isNative() }),
@@ -304,7 +305,7 @@ export default function AbonnementPage() {
     if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi.'); return; }
     setCancelLoading(true);
     try {
-      const res = await fetch('/api/cancel-subscription', {
+      const res = await api('/api/cancel-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, cancel }),
@@ -433,6 +434,18 @@ export default function AbonnementPage() {
       {usage && (
         <div className="mystic-panel p-5 space-y-5">
           <h2 className="mystic-title text-lg">{t('sub.dashTitle')}</h2>
+          {/* Type de compte bien visible sous le titre — icône du plan à gauche. */}
+          <div className="-mt-3.5 mb-1 flex items-center gap-2">
+            {PLAN_ICON_IMG[current] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={PLAN_ICON_IMG[current]} alt="" className="h-6 w-6 shrink-0 object-contain" />
+            ) : (
+              <span className="text-xl leading-none shrink-0">{PLAN_ICON[current]}</span>
+            )}
+            <span className="text-[15px] font-bold leading-none" style={{ color: '#F0C75E', fontFamily: 'var(--font-cinzel), serif' }}>
+              {t(current === 'arkane' ? 'tier.arkane' : current === 'initie' ? 'tier.initie' : 'tier.apprenti')}
+            </span>
+          </div>
 
           {/* Tirages restants : base & avancés */}
           <div className="grid grid-cols-2 gap-3">
@@ -561,13 +574,15 @@ export default function AbonnementPage() {
           const isOne = isOneShot(p);
           return (
             <div key={p} id={p} className={`mystic-panel p-5 flex flex-col scroll-mt-24 ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
-              {PLAN_ICON_IMG[p] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={PLAN_ICON_IMG[p]} alt="" className="h-9 w-9 object-contain mb-2" />
-              ) : (
-                <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
-              )}
-              <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
+              <div className="mb-2 flex items-center gap-2.5">
+                {PLAN_ICON_IMG[p] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={PLAN_ICON_IMG[p]} alt="" className="h-9 w-9 shrink-0 object-contain" />
+                ) : (
+                  <span className="text-3xl leading-none shrink-0">{PLAN_ICON[p]}</span>
+                )}
+                <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
+              </div>
               <p className="mystic-subtitle text-sm mb-3">
                 {p === 'bienvenue' ? (
                   <span className="text-emerald-300 font-semibold">{t('sub.free')}</span>
@@ -661,11 +676,6 @@ export default function AbonnementPage() {
         })}
       </div>
 
-      {/* Note devise locale — la conversion est faite par Stripe Checkout
-          (Adaptive Pricing activé côté Dashboard). */}
-      <p className="text-gray-400 text-xs text-center leading-relaxed mt-4 max-w-xl mx-auto">
-        {t('sub.localCurrencyNote')}
-      </p>
 
       {/* Modale de confirmation de résiliation */}
       {confirmCancel && (

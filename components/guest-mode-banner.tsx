@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@/lib/i18n';
 import { api } from '@/lib/api-client';
-import { announceGuestMode, refreshGuestState, useGuestMode, setGuestViaApi, GUEST_EVENT } from '@/lib/guest-client';
+import { announceGuestMode, refreshGuestState, useGuestMode, setGuestViaApi, guestAllowedCached, GUEST_EVENT } from '@/lib/guest-client';
 
 function hostEmail(): string {
   try { return JSON.parse(localStorage.getItem('tarot_user') || '{}')?.email || ''; } catch { return ''; }
@@ -64,6 +64,8 @@ export default function GuestModeBanner({ tone = 'gold' }: { tone?: Tone }) {
   const guest = useGuestMode();
   const [email, setEmail] = useState('');
   const [ready, setReady] = useState(false);
+  // Réservé aux abonnés : sans droit, la bascule n'est même pas affichée.
+  const [allowed, setAllowed] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // En mode invité : modale « i » de rappel des règles (même texte qu'à l'activation).
   const [showInfo, setShowInfo] = useState(false);
@@ -75,6 +77,7 @@ export default function GuestModeBanner({ tone = 'gold' }: { tone?: Tone }) {
     const e = hostEmail();
     setEmail(e);
     if (e) await refreshGuestState(e); // émet l'événement si changement → useGuestMode s'aligne
+    setAllowed(guestAllowedCached());
     setReady(true);
   }, []);
 
@@ -117,6 +120,8 @@ export default function GuestModeBanner({ tone = 'gold' }: { tone?: Tone }) {
   if (!ready || !email) return null;
 
   if (!guest) {
+    // Bascule invisible aux Apprentis (réservé Initié/Arkane).
+    if (!allowed) return null;
     return (
       <>
         <div className="text-center">
@@ -166,16 +171,22 @@ export default function GuestModeBanner({ tone = 'gold' }: { tone?: Tone }) {
 
   return (
     <div
-      className="mx-auto mt-1 max-w-md rounded-xl px-4 py-2 text-center"
-      style={{ background: 'rgba(120,16,12,0.92)', border: '1.5px solid #E0563F', boxShadow: '0 0 18px rgba(224,86,63,0.5)' }}
+      className="mx-auto max-w-md text-center"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center justify-center gap-2">
-        <span className="text-[14px] font-bold leading-none" style={{ color: '#FFE3D8' }}>
-          {t('guest.bannerOn')}
-        </span>
-        {/* « i » : rappelle tout le fonctionnement du mode (même modale qu'à l'activation) */}
+      {/* Hauteur minimale : plus que le « i » (rappel) + « Retourner en mode normal » — texte supprimé. */}
+      <div className="inline-flex items-center justify-center gap-2 rounded-full py-1 px-1.5"
+           style={{ background: 'rgba(120,16,12,0.92)', border: '1.5px solid #E0563F', boxShadow: '0 0 16px rgba(224,86,63,0.5)' }}>
+        <button
+          onClick={() => toggle(false)}
+          disabled={busy}
+          className="rounded-full px-3 py-[3px] text-[11px] font-bold leading-none transition hover:brightness-110"
+          style={{ background: '#F3D9A6', color: '#5A1410' }}
+        >
+          {busy ? '…' : t('guest.deactivate')}
+        </button>
+        {/* « i » à droite du bouton : rappelle tout le fonctionnement du mode. */}
         <button
           type="button"
           onClick={() => setShowInfo(true)}
@@ -187,14 +198,6 @@ export default function GuestModeBanner({ tone = 'gold' }: { tone?: Tone }) {
           i
         </button>
       </div>
-      <button
-        onClick={() => toggle(false)}
-        disabled={busy}
-        className="mt-2.5 rounded-full px-4 py-1.5 text-[12px] font-bold transition hover:brightness-110"
-        style={{ background: '#F3D9A6', color: '#5A1410' }}
-      >
-        {busy ? '…' : t('guest.deactivate')}
-      </button>
 
       {showInfo && createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('guest.modalTitle')}>

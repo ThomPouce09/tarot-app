@@ -270,7 +270,13 @@ export default function RunesHub() {
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
       <RuneTitle
-        title={tr("Runes Scandinaves : Interroger le Futhark", "Scandinavian Runes: Question the Futhark", "Runas Escandinavas: Interrogar el Futhark", "स्कैंडिनेवियाई रून: फुथार्क से पूछें")}
+        fit
+        title={(() => {
+          // Deux lignes fixes : « Runes Scandinaves : » puis « Interroger le Futhark ».
+          const s = tr("Runes Scandinaves : Interroger le Futhark", "Scandinavian Runes: Question the Futhark", "Runas Escandinavas: Interrogar el Futhark", "स्कैंडिनेवियाई रून: फुथार्क से पूछें");
+          const i = s.indexOf(':');
+          return (<><span className="block">{s.slice(0, i)} :</span><span className="block">{s.slice(i + 1).trim()}</span></>);
+        })()}
         subtitle={tr("Le Futhark Ancien, 24 runes gravées sur pierre, révèle les courants du destin.", "The Elder Futhark, 24 runes carved in stone, reveals the currents of destiny.", "El Futhark Antiguo, 24 runas grabadas en piedra, revela las corrientes del destino.", "प्राचीन फुथार्क, पत्थर पर उत्कीर्ण 24 रून, भाग्य की धाराएँ प्रकट करता है।")}
       />
 
@@ -376,7 +382,7 @@ export default function RunesHub() {
         })}
       </div>
       {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
-      <div className="relative z-30 mx-auto -mt-3 mb-4 w-[92%] max-w-md">
+      <div className="relative z-30 mx-auto mt-1 mb-4 w-[92%] max-w-md">
         <GuestModeBanner tone="teal" />
       </div>
 

@@ -10,6 +10,7 @@ import { resetAllTutorials } from '@/lib/tutorials';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { setSpaceTheme, type SpaceTheme } from '@/lib/theme';
+import { useSpaceToast } from '@/components/space-toast';
 import { api } from '@/lib/api-client';
 
 type Prefs = {
@@ -60,6 +61,7 @@ export default function PreferencesPage() {
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [reminderBlocked, setReminderBlocked] = useState(false);
+  const { show: showToast, toast: spaceToast } = useSpaceToast();
   const [, setUser] = useState<any>(null);
 
   // Forfait effectif → fonds disponibles (Apprenti 2 / Initié 7 / Arkane tous).
@@ -212,6 +214,7 @@ export default function PreferencesPage() {
 
   return (
     <div className="space-y-6">
+      {spaceToast}
       <SpaceTitle img="/images/nav-preferences.png" title={t('prefs.title')} subtitle={t('prefs.subtitle')} dense />
 
       {/* Son */}
@@ -286,13 +289,16 @@ export default function PreferencesPage() {
           {t('prefs.backgroundSelected')}
         </p>
         <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-7 gap-1.5">
-          {availableBgs.map((bg) => {
+          {LANDING_BACKGROUNDS.map((bg) => {
+            const reserved = !availableBgs.includes(bg);
             const selected = prefs.backgrounds.includes(bg);
             return (
               <button
                 key={bg}
                 type="button"
                 onClick={() => {
+                  // Fonds hors forfait : visibles mais grisés → simple alerte.
+                  if (reserved) { showToast(t('space.reserved')); return; }
                   // Au moins UN fond doit rester sélectionné : on interdit de
                   // décocher le dernier (aucun état « vide » possible).
                   const base = prefs.backgrounds.filter((b) => availableBgs.includes(b));
@@ -300,7 +306,7 @@ export default function PreferencesPage() {
                   const next = selected ? base.filter((b) => b !== bg) : [...base, bg];
                   update({ backgrounds: next });
                 }}
-                className={`relative overflow-hidden rounded-md border transition-all aspect-video w-full ${selected ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-gray-700/60 opacity-75 hover:opacity-100'}`}
+                className={`relative overflow-hidden rounded-md border transition-all aspect-video w-full ${reserved ? 'opacity-40 grayscale cursor-not-allowed border-gray-700/40' : selected ? 'ring-2 ring-amber-400/80 border-amber-400' : 'border-gray-700/60 opacity-75 hover:opacity-100'}`}
                 style={{ background: '#0a0604' }}
               >
                 {isVideoBackground(bg) ? (
@@ -309,10 +315,16 @@ export default function PreferencesPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={bg} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 )}
-                <span className="absolute bottom-0.5 right-0.5 text-[10px] font-semibold px-1 py-px rounded"
-                  style={{ background: selected ? 'rgba(218,165,32,0.9)' : 'rgba(0,0,0,0.55)', color: selected ? '#1a0e0a' : '#fff' }}>
-                  {selected ? '✓' : ''}
-                </span>
+                {reserved ? (
+                  <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(245,234,214,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                  </span>
+                ) : (
+                  <span className="absolute bottom-0.5 right-0.5 text-[10px] font-semibold px-1 py-px rounded"
+                    style={{ background: selected ? 'rgba(218,165,32,0.9)' : 'rgba(0,0,0,0.55)', color: selected ? '#1a0e0a' : '#fff' }}>
+                    {selected ? '✓' : ''}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -329,7 +341,16 @@ export default function PreferencesPage() {
         <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
         {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
         <Toggle label={t('prefs.missYou')} checked={prefs.dailyReminder} disabled onChange={() => {}} hint={t('prefs.missYouHint')} />
-        <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
+        {level === 'apprenti' ? (
+          // Le clic sur l'interrupteur grisé doit AUSSI déclencher l'alerte :
+          // un <button disabled> n'émet aucun événement → on neutralise ses
+          // pointer-events pour que le clic remonte au conteneur (toast).
+          <div className="cursor-pointer [&_button]:pointer-events-none" onClick={() => showToast(t('space.reserved'))}>
+            <Toggle label={t('prefs.emailNews')} checked={false} disabled onChange={() => {}} hint={t('prefs.emailNewsHint')} />
+          </div>
+        ) : (
+          <Toggle label={t('prefs.emailNews')} checked={prefs.emailNews} onChange={(v) => update({ emailNews: v })} hint={t('prefs.emailNewsHint')} />
+        )}
       </div>
 
       {/* Langue — pastilles alignées sur la charte de la page (or sur bois).
@@ -384,7 +405,7 @@ export default function PreferencesPage() {
           }}
           className="mystic-btn w-full text-sm"
         >
-          ✦ {t('prefs.replayTour')}
+          {t('prefs.replayTour')}
         </button>
         <p className="mt-1.5 text-center text-[11px] text-gray-500">{t('prefs.replayTourHint')}</p>
       </div>

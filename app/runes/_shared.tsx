@@ -101,7 +101,7 @@ export function RuneTitle({
   blinkSubtitle,
   fit = false,
 }: {
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   compact?: boolean;
   /** Si vrai, le sous-titre clignote doucement 3 fois puis disparaît. */

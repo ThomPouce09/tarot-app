@@ -142,7 +142,7 @@ export default function FirstVisitHints({ flagKey, hints }: { flagKey: string; h
           >
             <p
               className="text-[12px] leading-snug"
-              style={{ fontFamily: 'var(--font-cinzel), serif', color: '#F5EAD6' }}
+              style={{ fontFamily: hint.textKey === 'hint.hubInfo' ? 'var(--font-cormorant), Georgia, serif' : 'var(--font-cinzel), serif', color: '#F5EAD6' }}
             >
               {t(hint.textKey)}
             </p>

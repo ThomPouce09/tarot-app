@@ -6,6 +6,7 @@ import { GuestExitButton } from '@/components/guest-mode-banner';
 import { refreshGuestState, GUEST_EVENT } from '@/lib/guest-client';
 import { useRouter, usePathname } from 'next/navigation';
 import AccountNav from '@/components/account-nav';
+import SpaceTour from '@/components/space-tour';
 import { readSpaceTheme, SPACE_THEME_EVENT, type SpaceTheme } from '@/lib/theme';
 import { api } from '@/lib/api-client'; // APK : /api/* n'existe pas en local → proxy backend
 
@@ -161,6 +162,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     <div className={`min-h-screen cosmos relative isolate md:flex${theme === 'clair' ? ' cosmos-clar' : ''}`}>
       <CosmosSky />
       <AccountNav user={user} locked={confirmed === false} />
+      <SpaceTour active={confirmed !== false} />
       <main className="flex-1 min-w-0 pb-24 md:pb-8 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
         <div className="max-w-3xl mx-auto">
           {guestLocked ? (
