@@ -7,7 +7,10 @@
 //   2) attend que le callback ait déposé l'email (poll /status)
 //   3) retire la session (/claim, usage unique) et applique les mêmes contrats
 //      de session que le login web → /dashboard/account.
-// En web pur (si jamais servi), le GSI fait le même travail sans passer ici.
+// CAS DÉGRADÉ : si la page s'affiche dans le NAVIGATEUR (App Link non approuvé
+// sur le téléphone), il n'y a pas de ticket ici (il est dans le stockage de
+// l'app) → on n'expire pas de route (l'ancienne version bouclait vers /login) :
+// on affiche un message + un bouton qui rouvre l'app (schéma custom = geste).
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,6 +32,7 @@ function GoogleDoneInner() {
   const t = useT();
   const state = String(sp.get('state') || '');
   const [msg, setMsg] = useState(t('auth.google.waiting'));
+  const [needApp, setNeedApp] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -42,10 +46,11 @@ function GoogleDoneInner() {
         const h = JSON.parse(raw);
         if (h && h.state === state) ticket = String(h.ticket || '');
       }
-    } catch { /* illisible → échec propre */ }
+    } catch { /* illisible → cas dégradé */ }
     if (!/^[0-9a-f]{40}$/.test(state) || !ticket) {
-      setMsg(t('auth.google.failed'));
-      setTimeout(() => router.replace('/login'), 2500);
+      // Pas de session à retirer ici (ticket dans l'app) : message + bouton.
+      setMsg(t('auth.google.reopen'));
+      setNeedApp(true);
       return;
     }
 
@@ -103,12 +108,20 @@ function GoogleDoneInner() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6 text-center"
+      className="min-h-screen flex flex-col items-center justify-center p-6 text-center gap-5"
       style={{ background: 'radial-gradient(ellipse at top, #2a1810 0%, #1a0e0a 60%, #0d0604 100%)' }}
     >
       <div style={{ fontFamily: 'var(--font-cormorant), serif', color: '#e8d5a3', fontSize: '1.15rem' }}>
         {msg}
       </div>
+      {needApp && (
+        <a
+          href={`tarotdivination://open?url=${encodeURIComponent('/auth/google/done?state=' + state)}`}
+          className="mystic-btn"
+        >
+          {t('auth.google.openapp')}
+        </a>
+      )}
     </div>
   );
 }
