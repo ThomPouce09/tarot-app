@@ -57,6 +57,8 @@ export const DICT = {
   // ─── Bouton Google (components/google-button.tsx) ───
   'auth.google.continue': { fr: "Continuer avec Google", en: "Continue with Google", es: "Continuar con Google", hi: "Google से जारी रखें" },
   'auth.google.waiting': { fr: "Finalisation de la connexion…", en: "Finishing sign-in…", es: "Finalizando la sesión…", hi: "साइन-इन पूर्ण हो रहा है…" },
+  'auth.google.reopen': { fr: "Connexion confirm\u00e9e. Reviens dans l\u2019application pour finaliser.", en: "Sign-in confirmed. Return to the app to finish.", es: "Sesi\u00f3n confirmada. Vuelve a la aplicaci\u00f3n para finalizar.", hi: "साइन-इन पुष्ट। समाप्त करने हेतु ऐप में वापस आएँ।" },
+  'auth.google.openapp': { fr: "Ouvrir L'Oracle des \u00c9toiles", en: "Open The Oracle of Stars", es: "Abrir El Or\u00e1culo de las Estrellas", hi: "ओरैकल ऑफ स्टार खोलें" },
   'auth.google.busy': { fr: "Connexion…", en: "Signing in…", es: "Conectando…", hi: "साइन इन हो रहा है…" },
   'auth.google.failed': { fr: "Connexion Google impossible. Réessayez ou utilisez votre email.", en: "Google sign-in failed. Retry or use your email.", es: "El inicio de sesión con Google falló. Inténtelo de nuevo o use su email.", hi: "Google साइन-इन विफल रहा। पुनः प्रयास करें या अपना ईमेल उपयोग करें।" },
   'auth.google.hint': { fr: "Compte créé sans mot de passe : Google prouve votre email.", en: "Account created without a password: Google verifies your email.", es: "Cuenta creada sin contraseña: Google verifica su email.", hi: "पासवर्ड के बिना खाता बनाया गया: Google आपका ईमेल सत्यापित करता है।" },
