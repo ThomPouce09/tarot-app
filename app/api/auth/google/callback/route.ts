@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic';
 
 // Page HTML minimale du callback (navigateur système, hors WebView) :
 // aucune donnée d'app rendue — juste le renvoi vers l'APK via le deep link.
-function shell(title: string, body: string, deep?: string): NextResponse {
+function shell(title: string, body: string, deep?: string, closeTab?: boolean): NextResponse {
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — L'Oracle des Étoiles</title>
-${deep ? `<script>setTimeout(function(){location.replace(${JSON.stringify(deep)});},250);</script>` : ''}
+${deep ? `<script>setTimeout(function(){window.location.assign(${JSON.stringify(deep)});${closeTab ? "if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){window.Capacitor.Plugins.Browser.close().catch(function(){});}else{window.close();}" : ""}},250);</script>` : ''}
 <style>body{background:#0d1b2a;color:#e8d5a3;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}a{color:#e8d5a3}div{text-align:center;max-width:26em;padding:1.5rem}</style>
 </head><body><div>${body}</div></body></html>`;
   return new NextResponse(html, {
@@ -87,13 +87,18 @@ export async function GET(request: NextRequest) {
 
     // ── Dépôt de l'email + renvoi vers l'app ──
     await prisma.authHandoff.update({ where: { id: state }, data: { email: g.email } });
-    const inner = `/auth/google/done?state=${encodeURIComponent(state)}`;
-    const deep = `tarotdivination://open?url=${encodeURIComponent(inner)}`;
+    // Retour 100 % automatique : le deep-link en schéma custom (tarotdivination:)
+    // exige une gestuelle utilisateur — Chrome le bloque en redirection JS.
+    // Sur notre domaine, le lien https est un APP LINK vérifié (autoVerify +
+    // assetlinks.json) : le navigateur l'ouvre directement dans l'app, et le
+    // JS ci-dessous ferme l'onglet (Custom Tab) pour ne pas le laisser derrière.
+    const done = `${request.nextUrl.origin}/auth/google/done?state=${encodeURIComponent(state)}`;
     return shell(
       'Connexion Google',
       '<p>Compte confirmé.<br/>Retour vers l’application…</p>'
-      + `<p><a href="${deep}">Ouvrir L’Oracle des Étoiles</a></p>`,
-      deep,
+      + `<p><a href="${done}">Ouvrir L’Oracle des Étoiles</a></p>`,
+      done,
+      true,
     );
   } catch (error: any) {
     console.error('[google/callback] error:', error);
