@@ -83,7 +83,7 @@ export async function openExternal(url: string): Promise<void> {
 export function getApiBaseUrl(): string {
   if (isNative()) {
     // APK production — must point to a live backend
-    return process.env.NEXT_PUBLIC_API_URL || 'https://tarot-app-one-sage.vercel.app';
+    return process.env.NEXT_PUBLIC_API_URL || 'https://oracle-etoiles.app';
   }
   // Web dev/prod — same origin
   return process.env.NEXT_PUBLIC_API_URL || '';
