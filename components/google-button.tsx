@@ -1,28 +1,26 @@
 'use client';
 
-// components/google-button.tsx — Bouton « Continuer avec Google » (GSI).
-// Rendu PAR GOOGLE (scripts.accounts.google.com/gsi/client) via
-// google.accounts.id.renderButton → conforme aux règles de marque Google.
-// flow picker = popup sur web, onglet système sur Android/WebView.
+// components/google-button.tsx — Bouton « Continuer avec Google ».
+// • Web : rendu PAR GOOGLE (GSI, scripts.accounts.google.com/gsi/client) —
+//   conforme aux règles de marque ; popup ; POST /api/auth/google (ID token).
+// • APK (natif) : la WebView (origine capacitor://localhost) ne peut pas être
+//   autorisée par GSI → flux navigateur système : /api/auth/google/start crée
+//   un passage (state + PKCE + ticket), on ouvre l'URL Google dans le navigateur
+//   (@capacitor/browser, Custom Tab), Google redirige sur le callback serveur
+//   qui résout le compte, puis deep-link tarotdivination:///auth/google/done
+//   pour que l'APK retire sa session (/api/auth/google/claim, ticket).
 //
-// Dépendances runtime : NEXT_PUBLIC_GOOGLE_CLIENT_ID (client_id WEB). Si absent
-// → le bouton ne se rend pas (return null) : le parcours email reste entier.
-// Après un credential valide : POST /api/auth/google → mêmes clés de session
-// que /api/auth/login (tarot_user + arkane_session_token) → /dashboard/account.
+// Env : NEXT_PUBLIC_GOOGLE_CLIENT_ID (client_id WEB). Absent → pas de bouton.
+// Après succès : mêmes clés de session que /api/auth/login
+// (tarot_user + arkane_session_token) → /dashboard/account.
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n';
 import { onAccountChanged } from '@/lib/tutorials';
 import { getDeviceToken } from '@/lib/device-client';
+import { isNative, openExternal } from '@/lib/capacitor-utils';
 import { api } from '@/lib/api-client';
-import { isNative } from '@/lib/capacitor-utils';
-
-// Natif (APK) : le bouton ne se rend PAS pour l'instant — la WebView Capacitor
-// (origine capacitor://localhost) ne peut pas être enregistrée comme origine
-// d'authorisation GSI, et les popups y sont coupées. Étape 2 prévue : flux
-// externe (navigateur système via @capacitor/browser → /api/auth/google/native
-// PKCE → retour deep link tarotdivination://) calqué sur le retour Stripe.
 
 declare global {
   interface Window {
@@ -30,6 +28,8 @@ declare global {
     __gsiPromise?: Promise<void>;
   }
 }
+
+export const HANDOFF_KEY = '***';
 
 function loadGsi(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
@@ -47,6 +47,13 @@ function loadGsi(): Promise<void> {
   return window.__gsiPromise;
 }
 
+function applySession(data: any, router: ReturnType<typeof useRouter>) {
+  try { localStorage.setItem('tarot_user', JSON.stringify(data.user)); } catch {}
+  if (data.session) { try { localStorage.setItem('arkane_session_token', data.session); } catch {} }
+  onAccountChanged();
+  router.push('/dashboard/account');
+}
+
 export default function GoogleButton() {
   const router = useRouter();
   const t = useT();
@@ -56,8 +63,29 @@ export default function GoogleButton() {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
   const native = isNative();
 
+  // ── APK : bouton stylé maison + démarrage du passage navigateur ──
+  const startNative = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const res = await api('/api/auth/google/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceToken: getDeviceToken(), lang: document.documentElement.lang || 'fr' }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.url) { setError(d.error || t('auth.google.failed')); return; }
+      try { localStorage.setItem(HANDOFF_KEY, JSON.stringify({ state: d.state, ticket: d.ticket })); } catch {}
+      await openExternal(d.url);
+    } catch {
+      setError(t('auth.google.failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
-    if (!clientId || native) return; // config manquante ou WebView native → rien à monter
+    if (!clientId || native) return; // web seulement : GSI
     let cancelled = false;
     loadGsi()
       .then(() => {
@@ -66,7 +94,6 @@ export default function GoogleButton() {
         if (!accountsId) return;
         accountsId.initialize({
           client_id: clientId,
-          // UX_DESKTOP par défaut ; sur mobile le flux d'ouverture s'adapte.
           auto_select: false,
           callback: async (resp: { credential?: string }) => {
             setBusy(true);
@@ -86,11 +113,7 @@ export default function GoogleButton() {
                 setError(typeof data.error === 'string' ? data.error : t('auth.google.failed'));
                 return;
               }
-              // Mêmes contrats de session que /api/auth/login.
-              try { localStorage.setItem('tarot_user', JSON.stringify(data.user)); } catch {}
-              try { localStorage.setItem('arkane_session_token', data.session); } catch {}
-              onAccountChanged();
-              router.push('/dashboard/account');
+              applySession(data, router);
             } catch {
               setError(t('auth.google.failed'));
             } finally {
@@ -100,24 +123,55 @@ export default function GoogleButton() {
         });
         accountsId.renderButton(hostRef.current, {
           type: 'standard',
-          theme: 'filled_black',   // cohérent avec l'ambiance sombre
+          theme: 'filled_black',
           size: 'large',
-          text: 'continue_with',   // « Continuer avec Google » (libellé conforme)
+          text: 'continue_with',
           shape: 'pill',
           logo_alignment: 'left',
           locale: (document.documentElement.lang || 'fr').slice(0, 2),
         });
       })
-      .catch(() => { /* pas de GSI (bloqué) : le bouton reste caché */ });
+      .catch(() => { /* GSI bloqué : le bouton reste caché */ });
     return () => { cancelled = true; };
-  }, [clientId, router, t]);
+  }, [clientId, native, router, t]);
 
-  if (!clientId || native) return null;
+  if (!clientId) return null;
+
+  if (native) {
+    // Rendu maison en APK (bouton « Continuer avec Google », conforme : logo G
+    // + texte approuvé, fond blanc — les règles Google autorisent un bouton
+    // personnalisé qui lance l'OAuth).
+    return (
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={startNative}
+          disabled={busy}
+          className="mx-auto flex items-center justify-center gap-3 rounded-full px-5 py-3 font-medium text-gray-800 shadow disabled:opacity-60"
+          style={{ background: '#fff', minHeight: 44, minWidth: 220 }}
+        >
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.56 5.87C12.33 13.69 17.68 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.52-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.12 28.9c-.22-1.12-.35-2.28-.35-3.43s.13-2.31.35-3.43l-7.56-5.87C1.09 18.59.37 21.22.37 24s.72 5.41 2.04 7.83l7.71-5.93z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.32 0-11.67-4.19-13.87-9.86l-7.56 5.87C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '1rem' }}>
+            {busy ? t('auth.google.busy') : t('auth.google.continue')}
+          </span>
+        </button>
+        {error && (
+          <p className="text-center text-xs" style={{ color: '#e57373', fontFamily: 'var(--font-cormorant), serif' }} role="alert">{error}</p>
+        )}
+        <p className="text-center text-[10px] opacity-45" style={{ color: '#d9c9a3', fontFamily: 'var(--font-cormorant), serif' }}>
+          {t('auth.google.hint')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      {/* Le bouton Google est dessiné par Google ; ce voile « Connexion… »
-          couvre le conteneur pendant l'appel API, pour un feedback clair. */}
       <div className="relative">
         <div ref={hostRef} className="flex justify-center" />
         {busy && (

@@ -21,6 +21,10 @@ jobs:
         run: npm ci
 
       - name: Build Next.js static export
+        env:
+          # client_id PUBLIC (visible dans le navigateur par conception GSI) —
+          # autorise le bouton Google dans l'APK. Le secret reste serveur.
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: 360576711615-vnd7art0qftj6n0f47r2rcucnsfirnro.apps.googleusercontent.com
         run: npm run build
 
       - name: Setup Java 21

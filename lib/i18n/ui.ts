@@ -54,6 +54,8 @@ export const DICT = {
   // ─── Login modal ───
   'login.title': { fr: "Connexion ✨", en: "Sign in ✨", es: "Iniciar sesión ✨", hi: "प्रवेश ✨" },
   'login.slogan': { fr: "Que les étoiles vous guident !", en: "May the stars guide you!", es: "¡Que las estrellas le guíen!", hi: "तारें आपका मार्गदर्शन करें!" },
+  'auth.google.continue': { fr: "Continuer avec Google", en: "Continue with Google", es: "Continuar con Google", hi: "Google से जारी रखें" },
+  'auth.google.waiting': { fr: "Finalisation de la connexion…", en: "Finishing sign-in…", es: "Finalizando la sesión…", hi: "साइन-इन पूर्ण हो रहा है…" },
   'auth.google.busy': { fr: "Connexion…", en: "Signing in…", es: "Conectando…", hi: "साइन इन हो रहा है…" },
   'auth.google.failed': { fr: "Connexion Google impossible. Réessayez ou utilisez votre email.", en: "Google sign-in failed. Retry or use your email.", es: "El inicio de sesión con Google falló. Inténtelo de nuevo o use su email.", hi: "Google साइन-इन विफल रहा। पुनः प्रयास करें या अपना ईमेल उपयोग करें।" },
   'auth.google.hint': { fr: "Compte créé sans mot de passe : Google prouve votre email.", en: "Account created without a password: Google verifies your email.", es: "Cuenta creada sin contraseña: Google verifica su email.", hi: "पासवर्ड के बिना खाता बनाया गया: Google आपका ईमेल सत्यापित करता है।" },
