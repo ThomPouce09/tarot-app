@@ -374,3 +374,23 @@ model DailyDrawView {
   @@unique([email, date])
   @@map("daily_draw_views")
 }
+
+// ─── Jeton d'appareil : passage WebView -> navigateur système (Google natif) ──
+// L'APK ne peut pas ouvrir de popup GSI (origine capacitor://localhost refusée
+// par Google). Le bouton Google natif lance donc un flux OAuth complet dans le
+// navigateur système (autorisation par code + PKCE). Une ligne est créée au
+// départ (state = id du passage), le callback serveur y dépose l'email, et
+// l'app récupère sa session via /api/auth/google/claim avec son nonce
+// (HMAC vérifié, à usage unique — la ligne est détruite après retrait).
+model AuthHandoff {
+  id            String    @id           // state 40 hex (cible du navigateur)
+  ticketHash    String                  // HMAC(SESSION_KEY, ticket) — ticket jamais stocké en clair
+  verifier      String                  // code_verifier PKCE (éphémère, 15 min, à usage unique)
+  deviceTokenHash String?               // anti-abus (identique à l'inscription)
+  lang          String    @default("fr")
+  email         String?                 // rempli par le callback Google
+  claimed       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  @@index([createdAt])
+  @@map("auth_handoffs")
+}
