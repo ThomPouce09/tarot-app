@@ -28,7 +28,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="tarot-app-one-sage.vercel.app" />
+                <data android:scheme="https" android:host="oracle-etoiles.app" />
+        <data android:scheme="https" android:host="tarot-app-one-sage.vercel.app" />
             </intent-filter>
 
             <!-- Repli si l'app est ouverte par un lien custom (tarotdivination://) -->

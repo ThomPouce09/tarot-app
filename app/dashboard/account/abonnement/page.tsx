@@ -433,6 +433,18 @@ export default function AbonnementPage() {
       {usage && (
         <div className="mystic-panel p-5 space-y-5">
           <h2 className="mystic-title text-lg">{t('sub.dashTitle')}</h2>
+          {/* Type de compte bien visible sous le titre — icône du plan à gauche. */}
+          <div className="-mt-3.5 mb-1 flex items-center gap-2">
+            {PLAN_ICON_IMG[current] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={PLAN_ICON_IMG[current]} alt="" className="h-6 w-6 shrink-0 object-contain" />
+            ) : (
+              <span className="text-xl leading-none shrink-0">{PLAN_ICON[current]}</span>
+            )}
+            <span className="text-[15px] font-bold leading-none" style={{ color: '#F0C75E', fontFamily: 'var(--font-cinzel), serif' }}>
+              {t(current === 'arkane' ? 'tier.arkane' : current === 'initie' ? 'tier.initie' : 'tier.apprenti')}
+            </span>
+          </div>
 
           {/* Tirages restants : base & avancés */}
           <div className="grid grid-cols-2 gap-3">
@@ -561,13 +573,15 @@ export default function AbonnementPage() {
           const isOne = isOneShot(p);
           return (
             <div key={p} id={p} className={`mystic-panel p-5 flex flex-col scroll-mt-24 ${isCurrent ? 'ring-2 ring-violet-500/60' : ''} ${locked ? 'opacity-60' : ''}`}>
-              {PLAN_ICON_IMG[p] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={PLAN_ICON_IMG[p]} alt="" className="h-9 w-9 object-contain mb-2" />
-              ) : (
-                <div className="text-3xl mb-2">{PLAN_ICON[p]}</div>
-              )}
-              <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
+              <div className="mb-2 flex items-center gap-2.5">
+                {PLAN_ICON_IMG[p] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={PLAN_ICON_IMG[p]} alt="" className="h-9 w-9 shrink-0 object-contain" />
+                ) : (
+                  <span className="text-3xl leading-none shrink-0">{PLAN_ICON[p]}</span>
+                )}
+                <h2 className="mystic-title text-lg">{t(PLAN_NAME_KEY[p])}</h2>
+              </div>
               <p className="mystic-subtitle text-sm mb-3">
                 {p === 'bienvenue' ? (
                   <span className="text-emerald-300 font-semibold">{t('sub.free')}</span>
@@ -661,11 +675,6 @@ export default function AbonnementPage() {
         })}
       </div>
 
-      {/* Note devise locale — la conversion est faite par Stripe Checkout
-          (Adaptive Pricing activé côté Dashboard). */}
-      <p className="text-gray-400 text-xs text-center leading-relaxed mt-4 max-w-xl mx-auto">
-        {t('sub.localCurrencyNote')}
-      </p>
 
       {/* Modale de confirmation de résiliation */}
       {confirmCancel && (

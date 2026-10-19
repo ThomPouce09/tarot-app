@@ -56,19 +56,58 @@ function inlineMd(s: string): React.ReactNode {
 export function EmptyState() {
   const t = useT();
   return (
-    <div className="bg-gray-900/60 border border-amber-800/30 rounded-lg p-10 text-center">
-      <div className="text-5xl mb-4" style={{ filter: 'drop-shadow(0 0 14px rgba(218,165,32,0.5))' }}>🔮</div>
+    <div className="flex min-h-[56vh] w-full flex-col items-center justify-center bg-gray-900/60 border border-amber-800/30 rounded-lg p-10 text-center">
+      <div className="mb-4" style={{ filter: 'drop-shadow(0 0 16px rgba(167,139,250,0.5))' }} aria-hidden>
+        <svg width="88" height="88" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="cbOrb" cx="38%" cy="30%" r="80%">
+              <stop offset="0%" stopColor="#EFE6FF" />
+              <stop offset="32%" stopColor="#C4B5FD" />
+              <stop offset="64%" stopColor="#7C5CE0" />
+              <stop offset="100%" stopColor="#241145" />
+            </radialGradient>
+            <radialGradient id="cbHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#DAA520" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#DAA520" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="cbBase" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F0C75E" />
+              <stop offset="55%" stopColor="#B8860B" />
+              <stop offset="100%" stopColor="#4A2E0C" />
+            </linearGradient>
+          </defs>
+          <circle cx="48" cy="40" r="36" fill="url(#cbHalo)" />
+          <circle cx="48" cy="40" r="27" fill="url(#cbOrb)" stroke="rgba(240,199,94,0.6)" strokeWidth="1.3" />
+          <path d="M29 35c5-9 17-13 26-9 8 3 10 11 6 16-5 7-16 8-23 4" stroke="rgba(255,255,255,0.55)" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.6" />
+          <ellipse cx="40" cy="30" rx="5.5" ry="3.8" fill="rgba(255,255,255,0.8)" opacity="0.75" transform="rotate(-24 40 30)" />
+          <path d="M57 48l1.7 3.9L63 53.5l-4.3 1.6L57 59l-1.7-3.9L51 53.5l4.3-1.6z" fill="#F3D9A6" opacity="0.95" />
+          <path d="M33 20l1.2 2.7 2.7 1.2-2.7 1.2L33 27.8l-1.2-2.7-2.7-1.2 2.7-1.2z" fill="#fff" opacity="0.85" />
+          <path d="M27 66h42l-4.6 9.4c-.9 1.9-2.8 3.1-4.8 3.1H36.4c-2 0-3.9-1.2-4.8-3.1z" fill="url(#cbBase)" stroke="rgba(74,46,12,0.9)" strokeWidth="1" />
+          <ellipse cx="48" cy="67" rx="21" ry="3.4" fill="rgba(255,255,255,0.25)" />
+        </svg>
+      </div>
       <p className="text-amber-200/80 text-base mb-1 font-semibold" style={{ fontFamily: 'var(--font-cinzel-deco), serif' }}>{t('history.emptyTitle')}</p>
       <p className="text-gray-500 text-xs mb-6" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('history.emptyText')}</p>
-      <div className="flex gap-3 justify-center flex-wrap">
-        <Link href="/tarot" className="inline-block px-4 py-2 rounded-lg text-amber-300 text-sm hover:opacity-80 transition-all"
-          style={{ background: 'rgba(218,165,32,0.2)', border: '1px solid rgba(218,165,32,0.4)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doTarot')}</Link>
-        <Link href="/yi-jing" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
-          style={{ color: '#F0463C', background: 'rgba(240,70,60,0.18)', border: '1px solid rgba(240,70,60,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doYijing')}</Link>
-        <Link href="/runes" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
-          style={{ color: '#3CB371', background: 'rgba(60,179,113,0.16)', border: '1px solid rgba(60,179,113,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doRunes')}</Link>
-        <Link href="/des-divinatoires" className="inline-block px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
-          style={{ color: '#3D9BE9', background: 'rgba(61,155,233,0.16)', border: '1px solid rgba(61,155,233,0.45)', fontFamily: 'var(--font-cinzel), serif' }}>{t('history.doDes')}</Link>
+      <div className="grid w-full grid-cols-2 gap-2.5 justify-items-center max-w-2xl mx-auto">
+        {([
+          { href: '/tarot', img: '/images/tarot-icon.png', label: t('history.doTarot'), color: '#DAA520', tint: 'rgba(218,165,32,0.16)' },
+          { href: '/yi-jing', img: '/images/yi-jing-icon.png', label: t('history.doYijing'), color: '#F0463C', tint: 'rgba(240,70,60,0.15)' },
+          { href: '/runes', img: '/images/runes-icon.png', label: t('history.doRunes'), color: '#3CB371', tint: 'rgba(60,179,113,0.14)' },
+          { href: '/des-divinatoires', img: '/images/des-zodiaque.png', label: t('history.doDes'), color: '#3D9BE9', tint: 'rgba(61,155,233,0.14)' },
+        ] as const).map((u) => (
+          <Link key={u.href} href={u.href}
+            className="group inline-flex w-full min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl px-2.5 py-3 text-[11px] font-semibold leading-snug transition-all duration-200 hover:scale-[1.04] hover:brightness-125 active:scale-[0.97]"
+            style={{
+              color: u.color,
+              background: `linear-gradient(180deg, rgba(255,255,255,0.16) 0%, ${u.tint} 42%, ${u.tint} 100%)`,
+              border: `1.5px solid ${u.color}66`,
+              boxShadow: `0 0 16px ${u.color}2e, 0 4px 12px rgba(0,0,0,0.45), inset 0 -3px 8px rgba(0,0,0,0.35)`,
+              fontFamily: 'var(--font-cinzel), serif',
+            }}>
+            <img src={u.img} alt="" className="h-8 w-8 shrink-0 object-contain drop-shadow-[0_0_6px_rgba(255,255,255,0.3)] transition-transform duration-300 group-hover:scale-110" />
+            <span className="min-w-0 text-center break-words">{u.label}</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
   const testEmail = (request.nextUrl.searchParams.get('user') || '').trim().toLowerCase();
 
   const subscribers = await prisma.user.findMany({
-    where: { emailNews: true, ...(testEmail ? { email: testEmail } : {}) },
+    // Lettre réservée aux comptes abonnés (Initié/Arkane réellement actifs) —
+    // les Apprentis sont exclus même s'ils restent cochés emailNews.
+    where: { emailNews: true, subscription: { status: 'active', currentPeriodEnd: { gt: now } }, ...(testEmail ? { email: testEmail } : {}) },
     select: { email: true, firstName: true, lastLetterSentAt: true, timezone: true },
   });
 

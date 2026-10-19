@@ -117,12 +117,12 @@ export function middleware(request: NextRequest) {
   if (IS_PROD && !isAllowed && !PUBLIC_PATHS(path) && !ASSET_PATHS(path) && !THIRD_PARTY_ASSETS(path)) {
     return new NextResponse(
       '<!doctype html><html lang="fr"><meta charset="utf-8">' +
-      '<title>Application Arkane</title>' +
+      '<title>L\u2019Oracle des \u00c9toiles</title>' +
       '<body style="background:#0d0a14;color:#e8dcc8;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">' +
       '<div style="max-width:420px;padding:2rem;text-align:center">' +
-      '<h2 style="color:#DAA520">Arkane</h2>' +
+      '<h2 style="color:#DAA520">L\u2019Oracle des \u00c9toiles</h2>' +
       '<p>Cette expérience est réservée à l\u2019application Android.</p>' +
-      '<p style="opacity:.7;font-size:.9rem">Installez Arkane sur votre appareil pour consulter les oracles.</p>' +
+      '<p style="opacity:.7;font-size:.9rem">Installez L\u2019Oracle des \u00c9toiles sur votre appareil pour consulter les oracles.</p>' +
       '</div></body></html>',
       { status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
     );

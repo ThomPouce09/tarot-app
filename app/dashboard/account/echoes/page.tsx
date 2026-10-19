@@ -375,7 +375,7 @@ export default function AuguresPage() {
           <p className="text-amber-100/90 text-[15px] leading-relaxed max-w-md mx-auto">{t('echo.auguresLocked')}</p>
           <div className="mt-6">
             <Link href="/dashboard/account/abonnement#initie">
-              <RuneButton variant="save">{t('echo.auguresCta')}</RuneButton>
+              <span className="mystic-btn inline-block">{t('echo.auguresCta')}</span>
             </Link>
           </div>
         </div>

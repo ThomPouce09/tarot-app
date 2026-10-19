@@ -34,6 +34,21 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // Démarrage à froid détecté avant la première peinture (pas de mismatch SSR).
   const [coldStart, setColdStart] = useState(false);
+  // Confirmation de déconnexion : drapeau posé par doLogout (nav/Mon espace), lu UNE fois.
+  const [bye, setBye] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem('logged_out_notice')) {
+      localStorage.removeItem('logged_out_notice');
+      setBye(true); // le timer est armé par l'effet [bye] ci-dessous
+    }
+  }, []);
+  // Furtif : 5 s. Armé sur bye=true — en dev StrictMode le 1er montage
+  // annulait le timer sans jamais l'armer de nouveau → message bloqué.
+  useEffect(() => {
+    if (!bye) return;
+    const iv = setTimeout(() => setBye(false), 5000);
+    return () => clearTimeout(iv);
+  }, [bye]);
   useIsomorphicLayoutEffect(() => {
     if (!landingColdStartSeen) {
       landingColdStartSeen = true;
@@ -198,6 +213,7 @@ export default function HomePage() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none" style={{ background: '#0a0604' }}>
+
       {/* BACKGROUND : image ou vidéo, selon le fond retenu. Rendu seulement une
           fois le fond choisi (bgReady) → pas de flash. Fondu doux à chaque
           défilement (key = fond courant). */}
@@ -287,6 +303,13 @@ export default function HomePage() {
         >
           <span className={ctaTwinkle ? 'star-twinkle inline-block' : 'inline-block'}>✨</span> {isLoggedIn ? t('landing.cta.logged') : t('landing.cta.guest')}
         </button>
+
+        {bye && (
+          <div role="status" className="pointer-events-none absolute left-1/2 top-full z-[99999] mt-3 w-max -translate-x-1/2 rounded-full px-4 py-1.5 text-[12px] font-semibold"
+            style={{ background: 'rgba(28,6,6,0.9)', border: '1px solid rgba(255,107,107,0.65)', color: '#FF6B6B', boxShadow: '0 4px 18px rgba(0,0,0,0.55), 0 0 14px rgba(255,80,80,0.35)', fontFamily: 'var(--font-cinzel), serif' }}>
+            {t('account.logoutDone')}
+          </div>
+        )}
       </div>
 
       {/* CHOICE CARDS */}

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { calcAge } from '@/lib/dates';
 import { getDeviceToken } from '@/lib/device-client';
 import { isDisposableEmail } from '@/lib/disposable-emails';
+import GoogleButton from '@/components/google-button';
 // Petit œil SVG (afficher/masquer le mot de passe) — remplace l'emoji 👁️,
 // hors charte. Filet doré fin, cohérent avec les champs « Mon espace ».
 function EyeIcon({ open }: { open: boolean }) {
@@ -199,6 +200,10 @@ export default function SignUpPage() {
             </div>
 
             <div className="overflow-y-auto flex-1 p-3 sm:p-5 space-y-3">
+              {/* Inscription express par Google — le compte email classique
+                  reste disponible ci-dessous. */}
+              <GoogleButton />
+
               <form onSubmit={handleSubmit} className="space-y-3">
                 
                 <div className="group">

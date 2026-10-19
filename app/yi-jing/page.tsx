@@ -582,7 +582,7 @@ export default function YiJingHubPage() {
       </div>
 
       {/* MODE INVITÉ : bascule + bandeau rouge, collé sous la grille */}
-      <div className="mx-auto -mt-1 mb-4 w-[92%] max-w-md">
+      <div className="mx-auto mt-2 mb-4 w-[92%] max-w-md">
         <GuestModeBanner tone="lacquer" />
       </div>
       </div>

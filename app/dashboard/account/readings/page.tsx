@@ -362,9 +362,11 @@ export default function ReadingsPage() {
       <div className="readings-nightfall" aria-hidden />
       {/* Croix retour accueil retirée : le rond avatar du layout mène à Mon espace */}
 
-      <div className="max-w-2xl mx-auto pb-24">
+      {/* !mt-0 : le voile nightfall occupe le 1er créneau du space-y et
+          poussait le bandeau de 24px vers le bas (trou sous le bandeau). */}
+      <div className="max-w-2xl mx-auto pb-24 !mt-0">
         {/* Bandeau du titre : un seul dégradé continu qui remonte sous la têtière et fond dans le ciel cosmique */}
-        <SpaceTitle img="/images/nav-historique.png" title={t('history.title')} subtitle={t('history.subtitle')} dense />
+        <SpaceTitle img="/images/nav-historique.png" title={t('history.title')} subtitle={t('history.subtitle')} dense up />
 
         {fetchError && (
           <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 mb-4">

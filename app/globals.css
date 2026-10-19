@@ -1124,3 +1124,8 @@ html, body {
   -webkit-appearance: none !important;
   opacity: 0 !important;
 }
+
+/* Focus barre du bas « Mon espace » : légère pulsation de l'icône active. */
+@keyframes navIconPulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.16); filter: brightness(1.3); } }
+.nav-icon-pulse { animation: navIconPulse 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .nav-icon-pulse { animation: none; } }

@@ -5,7 +5,7 @@
 //
 // Ne JAMAIS coder une URL en dur dans les gabarits : on passe toujours par
 // letterBaseUrl() pour que le changement de domaine n'ait qu'un seul point.
-const FALLBACK_BASE = 'https://tarot-app-one-sage.vercel.app';
+const FALLBACK_BASE = 'https://oracle-etoiles.app';
 
 /** Base absolue des liens d'email (domaine de l'API, celui des App Links). */
 export function letterBaseUrl(): string {

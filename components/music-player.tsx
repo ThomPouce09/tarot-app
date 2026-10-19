@@ -11,7 +11,7 @@
 // Codes couleur de « Mon espace » : violet/mauve (pas de bordeaux ici).
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSpaceToast } from '@/components/space-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useT } from '@/lib/i18n';
 import { pauseSound, playLoop, soundProgress } from '@/lib/sounds';
@@ -28,7 +28,7 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString(
 
 export default function MusicPlayer({ level, ready = true }: { level: 'apprenti' | 'initie' | 'arkane'; ready?: boolean }) {
   const t = useT();
-  const router = useRouter();
+  const { show, toast } = useSpaceToast();
   const [sel, setSel] = useState(trackById(getMusicPrefs().track).id);
   const [enabled, setEnabled] = useState(getMusicPrefs().on);
   const [playing, setPlaying] = useState(false);
@@ -83,7 +83,7 @@ export default function MusicPlayer({ level, ready = true }: { level: 'apprenti'
 
   // ── Transport ──────────────────────────────────────────────────────
   const togglePlay = () => {
-    if (locked) { router.push('/dashboard/account/abonnement'); return; }
+    if (locked) { show(t('space.reserved')); return; } // alerte discrète, PAS de redirection muette
     if (!enabled) {
       // Allumer ICI = maître ON + écoute immédiate, SANS toucher l'enceinte
       // ni aux autres canaux : seule la musique est concernée.
@@ -112,7 +112,7 @@ export default function MusicPlayer({ level, ready = true }: { level: 'apprenti'
     if (id === sel) return;
     const tr = trackById(id);
     const tkLocked = (!!tr.arkaneOnly && level !== 'arkane') || (tr.premium && level === 'apprenti');
-    if (tkLocked) { router.push('/dashboard/account/abonnement'); return; }
+    if (tkLocked) { show(t('space.reserved')); return; } // alerte discrète, PAS de redirection muette
     setSel(id);
     setPos({ time: 0, dur: tr.dur });
     setMusicTrack(id);
@@ -122,6 +122,7 @@ export default function MusicPlayer({ level, ready = true }: { level: 'apprenti'
 
   return (
     <div className="space-y-4">
+      {toast}
       {/* Bandeau piste actuelle (carrousel) */}
       <div className="flex items-center justify-between gap-3">
         <button type="button" onClick={() => switchTrack(-1)} aria-label={t('music.prev')} title={t('music.prev')}

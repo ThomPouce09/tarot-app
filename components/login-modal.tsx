@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT, useLang, tr } from '@/lib/i18n';
 import { onAccountChanged } from '@/lib/tutorials';
+import GoogleButton from '@/components/google-button';
 
 export const OPEN_LOGIN_EVENT = 'open-login';
 
@@ -109,6 +110,7 @@ export function LoginModal() {
             >
               {t('login.email')}
             </label>
+            <div className="relative">
             <input
               type="email"
               value={email}
@@ -119,7 +121,7 @@ export function LoginModal() {
               spellCheck={false}
               onChange={(e) => setEmail(e.target.value.toLowerCase())}
               required
-              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
+              className="w-full px-4 py-3 pr-10 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400/60 transition-all placeholder:text-amber-200/40"
               style={{
                 background: 'rgba(0,0,0,0.45)',
                 border: '1px solid rgba(218,165,32,0.3)',
@@ -131,6 +133,16 @@ export function LoginModal() {
               }}
               placeholder={tr("votre@email.com", "your@email.com", "su@correo.com", "आपका@email.com")}
             />
+            {email.trim() && (
+              <button type="button" onClick={() => { setEmail(''); }}
+                aria-label={tr("Effacer l'email", "Clear email", "Borrar el email", "ईमेल मिटाएं")} title={tr("Effacer", "Clear", "Borrar", "मिटाएं")}
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[11px] font-bold transition hover:brightness-125"
+                style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(218,165,32,0.4)', color: '#FFD9A0' }}>
+                ✕
+              </button>
+            )}
+</div>
+
           </div>
           <div>
             <label
@@ -179,6 +191,11 @@ export function LoginModal() {
             {t('login.submit')}
           </button>
         </form>
+        {/* ── Continuer avec Google ── (bouton dessiné par Google ; invisible
+            si NEXT_PUBLIC_GOOGLE_CLIENT_ID absent) */}
+        <div className="mt-5">
+          <GoogleButton />
+        </div>
         <div className="text-center text-xs mt-4 space-y-2">
           <a href="/auth/forgot-password" className="text-amber-300 hover:underline block mx-auto">{t('login.forgot')}</a>
           <a href="/auth/signup" className="text-amber-300 hover:underline block mx-auto">{t('login.signup')}</a>
