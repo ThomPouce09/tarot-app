@@ -1,6 +1,7 @@
 'use client';
 
 import { useLang, pick4, tr } from '@/lib/i18n';
+import { withHd } from '@/lib/video-quality';
 import Firefly from '@/components/firefly';
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -50,7 +51,7 @@ function TarotRandomBackdrop() {
         {isVideo ? (
           <video
             key={src}
-            src={src}
+            src={withHd(src)}
             autoPlay muted loop playsInline preload="auto"
             poster={BLACK_POSTER}
             onCanPlay={() => setVideoReady(true)}
@@ -278,12 +279,12 @@ export default function TarotHubPage() {
 
       {/* TUILES : grille 2 colonnes sur mobile */}
       <div
-        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[128px_128px] sm:grid-cols-[144px_144px] md:grid-cols-[160px_160px] lg:grid-cols-[176px_176px] gap-x-5 gap-y-6 justify-items-center px-4"
+        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[auto_auto] gap-x-5 gap-y-4 justify-items-center px-4"
       >
         {/* TUILE — 3 CARTES SIMPLIFIÉ (tirage de base, accessible Apprenti) */}
         <GatedTile href="/tarot-3-cartes-simplifie" allowed={tiles?.['tarot-3-cartes-simplifie']?.allowed} reason={tiles?.['tarot-3-cartes-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -355,7 +356,7 @@ export default function TarotHubPage() {
         {/* TUILE — 3 CARTES · PRÉCIS (question libre → avancé) */}
         <GatedTile href="/tarot-3-cartes" allowed={tiles?.['tarot-3-cartes']?.allowed} reason={tiles?.['tarot-3-cartes']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -427,7 +428,7 @@ export default function TarotHubPage() {
         {/* TUILE — 5 CARTES (CROIX) */}
         <GatedTile href="/tarot-semaine" allowed={tiles?.['tarot-semaine']?.allowed} reason={tiles?.['tarot-semaine']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -500,7 +501,7 @@ export default function TarotHubPage() {
         {isLoggedIn ? (
           <GatedTile href="/tarot-5-c-manuelle" allowed={tiles?.['tarot-5-c-manuelle']?.allowed} reason={tiles?.['tarot-5-c-manuelle']?.reason} onBlocked={openGate}>
             <motion.div
-              className="group relative w-32 sm:w-36 md:w-40 lg:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+              className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
               style={{
                 boxShadow:
                   "0 0 18px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)",

@@ -30,6 +30,7 @@ import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import EchoBox from '@/components/echo-box';
 import { useT, useLang, pick4, type Lang, tr } from '@/lib/i18n';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { dynamicWithRetry } from '@/lib/retry-dynamic';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import { playSound } from '@/lib/sounds';
 import { api } from '@/lib/api-client';
@@ -38,13 +39,15 @@ import { DiceLaunchCard } from '@/app/des-divinatoires/launch-card';
 import AuthGate from '@/components/auth-gate';
 // Composants de rendu extraits a l'etape 2 du decoupage.
 import {
-  DiceAnalysis, RecapCard, VoiesHeader, VoiesCharged, VoieCard, VoieDestinyCard,
+  DiceAnalysis, VoiesHeader, VoiesCharged, VoieCard, VoieDestinyCard,
 } from './views';
 // Helpers purs extraits a l'etape 1 du decoupage.
 import { diceCards, diceStaticText, type Step } from './helpers';
 
 const AstroDiceCup = dynamic(
-  () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
+  // Garde-fou téléphone d'entrée de gamme : chunk 3D trop lent →
+  // 2 tentatives chronométrées avant de laisser le loading d'origine (8).
+  dynamicWithRetry(() => import('@/components/astro-dice').then((m) => m.AstroDiceCup)),
   {
     ssr: false,
     loading: () => (
@@ -484,71 +487,29 @@ function ObstacleSolutionPage() {
           )}
         </AnimatePresence>
 
-        {/* ════════════ RÉCAPITULATIF FINAL + AUGURE (fin de parcours) ════════════ */}
+        {/* ════════════ AUGURE (fin de parcours) ════════════
+            L'ancien « Récapitulatif Obstacle & Solution » (deux RecapCard) a
+            été supprimé : question, faces et analyse y étaient DUBLIÉS — ils
+            sont déjà affichés dans les sections d'analyse ci-dessus. Tout ce
+            que le récap apportait de propre est conservé là où il a du sens :
+            la question B (rendue au-dessus des dés Solution) et l'Augure,
+            désormais autonome. */}
         <AnimatePresence>
-          {step === 'solution_done' && (
+          {readingId && step === 'solution_done' && (shortObstacle || deepObstacle) && (shortSolution || deepSolution) && (
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 mb-10"
+              className="mx-auto mt-8 mb-10 max-w-2xl"
             >
-              <div
-                className="mx-auto max-w-2xl"
-                style={{
-                  background: `linear-gradient(135deg, ${DICE_THEME.gold}18 0%, ${DICE_THEME.brickDeep} 100%)`,
-                  border: `1.5px solid ${DICE_THEME.gold}33`,
-                  borderRadius: 20,
-                  boxShadow: `inset 0 0 30px ${DICE_THEME.gold}0c`,
-                  padding: 24,
-                }}
-              >
-                <h3
-                  className="mb-6 text-center text-lg font-bold"
-                  style={{
-                    fontFamily: 'var(--font-cinzel-deco), serif',
-                    color: DICE_THEME.gold,
-                    textShadow: `0 0 20px ${DICE_THEME.gold}44`,
-                  }}
-                >
-                  {t('des.obstacle.recap')}
-                </h3>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {obstacle && (
-                    <RecapCard
-                      label={t('des.obstacle.readObstacle')}
-                      faces={obstacle}
-                      question={questionRef.current}
-                      shortInterpretation={deepObstacle || shortObstacle}
-                    />
-                  )}
-                  {solution && (
-                    <RecapCard
-                      label={t('des.obstacle.readSolution')}
-                      faces={solution}
-                      question={questionBRef.current}
-                      shortInterpretation={deepSolution || shortSolution}
-                    />
-                  )}
-                </div>
-
-                {/* ✶ L'Augure — SEULEMENT ici, en fin de parcours : le sceau
-                    n'apparaît qu'après les DEUX tirages analysés, et son
-                    prompt reçoit l'obstacle ET la solution. */}
-                {readingId && (shortObstacle || deepObstacle) && (shortSolution || deepSolution) && (
-                  <div className="mt-2">
-                    <EchoBox
-                      domain="des"
-                      readingId={readingId}
-                      question={questionRef.current}
-                      summary={[
-                        `Obstacle — « ${questionRef.current || '—'} » : ${(shortObstacle || '').slice(0, 260)}${deepObstacle ? ` [analyse : ${deepObstacle.slice(0, 240)}…]` : ''}`,
-                        `Solution — « ${questionBRef.current || '—'} » : ${(shortSolution || '').slice(0, 260)}${deepSolution ? ` [analyse : ${deepSolution.slice(0, 240)}…]` : ''}`,
-                      ].join(' || ')}
-                    />
-                  </div>
-                )}
-              </div>
+              <EchoBox
+                domain="des"
+                readingId={readingId}
+                question={questionRef.current}
+                summary={[
+                  `Obstacle — « ${questionRef.current || '—'} » : ${(shortObstacle || '').slice(0, 260)}${deepObstacle ? ` [analyse : ${deepObstacle.slice(0, 240)}…]` : ''}`,
+                  `Solution — « ${questionBRef.current || '—'} » : ${(shortSolution || '').slice(0, 260)}${deepSolution ? ` [analyse : ${deepSolution.slice(0, 240)}…]` : ''}`,
+                ].join(' || ')}
+              />
             </motion.div>
           )}
         </AnimatePresence>

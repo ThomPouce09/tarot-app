@@ -676,15 +676,15 @@ export function RuneAnalysis({
                         odinFont ci-dessus) — texte court rempli, long ajusté. ── */}
                     <div
                       ref={odinBoxRef}
-                      className="absolute flex flex-col items-center justify-center"
-                      style={{ top: '30%', bottom: '25%', left: '18%', right: '18%' }}
+                      className="absolute flex flex-col items-center overflow-y-auto overscroll-contain"
+                      style={{ top: '30%', bottom: '25%', left: '18%', right: '18%', scrollbarWidth: 'none', touchAction: 'pan-y' }}
                     >
                       <motion.p
                         ref={odinTextRef}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55, duration: 0.55 }}
-                        className="text-center font-bold leading-snug"
+                        className="my-auto text-center font-bold leading-snug"
                         style={{
                           fontFamily: 'var(--font-cinzel), serif',
                           fontSize: odinFont || '12px',

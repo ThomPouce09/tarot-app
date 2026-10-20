@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n';
-import { api } from '@/lib/api-client';
 import { waitMessages } from '@/lib/wait-messages';
+import { api } from '@/lib/api-client';
+import { withHd } from '@/lib/video-quality';
 
 interface WaitConfig {
   messages: string[];
@@ -117,6 +118,7 @@ function VideoBackground({
   exiting: boolean;
 }) {
   const [idx, setIdx] = useState(0);
+  const [nonce, setNonce] = useState(0); // force un vrai remontage si la liste ne contient qu'une vidéo
   const [fading, setFading] = useState(false);
   const [duration, setDuration] = useState(0);
   const playsRef = useRef(MIN_PLAYS + Math.floor(Math.random() * (MAX_PLAYS - MIN_PLAYS + 1)));
@@ -134,26 +136,34 @@ function VideoBackground({
     if (exiting) return;
     const d = duration > 0 ? duration : FALLBACK_DURATION;
     const plays = isNoLoop ? 1 : playsRef.current;
-    const totalMs = d * plays * 1000;
-    const timer = setTimeout(() => {
-      if (switchingRef.current) return;
-      switchingRef.current = true;
-      setFading(true);
-      setTimeout(() => {
-        setIdx((i) => (i + 1) % urls.length);
-        setDuration(0); // sera re-rempli par loadedmetadata de la suivante
-        playsRef.current = MIN_PLAYS + Math.floor(Math.random() * (MAX_PLAYS - MIN_PLAYS + 1));
-        setFading(false);
-        switchingRef.current = false;
-      }, FADE_MS);
-    }, totalMs);
+    // noLoop : la fin réelle (`onEnded`) déclenche l'avance ; ce timer n'est
+    // qu'un filet (+2 s) pour les WebView où `ended` ne remonte jamais.
+    const totalMs = d * plays * 1000 + (isNoLoop ? 2000 : 0);
+    const timer = setTimeout(advance, totalMs);
     return () => clearTimeout(timer);
   }, [idx, duration, exiting, urls.length, isNoLoop]);
+
+  // Passage à la vidéo suivante (fin réelle `ended` ou fin du timer). Le nonce
+  // remonte <video> même quand la rotation ne contient qu'un seul fichier :
+  // sans lui, la clé ne change pas → l'élément reste figé sur sa dernière image.
+  const advance = () => {
+    if (switchingRef.current || exiting) return;
+    switchingRef.current = true;
+    setFading(true);
+    setTimeout(() => {
+      setIdx((i) => (i + 1) % urls.length);
+      setNonce((n) => n + 1);
+      setDuration(0); // sera re-rempli par loadedmetadata de la suivante
+      playsRef.current = MIN_PLAYS + Math.floor(Math.random() * (MAX_PLAYS - MIN_PLAYS + 1));
+      setFading(false);
+      switchingRef.current = false;
+    }, FADE_MS);
+  };
 
   return (
     <>
       <video
-        key={url}
+        key={`${url}#${nonce}`}
         className={`absolute inset-0 w-full h-full ${fit169 ? 'object-contain' : 'object-cover'} bg-black`}
         style={{
           opacity: fading || exiting ? 0 : 1,
@@ -166,6 +176,7 @@ function VideoBackground({
         muted
         loop={!isNoLoop}
         playsInline
+        onEnded={() => { if (isNoLoop) advance(); }}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
       />
       {/* Voile noir : simple fondu entre les vidéos */}
@@ -289,8 +300,8 @@ export default function WaitOverlay({
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black pb-20">
       {c.backgroundType === 'video' && c.backgroundUrls.length > 0 ? (
         <VideoBackground
-          urls={c.backgroundUrls}
-          noLoopUrls={c.noLoopUrls}
+          urls={c.backgroundUrls.map(withHd)}
+          noLoopUrls={(c.noLoopUrls ?? []).map(withHd)}
           exiting={exiting}
           fit169={fit169}
         />

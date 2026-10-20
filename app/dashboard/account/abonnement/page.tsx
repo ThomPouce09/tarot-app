@@ -138,14 +138,21 @@ export default function AbonnementPage() {
   const loadState = useCallback(async (emailArg?: string) => {
     const e = emailArg ?? email;
     if (!e) return null;
-    try {
-      const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
-      const d = await res.json();
-      hydrate(d);
-      return d;
-    } catch {
-      return null;
+    // Retry : un cold-start Neon (500/timeout au premier appel) ne doit pas
+    // laisser la page afficher le défaut 'apprenti' alors que le compte est
+    // Arkane (même garde que loadTiles dans use-entitlement).
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
+        if (res.ok) {
+          const d = await res.json();
+          hydrate(d);
+          return d;
+        }
+      } catch { /* retry */ }
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 700 * attempt));
     }
+    return null;
   }, [email, hydrate]);
 
   useEffect(() => {

@@ -68,11 +68,31 @@ export function useEntitlement() {
     const e = readEmail();
     setEmail(e);
     if (!e) { setSub(null); setLoaded(true); return; }
-    try {
-      const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
-      if (res.ok) setSub(await res.json());
-      else setSub(null);
-    } catch { /* offline */ }
+    // Cache du dernier état connu : un échec réseau (retour d'APK, cold-start
+    // Neon) ne doit JAMAIS faire régresser l'affichage du niveau réel.
+    const CK = 'tarot_sub_cache';
+    const readCache = (): SubscriptionState | null => {
+      try {
+        const raw = localStorage.getItem(CK);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        return c && c.email === e ? (c.sub as SubscriptionState) : null;
+      } catch { return null; }
+    };
+    const cached = readCache();
+    if (cached) setSub(cached); // premier rendu déjà juste (sera corrigé en below)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await api(`/api/subscription?email=${encodeURIComponent(e)}`);
+        if (res.ok) {
+          const d = await res.json();
+          setSub(d);
+          try { localStorage.setItem(CK, JSON.stringify({ email: e, sub: d })); } catch { /* quota */ }
+          break;
+        }
+      } catch { /* retry */ }
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 700 * attempt));
+    }
     setLoaded(true);
   }, []);
   // Charge la dispo de tous les tirages (GET /api/entitlement/status). Non destructif.

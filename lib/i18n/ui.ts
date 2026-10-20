@@ -808,7 +808,7 @@ export const DICT = {
   'des.affinage.thinking': { fr: "Les astres réfléchissent… ✨", en: "The stars are pondering… ✨", es: "Los astros reflexionan… ✨", hi: "नक्षत्र सोच रहे हैं… ✨" },
   'des.affinage.artemis.title': { fr: "Le secret d'Artémis", en: "Artemis' Secret", es: "El secreto de Artemisa", hi: "आर्टेमिस का रहस्य" },
   'des.affinage.artemis.reveal': { fr: "Révéler le secret d'Artémis", en: "Reveal Artemis' Secret", es: "Revelar el secreto de Artemisa", hi: "आर्टेमिस का रहस्य प्रकट करें" },
-  'des.affinage.artemis.whispering': { fr: "La déesse chuchote aux étoiles…", en: "The goddess is whispering to the stars…", es: "La diosa susurra a las estrellas…", hi: "देवी तारों को फुसफुसा रही है…" },
+  'des.affinage.artemis.whispering': { fr: "La déesse chuchote aux étoiles… Patientez.", en: "The goddess is whispering to the stars… Please wait.", es: "La diosa susurra a las estrellas… Por favor, aguarden.", hi: "देवी तारों को फुसफुसा रही है… कृपया प्रतीक्षा करें।" },
   'des.affinage.cardA.title': { fr: "Zoom d'action", en: "Action zoom", es: "Zoom de acción", hi: "क्रिया ज़ूम" },
   'des.affinage.cardA.desc': { fr: "Relance le dé des Signes : quelle attitude adopter MAINTENANT ?", en: "Re-rolls the Sign die: what attitude to adopt NOW?", es: "Vuelve a tirar el dado de los Signos: ¿qué actitud adoptar AHORA?", hi: "राशि का पासा दोबारा फेंकता है : अभी कैसा व्यवहार अपनाएँ?" },
   'des.affinage.cardA.chip': { fr: "1 dé relancé · Signes", en: "1 die re-rolled · Signs", es: "1 dado relanzado · Signos", hi: "1 पासा दोबारा · राशियाँ" },

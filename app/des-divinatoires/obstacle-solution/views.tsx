@@ -5,9 +5,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { DICE_THEME, DiceButton, OneLineQuestion, PLANET_NAMES, SIGN_NAMES } from '../_shared';
+import { DICE_THEME, DiceButton, PLANET_NAMES, SIGN_NAMES } from '../_shared';
 import type { TargetFaces } from '@/components/astro-dice';
-import { ClickableFaces } from '@/components/astro-dice/constellation';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import WaitPoolLine from '@/components/wait-pool-line';
 import { nextRaceSeq } from '@/lib/race-guard';
@@ -179,52 +178,6 @@ export function DiceAnalysis({
           >
             {md(dbInterpretation)}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Cartes du récapitulatif final ──
-export function RecapCard({
-  label,
-  faces,
-  question,
-  shortInterpretation,
-}: {
-  label: string;
-  faces: TargetFaces;
-  question?: string | null;
-  shortInterpretation?: string | null;
-}) {
-  return (
-    <div
-      className="min-w-0 overflow-hidden rounded-2xl p-4"
-      style={{
-        background: `linear-gradient(135deg, ${DICE_THEME.brick} 0%, ${DICE_THEME.brickDeep} 100%)`,
-        border: `1.5px solid ${DICE_THEME.gold}44`,
-      }}
-    >
-      <p
-        className="mb-2 text-center text-sm font-bold uppercase tracking-wider"
-        style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: DICE_THEME.gold }}
-      >
-        {label}
-      </p>
-      {question && (
-        <OneLineQuestion
-          className="mb-3 text-sm italic"
-          style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph }}
-          text={question}
-        />
-      )}
-      <div className="mb-1"><ClickableFaces faces={faces} /></div>
-      {shortInterpretation && (
-        <div
-          className="mt-3 text-sm leading-relaxed"
-          style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3', lineHeight: 1.7 }}
-        >
-          {md(shortInterpretation)}
         </div>
       )}
     </div>

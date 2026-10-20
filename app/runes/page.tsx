@@ -288,7 +288,7 @@ export default function RunesHub() {
           return (
           <GatedTile key={tile.href} href={tile.href} allowed={tiles?.[runeType]?.allowed} reason={tiles?.[runeType]?.reason} onBlocked={openGate} className="block">
             <motion.div
-              className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl cursor-pointer transition-all"
+              className="group relative h-[31vh] max-h-[340px] min-h-[170px] w-full overflow-hidden rounded-xl cursor-pointer transition-all"
               style={{
                 background: tile.bg,
                 border: `2px solid ${tile.border}`,

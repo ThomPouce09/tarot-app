@@ -47,6 +47,7 @@ import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import WaitPoolLine from '@/components/wait-pool-line';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { dynamicWithRetry } from '@/lib/retry-dynamic';
 import { ClickableFaces } from '@/components/astro-dice/constellation';
 import { playSound } from '@/lib/sounds';
 import { clampTwoSentences } from '@/lib/artemis-secret';
@@ -57,7 +58,9 @@ import AuthGate from '@/components/auth-gate';
 
 // <AstroDiceCup/> = WebGL → jamais rendu côté serveur.
 const AstroDiceCup = dynamic(
-  () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
+  // Garde-fou téléphone d'entrée de gamme : chunk 3D trop lent →
+  // 2 tentatives chronométrées avant de laisser le loading d'origine (8).
+  dynamicWithRetry(() => import('@/components/astro-dice').then((m) => m.AstroDiceCup)),
   { ssr: false, loading: () => <DiceLoader /> },
 );
 
@@ -1060,8 +1063,8 @@ function AffinagePage() {
                               dimensionnerait la carte pour un faux texte). */}
                           <div
                             ref={artemisBoxRef}
-                            className="absolute flex flex-col items-center justify-center"
-                            style={{ top: '20%', bottom: '22%', left: '16%', right: '16%' }}
+                            className="absolute flex flex-col items-center overflow-y-auto overscroll-contain"
+                            style={{ top: '20%', bottom: '22%', left: '16%', right: '16%', scrollbarWidth: 'none', touchAction: 'pan-y' }}
                           >
                             {artemisAdvice ? (
                               <motion.p
@@ -1069,7 +1072,7 @@ function AffinagePage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.55, duration: 0.55 }}
-                                className="text-center font-bold italic leading-snug"
+                                className="my-auto text-center font-bold italic leading-snug"
                                 style={{
                                   fontFamily: 'var(--font-cinzel), serif',
                                   fontSize: artemisFont || '12px',
