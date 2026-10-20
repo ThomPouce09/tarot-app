@@ -791,7 +791,6 @@ export const DICT = {
   'des.obstacle.retry': { fr: "Recommencer", en: "Start over", es: "Empezar de nuevo", hi: "फिर से शुरू करें" },
   'des.obstacle.askFirst': { fr: "Votre question sur l’obstacle (obligatoire)", en: "Your question about the obstacle (required)", es: "Su pregunta sobre el obstáculo (obligatorio)", hi: "बाधा संबंधी आपका प्रश्न (अनिवार्य)" },
   'des.obstacle.instructFirst': { fr: "Concentrez-vous sur <b>ce qui vous bloque</b> (ex: « pourquoi ce projet stagne ? »), puis confirmez — les dés répondront.", en: "Focus on <b>what is blocking you</b> (e.g. “why is this project stalling?”), then confirm — the dice will answer.", es: "Concentre su atención en <b>lo que le bloquea</b> (ej: «¿por qué se estanca este proyecto?»), y confirme — los dados responderán.", hi: "<b>जो आपको रोके हुए है</b> पर ध्यान लगाएँ (जैसे: «यह कार्य क्यों ठहरा है?»), फिर पुष्टि करें — पासे उत्तर देंगे।" },
-  'des.obstacle.recap': { fr: "Récapitulatif Obstacle & Solution", en: "Obstacle & Solution Recap", es: "Resumen Obstáculo & Solución", hi: "रुकावट एवं समाधान का सारांश" },
   'des.affinage.title': { fr: "Tirage par Affinage", en: "The Refinement Cast", es: "Tirada por afinación", hi: "निखार-विन्यास" },
   'des.affinage.choose': { fr: "Choisissez la nuance à préciser :", en: "Choose the nuance to refine:", es: "Elija la nuance a precisar:", hi: "वह सूक्ष्मता चुनें जिसे स्पष्ट करना है:" },
   'des.affinage.optA': { fr: "🔁 Option A — Le zoom d'action", en: "🔁 Option A — The action zoom", es: "🔁 Opción A — El zoom de acción", hi: "🔁 विकल्प A — क्रिया का ज़ूम" },
