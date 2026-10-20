@@ -302,6 +302,37 @@ html, body {
   box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.25);
 }
 .mystic-input::placeholder { color: rgba(217, 119, 6, 0.5); }
+/* ── Code 4 chiffres (verrou mode Invité) : fond bois très sombre garanti,
+   or pâle lisible, police modérée (les champs génériques prenaient le fond
+   blanc du navigateur + une taille trop grande → illisibles). ── */
+.pin-field {
+  width: 100%;
+  background: rgba(8, 5, 3, 0.92);
+  border: 1px solid rgba(218, 165, 32, 0.4);
+  border-radius: 0.6rem;
+  color: #FFE9B0;
+  -webkit-text-fill-color: #FFE9B0;
+  font-family: var(--font-cinzel), serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.45em;
+  text-align: center;
+  padding: 0.6rem 0.85rem;
+  caret-color: #DAA520;
+  transition: border-color .2s, box-shadow .2s;
+}
+.pin-field:focus {
+  outline: none;
+  border-color: rgba(218, 165, 32, 0.75);
+  box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.25);
+}
+.pin-field::placeholder { color: rgba(218, 165, 32, 0.38); }
+.pin-field:-webkit-autofill,
+.pin-field:-webkit-autofill:hover,
+.pin-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: #FFE9B0;
+  -webkit-box-shadow: 0 0 0 1000px rgba(8, 5, 3, 0.92) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
 .mystic-btn {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.10) 38%, rgba(255,255,255,0) 58%),

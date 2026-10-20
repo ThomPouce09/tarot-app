@@ -16,6 +16,7 @@ import { PLANET_NAMES, SIGN_NAMES } from '@/components/astro-dice/names';
 import { useT, useLang, tr, getRuntimeLang } from '@/lib/i18n';
 import { planetName, signName, houseName } from '@/components/astro-dice/names';
 import { api } from '@/lib/api-client';
+import WaitPoolLine from '@/components/wait-pool-line';
 
 // Nuit étoilée animée — chargée dynamiquement (canvas lourd, hors SSR).
 const StarryNight = dynamic(() => import('@/components/starry-night'), {
@@ -568,14 +569,18 @@ export function DiceAnalysis({
         })}
       </div>
 
-      {/* Zone LLM — chargement puis texte généré */}
+      {/* Zone LLM — chargement puis texte généré. Le message fixe « Les astres
+          réfléchissent… » a été supprimé (demande user 2026-10-20) : l'attente
+          est désormais portée par le corpus tournant « Dés zodiacaux », en
+          jaune or (même teinte que l'ancien message). */}
       <div className="mt-5 border-t pt-4" style={{ borderColor: `${DICE_THEME.gold}33` }}>
         {loading && (
-          <div
-            className="text-center text-sm italic"
-            style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.glyph, opacity: 0.8 }}
-          >
-            {tr("Les astres réfléchissent… ✨", "The stars reflect… ✨", "Los astros reflexionan… ✨", "ग्रह चिंतन कर रहे हैं… ✨")}
+          <div className="text-center text-sm italic">
+            <WaitPoolLine
+              universe="des"
+              className="inline-block"
+              style={{ fontFamily: 'var(--font-cinzel), serif', color: DICE_THEME.gold }}
+            />
           </div>
         )}
 

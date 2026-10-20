@@ -9,11 +9,16 @@ export default function ConfirmPasswordPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   // mode=activate → page d'ACTIVATION de compte (bouton simple, pas de mdp).
+  // mode=guest-pin → RÉINITIALISATION DU CODE INVITÉ (4 chiffres ; coupe le
+  // mode Invité — lien « Code oublié ? » de la modale de sortie).
   // absent / mode=reset → page de RÉINITIALISATION de mot de passe.
   const isActivate = searchParams.get('mode') === 'activate';
+  const isGuestPin = searchParams.get('mode') === 'guest-pin';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
   const [message, setMessage] = useState('');
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -96,6 +101,34 @@ export default function ConfirmPasswordPage() {
     }
   };
 
+  const handleGuestPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{4}$/.test(pin)) return setMessage(tr("Le code doit contenir exactement 4 chiffres", "The code must be exactly 4 digits", "El código debe tener exactamente 4 cifras", "कोड में ठीक 4 अंक होने चाहिए"));
+    if (pin !== pinConfirm) return setMessage(tr("Les codes ne correspondent pas", "Codes do not match", "Los códigos no coinciden", "कोड मेल नहीं खाते"));
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/guest-pin/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Le mode Invité est coupé côté serveur → purge du cache client.
+        try { localStorage.removeItem('arkane_guest_mode'); } catch {}
+        setMessage('✅ ' + tr("Nouveau code enregistré. Le mode Invité est désactivé.", "New code saved. Guest mode is turned off.", "Nuevo código guardado. El modo Invitado se desactiva.", "नया कोड सहेजा गया। अतिथी मोड बंद हो गया है।"));
+        setTimeout(() => router.push('/'), 1800);
+      } else {
+        setMessage(data.error === 'pin-format' ? tr("Le code doit contenir exactement 4 chiffres", "The code must be exactly 4 digits", "El código debe tener exactamente 4 cifras", "कोड में ठीक 4 अंक होने चाहिए") : (data.error || tr("Erreur", "Error", "Error", "त्रुटि")));
+      }
+    } catch {
+      setMessage(tr("Erreur", "Error", "Error", "त्रुटि"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!verified) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -107,7 +140,46 @@ export default function ConfirmPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-amber-950/20 to-gray-950 flex items-center justify-center p-4">
       <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6 w-full max-w-sm">
-        {isActivate ? (
+        {isGuestPin ? (
+          <>
+            <h2 className="text-2xl font-bold text-amber-300 mb-2">{tr("✦ Nouveau code Invité", "✦ New Guest-mode code", "✦ Nuevo código de Invitado", "✦ नया अतिथी कोड")}</h2>
+            <p className="text-sm text-amber-100/80 mb-4">
+              {tr("Définissez votre code secret à 4 chiffres. Le mode Invité sera désactivé.", "Set your secret 4-digit code. Guest mode will be turned off.", "Defina su código secreto de 4 cifras. El modo Invitado se desactivará.", "अपनी गुप्त 4-अंकीय कोड सेट करें। अतिथी मोड बंद हो जाएगा।")}
+            </p>
+            <form onSubmit={handleGuestPin} className="space-y-4">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                autoComplete="off"
+                autoCorrect="off"
+                value={pin}
+                onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                placeholder={tr("Nouveau code (4 chiffres)", "New code (4 digits)", "Nuevo código (4 cifras)", "नया कोड (4 अंक)")}
+                className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm text-center tracking-[0.5em]"
+                required
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                autoComplete="off"
+                autoCorrect="off"
+                value={pinConfirm}
+                onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+                placeholder={tr("Confirmer le code", "Confirm code", "Confirmar el código", "कोड की पुष्टि करें")}
+                className="w-full px-3 py-2.5 bg-gray-800/60 border border-amber-800/50 rounded-lg text-white text-sm text-center tracking-[0.5em]"
+                required
+              />
+              {message && <p className={`text-xs ${message.startsWith('✅') ? 'text-amber-200' : 'text-red-400'}`}>{message}</p>}
+              <button type="submit" disabled={loading} className="w-full mystic-btn">
+                {loading ? tr("Patientez...", "Please wait...", "Espere...", "कृपया प्रतीक्षा करें...") : tr("Enregistrer le code", "Save the code", "Guardar el código", "कोड सहेजें")}
+              </button>
+            </form>
+          </>
+        ) : isActivate ? (
           <>
             <h2 className="text-2xl font-bold text-amber-300 mb-2">{tr("✦ Activation de votre compte", "✦ Activating your account", "✦ Activación de su cuenta", "✦ आपके खाते की सक्रियता")}</h2>
             <p className="text-sm text-amber-100/80 mb-4">

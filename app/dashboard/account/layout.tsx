@@ -173,7 +173,29 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                 <p className="text-gray-300 text-sm leading-relaxed mb-5">{tr('Tant que le mode Invité est actif, votre espace personnel (Mon espace, historique, abonnement) reste fermé : personne d\u2019autre ne peut y accéder.', 'While Guest mode is on, your personal space (My space, history, subscription) stays closed: no one else can reach it.', 'Mientras el modo Invitado está activo, su espacio personal (Mi espacio, historial, suscripción) permanece cerrado: nadie más puede acceder.', 'जब तक अतिथी मोड सक्रिय है, आपका व्यक्तिगत क्षेत्र (मेरा क्षेत्र, इतिहास, सदस्यता) बंद रहता है: कोई अन्य उस तक नहीं पहुँच सकता।')}</p>
                 <div className="flex gap-3">
                   <GuestExitButton onDone={() => setGuestLocked(false)} />
-                  <a href="/tarot" className="mystic-btn-ghost flex-1 text-center">{tr('Retour aux univers', 'Back to the universes', 'Volver a los universos', 'ब्रह्मांडों में लौटें')}</a>
+                  {/* Navigation SPA (comme le menu parchemin des hubs) : l'ancien
+                      lien dur « <a href="/tarot"> » déclenchait un rechargement
+                      complet de la page — en APK, laWebView repart du voile
+                      « Chargement » et ne rend jamais la main (plante signalée
+                      2026-10-20). Filet : si la navigation SPA n'a pas porté
+                      en 2 s, on retombe sur une navigation classique. */}
+                  <button
+                    type="button"
+                    className="mystic-btn-ghost flex-1 text-center"
+                    onClick={() => {
+                      router.push('/tarot');
+                      // Filet : si la navigation SPA n'a pas porté en 2,5 s
+                      // (chunk JS manquant/erroné en export statique), on
+                      // retombe sur une navigation classique.
+                      window.setTimeout(() => {
+                        if (window.location.pathname.startsWith('/dashboard')) {
+                          window.location.assign('/tarot');
+                        }
+                      }, 2500);
+                    }}
+                  >
+                    {tr('Retour aux univers', 'Back to the universes', 'Volver a los universos', 'ब्रह्मांडों में लौटें')}
+                  </button>
                 </div>
               </div>
             </div>

@@ -171,7 +171,6 @@ export function LoginModal() {
                   fontFamily: 'var(--font-cormorant), serif',
                   fontSize: '1.1rem',
                   letterSpacing: '0.02em',
-                  textTransform: 'lowercase',
                 }}
                 placeholder="••••••••"
               />

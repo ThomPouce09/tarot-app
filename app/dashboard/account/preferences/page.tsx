@@ -11,6 +11,121 @@ import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type Backg
 import { useEntitlement } from '@/lib/use-entitlement';
 import { setSpaceTheme, type SpaceTheme } from '@/lib/theme';
 import { useSpaceToast } from '@/components/space-toast';
+import { api } from '@/lib/api-client';
+
+// ── Gestion du code Invité (verrou 4 chiffres, option A) ──
+// Visible en mode NORMAL uniquement (la bascule d'activation le pose ; le
+// changement/retrait se gère ici). Source de vérité : /api/guest-mode
+// (action change-pin, session serveur) — le code n'est jamais stocké en clair
+// ni sur l'appareil.
+function GuestPinPanel({ email, t, notify, subscriber }: { email: string; t: (k: string) => string; notify: (msg: string) => void; subscriber: boolean }) {
+  const [hasPin, setHasPin] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [next2, setNext2] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(() => {
+    if (!email) return;
+    api(`/api/guest-mode?email=${encodeURIComponent(email)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) { setHasPin(!!d.hasPin); setGuestMode(!!d.guestMode); } })
+      .catch(() => {});
+  }, [email]);
+  useEffect(() => { load(); }, [load]);
+
+  // Réservé aux abonnés Initié/Arkane (comme le mode Invité lui-même — la
+  // bascule des hubs est déjà invisible aux Apprentis) : le panneau n'est
+  // JAMAIS affiché à un compte Apprenti, ni avant la réponse du serveur.
+  if (!email || !subscriber || guestMode) return null;
+
+  const digits = (v: string) => v.replace(/\D/g, '').slice(0, 4);
+  const submit = async () => {
+    setErr('');
+    if (next.length !== 4) { setErr(t('guest.pinFormat')); return; }
+    if (next !== next2) { setErr(t('guest.pinMismatch')); return; }
+    if (hasPin && cur.length !== 4) { setErr(t('guest.pinFormat')); return; }
+    setBusy(true);
+    try {
+      const res = await api('/api/guest-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, action: 'change-pin', currentPin: hasPin ? cur : null, newPin: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setHasPin(true); setOpen(false); setCur(''); setNext(''); setNext2('');
+        notify(t('prefs.guestPinDone'));
+      } else if (d.error === 'pin-wrong') setErr(t('guest.pinWrong'));
+      else if (d.error === 'pin-locked') setErr(t('prefs.guestPinLocked'));
+      else setErr(t('guest.pinNetwork'));
+    } catch { setErr(t('guest.pinNetwork')); }
+    setBusy(false);
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const res = await api('/api/guest-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, action: 'change-pin', currentPin: cur, newPin: null }),
+      });
+      if (res.ok) { setHasPin(false); setOpen(false); setCur(''); notify(t('prefs.guestPinRemoved')); }
+    } catch { /* silencieux */ }
+    setBusy(false);
+  };
+
+  const pinInput = (v: string, set: (x: string) => void, ph: string, autoFocus = false) => (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck={false}
+      maxLength={4}
+      autoFocus={autoFocus}
+      value={v}
+      onChange={(e) => set(digits(e.target.value))}
+      placeholder={ph}
+      className="pin-field"
+    />
+  );
+
+  return (
+    <div className="mystic-panel p-5">
+      <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.guestPin')}</h2>
+      <p className="text-gray-400 text-xs leading-relaxed mb-3">{t('prefs.guestPinHint')}</p>
+      <p className="mb-3 text-xs" style={{ color: hasPin ? '#86efac' : 'rgba(218,165,32,0.7)' }}>
+        {hasPin ? t('prefs.guestPinSet') : t('prefs.guestPinNone')}
+      </p>
+      {!open ? (
+        <div className="flex gap-3">
+          <button onClick={() => { setErr(''); setOpen(true); }} className="mystic-btn flex-1 text-sm">{t('prefs.guestPinChange')}</button>
+          {hasPin && (
+            <button onClick={() => void remove()} disabled={busy} className="mystic-btn-ghost flex-1 text-sm">
+              {t('prefs.guestPinRemove')}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {hasPin && pinInput(cur, setCur, t('prefs.guestPinCurrent'), true)}
+          {pinInput(next, setNext, t('guest.pinNew'), !hasPin)}
+          {pinInput(next2, setNext2, t('guest.pinConfirm'))}
+          {err && <p className="text-center text-xs" style={{ color: '#F0A0A0' }}>{err}</p>}
+          <div className="flex gap-3">
+            <button onClick={() => { setOpen(false); setErr(''); }} disabled={busy} className="mystic-btn-ghost flex-1">{t('guest.cancel')}</button>
+            <button onClick={submit} disabled={busy} className="mystic-btn flex-1">{busy ? '…' : '✓'}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type Prefs = {
   dailyReminder: boolean;
@@ -390,6 +505,10 @@ export default function PreferencesPage() {
           })}
         </div>
       </div>
+
+      {/* Code du mode Invité — verrou 4 chiffres du retour au mode normal
+          (gérable/réinitialisable ici, en mode normal). */}
+      <GuestPinPanel email={email} t={t} notify={showToast} subscriber={level !== 'apprenti'} />
 
       {/* Visiter — rejouer le tutoriel de première visite */}
       <div className="mystic-panel p-5">

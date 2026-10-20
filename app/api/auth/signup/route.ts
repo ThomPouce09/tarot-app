@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeEmail } from '@/lib/normalize-email';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
@@ -13,7 +14,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, gender, dateOfBirth, comment, deviceToken } = body;
+    const email = normalizeEmail(body.email);
+    const { password, firstName, lastName, gender, dateOfBirth, comment, deviceToken } = body;
     const lang = resolveLang(body.lang);
 
     if (!email || !password) {

@@ -11,7 +11,6 @@ import { AskQuestion } from '@/components/ask-question';
 import {
   RuneBackground,
   RuneTitle,
-  RuneButton,
   RuneReading,
   RuneAnalysis,
   RUNE_THEME,
@@ -19,7 +18,6 @@ import {
 import { NornesTutorialModal } from './nornes-tutorial-modal';
 import { type DrawnRune } from '@/components/rune-stones';
 import { saveReading, updateReading } from '@/lib/save-reading';
-import { useEntitlement } from '@/lib/use-entitlement';
 import { useT, tr, useLang } from '@/lib/i18n';
 import { localizePosition } from '@/lib/i18n/positions';
 import AuthGate from '@/components/auth-gate';
@@ -35,16 +33,17 @@ function NornesPage() {
   const lang = useLang();
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
-  // L'interprétation IA du tirage initial a-t-elle été affichée ? (le CTA
-  // « Tirer le Conseil d’Odin » n'apparaît qu'après — jamais avant).
-  const [mainAnalysisDone, setMainAnalysisDone] = useState(false);
-  // Abonnement : la variation « Briser le Destin / Conseil d'Odin » est
-  // réservée aux abonnés — Initié : 1 Conseil/mois (quota serveur, la modale
-  // de gating affiche le motif en cas de refus) ; Arkane : illimité.
-  const { sub: entSub } = useEntitlement();
-  const canOdinAdvice = entSub?.level === 'arkane' || entSub?.level === 'initie';
-  const [phase, setPhase] = useState<'idle' | 'done' | 'advice'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'done'>('idle');
   const [question, setQuestion] = useState<string | null>(null);
+  // Question posée, CONSERVÉE pendant tout le tirage (le champ `question`
+  // ci-dessus est le brouillon du champ de saisie, effacé à la sauvegarde
+  // pour qu'un nouveau tirage redemande une question). `asked` alimente :
+  // le bandeau « Votre question » affiché en fin de tirage, la prop `question`
+  // des analyses IA (fil + Conseil d'Odin — sans elle, l'Oracle répondait à
+  // côté de la question) et l'écho scellé. La ref évite les closures périmées
+  // dans les callbacks asynchrones (sauvegarde déclenchée à l'arrêt des runes).
+  const [asked, setAsked] = useState<string | null>(null);
+  const askedRef = useRef<string | null>(null);
   // Modale « Principe du Fil des Nornes » affichée au chargement :
   //   'demo'  → la modale est ouverte (le sac est inactif derrière)
   //   'ready' → « Compris » cliqué : la modale se ferme, le sac s'active (roll)
@@ -54,10 +53,6 @@ function NornesPage() {
   // Ref miroir en state : l'encadré « Écho scellé » doit se re-rendre dès que
   // la lecture est sauvegardée (une ref seule ne déclenche pas de rendu).
   const [readingId, setReadingId] = useState<string | null>(null);
-  // Analyse IA du fil (sections Urd/Verdandi/Skuld) conservée pour la fusionner
-  // avec le Conseil d'Odin dans l'historique — sinon la 2e écriture (Conseil
-  // d'Odin) écrase la 1ère et tout le tirage n'apparaît pas.
-  const mainAnalysisRef = useRef<Record<string, unknown> | null>(null);
   const savedRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -78,10 +73,6 @@ function NornesPage() {
     savedRef.current = false;
     readingIdRef.current = null;
     setReadingId(null);
-    // Nouveau tirage → l'interprétation doit être (re)affichée avant que
-    // l'action « Tirer le Conseil d’Odin » réapparaisse.
-    setMainAnalysisDone(false);
-    mainAnalysisRef.current = null;
   }, []);
 
   // Clic sur « Compris » : ferme la modale → le champ question (obligatoire) est
@@ -95,6 +86,11 @@ function NornesPage() {
   const handleQuestionConfirm = useCallback((q: string | null) => {
     if (!q) return;
     setQuestion(q);
+    // Conserver la question posée pour TOUT le tirage : appels IA, bandeau
+    // « Votre question », écho scellé (le champ `question` sera effacé à la
+    // sauvegarde pour réarmer la saisie au tirage suivant — `asked`, lui, reste).
+    askedRef.current = q;
+    setAsked(q);
     const t3 = window.setTimeout(() => roll(), 350);
     cleanupRef.current = () => window.clearTimeout(t3);
   }, [roll]);
@@ -120,7 +116,7 @@ function NornesPage() {
           position: localizePosition(NORNES_POS[i], lang),
         })),
         interpretation: staticInterpretation(r, 3),
-        question,
+        question: askedRef.current ?? question,
       });
       if (id) { readingIdRef.current = id; setReadingId(id); }
       // Réinitialiser la question pour le prochain tirage
@@ -128,110 +124,13 @@ function NornesPage() {
     }
   }, [staticInterpretation, question]);
 
-  const adviceRoll = useCallback(() => {
-    setPhase('advice');
-    setIsRolling(true);
-  }, []);
-
-  // « Tirer le Conseil d’Odin » : le clic a lieu en bas de page → recentrer
-  // la vue sur le sac du Conseil d'Odin dès qu'il apparaît (laisse le temps
-  // au sac de se monter avant le scroll).
-  const adviceBagRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (phase !== 'advice') return;
-    const t = window.setTimeout(() => {
-      adviceBagRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 450);
-    return () => window.clearTimeout(t);
-  }, [phase]);
-
-  const handleAdviceRest = useCallback(async (r: DrawnRune[]) => {
-    setIsRolling(false);
-    setRunes((prev) => {
-      const all = [...prev.slice(0, 3), r[0]];
-      if (readingIdRef.current) {
-        const allCards = all.map((d, i) => ({
-          name: d.rune?.name,
-          symbol: d.rune?.symbol,
-          reversed: d.reversed,
-          position: localizePosition(NORNES_POS[i] || 'Conseil d’Odin', lang),
-        }));
-        // On n'écrase PAS l'interprétation IA du fil par le texte statique :
-        // elle est conservée puis fusionnée avec le Conseil d'Odin quand son
-        // analyse arrive (onAdviceAnalysis) — l'historique montre tout le tirage.
-        if (mainAnalysisRef.current) {
-          updateReading(readingIdRef.current, { cards: allCards });
-        } else {
-          updateReading(readingIdRef.current, {
-            cards: allCards,
-            interpretation: staticInterpretation(all, 4),
-          });
-        }
-      }
-      return all;
-    });
-  }, [staticInterpretation]);
-
+  // Révélation IA du tirage prête → persiste l'analyse structurée dans
+  // l'historique (le focus est géré par RuneAnalysis lui-même).
   const onAnalysis = useCallback((text: string) => {
     if (readingIdRef.current && text) {
       updateReading(readingIdRef.current, { interpretation: text });
     }
   }, []);
-
-  // Révélation IA du tirage principal prête. Le focus est géré par RuneAnalysis
-  // lui-même (il amène sa tête — la grande tuile URD — en haut d'écran).
-  const onMainAnalysis = useCallback(
-    (text: string) => {
-      setMainAnalysisDone(true);
-      // Conserver l'analyse structurée du fil (JSON) : elle sera fusionnée avec
-      // le Conseil d'Odin à destination de l'historique (onAdviceAnalysis).
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          mainAnalysisRef.current = parsed as Record<string, unknown>;
-        }
-      } catch { /* texte non JSON : rien à conserver */ }
-      onAnalysis(text);
-    },
-    [onAnalysis],
-  );
-
-  // Révélation IA du Conseil d'Odin prête → fusion avec le fil pour l'historique.
-  const onAdviceAnalysis = useCallback(
-    (text: string) => {
-      // Fusionner l'analyse du Conseil d'Odin AVEC celle du fil (U/V/S) : la
-      // lecture historique doit montrer TOUT le tirage, pas seulement le Conseil
-      // (sinon la 2e écriture écrase la 1ère).
-      try {
-        const odin = JSON.parse(text) as Record<string, any>;
-        const main = mainAnalysisRef.current;
-        if (odin && main && Array.isArray(odin.sections)) {
-          // Format structuré à DEUX blocs pour l'historique :
-          //   fil     → sections U/V/S + synthèse + 1er Conseil d'Odin
-          //   tissage → section du Conseil + 2e Conseil d'Odin
-          const merged = {
-            version: 'nornes-full',
-            fil: {
-              sections: Array.isArray(main.sections) ? (main.sections as unknown[]) : [],
-              synthese: (main.synthese as string) || '',
-              conseil_action: (main.conseil_action as string) || '',
-            },
-            tissage: {
-              sections: odin.sections as unknown[],
-              synthese: (odin.synthese as string) || '',
-              conseil_action: (odin.conseil_action as string) || '',
-            },
-          };
-          onAnalysis(JSON.stringify(merged));
-          return;
-        }
-      } catch { /* réponse non JSON → on garde le texte reçu */ }
-      onAnalysis(text);
-    },
-    [onAnalysis],
-  );
-
-  const hasAdvice = runes.length === 4;
 
   return (
     <RuneBackground>
@@ -289,6 +188,31 @@ function NornesPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6 space-y-3"
             >
+              {/* BANDEAU « Votre question » (fin de tirage) : la question posée
+                  doit rester visible avec le résultat — même rendu que le
+                  thème/intention des tirages tarot (bandeau doré compact). */}
+              {asked && (
+                <div
+                  className="rounded-xl px-4 py-2.5 text-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${RUNE_THEME.goldPale}1f 0%, ${RUNE_THEME.goldPale}0a 100%)`,
+                    border: `1px solid ${RUNE_THEME.goldPale}55`,
+                  }}
+                >
+                  <p
+                    className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                    style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.goldPale }}
+                  >
+                    {tr("Votre question", "Your question", "Su pregunta", "आपका प्रश्न")}
+                  </p>
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ fontFamily: 'var(--font-cormorant), serif', color: RUNE_THEME.stone }}
+                  >
+                    {asked}
+                  </p>
+                </div>
+              )}
               <RuneReading
                 rune={runes[0]?.rune ?? null}
                 reversed={runes[0]?.reversed}
@@ -314,90 +238,21 @@ function NornesPage() {
           )}
         </AnimatePresence>
 
-        {/* Analyse IA du fil des Nornes (3 premières runes) — reste monté même
-            pendant la phase advice pour ne pas tuer une analyse en cours. */}
+        {/* Analyse IA du fil des Nornes (3 runes) — ciblée sur la question posée. */}
         {phase !== 'idle' && runes.length >= 3 && (
           <RuneAnalysis
             mode="nornes"
+            question={asked}
             runes={[
               { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
               { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
               { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
             ]}
-            onAnalysis={onMainAnalysis}
-            echo={{ readingId }}
+            onAnalysis={onAnalysis}
+            echo={{ readingId, question: asked }}
             autoRun
           />
         )}
-
-        {/* Variation "Briser le Destin" — réservée aux abonnés Initié et
-            Arkane, et uniquement APRÈS l'affichage de l'interprétation IA du
-            tirage initial. */}
-        <AnimatePresence>
-          {phase === 'done' && !hasAdvice && mainAnalysisDone && canOdinAdvice && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8 text-center"
-            >
-              <p
-                className="mb-4 text-sm italic"
-                style={{ fontFamily: 'var(--font-cinzel), serif', color: RUNE_THEME.sage }}
-              >
-                {tr("Le Conseil d’Odin éclaire ce que Skuld garde en réserve : une rune de plus, à jouer avec lucidité.", "Odin’s Counsel lights what Skuld keeps in reserve: one more rune, to play with lucidity.", "El Consejo de Odín ilumina lo que Skuld guarda en reserva: una runa más, para jugar con lucidez.", "यदि भविष्य (स्कल्ड) आपको भारी प्रतीत हो तो ओदिन-मार्गदर्शन वह चाना जलाता है जो स्कल्ड संभाल रखता है: एक और रून, स्पष्टता से खेलना।")}
-              </p>
-              <RuneButton variant="save" onClick={adviceRoll}>
-                {t('runes.nornes.odin')}
-              </RuneButton>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Tirage séparé du Conseil d'Odin (1 rune). Le composant est
-            ré-affiché pour ce round : count=1, layout horizontal. */}
-        {phase === 'advice' && (
-          <div ref={adviceBagRef} className="scroll-mt-4">
-            <RuneStonesSet
-              count={1}
-              layout="horizontal"
-              isRolling={isRolling}
-              onRest={handleAdviceRest}
-              height={340}
-            />
-          </div>
-        )}
-
-        {/* 4ème rune : Conseil d'Odin — révélation UNIQUE (réorganisation du
-            « Tisser une autre voie ») : le SageCard + la RuneReading en double
-            ont été retirés. RuneAnalysis (odinReveal) n'affiche qu'UN bouton
-            « Révéler le Conseil d'Odin » ; la carte parchemin dorée révèle la
-            rune, son sens, la lecture et l'action concrète — sans section ni
-            « Synthèse » dupliquées. */}
-        <AnimatePresence>
-          {phase === 'advice' && runes[3] && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
-            >
-              {/* Analyse IA ciblée : le Conseil d'Odin par rapport aux 3 Nornes */}
-              <RuneAnalysis
-                mode="nornes"
-                focus="odin"
-                odinReveal
-                buttonLabel={tr("Consulter l'Oracle sur le conseil d'Odin", "Consult the Oracle on Odin's counsel", "Consultar el Oráculo sobre el consejo de Odín", "ओदिन के परामर्श पर ओरैकल से सलाह लें")}
-                runes={[
-                  { rune: runes[0].rune, reversed: runes[0].reversed, position: 'Urd — Le Passé' },
-                  { rune: runes[1].rune, reversed: runes[1].reversed, position: 'Verdandi — Le Présent' },
-                  { rune: runes[2].rune, reversed: runes[2].reversed, position: 'Skuld — L’Avenir' },
-                  { rune: runes[3].rune, reversed: runes[3].reversed, position: localizePosition('Conseil d’Odin', lang) },
-                ]}
-                onAnalysis={onAdviceAnalysis}
-                autoRun
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </RuneBackground>
   );

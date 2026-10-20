@@ -34,12 +34,14 @@ import { HintLegende, ClickableFaces, legendeSeen, markLegendeSeen } from '@/com
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { dynamicWithRetry } from '@/lib/retry-dynamic';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 import AuthGate from '@/components/auth-gate';
 import { useT, useLang, contentLang, pickContent, tr , getRuntimeLang} from '@/lib/i18n';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import WaitPoolLine from '@/components/wait-pool-line';
 
 /* « Relancer » — pilule dorée gloss 3D (recette du bouton « Enregistrer », teinte or). */
 function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
@@ -69,7 +71,9 @@ function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onC
 /* E-mail de session (localStorage) pour le verrou serveur d'analyse. */
 
 const AstroDiceCup = dynamic(
-  () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
+  // Garde-fou téléphone d'entrée de gamme : chunk 3D trop lent →
+  // 2 tentatives chronométrées avant de laisser le loading d'origine (8).
+  dynamicWithRetry(() => import('@/components/astro-dice').then((m) => m.AstroDiceCup)),
   { ssr: false, loading: () => <DiceLoader /> },
 );
 
@@ -506,7 +510,7 @@ function SimplifiePage() {
                 {oracleFlashLoading && (
                   <AnalysisWaitCard
                     accent={DICE_THEME.gold}
-                    title={t('des.affinage.thinking')}
+                    subtitle={<WaitPoolLine universe="des" style={{ color: DICE_THEME.gold }} />}
                     videoPrefix="analyse-des-zodiaque"
                     minHeight={220}
                   />

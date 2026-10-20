@@ -1,6 +1,7 @@
 'use client';
 
 import { useLang, pick4, tr} from '@/lib/i18n';
+import { withHd } from '@/lib/video-quality';
 import Firefly from '@/components/firefly';
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -141,7 +142,7 @@ function YiJingRandomBackdrop() {
         {isVideo ? (
           <video
             key={src}
-            src={src}
+            src={withHd(src)}
             autoPlay muted loop playsInline preload="auto"
             onCanPlay={() => setVideoReady(true)}
             onPlaying={() => setVideoReady(true)}
@@ -272,7 +273,7 @@ export default function YiJingHubPage() {
         {/* TUILE — YI JING (base : baguettes d'achillée) */}
         <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -349,7 +350,7 @@ export default function YiJingHubPage() {
         {/* TUILE — YI JING SIMPLE */}
         <GatedTile href="/yi-jing-simple" className="block" allowed={tiles?.['yi-jing-simple']?.allowed} reason={tiles?.['yi-jing-simple']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -426,7 +427,7 @@ export default function YiJingHubPage() {
         {/* TUILE — HEXAGRAMME DU JOUR */}
         <GatedTile href="/yi-jing-du-jour" className="block" allowed={tiles?.['yi-jing-du-jour']?.allowed} reason={tiles?.['yi-jing-du-jour']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -503,7 +504,7 @@ export default function YiJingHubPage() {
         {/* TUILE — LE DOUBLE HEXAGRAMME (zhi gua) */}
         <GatedTile href="/yi-jing-double" className="block" allowed={tiles?.['yi-jing-double']?.allowed} reason={tiles?.['yi-jing-double']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[170px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",

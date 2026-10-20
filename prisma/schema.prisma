@@ -56,6 +56,11 @@ model User {
   // Mode Invité actif : tirages débités du compte mais anonymes (aucun
   // profil envoyé à l'IA), sans historique ni augure scellable.
   guestMode         Boolean   @default(false)
+  // Verrou 4 chiffres du retour au mode normal (option A, 2026-10-20) :
+  // bcrypt du code, jamais en clair ; tries + verrou temporaires anti-force.
+  guestPinHash      String?
+  guestPinTries     Int       @default(0)
+  guestPinLockedAt  BigInt?
   fcmToken          String?   // token Android/FCM pour la notification quotidienne
   // Fuseau IANA de l'appareil (ex. 'Europe/Paris'), capturé au lancement natif.
   // Sert à déclencher le rappel quotidien à l'heure LOCALE du user (cron par heure UTC).

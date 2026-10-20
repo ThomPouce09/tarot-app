@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeEmail } from '@/lib/normalize-email';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +8,8 @@ export const dynamic = 'force-dynamic';
 // Sert à afficher un badge d'activation FIABLE (sans se fier au localStorage).
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email: rawEmail } = await request.json();
+    const email = normalizeEmail(rawEmail);
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
     }

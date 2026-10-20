@@ -145,9 +145,22 @@ export async function POST(request: NextRequest) {
         const periodEnd = stripePeriodEndDate(sub) ?? new Date();
         const plan = sub.metadata?.plan || 'initie';
         const billing = sub.metadata?.billing || 'month';
-        await prisma.subscription.create({
-          data: {
+        // userId est @unique : un 2e abonnement (paiement en double) ne doit PAS
+        // faire planter le webhook (create → P2002 → 500 → re-tentes Stripe 24 h).
+        await prisma.subscription.upsert({
+          where: { userId: user.id },
+          create: {
             userId: user.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            stripePriceId: (sub.items.data[0]?.price?.id) as string,
+            plan,
+            billing,
+            status: sub.status,
+            currentPeriodEnd: periodEnd,
+            cancelAtPeriodEnd: !!(sub as any).cancel_at_period_end,
+          },
+          update: {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             stripePriceId: (sub.items.data[0]?.price?.id) as string,

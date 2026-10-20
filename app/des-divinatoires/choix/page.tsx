@@ -19,6 +19,7 @@ import { DiceLaunchCard } from '@/app/des-divinatoires/launch-card';
 import { TargetFaces, randomTargetFaces } from '@/components/astro-dice';
 import { BalancePlateaux, ClickableFaces, DiceSteps, strikeTokens } from '@/components/astro-dice/constellation';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
+import { dynamicWithRetry } from '@/lib/retry-dynamic';
 import { tr, useLang, useT } from '@/lib/i18n';
 import { pickAndPreloadWaitVideo } from '@/lib/preload-wait-videos';
 import { saveReading, updateReading } from '@/lib/save-reading';
@@ -27,7 +28,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 
 const AstroDiceCup = dynamic(
-  () => import('@/components/astro-dice').then((m) => m.AstroDiceCup),
+  // Garde-fou téléphone d'entrée de gamme : chunk 3D trop lent →
+  // 2 tentatives chronométrées avant de laisser le loading d'origine (8).
+  dynamicWithRetry(() => import('@/components/astro-dice').then((m) => m.AstroDiceCup)),
   {
     ssr: false,
     loading: () => (

@@ -354,7 +354,7 @@ export default function DesDivinatoiresHub() {
           return (
           <GatedTile key={tile.href} href={tile.href} className="block" allowed={tiles?.[desType]?.allowed} reason={tiles?.[desType]?.reason} onBlocked={openGate}>
             <motion.div
-              className="group relative flex min-h-[150px] h-full w-full flex-col items-center rounded-2xl p-3.5 text-center"
+              className="group relative flex min-h-[26vh] h-full w-full flex-col items-center rounded-2xl p-3.5 text-center"
               style={{
                 background: tile.bg,
                 border: `1.5px solid ${DICE_THEME.ocre}66`,
