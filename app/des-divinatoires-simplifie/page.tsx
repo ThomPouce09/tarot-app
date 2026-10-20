@@ -41,6 +41,7 @@ import AuthGate from '@/components/auth-gate';
 import { useT, useLang, contentLang, pickContent, tr , getRuntimeLang} from '@/lib/i18n';
 import { DiceThemeSelector, parseDiceQuestion } from './theme-selector';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
+import WaitPoolLine from '@/components/wait-pool-line';
 
 /* « Relancer » — pilule dorée gloss 3D (recette du bouton « Enregistrer », teinte or). */
 function GoldGlossButton({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
@@ -509,7 +510,7 @@ function SimplifiePage() {
                 {oracleFlashLoading && (
                   <AnalysisWaitCard
                     accent={DICE_THEME.gold}
-                    title={t('des.affinage.thinking')}
+                    subtitle={<WaitPoolLine universe="des" style={{ color: DICE_THEME.gold }} />}
                     videoPrefix="analyse-des-zodiaque"
                     minHeight={220}
                   />

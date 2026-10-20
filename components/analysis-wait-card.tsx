@@ -29,7 +29,10 @@ export default function AnalysisWaitCard({
   minHeight = 240,
   videoPrefix = 'analyse-longue',
 }: {
-  title: React.ReactNode;
+  /** Titre (ancien usage) — OPTIONNEL : les dés zodiacaux n'affichent plus de
+   *  message fixe (« Les astres réfléchissent… » supprimé 2026-10-20),
+   *  uniquement le corpus tournant via `subtitle`. */
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   accent?: string;
   minHeight?: number;

@@ -884,8 +884,7 @@ function AffinagePage() {
                   {analysisLoading && (
                     <AnalysisWaitCard
                       accent={DICE_THEME.gold}
-                      title={t('des.affinage.thinking')}
-                      subtitle={<WaitPoolLine universe="des" />}
+                      subtitle={<WaitPoolLine universe="des" style={{ color: DICE_THEME.gold }} />}
                       videoPrefix="analyse-des-zodiaque"
                     />
                   )}
