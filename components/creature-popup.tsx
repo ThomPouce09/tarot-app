@@ -401,7 +401,10 @@ export default function CreaturePopup({ data, onClaim, onClose, onAppear, onAcce
                   '0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(255,200,80,0.55), 0 0 26px rgba(255,180,40,0.35)',
               }}
             >
-              {text.toLowerCase()}
+              {/* Le texte est stocké et servi avec sa majuscule initiale (fr/en/es/hi) :
+                  on l'affiche VERBATIM — plus de toLowerCase() qui fabriquait des
+                  premières lettres minuscules dans toutes les langues. */}
+              {text}
             </div>
 
             {/* Renard du Tutoriel : reprendre la visite (dorado) ou remettre à plus tard. */}

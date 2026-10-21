@@ -16,9 +16,17 @@ const isGiftCategory = (c: string) =>
 /** Type de tirage annoncé par le message cadeau (défaut : base). */
 const giftKindOf = (c: string): GiftKind => (c === 'credits_grand' ? 'grand' : 'base');
 
-/** Texte du message dans la langue demandée (fallback fr). */
+/** Texte du message dans la langue demandée (fallback fr). Les quatre langues
+ *  servies (fr/en/es/hi) prennent la majuscule initiale ; on la garantit à
+ *  l'affichage pour couvrir d'éventuelles coquilles en base (toUpperCase() est
+ *  un no-op sur les glyphes sans casse, donc sans effet sur l'hi). */
+const capitalizeFirst = (s: string): string => {
+  const i = s.search(/\p{L}/u);
+  if (i < 0) return s;
+  return s.slice(0, i) + s[i].toUpperCase() + s.slice(i + 1);
+};
 const pickText = (m: MessageRow, lang: 'en' | 'es' | 'hi' | 'fr'): string =>
-  (lang === 'en' ? m.textEn : lang === 'es' ? m.textEs : lang === 'hi' ? m.textHi : m.textFr) || m.textFr || '';
+  capitalizeFirst((lang === 'en' ? m.textEn : lang === 'es' ? m.textEs : lang === 'hi' ? m.textHi : m.textFr) || m.textFr || '');
 
 export async function GET(req: NextRequest) {
   const page = req.nextUrl.searchParams.get('page') || 'landing';

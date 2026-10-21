@@ -207,7 +207,7 @@ export const DES: Msg[] = [
     hi: 'दल्फ़ी की पाइथिया पहले-आदमी को उत्तर न देती: अदालत का दिन चाहिए।' },
   { category: 'lore',
     fr: 'Le tirage du Choix compare deux énergies comme deux dieux qu\u2019on met en balance.',
-    en: 'the Choice reading weighs two energies like two gods set on a scale.',
+    en: 'The Choice reading weighs two energies like two gods set on a scale.',
     es: 'La tirada de la Elección compara dos energías como dos dioses puestos en balanza.',
     hi: 'चयन-पाठ दो ऊर्जाओं को नापता—दो देव, दो पल्ले।' },
   { category: 'lore',
