@@ -7,6 +7,7 @@ import { PLAN_NAME_KEY, PLAN_FEATURES_KEY, PLAN_ICON, PLAN_ICON_IMG, PLAN_PRICE_
 import { type Universe } from '@/lib/classification';
 import { BaseDrawGlyph, AdvancedDrawGlyph } from '@/components/draw-type-badge';
 import { openExternal, isNative } from '@/lib/capacitor-utils';
+import { playBillingAvailable, rcPurchaseSubscription, rcRestorePurchases, rcPurchaseRecharge } from '@/lib/play-billing';
 import { api } from '@/lib/api-client';
 
 // Code BCP-47 pour dates localisées selon la langue de l'app.
@@ -86,6 +87,9 @@ export default function AbonnementPage() {
   // Accordéon des avantages : cartes dont la liste complète est dépliée.
   const [openFeatures, setOpenFeatures] = useState<Set<PlanId>>(new Set());
   const [status, setStatus] = useState<string | null>(null);
+  // 'stripe' | 'play' | null — la source pilote la gestion (portal Stripe vs
+  // ecran d'abonnement Google Play). Le webhook RevenueCat/Stripe la renseigne.
+  const [subSource, setSubSource] = useState<string | null>(null);
   // Facturation indépendante par abonnement (mois par défaut) : radios propres à chaque carte.
   const [billing, setBilling] = useState<Record<'initie' | 'arkane', 'month' | 'year'>>({ initie: 'month', arkane: 'month' });
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
@@ -129,6 +133,7 @@ export default function AbonnementPage() {
       }
     }
     setStatus(d.status ?? null);
+    setSubSource(d.source ?? null);
     setCancelAtPeriodEnd(!!d.cancelAtPeriodEnd);
     setCurrentPeriodEnd(d.currentPeriodEnd ?? null);
     setUsage(d.usage ?? null);
@@ -241,6 +246,26 @@ export default function AbonnementPage() {
       setMsg(t('sub.loginRequired') || 'Connecte-toi pour continuer.');
       return;
     }
+    // APK + pont Play actif : la vente part par Google Play Billing (politique
+    // Play pour les abonnements numériques). Le webhook RevenueCat écrit
+    // Subscription(source='play') ; on attend la propagation par polling.
+    if (isSubscription(p) && playBillingAvailable()) {
+      setLoading(p);
+      try {
+        const r = await rcPurchaseSubscription(email, p as 'initie' | 'arkane', billing[p as 'initie' | 'arkane']);
+        if (r.userCancelled) return;
+        if (!r.ok) { setMsg(r.error || t('sub.playError')); return; }
+        setMsg(t('sub.activating'));
+        for (let i = 0; i < 10; i++) {
+          await new Promise((res) => setTimeout(res, 2000));
+          const d = await loadState(email);
+          if (d && (d.plan === p || d.level === p)) { setMsg(t('sub.successMsg')); break; }
+        }
+      } finally {
+        setLoading(null);
+      }
+      return;
+    }
     setLoading(p);
     try {
       const body: any = { plan: p, email, native: isNative() };
@@ -268,6 +293,22 @@ export default function AbonnementPage() {
       setMsg(t('sub.loginRequired') || 'Connecte-toi pour acheter.');
       return;
     }
+    const beforeCredits = usage?.rechargeCredits ?? 0;
+    if (playBillingAvailable()) {
+      setLoading('recharge');
+      try {
+        const r = await rcPurchaseRecharge(email);
+        if (r.userCancelled) return;
+        if (!r.ok) { setMsg(r.error || t('sub.playError')); return; }
+        setMsg(t('sub.activating'));
+        for (let i = 0; i < 8; i++) {
+          await new Promise((res) => setTimeout(res, 2000));
+          const d = await loadState(email);
+          if (d && (d.usage?.rechargeCredits ?? 0) > beforeCredits) { setMsg(t('sub.successMsg')); break; }
+        }
+      } finally { setLoading(null); }
+      return;
+    }
     setLoading('recharge');
     try {
       const res = await api('/api/checkout', {
@@ -290,6 +331,15 @@ export default function AbonnementPage() {
 
   const manage = async () => {
     if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi pour gérer.'); return; }
+    // Abonnement Google Play : la gestion (résiliation/reprise) se fait dans
+    // l'ecran systeme des abonnements Play (exigence Google), pas chez Stripe.
+    if (subSource === 'play' && isNative()) {
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: 'https://play.google.com/store/account/subscriptions' });
+      } catch { setMsg(t('sub.playManageFallback')); }
+      return;
+    }
     setManageLoading(true);
     try {
       const res = await api('/api/billing-portal', {
@@ -307,9 +357,26 @@ export default function AbonnementPage() {
     }
   };
 
+  // ── Restaurer un achat Play (revalidation des regus par RevenueCat) ──
+  const restore = async () => {
+    if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi.'); return; }
+    if (!playBillingAvailable()) return;
+    setManageLoading(true);
+    try {
+      const r = await rcRestorePurchases(email);
+      if (!r.ok) { setMsg(r.error || t('sub.playError')); return; }
+      await loadState(email);
+      setMsg(t('sub.playRestored'));
+    } finally { setManageLoading(false); }
+  };
+
   // ── Résilier / Reprendre (cancel_at_period_end) ──────────────────────
   const toggleCancel = async (plan: PlanId, cancel: boolean) => {
     if (!email) { setMsg(t('sub.loginRequired') || 'Connecte-toi.'); return; }
+    if (subSource === 'play' && isNative()) {
+      setMsg(t('sub.playManageFallback'));
+      return;
+    }
     setCancelLoading(true);
     try {
       const res = await api('/api/cancel-subscription', {
@@ -424,6 +491,11 @@ export default function AbonnementPage() {
             <button onClick={manage} disabled={manageLoading} className="mystic-btn-ghost">
               {manageLoading ? '…' : t('sub.manage')}
             </button>
+            {subSource === 'play' && isNative() && (
+              <button onClick={restore} disabled={manageLoading} className="mystic-btn-ghost">
+                {t('sub.playRestore')}
+              </button>
+            )}
             {cancelAtPeriodEnd ? (
               <button onClick={() => toggleCancel(current, false)} disabled={cancelLoading} className="mystic-btn">
                 {cancelLoading ? '…' : t('sub.resume')}

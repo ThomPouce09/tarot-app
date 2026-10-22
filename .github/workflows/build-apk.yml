@@ -25,6 +25,11 @@ jobs:
           # client_id PUBLIC (visible dans le navigateur par conception GSI) —
           # autorise le bouton Google dans l'APK. Le secret reste serveur.
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: 360576711615-vnd7art0qftj6n0f47r2rcucnsfirnro.apps.googleusercontent.com
+          # Clé RevenueCat PUBLIQUE (Android/Play Billing). Publique par
+          # conception (bundle client) mais passée en secret GitHub pour que la
+          # valeur reste hors du dépôt ; vide = pont Play désactivé (fallback
+          # checkout web Stripe conservé).
+          NEXT_PUBLIC_REVENUECAT_GOOGLE_PUBLIC_API_KEY: ${{ secrets.REVENUECAT_PUBLIC_API_KEY }}
         run: npm run build
 
       - name: Setup Java 21
