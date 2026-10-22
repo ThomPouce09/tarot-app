@@ -3,7 +3,8 @@
 import { Fragment, Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { alreadyConsumed, clearDrawConsumed, drawSig, markDrawConsumed, universeForInterpretType } from '@/lib/draw-back-guard';
 import WaitOverlay from '@/components/wait-overlay';
 import { useLang, useT, pick4, pickContent, tr } from '@/lib/i18n';
 import { getHexagramTrigrams } from '@/lib/yijing-data';
@@ -38,6 +39,7 @@ interface Interpretation {
 function InterpretationInner() {
   const searchParams = useSearchParams();
   const pathname = usePathname(); // e.g., /interpret/tarot-3-cartes
+  const router = useRouter();
   const lang = useLang();
   const t = useT();
 
@@ -87,6 +89,31 @@ function InterpretationInner() {
 
   // Extract type from pathname: /interpret/tarot-3-cartes -> tarot-3-cartes
   const type = pathname.split('/')[2] || '';
+
+  // ── Garde de retour (lib/draw-back-guard) — filet (B) ─────────────────
+  // Le bouton retour du smartphone ne doit JAMAIS remonter cette page de façon
+  // « consommante » : sans garde, le remontage relançait la vidéo d'attente ET
+  // le POST /api/interpret ci-dessous → tirage compté débité une 2e fois.
+  // La sentinelle d'historique (mécanisme A, armée par les émetteurs : ponts
+  // */interpretation et boutons « Interpréter ») renvoie normalement le retour
+  // directement à l'univers parent sans jamais remonter ici. Ce filet couvre
+  // les cas résiduels (sentinelle perdue, deep-link répété) : si CE tirage
+  // (même signature) a déjà été débité dans l'onglet, on ne consomme rien et
+  // on remplace vers l'univers. Un tirage différent n'est jamais bloqué.
+  const guardUniverse = universeForInterpretType(type);
+  const guardSig = drawSig(type, [
+    searchParams.get('cartes') || searchParams.get('baguette'),
+    searchParams.get('question'),
+    searchParams.get('userId'),
+  ]);
+  const guardRef = useRef<{ checked: boolean; blocked: boolean }>({ checked: false, blocked: false });
+  if (!guardRef.current.checked) {
+    guardRef.current.checked = true;
+    guardRef.current.blocked = alreadyConsumed(guardSig);
+  }
+  useEffect(() => {
+    if (guardRef.current.blocked && guardUniverse) router.replace(guardUniverse);
+  }, [guardUniverse, router]);
 
   useEffect(() => {
     if (!type) {
@@ -165,6 +192,14 @@ function InterpretationInner() {
       return;
     }
 
+    // Filet (B) : CE tirage a déjà été débité dans cet onglet (retour arrière
+    // ou deep-link répété) → on ne relance aucun POST et DrawBackGuard /
+    // le replacement ci-dessus renvoient à l'univers parent.
+    if (guardRef.current.blocked) return;
+    // Marque la consommation AVANT l'appel : si la page se remonte pendant la
+    // requête (retour), le remontage verra le tirage comme déjà débité.
+    markDrawConsumed(guardSig);
+
     api('/api/interpret', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -173,6 +208,9 @@ function InterpretationInner() {
       .then((res) => res.json().then((data) => ({ status: res.status, data })))
       .then(({ status, data }) => {
         if (status === 402) {
+          // Débit refusé par le serveur : rien n'a été consommé → on efface le
+          // marqueur pour qu'une nouvelle tentative (après achat) reste libre.
+          clearDrawConsumed(guardSig);
           setGateReason(data.reason || 'limit-grand');
           setError(null);
           setLoading(false);
@@ -182,11 +220,19 @@ function InterpretationInner() {
         setInterpretation(data);
       })
       .catch((err) => {
+        // Échec de transport : débit non confirmé → marqueur effacé aussi (le
+        // « Réessaie » du user ne doit pas être bloqué par le filet).
+        clearDrawConsumed(guardSig);
         setError(err.message);
         setInterpretation(null);
       })
       .finally(() => setLoading(false));
   }, [type, searchParams]);
+
+  // Tirage déjà débité (retour/deep-link sur la même consultation) : écran
+  // vide pendant le replacement — surtout ne pas monter le WaitOverlay (ses
+  // vidéos autoPlay rejoueraient l'attente pour un résultat qui ne viendra pas).
+  if (guardRef.current.blocked) return null;
 
   if (gateReason) {
     return <EntitlementGateModal reason={gateReason} onClose={() => setGateReason(null)} />;

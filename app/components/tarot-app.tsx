@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties }
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { armDrawBackGuard, universeForInterpretType } from '@/lib/draw-back-guard';
 import YiSlideNav from '@/components/yi-slide-nav';
 import CardFace from './card-face';
 import { TAROT_CARDS, TarotCard } from '@/lib/tarot-data';
@@ -978,6 +979,11 @@ export default function TarotApp({
               if (userId) params.append('userId', userId);
               // Question posée (tirage « précis ») → bandeau + prompt de l'oracle.
               if (question) params.append('question', question);
+              // Sentinelle de retour (lib/draw-back-guard) : le bouton retour
+              // du smartphone renvoie à l'univers parent au lieu de remonter
+              // cette page (qui relancerait animation + POST consommant).
+              const univers = universeForInterpretType(spreadType);
+              if (univers) armDrawBackGuard(univers);
               router.push(`/interpret/${spreadType}?${params.toString()}`);
             }}
             className="relative px-10 py-4 rounded-2xl text-sm font-bold tracking-[0.18em] uppercase overflow-hidden"
