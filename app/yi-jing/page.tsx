@@ -318,11 +318,11 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-base font-bold text-center leading-tight mb-1 mt-1"
+                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#E2BC6C",
-                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
+                  color: "#F3C969",
+                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.base')}
@@ -395,11 +395,11 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-base font-bold text-center leading-tight mb-1 mt-1"
+                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#E2BC6C",
-                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
+                  color: "#F3C969",
+                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.simple')}
@@ -472,11 +472,11 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-base font-bold text-center leading-tight mb-1"
+                className="text-lg font-bold text-center leading-tight mb-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#E2BC6C",
-                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
+                  color: "#F3C969",
+                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.day')}
@@ -552,11 +552,11 @@ export default function YiJingHubPage() {
                   style={{ filter: 'drop-shadow(0 0 12px rgba(243,201,105,0.35))' }}
                 />
               <h2
-                className="text-base font-bold text-center leading-tight mb-1 mt-1"
+                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
                 style={{
                   fontFamily: "'Hoshiko Satsuki', serif",
-                  color: "#E2BC6C",
-                  textShadow: "0 0 10px rgba(226,188,108,0.38), 0 1px 2px rgba(0,0,0,0.85)",
+                  color: "#F3C969",
+                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
                 }}
               >
                 {t('hubs.yijing.double')}

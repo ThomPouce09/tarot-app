@@ -3,6 +3,7 @@ import './fonts-local.css'
 // Polices Google auto-hebergees : plus aucune requete reseau au build.
 import './fonts-google-local.css'
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler'
+import DrawBackGuard from '@/components/draw-back-guard'
 import { LoginModal } from '@/components/login-modal'
 import EmailConfirmLock from '@/components/email-confirm-lock'
 import { LanguageProvider } from '@/lib/i18n'
@@ -124,6 +125,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <ChunkLoadErrorHandler />
+          <DrawBackGuard />
           <PushRouter />
           <MusicAmbience />
           <SpeakerAmbience />

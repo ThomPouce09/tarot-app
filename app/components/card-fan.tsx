@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { CONFIG, CARD_FAN, ARC, CARD_FAN_WIDE, CARD_FAN_CLASSIC, ARC_WIDE, ARC_CLASSIC } from '@/lib/config';
+import { armDrawBackGuard, universeForInterpretType } from '@/lib/draw-back-guard';
 import { DrawnCardData } from './tarot-app';
 import InterpretationModal from './interpretation-modal';
 import QuickDivination from './quick-divination';
@@ -444,6 +445,11 @@ export default function CardFan({ availableIndices, onCardDrawn, disabled, drawn
     params.append('cartes', drawnCardIndices.join(','));
     if (userId) params.append('userId', userId);
     
+    // Sentinelle de retour (lib/draw-back-guard) : le bouton retour du
+    // smartphone doit renvoyer à l'univers parent, jamais remonter cette page
+    // (qui re-pousserait le tirage et re-débiterait la consultation).
+    const univers = universeForInterpretType(spreadType);
+    if (univers) armDrawBackGuard(univers);
     router.push(`/interpret/${spreadType}?${params.toString()}`);
   }, [drawnCardIndices, pathname, router]);
 
