@@ -93,6 +93,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      - name: Build AAB (Google Play)
+        # Bundle universel exigé par le Play Store (la policy interdit l'upload
+        # d'APK pour les apps nouvelles). Signé avec la MÊME signingConfig
+        # release (debug.keystore stable) — cette clé sert d'upload key ; avec
+        # Play App Signing, Google re-signera avec la app signing key gérée
+        # côté Console. Sortie: app/build/outputs/bundle/release/app-release.aab
+        run: |
+          cd android
+          ./gradlew bundleRelease
+
       - name: Vérifier la signature (clé stable)
         # Échoue le build si l'APK n'est PAS signé avec la clé attendue —
         # empêche la diffusion d'un APK qui casserait les mises à jour in-place.
@@ -114,3 +124,9 @@ jobs:
         with:
           name: tarot-app-apk
           path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload AAB (Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarot-app-aab
+          path: android/app/build/outputs/bundle/release/*.aab
