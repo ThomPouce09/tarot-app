@@ -38,6 +38,11 @@ model User {
   // ── Préférences (persistées pour le serveur : lettre hebdo + rappel push) ──
   emailNews         Boolean   @default(false)
   dailyReminder     Boolean   @default(false)
+  // Réengagement « Vous nous manquez » : interrupteur INDEPENDANT du rappel
+  // quotidien (demande user — ils étaient liés par erreur dans l'UI et le
+  // cron). Par défaut actif : comportement historique (tout device avec token
+  // recevait le réengagement une fois inactif).
+  missYou           Boolean   @default(true)
   dailyReminderHour Int       @default(18)   // 0-23, heure locale
   lastLetterSentAt  DateTime?
   // Langue d'interface choisie par l'utilisateur (fr/en/es/hi) — sert la lettre
@@ -145,11 +150,36 @@ model Usage {
   // 5 jours) ; giftNextOkAt = prochaine réclamation possible (cooldown
   // aléatoire 3-4 jours tiré à la réclamation, tout type confondu).
   giftTickets     Int      @default(0)
-  giftGrandTickets Int     @default(0)
+  giftGrandTickets Int      @default(0)
   giftLastAt      DateTime?
   giftNextOkAt    DateTime?
+  // ── TIRAGES GAGNÉS PAR PUBLICITÉS (point 7 — rewarded ads) ──
+  // Économie : 2 pubs = 1 tirage de base, 3 pubs = 1 tirage avancé ; gains
+  // plafonnés à 2 base + 2 avancés par MOIS (reset avec monthKey). Les
+  // compteurs de progression repartent à zéro au palier atteint ; les tickets
+  // du pool (adTickets*) ne expirent pas.
+  adProgBase        Int @default(0) // pubs vues vers le prochain ticket base (0..1)
+  adProgGrand       Int @default(0) // pubs vues vers le prochain ticket avancé (0..2)
+  adTicketsBase     Int @default(0) // tirages de base gagnés, en pool
+  adTicketsGrand    Int @default(0) // tirages avancés gagnés, en pool
+  adEarnedBaseMonth Int @default(0) // tickets base accordés ce mois (cap 2)
+  adEarnedGrandMonth Int @default(0) // tickets avancés accordés ce mois (cap 2)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ─── Anti-double-crédit des récompenses publicitaires ───────────────────────
+// Chaque récompense est identifiée par un txId émis par le client (uuid tiré
+// à la demande d'pub). L'insertion échoue si le tx a déjà été crédité
+// (P2002) → la récompense n'est jamais comptée deux fois, mêmes retries.
+model AdReward {
+  txId      String   @id // `${userId}:${txId}` — unique par compte
+  userId    String
+  kind      String   // 'base' | 'grand'
+  source    String   @default("client") // 'client' (réclamation SDK) | 'ssv' (callback AdMob vérifié)
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@map("ad_rewards")
 }
 
 // ─── Dédup de flux de tirage (un même tirage client = UNE consommation) ─
@@ -398,4 +428,18 @@ model AuthHandoff {
   createdAt     DateTime  @default(now())
   @@index([createdAt])
   @@map("auth_handoffs")
+}
+
+// ─── Liens réseaux sociaux de l'application (point 6) ──────────────────────
+// Une ligne par réseau. L'URL se remplit directement dans Neon (ou via l'API
+// interne) dès que la page existe ; la section « Nous suivre » des Préférences
+// n'affiche que les lignes dont l'URL est renseignée. Table créée en SQL raw
+// (le serveur dev verrouille la DLL Prisma → pas de generate ici) ; ce modèle
+// évite qu'un futur `db push` ne la droppe.
+model SocialLink {
+  key       String   @id               // 'instagram' | 'facebook' | 'tiktok'
+  url       String   @default("")      // vide = non encore publié → caché dans l'UI
+  visible   Boolean  @default(true)    // interrupteur de publication
+  updatedAt DateTime @updatedAt
+  @@map("social_links")
 }

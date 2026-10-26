@@ -11,6 +11,7 @@ import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type Backg
 import { useEntitlement } from '@/lib/use-entitlement';
 import { setSpaceTheme, type SpaceTheme } from '@/lib/theme';
 import { useSpaceToast } from '@/components/space-toast';
+import SocialLinksPanel from '@/components/social-links-panel';
 import { api } from '@/lib/api-client';
 
 // ── Gestion du code Invité (verrou 4 chiffres, option A) ──
@@ -129,6 +130,9 @@ function GuestPinPanel({ email, t, notify, subscriber }: { email: string; t: (k:
 
 type Prefs = {
   dailyReminder: boolean;
+  // « Vous nous manquez » : interrupteur INDÉPENDANT du rappel quotidien
+  // (découplage demandé — ils étaient liés par erreur UI + cron).
+  missYou: boolean;
   emailNews: boolean;
   backgrounds: string[];
   language: 'fr' | 'en' | 'es' | 'hi';
@@ -141,6 +145,7 @@ type Prefs = {
 
 const DEFAULT_PREFS: Prefs = {
   dailyReminder: false,
+  missYou: true, // comportement historique : actif par défaut
   emailNews: false,
   backgrounds: [], // vide = tous les fonds en mode aléatoire
   language: 'fr',
@@ -200,6 +205,7 @@ export default function PreferencesPage() {
           const next: Prefs = {
             ...p,
             dailyReminder: d.dailyReminder ?? p.dailyReminder,
+            missYou: typeof d.missYou === 'boolean' ? d.missYou : p.missYou,
             emailNews: d.emailNews ?? p.emailNews,
             backgrounds: Array.isArray(d.backgrounds) ? d.backgrounds : p.backgrounds,
             musicOn: typeof d.musicOn === 'boolean' ? d.musicOn : p.musicOn,
@@ -231,7 +237,7 @@ export default function PreferencesPage() {
     fetch('/api/prefs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language, theme: next.theme }),
+      body: JSON.stringify({ email, emailNews: next.emailNews, dailyReminder: next.dailyReminder, missYou: next.missYou, backgrounds: next.backgrounds, musicOn: next.musicOn, musicTrack: next.musicTrack, language: next.language, theme: next.theme }),
     }).catch(() => {});
   };
 
@@ -270,9 +276,10 @@ export default function PreferencesPage() {
       if (se) unlockAllSounds();
     }
     // Rappel quotidien → demande de permission push (Capacitor).
-    if (patch.dailyReminder !== undefined) {
-      if (patch.dailyReminder && typeof window !== 'undefined') requestReminderPermission();
-      else if (!patch.dailyReminder) setReminderBlocked(false);
+    if (patch.dailyReminder !== undefined || patch.missYou !== undefined) {
+      const wantsPush = (patch.dailyReminder ?? prefs.dailyReminder) || (patch.missYou ?? prefs.missYou);
+      if (wantsPush && typeof window !== 'undefined') requestReminderPermission();
+      else if (!wantsPush) setReminderBlocked(false);
     }
   };
 
@@ -454,7 +461,7 @@ export default function PreferencesPage() {
         <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.notifications')}</h2>
         <Toggle label={t('prefs.dailyReminder')} checked={prefs.dailyReminder} onChange={(v) => update({ dailyReminder: v })} hint={t('prefs.dailyReminderHint')} />
         {reminderBlocked && <p className="text-red-400/80 text-xs">{tr('Notification non autorisée — autorisez-la dans les réglages de l’app.', 'Notification not allowed — enable it in the app settings.', 'Notificación no permitida — actívela en los ajustes de la app.', 'सूचना अनुमति है — आप आप की आएप के सेटिंग में इसे सक्रम करें।')}</p>}
-        <Toggle label={t('prefs.missYou')} checked={prefs.dailyReminder} disabled onChange={() => {}} hint={t('prefs.missYouHint')} />
+        <Toggle label={t('prefs.missYou')} checked={prefs.missYou} onChange={(v) => update({ missYou: v })} hint={t('prefs.missYouHint')} />
         {level === 'apprenti' ? (
           // Le clic sur l'interrupteur grisé doit AUSSI déclencher l'alerte :
           // un <button disabled> n'émet aucun événement → on neutralise ses
@@ -527,6 +534,12 @@ export default function PreferencesPage() {
         </button>
         <p className="mt-1.5 text-center text-[11px] text-gray-500">{t('prefs.replayTourHint')}</p>
       </div>
+
+      {/* Nous suivre — liens officiels Instagram / Facebook / TikTok (point 6).
+          URLs stockées en base (table social_links, Neon) ; un réseau sans URL
+          apparaît grisé « bientôt ». Icônes SVG inline (charte maison).
+          Position exigée : entre « Revoir le tutoriel » et la réinitialisation. */}
+      <SocialLinksPanel t={t} />
 
       {/* Reset */}
       <div className="mystic-panel p-5">

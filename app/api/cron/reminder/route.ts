@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     where: { fcmToken: { not: null }, ...(testEmail ? { email: testEmail } : {}) },
     select: {
       email: true, firstName: true, fcmToken: true, timezone: true, language: true,
-      dailyReminder: true, dailyReminderHour: true, lastReminderSentAt: true,
+      dailyReminder: true, missYou: true, dailyReminderHour: true, lastReminderSentAt: true,
     },
   });
 
@@ -107,13 +107,15 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // ── UN SEUL push de rappel par soir et par user ──────────────────────
-    // Deux textes candidats : le rappel du soir (roulement des 16) et le
-    // réengagement (« Vous nous manquez ») quand le user n'a plus tiré depuis
-    // INACTIVITY_DAYS jours. Le réengagement est PRIORITAIRE ; si le user est
-    // actif, c'est le rappel du soir qui part. JAMAIS les deux le même soir :
+    // ── UN SEUL push par soir et par user ──────────────────────────────
+    // Deux TEXTOINDEPS candidates (interrupteurs découplés en Préférences) :
+    //  • le rappel du soir (roulement des 16 messages) — exige dailyReminder ;
+    //  • le réengagement (« Vous nous manquez ») — exige missYou, envoyé quand
+    //    le user n'a plus tiré depuis INACTIVITY_DAYS jours.
+    // Le réengagement est PRIORITAIRE quand les deux sont actifs ; si le user
+    // est actif, c'est le rappel du soir. JAMAIS les deux le même soir :
     // lastReminderSentAt sert d'horodatage commun et bloque le second envoi.
-    if (u.dailyReminder) {
+    if (u.dailyReminder || u.missYou) {
       const lastReading = await prisma.reading.findFirst({
         where: { user: { email: u.email } },
         orderBy: { createdAt: 'desc' },
@@ -124,12 +126,18 @@ export async function GET(request: NextRequest) {
         : Infinity; // jamais tiré : considéré inactif
       const isIdle = idleDays >= INACTIVITY_DAYS;
 
-      const chosen = isIdle
+      // Réengagement uniquement si l'interrupteur dédié est actif ; sinon on
+      // retombe sur le rappel du soir (s'il est actif) — même inactif.
+      const useMissYou = isIdle && u.missYou;
+      const chosen = useMissYou
         ? (() => {
             const m = missYouNotification(localDayKey(tz, now), u.language);
             return { title: m.title, body: m.body, url: '/', kind: 'missyou' as const };
           })()
         : { title: msg.title, body: msg.body, url: msg.url, kind: 'daily' as const };
+      // Le soir : dailyReminder éteint mais inactif sans missYou → rien à envoyer.
+      const sendIt = useMissYou || u.dailyReminder;
+      if (sendIt) {
 
       if (dailySentTokens.has(token)) {
         // Ce téléphone a déjà reçu SON rappel ce soir (autre compte) : on
@@ -151,6 +159,7 @@ export async function GET(request: NextRequest) {
         } catch (e: any) {
           failed++; push(u.email, `${chosen.kind}-fail`); await killToken(e);
         }
+      }
       }
     }
 

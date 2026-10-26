@@ -277,7 +277,8 @@ function Nornes2Page() {
         )}
 
         {/* THÈME (obligatoire, mise en avant) : le tirage ne démarre qu'une
-            fois le domaine + l'intention choisis (« Tisser le fil »). */}
+            fois le domaine + l'intention choisis (le tap sur le sous-thème
+            lance directement le tirage — plus de bouton « Tisser le fil »). */}
         {phase === 'idle' && !question && (
           <div className="py-2">
             <motion.div
@@ -291,7 +292,7 @@ function Nornes2Page() {
               }}
               transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <ThemeSelector onConfirm={handleThemeConfirm} />
+              <ThemeSelector auto onConfirm={handleThemeConfirm} />
             </motion.div>
           </div>
         )}

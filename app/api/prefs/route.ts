@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     emailNews: user.emailNews,
     dailyReminder: user.dailyReminder,
+    missYou: user.missYou,
     dailyReminderHour: user.dailyReminderHour,
     backgrounds: user.backgrounds,
     musicOn: user.musicOn,
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
     const data: Record<string, unknown> = {};
     if (typeof body.emailNews === 'boolean') data.emailNews = body.emailNews;
     if (typeof body.dailyReminder === 'boolean') data.dailyReminder = body.dailyReminder;
+    if (typeof body.missYou === 'boolean') data.missYou = body.missYou; // indépendant du rappel
     // NOTE : dailyReminderHour n'est volontairement plus accepté — l'heure du
     // rappel est fixe (~18h30 locale, cf. lib/reminder-time) et n'est plus
     // exposée dans la page Préférences.

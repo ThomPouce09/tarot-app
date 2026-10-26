@@ -48,6 +48,9 @@ export interface Rights {
   giftTickets: number; // tickets « cadeau des créatures » — filière base
   giftGrandTickets: number; // tickets « cadeau des créatures » — filière avancée
   giftExpiresAt: Date | null; // expiration des tickets (réclamation + 5 jours)
+  // Tickets gagnés par publicités récompensées (point 7) — ne expirent pas.
+  adTicketsBase: number;
+  adTicketsGrand: number;
   streakDays: number;
   // Privilèges mensuels d'abonnement (Conseil d'Odin / Secret d'Artémis) :
   // nombre RESTANT dans le mois ; null = illimité (Arkane).
@@ -115,6 +118,11 @@ async function loadUsage(userId: string) {
     patch.grandUsedMonth = 0;
     patch.odinUsedMonth = 0;
     patch.artemisUsedMonth = 0;
+    // Caps mensuels des gains par publicité (point 7) : on peut gagner à
+    // nouveau 2 base + 2 avancés chaque mois. La PROGRESSION des pubs déjà
+    // vues (adProg*) et les TICKETS en pool (adTickets*) survivent au mois.
+    patch.adEarnedBaseMonth = 0;
+    patch.adEarnedGrandMonth = 0;
   }
   // Cadeau des créatures : un tirage offert NON utilisé expire 5 jours après
   // sa réclamation → purge automatique des DEUX filières (le panneau
@@ -161,6 +169,8 @@ export async function getRights(email: string): Promise<Rights | null> {
     giftTickets: u.giftTickets,
     giftGrandTickets: (u as { giftGrandTickets?: number }).giftGrandTickets ?? 0,
     giftExpiresAt: giftExpiresAt(u.giftLastAt ?? null, u.giftTickets + ((u as { giftGrandTickets?: number }).giftGrandTickets ?? 0)),
+    adTicketsBase: (u as { adTicketsBase?: number }).adTicketsBase ?? 0,
+    adTicketsGrand: (u as { adTicketsGrand?: number }).adTicketsGrand ?? 0,
     streakDays: u.streakDays,
     odinRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { odinUsedMonth?: number }).odinUsedMonth ?? 0)),
     artemisRemaining: cap.perkMonthly === null ? null : Math.max(0, cap.perkMonthly - ((u as { artemisUsedMonth?: number }).artemisUsedMonth ?? 0)),
@@ -210,6 +220,7 @@ export async function canDo(email: string, type: string, question: string | null
         return { allowed: true, reason: 'ok', message: '' };
       }
       if (rights.giftTickets > 0) return { allowed: true, reason: 'ok', message: '' };
+      if (rights.adTicketsBase > 0) return { allowed: true, reason: 'ok', message: '' }; // tickets gagnés par pubs
       if (rights.rechargeCredits >= CREDITS_BASE) return { allowed: true, reason: 'ok', message: '' };
       return {
         allowed: false,
@@ -225,6 +236,9 @@ export async function canDo(email: string, type: string, question: string | null
     }
     if (rights.giftTickets > 0) {
       return { allowed: true, reason: 'ok', message: '' };
+    }
+    if (rights.adTicketsBase > 0) {
+      return { allowed: true, reason: 'ok', message: '' }; // tickets gagnés par pubs
     }
     if (rights.rechargeCredits >= CREDITS_BASE) {
       return { allowed: true, reason: 'ok', message: '' };
@@ -246,7 +260,7 @@ export async function canDo(email: string, type: string, question: string | null
   const cost = grandCostOf(type);
   let avail = 0;
   if (!rights.welcomeGrandUsed) avail += 1;
-  avail += rights.giftGrandTickets + rights.bonusGrand;
+  avail += rights.giftGrandTickets + rights.bonusGrand + rights.adTicketsGrand;
   avail += Math.floor(rights.rechargeCredits / CREDITS_GRAND);
   if (rights.grandMonthly !== null) avail += Math.max(0, rights.grandMonthly - rights.grandUsedMonth);
   if (avail >= cost) {
@@ -311,6 +325,9 @@ export async function consume(email: string, type: string, question: string | nu
       if (cap !== null && u.baseUsedMonth >= cap) {
         if (u.giftTickets > 0) {
           patch.giftTickets = u.giftTickets - 1;
+        } else if ((u as { adTicketsBase?: number }).adTicketsBase! > 0) {
+          // Ticket gagné par publicité récompensée (avant les crédits payés).
+          patch.adTicketsBase = (u as { adTicketsBase?: number }).adTicketsBase! - 1;
         } else {
           patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
         }
@@ -321,6 +338,9 @@ export async function consume(email: string, type: string, question: string | nu
     } else if (u.giftTickets > 0) {
       // Cadeau des créatures : un ticket couvre ce tirage avant les crédits.
       patch.giftTickets = u.giftTickets - 1;
+    } else if ((u as { adTicketsBase?: number }).adTicketsBase! > 0) {
+      // Ticket gagné par publicité récompensée (avant les crédits payés).
+      patch.adTicketsBase = (u as { adTicketsBase?: number }).adTicketsBase! - 1;
     } else {
       // Plus de base gratuite : 7 crédits de recharge.
       patch.rechargeCredits = u.rechargeCredits - CREDITS_BASE;
@@ -337,6 +357,11 @@ export async function consume(email: string, type: string, question: string | nu
     const grandTickets = (u as { giftGrandTickets?: number }).giftGrandTickets ?? 0;
     const spendGift = Math.min(left, grandTickets);
     if (spendGift > 0) { (patch as Record<string, unknown>).giftGrandTickets = grandTickets - spendGift; left -= spendGift; }
+    // Tickets gagnés par pubs récompensées : APRÈS les cadeaux créatures,
+    // AVANT les bonus streak et les crédits payés (le gratuit d'abord).
+    const adGrandTickets = (u as { adTicketsGrand?: number }).adTicketsGrand ?? 0;
+    const spendAd = Math.min(left, adGrandTickets);
+    if (spendAd > 0) { (patch as Record<string, unknown>).adTicketsGrand = adGrandTickets - spendAd; left -= spendAd; }
     const spendBonus = Math.min(left, u.bonusGrand);
     if (spendBonus > 0) { patch.bonusGrand = u.bonusGrand - spendBonus; left -= spendBonus; }
     const maxCreditPays = Math.floor(u.rechargeCredits / CREDITS_GRAND);

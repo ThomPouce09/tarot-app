@@ -279,12 +279,12 @@ export default function TarotHubPage() {
 
       {/* TUILES : grille 2 colonnes sur mobile */}
       <div
-        className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[auto_auto] gap-x-5 gap-y-4 justify-items-center px-4"
+        className="absolute top-[52%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 grid grid-cols-[auto_auto] gap-x-5 gap-y-4 justify-items-center px-4"
       >
         {/* TUILE — 3 CARTES SIMPLIFIÉ (tirage de base, accessible Apprenti) */}
         <GatedTile href="/tarot-3-cartes-simplifie" allowed={tiles?.['tarot-3-cartes-simplifie']?.allowed} reason={tiles?.['tarot-3-cartes-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -356,7 +356,7 @@ export default function TarotHubPage() {
         {/* TUILE — 3 CARTES · PRÉCIS (question libre → avancé) */}
         <GatedTile href="/tarot-3-cartes" allowed={tiles?.['tarot-3-cartes']?.allowed} reason={tiles?.['tarot-3-cartes']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 16px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -428,7 +428,7 @@ export default function TarotHubPage() {
         {/* TUILE — 5 CARTES (CROIX) */}
         <GatedTile href="/tarot-semaine" allowed={tiles?.['tarot-semaine']?.allowed} reason={tiles?.['tarot-semaine']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(218,165,32,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -501,7 +501,7 @@ export default function TarotHubPage() {
         {isLoggedIn ? (
           <GatedTile href="/tarot-5-c-manuelle" allowed={tiles?.['tarot-5-c-manuelle']?.allowed} reason={tiles?.['tarot-5-c-manuelle']?.reason} onBlocked={openGate}>
             <motion.div
-              className="group relative h-[21vh] max-h-[250px] min-h-[130px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
+              className="group relative h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
               style={{
                 boxShadow:
                   "0 0 18px rgba(251,191,36,0.4), 0 4px 12px rgba(0,0,0,0.5)",
@@ -615,7 +615,9 @@ export default function TarotHubPage() {
         {/* MODE INVITÉ : dans la grille absolue → dernière ligne pleine largeur,
             donc collée sous les tuiles (un fixed ici serait re-pivoté par le
             transform du conteneur : d'où la dérive du bandeau flottant). */}
-        <div className="col-span-2 w-full max-w-xs justify-self-center -mt-4">
+        {/* La grille est remonree de 3vh (top 55% -> 52%) ; le bandeau se
+            rattrape de ces 3vh pour rester a sa place (demande user). */}
+        <div className="col-span-2 w-full max-w-xs justify-self-center mt-[calc(3vh-1rem)]">
           <GuestModeBanner tone="gold" />
         </div>
       </div>

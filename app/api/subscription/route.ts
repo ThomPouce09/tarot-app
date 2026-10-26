@@ -92,6 +92,9 @@ export async function GET(request: NextRequest) {
             giftTickets: rights.giftTickets,
             giftGrandTickets: rights.giftGrandTickets,
             giftExpiresAt: rights.giftExpiresAt ? rights.giftExpiresAt.toISOString() : null,
+            // Gains par publicités récompensées (point 7) : pool de tickets.
+            adTicketsBase: rights.adTicketsBase,
+            adTicketsGrand: rights.adTicketsGrand,
             streakDays: rights.streakDays,
             odinRemaining: rights.odinRemaining,
             artemisRemaining: rights.artemisRemaining,

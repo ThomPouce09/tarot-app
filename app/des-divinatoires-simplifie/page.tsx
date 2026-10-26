@@ -583,7 +583,7 @@ function SimplifiePage() {
                   </div>
                 )}
 
-                  {/* ✶ L'Augure scellé — prémonction née de cette lecture. */}
+                  {/* ✶ L'Augure scellé — prémonition née de cette lecture. */}
                   {readingId && oracleFlash && (
                     <EchoBox
                       domain="des"

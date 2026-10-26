@@ -144,7 +144,10 @@ export const RUNE_DOMAINS: RuneDomain[] = [
 
 /* ————————————————————————————— Composant ————————————————————————————— */
 
-export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => void }) {
+export function ThemeSelector({ onConfirm, auto = false }: { onConfirm: (question: string) => void;
+  /** Mode direct (/nornes2) : le tap sur un sous-thème lance le tirage sans
+   *  bouton « Tisser le fil » ni aide (demande user). */
+  auto?: boolean; }) {
   const t = useT();
   const lang = useLang();
   const [domainId, setDomainId] = useState<string | null>(null);
@@ -252,7 +255,9 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
                     <li key={i}>
                       <button
                         type="button"
-                        onClick={() => setSubIdx(i)}
+                        onClick={() => auto
+                          ? onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(s, lang)}`)
+                          : setSubIdx(i)}
                         className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
                         style={{ background: sel ? `${RUNE_THEME.forestMid}55` : 'transparent' }}
                       >
@@ -270,7 +275,9 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
         )}
       </AnimatePresence>
 
-      {/* CTA — pilule teal glossée (variante « save ») */}
+      {/* CTA — pilule teal glossée (variante « save »). Inutile en mode auto :
+          le tap sur le sous-thème tisse déjà le fil (demande user). */}
+      {!auto && (
       <div className="mt-5 text-center">
         <RuneButton variant="save" onClick={weave} disabled={!ready}>
           {t('runes.nornes2.weave')}
@@ -281,6 +288,7 @@ export function ThemeSelector({ onConfirm }: { onConfirm: (question: string) => 
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

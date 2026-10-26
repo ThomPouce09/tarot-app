@@ -25,10 +25,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, tr } from '@/lib/i18n';
 import { pickEchoText } from '@/lib/i18n/echo-text';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import { useExitToHub } from '@/lib/hub-back';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
 import WaitOverlay from '@/components/wait-overlay';
 import { YiThemeSelector, YI_LACQUER, YI_GLASS } from '../yi-jing-simplifie/theme-selector';
+import { AskCard } from '../_shared/ask-card';
 import { api } from '@/lib/api-client';
 import { playSound, stopSound, installSoundUnlock } from '@/lib/sounds';
 import CoinRitual from './coin-ritual';
@@ -178,13 +180,15 @@ function LiveStack({ lines, L }: { lines: number[]; L: (fr: string, en: string) 
 }
 
 /* ── Modale d'accueil : le rituel expliqué UNE fois, bouton « Compris » ── */
-function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onClose: () => void }) {
+function IntroModal({ L, onClose, onExit }: { L: (fr: string, en: string, es?: string, hi?: string) => string; onClose: () => void; onExit: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[90] flex items-center justify-center px-6"
-      style={{ background: 'rgba(10,4,7,0.78)', backdropFilter: 'blur(5px)' }}>
+      style={{ background: 'rgba(10,4,7,0.78)', backdropFilter: 'blur(5px)' }}
+      onClick={onExit}>
       <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
+        onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-sm rounded-3xl px-6 py-7 text-center"
         style={{ background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 55%, ${YI_LACQUER.panelDeep} 100%)`,
           border: `1.5px solid ${GOLD}66`, boxShadow: '0 14px 48px rgba(0,0,0,0.6), 0 0 34px rgba(243,201,105,0.16)' }}>
@@ -206,11 +210,63 @@ function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onC
   );
 }
 
+/* ── Pilule du sujet validé : une ligne, tronquée si trop longue, et tap pour
+   la lire EN ENTIER dans une modale laque (même comportement que
+   /obstacle-solution — OneLineQuestion des dés — aux couleurs du Yi Jing). ── */
+function QuestionPill({ text, L }: { text: string; L: (fr: string, en: string, es?: string, hi?: string) => string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <p
+        className="mx-auto mt-3 inline-block max-w-full cursor-pointer truncate rounded-full px-4 py-1.5 text-xs italic"
+        style={{ background: 'rgba(142,28,34,0.22)', border: `1px solid ${GOLD}44`, color: LILAC }}
+        onClick={() => setOpen(true)}
+        title={text}
+      >
+        « {text} »
+      </p>
+      <AnimatePresence>
+        {open && (
+          <motion.div className="fixed inset-0 z-[95] flex items-center justify-center p-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}>
+            <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, y: 18, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.96 }} transition={{ duration: 0.3 }} onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-md overflow-hidden rounded-2xl border p-6"
+              style={{
+                background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 55%, ${YI_LACQUER.panelDeep} 100%)`,
+                borderColor: `${GOLD}66`,
+                boxShadow: '0 0 44px rgba(243,201,105,0.16), 0 22px 54px rgba(0,0,0,0.7)',
+              }}>
+              <div aria-hidden style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: 'radial-gradient(ellipse at 50% 0%, rgba(243,201,105,0.10) 0%, transparent 60%)',
+              }} />
+              <p className="relative mb-3 text-center text-[10px] uppercase tracking-[0.35em]" style={{ color: `${GOLD}aa`, fontFamily: 'var(--font-cinzel-deco), serif' }}>
+                ✦ ☾ ✦
+              </p>
+              <p className="relative text-center text-[10px] uppercase tracking-[0.28em]" style={{ color: `${LILAC_DIM}`, fontFamily: 'var(--font-cinzel), serif' }}>
+                {L('Sujet de la consultation', 'Subject of the consultation', 'Tema de la consulta', 'परामर्श का विषय')}
+              </p>
+              <p className="relative mt-3 text-center text-lg italic leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: LILAC, textShadow: '0 0 14px rgba(243,201,105,0.25)' }}>
+                « {text} »
+              </p>
+              <div aria-hidden className="relative mx-auto mt-4 h-px w-24" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}b3, transparent)` }} />
+              <p className="relative mt-3 text-center text-[11px]" style={{ color: `${LILAC}73` }}>{L('Touchez pour fermer', 'Tap to close', 'Toque para cerrar', 'बंद करने के लिए स्पर्श करें')}</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 /* ─────────────────────────────── Écran ─────────────────────────────── */
 
 function DoublePage() {
   const lang = useLang();
   const en = lang === 'en';
+  const exitHub = useExitToHub('/yi-jing'); // tap hors-modale d'accueil → retour au hub
   const { sub, gateReason, closeGate, openGate, reload: reloadSub } = useEntitlement();
   // Initié sans place libre : le bouton « sceller » ne se montre PAS (juger ou
   // supprimer un augure non brisé en rend une — même règle que le serveur).
@@ -422,34 +478,29 @@ function DoublePage() {
             {tr("Le Double Hexagramme", "The Double Hexagram", "El Doble Hexagrama", "दोहरा हैक्सग्राम")}
           </h1>
           {question && phase !== 'ask' && (
-            <p className="mx-auto mt-3 inline-block max-w-full truncate rounded-full px-4 py-1.5 text-xs italic" style={{ background: 'rgba(142,28,34,0.22)', border: `1px solid ${GOLD}44`, color: LILAC }}>
-              « {question} »
-            </p>
+            <QuestionPill text={question} L={L} />
           )}
           {phase === 'shake' && progressLines.length > 0 && (
             <div className="mt-3 flex justify-center"><LiveStack lines={progressLines} L={L} /></div>
           )}
         </div>
 
-        {/* ── 1. La question ── */}
+        {/* ── 1. La question — modale standardisée (presentation /obstacle-solution :
+           onglets « Ma question » par défaut + « Thème & intention », teinte laque) ── */}
         {phase === 'ask' && (
           <div className="mt-10">
-            {/* Saisie libre — ou sélection d'un thème & intention existants. */}
-            <input type="text" value={freeQ} onChange={(e) => setFreeQ(e.target.value)}
-              maxLength={300}
+            <AskCard
+              tint="lacquer"
+              title={tr("Quelle situation traverses-tu ?", "What situation are you facing?", "¿Qué situación estás atravesando?", "आप किस परिस्थिति से गुज़र रहे हैं?")}
+              subtitle={tr("Nomme précisément votre situation — le thème l’oriente si vous préférez rester abstrait.", "Name your situation precisely — a theme orients it if you prefer to stay abstract.", "Nombre su situación con precisión — el tema la orienta si prefiere mantenerse abstracto.", "अपनी स्थिति सुस्पष्ट नाम से कहें — विषय उसे दिशा देता है यदि आप अमूर्त रहना पसंद करें।")}
               placeholder={tr("Garder en mémoire votre question", "Keep your question in mind", "Tener presente su pregunta", "अपने प्रश्न को मन में रखें")}
-              className="mx-auto mb-3 block w-full max-w-sm rounded-lg px-4 py-2.5 text-sm"
-              style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${GOLD}44`, color: '#f0e6d3' }}
-              onKeyDown={(e) => { if (e.key === 'Enter' && freeQ.trim()) { setQuestion(freeQ.trim()); setPhase('shake'); } }} />
-            <button disabled={!freeQ.trim()} onClick={() => { setQuestion(freeQ.trim()); setPhase('shake'); }}
-              className="mx-auto block rounded-full px-8 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-[15px] tracking-wide transition-[filter,transform] hover:brightness-110 active:scale-[0.97] disabled:opacity-40 disabled:hover:brightness-100"
-              style={YI_GLASS}>
-              {tr("Consulter avec cette question", "Consult with this question", "Consultar con esta pregunta", "इस प्रश्न पर परामर्श करें")}
-            </button>
-            <p className="my-3 text-center text-[10px] uppercase tracking-[0.3em]" style={{ color: `${LILAC_DIM}77` }}>{L('— ou —', '— or —')}</p>
-            <div className="mb-6">
-              <YiThemeSelector glass onConfirm={(q) => { setQuestion(q); setPhase('shake'); }} />
-            </div>
+              draft={freeQ}
+              setDraft={setFreeQ}
+              onAsk={(qq) => { setQuestion(qq); setPhase('shake'); }}
+              ctaLabel={tr("Consulter avec cette question", "Consult with this question", "Consultar con esta pregunta", "इस प्रश्न पर परामर्श करें")}
+            >
+              <YiThemeSelector bare onConfirm={(q) => { setQuestion(q); setPhase('shake'); }} />
+            </AskCard>
           </div>
         )}
 
@@ -661,7 +712,7 @@ function DoublePage() {
       </AnimatePresence>
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <AnimatePresence>
-        {intro && <IntroModal L={L} onClose={() => setIntro(false)} />}
+        {intro && <IntroModal L={L} onClose={() => setIntro(false)} onExit={exitHub} />}
       </AnimatePresence>
       {waitOn && db && <WaitOverlay type="yi-jing-double" ready={!!db.read} onVideoEnded={() => setWaitOn(false)} fit169 />}
     </div>
