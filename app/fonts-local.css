@@ -25,6 +25,19 @@
   font-display: swap;
 }
 
+/* Reggae One — pinceau coreano (Google Fonts, licence SIL OFL 1.1, usage
+   commercial libre). Poids unique 400 (naturellement gras : ne jamais ajouter
+   font-bold = faux gras). Sous-ensemble latin auto-helage (woff2, ~40 Ko) :
+   pas de Google Fonts au runtime, comme le reste de la charte. Titres des
+   tuiles du hub /yi-jing. */
+@font-face {
+  font-family: 'Reggae One Local';
+  src: url('/fonts/reggae-one-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'Zen Kurenaido Local';
   src: url('/fonts/zen-kurenaido-latin.woff2') format('woff2');

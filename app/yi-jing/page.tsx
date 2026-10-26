@@ -237,7 +237,7 @@ export default function YiJingHubPage() {
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
-      <div className="absolute top-[8%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
+      <div className="absolute top-[6%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
           style={{
@@ -269,7 +269,7 @@ export default function YiJingHubPage() {
           invité empilés — sans ce wrapper le bandeau partirait À CÔTÉ. */}
       <div className="relative z-30 flex w-full flex-col items-center">
       {/* GRILLE : 2 colonnes sur smartphone */}
-      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
+      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-20">
         {/* TUILE — YI JING (base : baguettes d'achillée) */}
         <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
@@ -318,11 +318,12 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-[13.5px] font-bold text-center leading-tight mb-1 mt-1 px-2 break-words"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.base')}
@@ -395,11 +396,12 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-[13.5px] font-bold text-center leading-tight mb-1 mt-1 px-2 break-words"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.simple')}
@@ -472,11 +474,12 @@ export default function YiJingHubPage() {
                 style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-[13.5px] font-bold text-center leading-tight mb-1 px-2 break-words"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.day')}
@@ -552,11 +555,12 @@ export default function YiJingHubPage() {
                   style={{ filter: 'none' }}
                 />
               <h2
-                className="text-[13.5px] font-bold text-center leading-tight mb-1 mt-1 px-2 break-words"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.double')}

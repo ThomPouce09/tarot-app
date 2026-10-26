@@ -15,6 +15,8 @@ import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResu
 import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
+import FollowUpPanel from '@/components/follow-up-panel';
+import { isBaseType } from '@/lib/classification';
 import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
 import { parseTarotQuestion, localizeTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
 
@@ -265,7 +267,7 @@ function InterpretationInner() {
   const isYiJing = type.startsWith('yi-jing') || type === 'yi-qing';
   // Titres d'interprétation : Allura (script féerique) pour le Tarot,
   // Hoshiko Satsuki (calligraphie) pour le Yi Jing.
-  const titleFont = isTarot ? "'Allura', cursive" : "'Hoshiko Satsuki', serif";
+  const titleFont = isTarot ? "'Allura', cursive" : "'Klee One Local', serif";
   const trigs = hexagram ? getHexagramTrigrams(hexagram.numero, lang) : { superior: null, inferior: null };
   // Nom + synthèse de l'hexagramme dans la langue courante : tables sœurs
   // hexagrams_en / _es / _hi (la table FR `hexagrams` reste la source).
@@ -368,7 +370,7 @@ function InterpretationInner() {
                     {String(num).padStart(2, '0')}
                   </span>
                   {hexagram && (
-                    <span className="text-sm leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", color: YI_LACQUER.lilac, textTransform: 'capitalize' }}>
+                    <span className="text-sm leading-tight" style={{ fontFamily: "'Klee One Local', serif", color: YI_LACQUER.lilac, textTransform: 'capitalize' }}>
                       {hexName}
                     </span>
                   )}
@@ -519,7 +521,7 @@ function InterpretationInner() {
                     <p className="text-yellow-200 text-sm font-semibold tracking-wide mb-1">
                       {t('interpret.baguette')} : {String(hexagram.numero).padStart(2, '0')}
                     </p>
-                    <p className="text-yellow-400 font-semibold text-2xl leading-tight" style={{ fontFamily: "'Hoshiko Satsuki', serif", textTransform: 'capitalize' }}>
+                    <p className="text-yellow-400 font-semibold text-2xl leading-tight" style={{ fontFamily: "'Klee One Local', serif", textTransform: 'capitalize' }}>
                       {hexName}
                     </p>
                     {hexagram.pinyin && (
@@ -613,6 +615,21 @@ function InterpretationInner() {
               readingId={typeof interpretation.readingId === 'string' ? interpretation.readingId : null}
               question={searchParams.get('question')}
               summary={String(interpretation.resume || interpretation.conseil || interpretation.avenir || interpretation.issue || '')}
+            />
+
+            {/* ✶ Enchaînement : approfondir la lecture par une autre question,
+                nourrie du fil de la consultation (parité voyance classique). */}
+            <FollowUpPanel
+              type={type}
+              isTarot={isTarot}
+              cartes={tarotCards.map((c) => c.id)}
+              baguette={hexagram ? hexagram.numero : null}
+              userId={(searchParams.get('userId') || '').trim()}
+              initialQuestion={rawQuestion}
+              initialSummary={String(interpretation.resume || interpretation.conseil || interpretation.issue || '')}
+              tier={isBaseType(type) ? 'base' : 'grand'}
+              onGate={(reason) => setGateReason(reason)}
+              parentReadingId={typeof interpretation.readingId === 'string' ? interpretation.readingId : null}
             />
           </>
         </div>

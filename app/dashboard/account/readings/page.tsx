@@ -167,6 +167,16 @@ export default function ReadingsPage() {
         lines.push('');
       });
       if (interp?.resume) { lines.push(`🌟 ${pick4('Résumé', 'Summary', 'Resumen', 'सारांश')(lang)} : ${flat(interp.resume)}`); lines.push(''); }
+      // Consultation filée : les questions suivantes + leurs réponses.
+      (Array.isArray(interp?.thread) ? interp.thread : []).forEach((step: any, si: number) => {
+        if (step?.question) { lines.push(`❓ ${pick4('Question suivante', 'Next question', 'Pregunta siguiente', 'अगला प्रश्न')(lang)} ${si + 2} : ${step.question}`); lines.push(''); }
+        keys.forEach((k, i2) => {
+          const txt = step?.[k] || step?.[`carte${i2 + 1}`];
+          if (txt) lines.push(`→ ${flat(txt)}`);
+        });
+        if (step?.resume) lines.push(`🌟 ${flat(step.resume)}`);
+        lines.push('');
+      });
     } else if (m.group === 'rune') {
       // Sections IA appariées par position (formats nornes2 et nornes versionné)
       const sections: any[] = interp?.sections || interp?.fil?.sections || [];
@@ -202,6 +212,15 @@ export default function ReadingsPage() {
         lines.push(r.interpretation.replace(/<[^>]*>/g, '').trim());
         lines.push('');
       }
+      // Consultation filée : questions suivantes + leurs réponses (Yi Jing).
+      (Array.isArray(interp?.thread) ? interp.thread : []).forEach((step: any, si: number) => {
+        if (step?.question) { lines.push(`❓ ${pick4('Question suivante', 'Next question', 'Pregunta siguiente', 'अगला प्रश्न')(lang)} ${si + 2} : ${step.question}`); lines.push(''); }
+        Object.entries(LABELS).forEach(([k, lab]) => {
+          const txt = step?.[k];
+          if (typeof txt === 'string' && txt.trim()) lines.push(`${lab} : ${flat(txt)}`);
+        });
+        lines.push('');
+      });
     } else if (m.group === 'des') {
       if (interp?.facesA || interp?.facesB) {
         // Format choix / obstacle-solution
