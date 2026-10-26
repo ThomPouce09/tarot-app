@@ -30,6 +30,8 @@ export interface EchoData {
   domain: string;
   dueAt: string; // ISO
   verdict: string | null;
+  verdictPct?: number | null;   // pertinence fine 0-100 (roue hebdo)
+  bestCardIndex?: number | null;
   verdictAt: string | null;
   createdAt: string;
 }

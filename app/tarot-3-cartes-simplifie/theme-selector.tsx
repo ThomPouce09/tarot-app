@@ -148,9 +148,9 @@ export const TAROT_THEMES: TarotTheme[] = [
   },
   {
     id: 'roue',
-    label: { fr: 'Roue de la Fortune', en: 'Wheel of Fortune' , es: "Rueda de la Fortuna", hi: "भाग्य का चक्र"},
+    label: { fr: 'Cycles du Destin', en: 'Cycles of Destiny' , es: "Ciclos del Destino", hi: "भाग्य के चक्र"},
     arcane: 'Roue',
-    sigil: { fr: 'La Roue · ce qui tourne pour vous', en: 'The Wheel · what turns for you' , es: "La Rueda · lo que gira para usted", hi: "चक्र · जो आपके लिए घूमता है"},
+    sigil: { fr: 'Le Cycle · ce qui tourne pour vous', en: 'The Cycle · what turns for you' , es: "El Ciclo · lo que gira para usted", hi: "चक्र · जो आपके लिए घूमता है"},
     icon: IconWheel,
     subs: [
       { fr: 'Ce que l’année fait tourner', en: 'What the year is turning' , es: "Lo que el año pone en giro", hi: "जो कुछ इस वर्ष चल रहा है"},
@@ -183,9 +183,25 @@ export function parseTarotQuestion(question: string | null): { theme: TarotTheme
 
 /** La question est stockée dans la langue où elle a été composée. Si l'user
  *  change de langue AVANT de voir le résultat, on retrouve l'intention dans sa
- *  variante locale via ce matcheur (toutes les variantes de L). */
+ *  variante locale via ce matcheur (toutes les variantes de L).
+ *  LEGACY : l'ancien nom du thème « roue » (« Roue de la Fortune », renommé
+ *  « Cycles du Destin » pour ne pas confondre avec l'arcane X) reste reconnu
+ *  via les alias ci-dessous — les anciennes questions composées affichent
+ *  désormais le nouveau bandeau. */
+const LEGACY_LABELS: Record<string, string[]> = {
+  'Roue de la Fortune': ['Cycles du Destin'],
+  'Wheel of Fortune': ['Cycles of Destiny'],
+  'Rueda de la Fortuna': ['Ciclos del Destino'],
+  'भाग्य का चक्र': ['भाग्य के चक्र'],
+};
 function labelMatches(l: L, head: string): boolean {
-  return l.fr === head || l.en === head || l.es === head || l.hi === head;
+  if (l.fr === head || l.en === head || l.es === head || l.hi === head) return true;
+  // head est l'ANCIEN libelle -> le theme recherche porte le nouveau : on
+  // matche l'alias inverse (nouveau -> anciens).
+  for (const [oldLbl, newLs] of Object.entries(LEGACY_LABELS)) {
+    if (oldLbl === head && newLs.some((n) => n === l.fr || n === l.en || n === l.es || n === l.hi)) return true;
+  }
+  return false;
 }
 
 /** Version localisée (lang courante) du texte « Arcane — intention » mémorisé,
@@ -210,7 +226,7 @@ export const ARCANE_SUIT_L10N: Record<string, L> = {
   Coupes: { fr: 'Coupes', en: 'Cups', es: 'Copas', hi: 'कप' },
   Bâtons: { fr: 'Bâtons', en: 'Wands', es: 'Bastos', hi: 'दंड' },
   Épées: { fr: 'Épées', en: 'Swords', es: 'Espadas', hi: 'तलवार' },
-  Roue: { fr: 'Roue', en: 'Wheel', es: 'Rueda', hi: 'चक्र' },
+  Roue: { fr: 'Cycle', en: 'Cycle', es: 'Ciclo', hi: 'चक्र' },
 };
 export function arcaneSuitName(arcane: string, lang: Lang): string {
   return pickContent(ARCANE_SUIT_L10N[arcane] ?? { fr: arcane }, lang);
@@ -221,24 +237,16 @@ export function arcaneSuitName(arcane: string, lang: Lang): string {
 export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string) => void }) {
   const lang = useLang();
   const [themeId, setThemeId] = useState<string | null>(null);
-  const [subIdx, setSubIdx] = useState<number | null>(null);
   const subRef = useRef<HTMLDivElement>(null);
 
   const pickTheme = (id: string) => {
     setThemeId(id);
-    setSubIdx(null);
     window.setTimeout(() => {
       subRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 420);
   };
 
   const theme = TAROT_THEMES.find((d) => d.id === themeId) ?? null;
-  const ready = !!theme && subIdx !== null;
-
-  const cast = () => {
-    if (!theme || subIdx === null) return;
-    onConfirm(`${pickContent(theme.label, lang)} — ${pickContent(theme.subs[subIdx], lang)}`);
-  };
 
   return (
     <div
@@ -311,60 +319,33 @@ export function TarotThemeSelector({ onConfirm }: { onConfirm: (question: string
                 <p className="font-[family-name:var(--font-cinzel-deco)] text-[12px] tracking-widest" style={{ color: TAROT_NIGHT.goldPale }}>
                   {pick4('Que souhaitez-vous interroger ?', 'What shall the cards examine?', "¿Qué desea interrogar?", "आप क्या पूछना चाहते हैं?")(lang)}
                 </p>
-                <button type="button" onClick={() => { setThemeId(null); setSubIdx(null); }} className="text-[10px] underline-offset-2 hover:underline" style={{ color: `${TAROT_NIGHT.roseDim}bb` }}>
+                <button type="button" onClick={() => setThemeId(null)} className="text-[10px] underline-offset-2 hover:underline" style={{ color: `${TAROT_NIGHT.roseDim}bb` }}>
                   {pick4('Changer d’arcane', 'Change arcana', "Cambiar de arcano", "अर्कान बदलें")(lang)}
                 </button>
               </div>
               <ul className="mt-2 space-y-1">
-                {theme.subs.map((s, i) => {
-                  const sel = subIdx === i;
-                  return (
-                    <li key={i}>
-                      <button
-                        type="button"
-                        onClick={() => setSubIdx(i)}
-                        className="ts-sub-item flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
-                        style={{ background: sel ? 'rgba(90,30,42,0.55)' : 'transparent', animationDelay: `${i * 60}ms` }}
-                      >
-                        <span className={`mt-[3px] text-[8px]${sel ? ' ts-twinkle' : ''}`} style={{ color: sel ? TAROT_NIGHT.gold : `${TAROT_NIGHT.gold}55` }}>✦</span>
-                        <span className="text-[12.5px] leading-snug" style={{ color: sel ? TAROT_NIGHT.gold : TAROT_NIGHT.rose }}>
-                          {pickContent(s, lang)}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
+                {theme.subs.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => onConfirm(`${pickContent(theme.label, lang)} — ${pickContent(s, lang)}`)}
+                      className="ts-sub-item flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/5"
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      <span className="mt-[3px] text-[8px]" style={{ color: `${TAROT_NIGHT.gold}88` }}>✦</span>
+                      <span className="text-[12.5px] leading-snug" style={{ color: TAROT_NIGHT.rose }}>
+                        {pickContent(s, lang)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* CTA — pilule dorée (charte tarot) */}
-      <div className="mt-5 text-center">
-        <button
-          type="button"
-          onClick={cast}
-          disabled={!ready}
-          className={`ts-cast-glow rounded-full px-8 py-2.5 font-[family-name:var(--font-cinzel-deco)] text-[15px] tracking-wide transition-transform active:scale-[0.97]${ready ? ' ts-cast-ready' : ''}`}
-          style={{
-            background: ready
-              ? 'linear-gradient(135deg, #E8B84B 0%, #C9962E 55%, #E8B84B 100%)'
-              : 'linear-gradient(135deg, #4a3a20 0%, #2e2413 55%, #4a3a20 100%)',
-            color: ready ? '#2a1808' : '#8a7a5a',
-            border: `1.5px solid ${ready ? '#DAA520' : '#DAA52033'}`,
-            boxShadow: ready ? '0 0 18px rgba(218,165,32,0.45), inset 0 0 10px rgba(255,240,200,0.25)' : '0 0 14px rgba(218,165,32,0.22), inset 0 0 8px rgba(255,240,200,0.08)',
-            cursor: ready ? 'pointer' : 'default',
-          }}
-        >
-          {pick4('Interroger le Tarot', 'Consult the Tarot', "Consultar el Tarot", "टैरो से परामर्श करें")(lang)}
-        </button>
-        {!ready && (
-          <p className="mt-2 text-[10px] italic" style={{ color: `${TAROT_NIGHT.roseDim}88` }}>
-            {pick4('Choisissez un arcane puis une intention.', 'Pick an arcana, then an intention.', "Elija un arcano y luego una intención.", "अर्कान चुनें, फिर एक संकल्प।")(lang)}
-          </p>
-        )}
-      </div>
+
     </div>
   );
 }

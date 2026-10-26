@@ -107,3 +107,117 @@ export function IconYiJing({ className }: IconProps) {
     </svg>
   );
 }
+
+// ─── Passé / Présent / Avenir (positions du tirage 3 cartes, historique) ───
+
+export function IconPasse({ className }: IconProps) {
+  // Sablier discret — ce qui s'est déjà écoulé, les racines du tirage.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M7 4h10M7 20h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M8 4c0 4.2 4 5.4 4 8 0-2.6 4-3.8 4-8M8 20c0-4.2 4-5.4 4-8 0 2.6 4 3.8 4 8"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" opacity="0.75" />
+    </svg>
+  );
+}
+
+export function IconPresent({ className }: IconProps) {
+  // Disque solaire à rayons courts — le foyer, le maintenant éclairé.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+      {[0, 60, 120, 180, 240, 300].map((a) => {
+        const rad = (a * Math.PI) / 180;
+        return (
+          <line key={a}
+            x1={12 + Math.cos(rad) * 6.4} y1={12 + Math.sin(rad) * 6.4}
+            x2={12 + Math.cos(rad) * 8.8} y2={12 + Math.sin(rad) * 8.8}
+            stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.8" />
+        );
+      })}
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" opacity="0.6" />
+    </svg>
+  );
+}
+
+export function IconAvenir({ className }: IconProps) {
+  // Étoile filante sobre — ce vers quoi la trajectoire s'ouvre.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M15.8 4.4l1.1 2.6 2.6.2-2 1.8.6 2.6-2.3-1.4-2.3 1.4.6-2.6-2-1.8 2.6-.2z"
+        stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M12.3 12.2 5.4 19M9.9 11.8l-3.6.6M12.9 15.2l-.6 3.6"
+        stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
+    </svg>
+  );
+}
+
+// ─── Historique « Mes tirages » : remplacements d'emojis (traits fins) ───
+
+export function IconSeal({ className }: IconProps) {
+  // Sceau clos : cadenas minimal — augure encore scellé.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="7" y="10.5" width="10" height="8" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M9.2 10.5V8a2.8 2.8 0 0 1 5.6 0v2.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="12" cy="14.6" r="1.15" fill="currentColor" opacity="0.8" />
+    </svg>
+  );
+}
+
+export function IconCheck({ className }: IconProps) {
+  // Coche fine — verdict positif / vérifié.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M5 12.8 9.6 17 19 6.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconScroll({ className }: IconProps) {
+  // Parchemin déroulé — synthèse.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M7.5 6.5h9c1.4 0 2.5 1 2.5 2.3V19c0 1-.8 1.8-1.8 1.8H8.2C6.9 20.8 5.5 19.7 5.5 18c0-1 .6-1.7 1.4-2V8.8c0-1.3.5-2.3.6-2.3z"
+        stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M7.5 6.5C7.5 4.6 8.8 3.5 10 3.5h7c-1.2 0-2.5 1.1-2.5 3v11.4c0 1-.8 1.9-1.9 1.9"
+        stroke="currentColor" strokeWidth="1.15" opacity="0.7" />
+      <path d="M9.5 10.5h6.5M9.5 13.2h6.5" stroke="currentColor" strokeWidth="1" opacity="0.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconOracleEye({ className }: IconProps) {
+  // Clôche oracle : œon stylisé — « Oracle flash ».
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M3.5 12c2.6-3.6 5.5-5.4 8.5-5.4s5.9 1.8 8.5 5.4c-2.6 3.6-5.5 5.4-8.5 5.4S6.1 15.6 3.5 12z"
+        stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="12" cy="12" r="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconOpenBook({ className }: IconProps) {
+  // Livre ouvert — interprétation combinée (DB).
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M12 7c-1.6-1.4-3.6-2-6-2v12c2.4 0 4.4.6 6 2 1.6-1.4 3.6-2 6-2V5c-2.4 0-4.4.6-6 2z"
+        stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M12 7v12" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  );
+}
+
+export function IconLens({ className }: IconProps) {
+  // Loupe discrète — comparaison / affinage.
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="10.5" cy="10.5" r="5.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="m14.8 14.8 4.4 4.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M8 9.2a2.6 2.6 0 0 1 2.2-1.4" stroke="currentColor" strokeWidth="1" opacity="0.6" strokeLinecap="round" />
+    </svg>
+  );
+}

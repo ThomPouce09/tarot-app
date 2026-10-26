@@ -1,7 +1,7 @@
 'use client';
 
 // app/dashboard/account/echoes/page.tsx
-// Les Augures des Etoiles — registre de toutes les prémonctions scellées
+// Les Augures des Etoiles — registre de toutes les prémonitions scellées
 // (tarot, Yi Jing, runes, dés). Réservé aux Arkanes (étape 10) ; les autres
 // niveaux voient un vérouillage doux vers l'abonnement.
 //
@@ -211,6 +211,27 @@ export default function AuguresPage() {
     all: (echoes || []).length,
   }), [echoes, isDue, isSealed]);
 
+  // Statistiques d'augures (bandeau sous le titre) — visibles seulement avec
+  // au moins un augure VERIFIE : sans verdict, aucune pretention a la mesure.
+  //  - precision = moyenne des verdicts (oui=100 / partiel=50 / non=0) ;
+  //    les notes fines (verdictPct, roue hebdo) entrent telles quelles ;
+  //  - horizon = duree moyenne entre sceau et verification (jours).
+  const stats = useMemo(() => {
+    const closed = (echoes || []).filter((e) => !!e.verdict);
+    if (closed.length === 0) return null;
+    const scores = closed.map((e) =>
+      typeof e.verdictPct === 'number' ? e.verdictPct
+        : e.verdict === 'oui' ? 100 : e.verdict === 'partiel' ? 50 : 0);
+    const acc = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    // Prochain sceau a briser : echeance la plus proche parmi les augures
+    // encore ouverts (verdict nul). null = tout est verifie.
+    const open = (echoes || []).filter((e) => !e.verdict);
+    const next = open.length
+      ? Math.max(0, Math.ceil((Math.min(...open.map((e) => new Date(e.dueAt).getTime())) - Date.now()) / 86_400_000))
+      : null;
+    return { acc, verified: closed.length, next };
+  }, [echoes]);
+
   // Recherche : texte (4 langues), domaine, dates lisibles, verdict.
   const matches = useCallback((e: EchoData): boolean => {
     const needle = q.trim().toLowerCase();
@@ -403,6 +424,26 @@ export default function AuguresPage() {
 
       <SpaceTitle img="/images/nav-grimoire.png" title={t('echo.yourAugures')} subtitle={t('echo.auguresSub')} dense flush />
 
+      {/* Statistiques d'augures : une seule capsule voilee, tres discrete. La
+          forme (fond + filet) la distingue des controles recherche/filtres,
+          volontairement effaces pour laisser la place aux augures. */}
+      {stats && (
+        <div className="flex justify-center pb-0.5" aria-label={t('echo.statAccuracy')}>
+          <span className="inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 rounded-full border px-4 py-0.5 text-[10px] tabular-nums"
+            style={{ borderColor: 'rgba(218,165,32,0.30)', background: 'rgba(8,4,12,0.45)', color: 'rgba(238,228,208,0.72)', fontFamily: 'var(--font-cinzel), serif' }}>
+            <span><b className="text-[11.5px]" style={{ color: 'rgba(255,215,104,0.95)' }}>{stats.acc}%</b> {t('echo.statAccuracy')}</span>
+            <span aria-hidden style={{ color: 'rgba(218,165,32,0.4)' }}>·</span>
+            <span>{t('echo.statVerified')} <b style={{ color: 'rgba(122,222,158,0.95)' }}>{stats.verified}</b></span>
+            {stats.next !== null && (
+              <>
+                <span aria-hidden style={{ color: 'rgba(218,165,32,0.4)' }}>·</span>
+                <span>{t('echo.statNext')} <b style={{ color: 'rgba(143,197,240,0.95)' }}>{t('echo.statDays').replace('{n}', String(stats.next))}</b></span>
+              </>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* ── Bandeau collant : recherche + onglets + domaines ──
           Rappel du cycle = sous-titre du bandeau de titre (SpaceTitle).
           Aucun fond : les contrôles se posent à même le ciel cosmique ;
@@ -417,10 +458,10 @@ export default function AuguresPage() {
             className="w-full rounded-full border px-9 py-2 text-[13px] font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-amber-300/90 transition-all placeholder:text-amber-100/65"
             style={{
               background: 'transparent',
-              borderColor: 'rgba(255,215,0,0.8)',
-              color: '#FFF6DE',
-              textShadow: '0 1px 6px rgba(0,0,0,0.55)',
-              boxShadow: '0 0 12px rgba(255,215,0,0.18)',
+              borderColor: 'rgba(255,215,0,0.45)',
+              color: 'rgba(255,246,222,0.92)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
               fontFamily: 'var(--font-cormorant), serif',
             }}
           />
@@ -444,16 +485,19 @@ export default function AuguresPage() {
                 className="flex-1 min-w-0 flex items-center justify-center gap-1 px-1 py-1 rounded-full border transition-all"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  borderColor: x.color,
+                  borderColor: `${x.color}99`,
                   color: x.color,
-                  fontWeight: 800,
-                  background: active ? `${x.color}33` : `${x.color}18`,
-                  boxShadow: active ? `0 0 12px ${x.color}88, inset 0 0 8px ${x.color}22` : `0 1px 3px rgba(0,0,0,0.5)`,
+                  fontWeight: 700,
+                  background: active ? `${x.color}2b` : 'rgba(0,0,0,0.22)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
                 }}
               >
                 <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: x.color, boxShadow: `0 0 4px ${x.color}` }} />
                 <span className="text-[10px] whitespace-nowrap truncate">{x.label}</span>
-                {x.n > 0 && <span className="text-[10px] opacity-90 tabular-nums">{x.n}</span>}
+                {/* Compteur TOUJOURS visible (0 compris — sinon « À briser »
+                    parait vide alors que c'est simplement qu'aucun sceau n'est échu).
+                    Ivoire franc + ombre : lisible sur tous les fonds d'onglet. */}
+                <span className="text-[10px] font-extrabold tabular-nums" style={{ color: '#FFF6DE', textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}>{x.n}</span>
               </button>
             );
           })}
@@ -471,11 +515,11 @@ export default function AuguresPage() {
                 className="flex-1 min-w-0 flex items-center justify-center gap-1 px-1 py-1 rounded-full border transition-all"
                 style={{
                   fontFamily: 'var(--font-cinzel), serif',
-                  borderColor: on ? c : `${c}99`,
+                  borderColor: on ? `${c}cc` : `${c}59`,
                   color: on ? '#FFF6DE' : c,
-                  fontWeight: 800,
-                  background: on ? `${c}55` : `${c}1c`,
-                  boxShadow: on ? `0 0 12px ${c}88` : '0 1px 3px rgba(0,0,0,0.5)',
+                  fontWeight: 700,
+                  background: on ? `${c}40` : 'rgba(0,0,0,0.22)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
                 }}
               >
                 <img src={DOMAIN_ICON[d]} alt="" className="w-3.5 h-3.5 shrink-0 object-contain" style={{ filter: `drop-shadow(0 0 3px ${c})`, opacity: on ? 1 : 0.9 }} />
@@ -625,7 +669,7 @@ export default function AuguresPage() {
                                 ? { borderColor: 'rgba(61,155,233,0.55)', color: '#3D9BE9', background: 'rgba(61,155,233,0.08)' }
                                 : { borderColor: 'rgba(255,215,0,0.6)', color: '#FFD700', background: 'rgba(255,215,0,0.08)' }}>
                             {state === 'closed'
-                              ? t('echo.verdictRecorded').replace('{v}', t(`echo.verdict.${e.verdict || 'non'}`)).replace(/^Verdict retenu : /, '').replace(/\.$/, '')
+                              ? t('echo.verdictRecorded').replace('{v}', t(`echo.verdict.${e.verdict || 'non'}`)).replace(/^Verdict retenu : /, '').replace(/\.$/, '') + (typeof e.verdictPct === 'number' ? ` · ${e.verdictPct}%` : '')
                               : state === 'sealed'
                                 ? t('echo.daysLeft').replace('{n}', String(daysLeft(e.dueAt))).replace(/^Encore /, '').replace(/\.$/, '')
                                 : t('echo.dueBadge')}

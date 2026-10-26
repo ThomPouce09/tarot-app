@@ -74,14 +74,14 @@ export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: str
   12: { superior: 'Ciel', inferior: 'Terre' },
   13: { superior: 'Ciel', inferior: 'Feu' },
   14: { superior: 'Feu', inferior: 'Ciel' },
-  15: { superior: 'Montagne', inferior: 'Terre' },
+  15: { superior: 'Terre', inferior: 'Montagne' }, // Humilite : Kun au-dessus de Gen
   16: { superior: 'Tonnerre', inferior: 'Terre' },
   17: { superior: 'Lac', inferior: 'Tonnerre' },
   18: { superior: 'Montagne', inferior: 'Vent' },
   19: { superior: 'Terre', inferior: 'Lac' },
   20: { superior: 'Vent', inferior: 'Terre' },
   21: { superior: 'Feu', inferior: 'Tonnerre' },
-  22: { superior: 'Ciel', inferior: 'Montagne' },
+  22: { superior: 'Feu', inferior: 'Montagne' }, // Grace : Li au-dessus de Gen
   23: { superior: 'Montagne', inferior: 'Terre' },
   24: { superior: 'Terre', inferior: 'Tonnerre' },
   25: { superior: 'Ciel', inferior: 'Tonnerre' },
@@ -121,7 +121,7 @@ export const HEXAGRAM_TRIGRAMS: Record<number, { superior: string; inferior: str
   59: { superior: 'Vent', inferior: 'Eau' },
   60: { superior: 'Eau', inferior: 'Lac' },
   61: { superior: 'Vent', inferior: 'Lac' },
-  62: { superior: 'Montagne', inferior: 'Lac' },
+  62: { superior: 'Tonnerre', inferior: 'Montagne' }, // Preudence : Zhen au-dessus de Gen
   63: { superior: 'Eau', inferior: 'Feu' },
   64: { superior: 'Feu', inferior: 'Eau' },
 };

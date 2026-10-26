@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { TAROT_CARDS } from '@/lib/tarot-data';
 import { useT, useLang, pick4, contentLang, pickContent, tr, type Lang } from '@/lib/i18n';
 import { cardDisplayName } from '@/lib/i18n/cards';
+import { IconSituation, IconDefis, IconSoutien, IconIssue, IconConseil, IconResume, IconPasse, IconPresent, IconAvenir, IconSeal, IconCheck, IconScroll, IconOracleEye, IconOpenBook, IconLens } from '@/components/yi-icons';
 import { pickEchoText } from '@/lib/i18n/echo-text';
 import { localizePosition } from '@/lib/i18n/positions';
 import { PLANET_NAMES, SIGN_NAMES } from '@/app/des-divinatoires/_shared';
@@ -201,12 +202,12 @@ export function DoubleHexView({ r }: { r: Reading }) {
       {r.echo && (
         <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(243,201,105,0.06)', border: `1px solid ${GOLD}44` }}>
           <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${GOLD}bb` }}>{t('echo.title')}</p>
-          <p className="mt-1 text-xs italic" style={{ color: IVORY }}>
-            {pickEchoText(r.echo, lang) || `🔒 ${t('echo.masked')}`}
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-xs italic" style={{ color: IVORY }}>
+            {pickEchoText(r.echo, lang) || (<><IconSeal className="h-3.5 w-3.5 opacity-70 shrink-0" />{t('echo.masked')}</>)}
           </p>
-          <p className="mt-1 text-[11px]" style={{ color: r.echo.verdict ? GOLD : '#FF6B5E' }}>
+          <p className="mt-1 flex items-center justify-center gap-1 text-[11px]" style={{ color: r.echo.verdict ? GOLD : '#FF6B5E' }}>
             {r.echo.verdict
-              ? `✓ ${r.echo.verdictPct ?? (r.echo.verdict === 'oui' ? 100 : r.echo.verdict === 'partiel' ? 50 : 0)}%`
+              ? (<><IconCheck className="h-3 w-3 shrink-0" />{r.echo.verdictPct ?? (r.echo.verdict === 'oui' ? 100 : r.echo.verdict === 'partiel' ? 50 : 0)}%</>)
               : `${t('history.due')} ${new Date(r.echo.dueAt).toLocaleDateString(loc(lang), { day: '2-digit', month: 'long', year: 'numeric' })}`}
           </p>
         </div>
@@ -349,17 +350,17 @@ export function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any;
 
       {isSimpleFormat ? (
         <>
-          {interp?.situation && <Block color="purple" icon="📍" title={t('history.block.situation')} text={interp.situation} query={query} />}
-          {interp?.defis && <Block color="amber" icon="⚔️" title={t('history.block.defis')} text={interp.defis} query={query} />}
-          {interp?.soutien && <Block color="green" icon="🌟" title={t('history.block.soutien')} text={interp.soutien} query={query} />}
-          {interp?.issue && <Block color="amber" icon="🔮" title={t('history.block.issue')} text={interp.issue} query={query} />}
-          {interp?.conseil && <Block color="green" icon="💡" title={t('history.block.conseil')} text={interp.conseil} query={query} />}
+          {interp?.situation && <Block color="purple" icon={IconSituation} title={t('history.block.situation')} text={interp.situation} query={query} />}
+          {interp?.defis && <Block color="amber" icon={IconDefis} title={t('history.block.defis')} text={interp.defis} query={query} />}
+          {interp?.soutien && <Block color="green" icon={IconSoutien} title={t('history.block.soutien')} text={interp.soutien} query={query} />}
+          {interp?.issue && <Block color="amber" icon={IconIssue} title={t('history.block.issue')} text={interp.issue} query={query} />}
+          {interp?.conseil && <Block color="green" icon={IconConseil} title={t('history.block.conseil')} text={interp.conseil} query={query} />}
         </>
       ) : (
         <>
-          {interp?.meditation && <Block color="purple" icon="🧘" title={t('history.block.meditation')} text={interp.meditation} query={query} />}
-          {interp?.conseil && <Block color="amber" icon="💡" title={t('history.block.conseil')} text={interp.conseil} query={query} />}
-          {interp?.attitude && <Block color="green" icon="🌿" title={t('history.block.attitude')} text={interp.attitude} query={query} />}
+          {interp?.meditation && <Block color="purple" icon={IconResume} title={t('history.block.meditation')} text={interp.meditation} query={query} />}
+          {interp?.conseil && <Block color="amber" icon={IconConseil} title={t('history.block.conseil')} text={interp.conseil} query={query} />}
+          {interp?.attitude && <Block color="green" icon={IconSoutien} title={t('history.block.attitude')} text={interp.attitude} query={query} />}
         </>
       )}
 
@@ -368,6 +369,20 @@ export function YiJingView({ r, interp, query = '' }: { r: Reading; interp: any;
           <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap"><Highlight text={r.interpretation || ''} query={query} /></p>
         </div>
       )}
+      {/* Consultation filée : questions suivantes + réponses complètes */}
+      <ThreadSteps
+        thread={interp?.thread}
+        query={query}
+        t={t}
+        keys={[
+          ['situation', t('history.block.situation'), IconSituation],
+          ['defis', t('history.block.defis'), IconDefis],
+          ['soutien', t('history.block.soutien'), IconSoutien],
+          ['issue', t('history.block.issue'), IconIssue],
+          ['conseil', t('history.block.conseil'), IconConseil],
+          ['resume', t('history.synthesis'), IconResume],
+        ]}
+      />
     </div>
   );
 }
@@ -523,6 +538,27 @@ export function TarotView({ r, interpretation, query = '' }: { r: Reading; inter
           <p className="text-gray-100 text-sm leading-relaxed italic"><Highlight text={(interpData as any).resume as string} query={query} /></p>
         </div>
       )}
+      {/* Consultation filée : questions suivantes + réponses complètes */}
+      <ThreadSteps
+        thread={(interpData as any).thread}
+        query={query}
+        t={t}
+        keys={isTarot3
+          ? [
+              ['passe', t('history.pos.past'), IconPasse],
+              ['present', t('history.pos.present'), IconPresent],
+              ['avenir', t('history.pos.future'), IconAvenir],
+              ['resume', t('history.synthesis'), IconResume],
+            ]
+          : [
+              ['situation', t('history.block.situation'), IconSituation],
+              ['defis', t('history.block.defis'), IconDefis],
+              ['soutien', t('history.block.soutien'), IconSoutien],
+              ['issue', t('history.block.issue'), IconIssue],
+              ['conseil', t('history.block.conseil'), IconConseil],
+              ['resume', t('history.synthesis'), IconResume],
+            ]}
+      />
     </div>
   );
 }
@@ -709,7 +745,7 @@ export function RuneView({ r, query = '' }: { r: Reading; query?: string }) {
               {!isTissage && g.synthese && (
                 <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
                   <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                    <span>📜</span>{t('readings.synthese')}
+                    <IconScroll className="w-[15px] h-[15px] opacity-80 shrink-0" />{t('readings.synthese')}
                   </h4>
                   <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={g.synthese} query={query} /></p>
                 </div>
@@ -833,7 +869,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       {synthese && (
         <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
           <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-            <span>📜</span>{t('readings.synthese')}
+            <IconScroll className="w-[15px] h-[15px] opacity-80 shrink-0" />{t('readings.synthese')}
           </h4>
           <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={synthese} query={query} /></p>
         </div>
@@ -947,7 +983,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.oracleFlash && (
             <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
               <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>🔮</span>{t('history.block.oracleTitle')}
+                <IconOracleEye className="w-[15px] h-[15px] opacity-80 shrink-0" />{t('history.block.oracleTitle')}
               </h4>
               <p className="text-gray-200 text-sm italic leading-relaxed">« <Highlight text={interpData.oracleFlash} query={query} /> »</p>
             </div>
@@ -957,7 +993,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.dbInterpretation && (
             <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3">
               <h4 className="text-amber-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>📖</span>{t('history.block.combined')}
+                <IconOpenBook className="w-[15px] h-[15px] opacity-80 shrink-0" />{t('history.block.combined')}
               </h4>
               <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={interpData.dbInterpretation} query={query} /></p>
             </div>
@@ -967,7 +1003,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {interpData.refine && (
             <div className="bg-blue-950/20 border border-blue-800/30 rounded-lg p-3">
               <h4 className="text-blue-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>🔎</span>
+                <IconLens className="w-[15px] h-[15px] opacity-80 shrink-0" />
                 {interpData.refine.option === 'action' ? t('history.block.refineSign') : t('history.block.refineHouse')}
               </h4>
               {interpData.refine.originalFaces && (
@@ -1016,7 +1052,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
           {structured.synthese && (
             <div className="bg-purple-950/20 border border-purple-800/30 rounded-lg p-3">
               <h4 className="text-purple-300 font-semibold text-sm mb-1 flex items-center gap-2">
-                <span>📜</span>{t('readings.synthese')}
+                <IconScroll className="w-[15px] h-[15px] opacity-80 shrink-0" />{t('readings.synthese')}
               </h4>
               <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={structured.synthese} query={query} /></p>
             </div>
@@ -1040,12 +1076,60 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
   );
 }
 
-function Block({ color, icon, title, text, query = '' }: { color: 'purple' | 'amber' | 'green'; icon: string; title: string; text: string; query?: string }) {
+// Etapes d'une consultation filée (questions suivantes Posees sur le meme
+// tirage). La fiche d'historique du tirage initial porte la reponse #1 a la
+// racine + les suivantes dans `thread` -> tout est visible au meme endroit.
+export function ThreadSteps({
+  thread,
+  keys,
+  t,
+  query = '',
+}: {
+  thread: any[] | null | undefined;
+  // paires [cle brute, label i18n, icone line-art] dans l'ordre de lecture
+  keys: [string, string, React.ComponentType<{ className?: string }>][];
+  t: (k: string) => string;
+  query?: string;
+}) {
+  if (!Array.isArray(thread) || thread.length === 0) return null;
+  return (
+    <div className="mt-5 space-y-5">
+      <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400/70" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+        {t('history.threadTitle')}
+      </p>
+      {thread.map((step: any, i: number) => (
+        <div key={i} className="space-y-3 rounded-xl border border-amber-700/25 p-3" style={{ background: 'rgba(0,0,0,0.25)' }}>
+          <div className="bg-amber-950/15 border border-amber-700/30 rounded-lg p-3">
+            <p className="text-amber-500/70 text-[10px] uppercase tracking-wide mb-1" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+              {t('history.threadQuestion')} {i + 2}
+            </p>
+            <p className="text-amber-200 italic text-sm">« <Highlight text={String(step.question || '')} query={query} /> »</p>
+          </div>
+          {keys.map(([k, label, Icon]) => {
+            const v = String(step?.[k] ?? '').trim();
+            if (!v) return null;
+            const isResume = k === 'resume';
+            return (
+              <div key={k} className={`${isResume ? 'bg-purple-950/15 border-purple-800/30' : 'bg-gray-800/30 border-gray-700/25'} border rounded-lg p-3`}>
+                <h4 className={`${isResume ? 'text-purple-300' : 'text-amber-300'} font-semibold text-sm mb-2 flex items-center gap-2`}>
+                  <Icon className="w-[15px] h-[15px] opacity-80 shrink-0" />{label}
+                </h4>
+                <p className={`text-gray-200 text-sm leading-relaxed${isResume ? ' italic text-gray-100' : ''}`}><Highlight text={v} query={query} /></p>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Block({ color, icon: Icon, title, text, query = '' }: { color: 'purple' | 'amber' | 'green'; icon: React.ComponentType<{ className?: string }>; title: string; text: string; query?: string }) {
   const bg = color === 'purple' ? 'bg-purple-950/20 border-purple-800/30' : color === 'amber' ? 'bg-amber-950/20 border-amber-800/30' : 'bg-green-950/20 border-green-800/30';
   const tc = color === 'purple' ? 'text-purple-300' : color === 'amber' ? 'text-amber-300' : 'text-green-300';
   return (
     <div className={`${bg} border rounded-lg p-3`}>
-      <h4 className={`${tc} font-semibold text-sm mb-2 flex items-center gap-2`}><span>{icon}</span>{title}</h4>
+      <h4 className={`${tc} font-semibold text-sm mb-2 flex items-center gap-2`}><Icon className="w-[15px] h-[15px] opacity-80 shrink-0" />{title}</h4>
       <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={text} query={query} /></p>
     </div>
   );

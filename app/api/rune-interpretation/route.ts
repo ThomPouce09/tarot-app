@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { callOracle, extractJsonObject } from '@/lib/llm';
 import { enforceGate } from '@/lib/gate-server';
+import { isBaseType } from '@/lib/classification';
+import { runeLore, LORE_INSTRUCTION } from '@/lib/reading-lore';
 import { requireSessionEmail } from '@/lib/session';
 import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
 import { resolveLang, outputDirective, langName, type LlmLang } from '@/lib/lang';
@@ -234,6 +236,23 @@ export async function POST(request: NextRequest) {
     prompt = buildYggdrasilPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, resolveLang(body.lang));
   } else if (m === 'mjolnir') {
     prompt = buildMjolnirPrompt(runes, typeof body.question === 'string' ? body.question.trim().slice(0, 400) : null, resolveLang(body.lang));
+  }
+
+  // ── Note du devin (lore calcule, tirages AVANCES seulement ; nornes2 = base
+  //    a l'aveugle, pas de lore) — aett/Flèches/merkstave sur les runes reelles.
+  const runeType = (typeof body.type === 'string' && body.type) || `runes-${m}`;
+  if (!isBaseType(runeType) && focus !== 'odin' && m !== 'yggdrasil') {
+    const threadCount = typeof body.prevContext === 'string'
+      ? (String(body.prevContext).match(/\d+\) Question/g) || []).length : 0;
+    const step = body.followUp === true ? Math.max(1, threadCount - 1) : 0;
+    const seed = `${odinEmail}|${runeType}|${runes.map((r) => r.name + (r.reversed ? 'R' : '')).join(',')}|${String(body.question || '')}`;
+    const fact = runeLore({ runes: runes.map((r) => ({ name: r.name, position: r.position, reversed: r.reversed })), step, seed });
+    if (fact) {
+      const langR = resolveLang(body.lang);
+      prompt += langR === 'en'
+        ? `\nNote of the diviner — FACT computed from the actual stones (${fact.key}, not negotiable): ${fact.text} ${LORE_INSTRUCTION}\n`
+        : `\nNote du devin — fait CALCULE sur les runes tirees (${fact.key}, non negociable) : ${fact.text} ${LORE_INSTRUCTION}\n`;
+    }
   }
 
   // ── Profil oracle (optionnel) : « le consultant en quelques mots ». ──

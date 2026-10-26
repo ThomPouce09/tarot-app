@@ -645,6 +645,7 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
       document.fonts.load('600 52px "Cinzel Decorative"'),
       document.fonts.load('italic 32px "Cormorant Garamond"'),
       document.fonts.load('400 170px "Hoshiko Satsuki"'),
+      document.fonts.load('400 34px "Klee One Local"'),
     ]);
   } catch { /* polices système en repli */ }
 
@@ -846,7 +847,7 @@ async function exportCardPng(data: ApiResponse, lang: Lang, dateLabel: string): 
     ctx.font = 'italic 26px "Cormorant Garamond", Georgia, serif';
     ctx.fillText(pickContent(T.transformsInto, lang), W / 2, curY);
     ctx.fillStyle = L.or;
-    ctx.font = '34px "Hoshiko Satsuki", serif';
+    ctx.font = '34px "Klee One Local", serif';
     ctx.fillText(`${data.transformed.caractere}  #${data.transformed.numero} — ${tn}`, W / 2, curY + 46);
     curY += 60;
   }
@@ -1188,7 +1189,11 @@ function YiJingDuJourPage() {
                 <h3 className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: L.or }}>{t('synthesis')}</h3>
                 <span className="text-2xl" style={{ color: `${L.or}cc` }}>{hex.caractere}</span>
               </div>
-              <p className="mt-3 max-h-[55dvh] overflow-y-auto whitespace-pre-line text-[13.5px] leading-relaxed" style={{ color: `${L.ivoire}dd` }}>
+              {/* max-h en VH (et non 55dvh) : les WebView anciennes ne
+                  connaissent pas dvh → max-height ignoré → panneau plus haut que
+                  l'écran, haut inaccessible, synthèse « tronquée non scrollable »
+                  (bug remonté point 8). */}
+              <p className="mt-3 max-h-[55vh] overflow-y-auto whitespace-pre-line text-[13.5px] leading-relaxed" style={{ color: `${L.ivoire}dd`, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
                 {displaySynth}
               </p>
               <button type="button" onClick={() => setSynthOpen(false)} className="mt-4 w-full rounded-full py-2 text-[13px]" style={{ background: `linear-gradient(160deg, ${L.rouge}, ${L.rougeDeep})`, color: L.or, border: `1px solid ${L.or}55` }}>

@@ -237,7 +237,7 @@ export default function YiJingHubPage() {
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
 
       {/* Titre */}
-      <div className="absolute top-[8%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
+      <div className="absolute top-[6%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">
         <h1
           className="title-glow px-4 text-3xl sm:text-5xl md:text-6xl tracking-wide uppercase mb-3"
           style={{
@@ -269,11 +269,11 @@ export default function YiJingHubPage() {
           invité empilés — sans ce wrapper le bandeau partirait À CÔTÉ. */}
       <div className="relative z-30 flex w-full flex-col items-center">
       {/* GRILLE : 2 colonnes sur smartphone */}
-      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-16">
+      <div className="grid grid-cols-2 gap-4 px-4 max-w-md mx-auto mt-20">
         {/* TUILE — YI JING (base : baguettes d'achillée) */}
         <GatedTile href="/yi-jing-simplifie" className="block" allowed={tiles?.['yi-jing-simplifie']?.allowed} reason={tiles?.['yi-jing-simplifie']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative mx-auto h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -314,15 +314,16 @@ export default function YiJingHubPage() {
               <img
                 src="/images/yi-jing-simple.png?v=2"
                 alt="Yi Jing simplifié"
-                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
+                className="w-[38px] h-[38px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.base')}
@@ -350,7 +351,7 @@ export default function YiJingHubPage() {
         {/* TUILE — YI JING SIMPLE */}
         <GatedTile href="/yi-jing-simple" className="block" allowed={tiles?.['yi-jing-simple']?.allowed} reason={tiles?.['yi-jing-simple']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative mx-auto h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -391,15 +392,16 @@ export default function YiJingHubPage() {
               <img
                 src="/images/yi-jing-precis.png?v=2"
                 alt={tr('Yi Jing précis', 'Precise I Ching', 'Yi Jing preciso', 'सटीक यी जिंग')}
-                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
+                className="w-[38px] h-[38px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.simple')}
@@ -427,7 +429,7 @@ export default function YiJingHubPage() {
         {/* TUILE — HEXAGRAMME DU JOUR */}
         <GatedTile href="/yi-jing-du-jour" className="block" allowed={tiles?.['yi-jing-du-jour']?.allowed} reason={tiles?.['yi-jing-du-jour']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative mx-auto h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -468,15 +470,16 @@ export default function YiJingHubPage() {
               <img
                 src="/images/yi-jing-du-jour.png"
                 alt={tr('Hexagramme du Jour', 'Hexagram of the Day', 'Hexagrama del Día', 'आज का हैक्सग्राम')}
-                className="w-[32px] h-[32px] mt-0 mb-6 object-contain rounded-md"
-                style={{ filter: "drop-shadow(0 0 9px rgba(243,201,105,0.55)) drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
+                className="w-[38px] h-[38px] mt-0 mb-6 object-contain rounded-md"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.85))" }}
               />
               <h2
-                className="text-lg font-bold text-center leading-tight mb-1"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.day')}
@@ -504,7 +507,7 @@ export default function YiJingHubPage() {
         {/* TUILE — LE DOUBLE HEXAGRAMME (zhi gua) */}
         <GatedTile href="/yi-jing-double" className="block" allowed={tiles?.['yi-jing-double']?.allowed} reason={tiles?.['yi-jing-double']?.reason} onBlocked={openGate}>
           <motion.div
-            className="group relative h-[31vh] max-h-[300px] min-h-[150px] rounded-xl overflow-hidden cursor-pointer transition-all"
+            className="group relative mx-auto h-[26vh] max-h-[280px] min-h-[150px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all"
             style={{
               boxShadow:
                 "0 0 18px rgba(120,28,24,0.5), 0 4px 12px rgba(0,0,0,0.55)",
@@ -548,15 +551,16 @@ export default function YiJingHubPage() {
                   src="/images/yi-jing-double.png"
                   alt=""
                   aria-hidden
-                  className="pointer-events-none mb-4 mt-0 h-auto w-[62%] max-w-[210px] select-none"
-                  style={{ filter: 'drop-shadow(0 0 12px rgba(243,201,105,0.35))' }}
+                  className="pointer-events-none mb-4 mt-0 h-auto w-[66%] max-w-[222px] select-none"
+                  style={{ filter: 'none' }}
                 />
               <h2
-                className="text-lg font-bold text-center leading-tight mb-1 mt-1"
+                className="text-[13.5px] text-center leading-snug mb-2 mt-2 px-2 break-words"
                 style={{
-                  fontFamily: "'Hoshiko Satsuki', serif",
+                  fontFamily: "'Reggae One Local', serif",
                   color: "#F3C969",
-                  textShadow: "0 0 6px rgba(243,201,105,0.25), 0 1px 2px rgba(0,0,0,0.85)",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 4px rgba(243,201,105,0.12)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {t('hubs.yijing.double')}

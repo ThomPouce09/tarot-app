@@ -9,6 +9,8 @@ import { callOracle, extractJsonObject } from '@/lib/llm';
 import { calcAge } from '@/lib/dates';
 import { resolveLang, outputDirective, type LlmLang } from '@/lib/lang';
 import { isGuestMode } from '@/lib/guest';
+import { isBaseType } from '@/lib/classification';
+import { tarotLore, yiJingLore, LORE_INSTRUCTION, type LoreFact } from '@/lib/reading-lore';
 
 interface Interpretation {
   situation?: string;
@@ -179,7 +181,7 @@ export async function POST(request: NextRequest) {
 
   console.log('[interpret] Received body:', JSON.stringify(body, null, 2));
 
-  const { type, cartes, question, userId, lang } = body;
+  const { type, cartes, question, userId, lang, followUp, prevContext, parentReadingId } = body;
   const language: LlmLang = resolveLang(lang);
 
   // Validation
@@ -260,9 +262,36 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch {}
-  const contextLine = ctx.length
-    ? (language === 'en' ? `\nContext: ${ctx.join(' ')}\n` : `\nContexte : ${ctx.join(' ')}\n`)
+  // ── Enchaînement de questions (voyance en consultation filée) ──
+  // Le client renvoie le fil des échanges precedents (question + synthese deja
+  // livree, tronquee) : l'oracle approfondit sans repasser en revue ce qui est
+  // deja dit. Chaque nouvelle question est une consultation complete (debitee,
+  // nouveau flowId cote client) — le prompt le rappelle a l'IA.
+  const threadLine = (followUp === true && typeof prevContext === 'string' && prevContext.trim())
+    ? (language === 'en'
+        ? `\nConsultation thread so far (earlier questions and the FULL answers already given):\n${prevContext.slice(0, 7000)}\nCONSISTENCY REQUIRED: begin by weaving back 2-3 specific elements (images, names, dates, advice) from the previous answers, quoted naturally, so the consultant recognises being understood; then deepen without repeating whole paragraphs. This follow-up question is a FULL advanced reading: every section must be as long and argued as a first reading.\n`
+        : `\nFil de la consultation (questions precedentes et réponses DÉJÀ livrées en intégralité) :\n${prevContext.slice(0, 7000)}\nCOHÉRENCE EXIGÉE : commence par tisser dans ta réponse 2 à 3 éléments précis des réponses précédentes (images, noms, conseils, dates) cités naturellement, pour que le consultant se reconnaisse compris ; puis approfondis SANS te répéter paragraphes entiers. Cette question est une consultation avancée COMPLÈTE : chaque section doit être aussi longue et argumentée qu'une première lecture.\n`)
     : '';
+  const contextLine = (ctx.length || threadLine)
+    ? (language === 'en' ? `\nContext: ${ctx.join(' ')} ${threadLine}\n` : `\nContexte : ${ctx.join(' ')} ${threadLine}\n`)
+    : '';
+
+  // ── Lore du devin (tirages AVANCES uniquement, note calculee en dur) ──
+  // Etape = nb de questions deja filees (0 = tirage initial). Graine stable
+  // (compte + tire + question) : la meme consultation rejoue la meme note.
+  const threadCount = typeof prevContext === 'string'
+    ? (prevContext.match(/\d+\) Question/g) || []).length
+    : 0;
+  const loreStep = followUp === true ? Math.max(1, threadCount - 1) : 0;
+  const loreSeed = `${userId || ''}|${validType}|${JSON.stringify(cartes || body.baguette || '')}|${q}`;
+
+  /** Fact technique choisi (ou null), formate en consigne pour le prompt. */
+  const loreLine = (fact: LoreFact | null): string => {
+    if (!fact) return '';
+    return (language === 'en'
+      ? `\nNote of the diviner — FACT computed from the actual draw (${fact.key}, not negotiable): ${fact.text} ${LORE_INSTRUCTION}\n`
+      : `\nNote du devin — fait CALCULE sur le tirage reel (${fact.key}, non negociable) : ${fact.text} ${LORE_INSTRUCTION}\n`);
+  };
 
   // --- Atelier de prompt ---
   let prompt = '';
@@ -290,8 +319,12 @@ export async function POST(request: NextRequest) {
         };
     const positions = positionsByLang[language];
 
+    let lore = '';
+    if (!isBaseType(validType)) {
+      lore = loreLine(tarotLore({ cards: cartes, positionsFr: positions as unknown as string[], step: loreStep, seed: loreSeed }));
+    }
     prompt = `Tu es un voyant, un tireur de bonne aventure d'une profonde bonté, qui reçoit cette personne comme un être cher venu chercher du réconfort et des réponses. Tu te mets à son service, corps et âme, avec toute la chaleur humaine, la présence et l'empathie d'un véritable mentor qui l'écoute vraiment.
-L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"${contextLine}
+L'utilisateur a posé la question : "${question || 'Aide-moi à comprendre mon chemin'}"${contextLine}${lore}
 Cartes tirées, analysées strictement selon leur axe temporel (1 = Passé, 2 = Présent, 3 = Avenir) :
 ${cartes.map((id: number, i: number) => `${i+1}. ${cardNames[i]} — ${positions[i]}`).join('\n')}
 Consigne d'âme :
@@ -307,9 +340,22 @@ Interprétation (réponds UNIQUEMENT avec un JSON valide comme suit) :
 "resume": "<OBLIGATOIREMENT entre 350 et 500 caractères, sinon ta réponse est incomplète : synthèse globale et conclusion bienveillante du tirage, un message de lumière qu'elle/il pourra garder et relire.>"
 }${outputDirective(language)}`;
   } else {
-    // Yi Jing
+    // Yi Jing — note du devin : hexagramme reel tird (baguette), uniquement pour
+    // les tirages avances ; le nom du nucleaire est lu en base pour etre exact.
+    let lore = '';
+    const hexNum = parseInt(String(body.baguette ?? ''), 10);
+    if (!isBaseType(validType) && Number.isFinite(hexNum) && hexNum >= 1 && hexNum <= 64) {
+      const { nuclearNumero } = await import('@/lib/reading-lore');
+      const nuc = nuclearNumero(hexNum);
+      const names = new Map<number, string>();
+      try {
+        const rows = await prisma.hexagram.findMany({ where: { numero: { in: nuc ? [hexNum, nuc] : [hexNum] } }, select: { numero: true, element: true } });
+        rows.forEach((r: { numero: number; element: string }) => names.set(r.numero, r.element));
+      } catch { /* silences the note, not the reading */ }
+      lore = loreLine(yiJingLore({ numero: hexNum, nameOf: (n) => names.get(n) || null, step: loreStep, seed: loreSeed }));
+    }
     prompt = `Tu es un Maître du Yi Jing. Réponds à la question suivante :
-Question : "${question || 'Montre-moi la voie'}"${contextLine}
+Question : "${question || 'Montre-moi la voie'}"${contextLine}${lore}
 
 Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT en JSON :
 {
@@ -356,16 +402,45 @@ Structure ta réponse sous forme de poème inspiré avec ces sections UNIQUEMENT
     try {
       const user = await prisma.user.findUnique({ where: { email: userId } });
       if (user) {
-        const created = await prisma.reading.create({
-          data: {
-            userId: user.id,
-            type: type,
-            question: question || null,
-            cards: JSON.stringify(cartes || []),
-            interpretation: JSON.stringify(parsed)
+        // Enchaînement : la réponse s'range dans le fil du tirage initial
+        // (clé `thread` ajoutee au JSON stocke) — Mes tirages montre alors
+        // TOUTES les etapes de la consultation dans la fiche d'origine.
+        if (followUp === true && typeof parentReadingId === 'string' && parentReadingId) {
+          const parent = await prisma.reading.findFirst({
+            where: { id: parentReadingId, userId: user.id, guest: false },
+          });
+          if (parent) {
+            let st: Record<string, any> = {};
+            try { st = JSON.parse(parent.interpretation || '{}'); } catch { st = {}; }
+            const steps: any[] = Array.isArray(st.thread) ? st.thread : [];
+            const step: Record<string, any> = { question: question || '' };
+            const ansKeys = isTarot
+              ? ['passe', 'present', 'avenir', 'resume']
+              : ['situation', 'defis', 'soutien', 'issue', 'conseil', 'resume'];
+            const pj = parsed as Record<string, unknown>;
+            for (const k of ansKeys) if (typeof pj[k] === 'string' && pj[k]) step[k] = pj[k];
+            // Les cles de base (reponse #1) restent a la racine : les vues
+            // existantes les lisent telles quelles ; le fil s'ajoute derriere.
+            st = { ...st, thread: [...steps, step] };
+            await prisma.reading.update({
+              where: { id: parent.id },
+              data: { interpretation: JSON.stringify(st) },
+            });
+            savedReadingId = parent.id;
           }
-        });
-        savedReadingId = created.id;
+        }
+        if (!savedReadingId) {
+          const created = await prisma.reading.create({
+            data: {
+              userId: user.id,
+              type: type,
+              question: question || null,
+              cards: JSON.stringify(cartes || []),
+              interpretation: JSON.stringify(parsed)
+            }
+          });
+          savedReadingId = created.id;
+        }
       }
     } catch (dbError) {
       console.error('[interpret] Database save error:', dbError);
