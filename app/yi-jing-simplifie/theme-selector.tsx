@@ -124,7 +124,7 @@ export function IconWarrior(c: string) {
 export const YI_DOMAINS: YiDomain[] = [
   {
     id: 'commencements',
-    label: { fr: 'Commencements & Projets', en: 'Beginnings & Projects' , es: "Comienzos & Proyectos", hi: "आरंभ & परियोजनाएँ"},
+    label: { fr: 'Départs et projets', en: 'Beginnings & Projects' , es: "Comienzos & Proyectos", hi: "आरंभ & परियोजनाएँ"},
     guardian: 'Qinglong',
     realm: { fr: 'Dragon bleu de l’Est · le printemps — ce qui germe', en: 'Azure Dragon of the East · spring — what germs' , es: "Dragón azul del Este · la primavera — lo que germina", hi: "पूर्व का नीला ड्रैगन · वसंत — जो अंकुरित होता है"},
     icon: IconDragon,
@@ -194,13 +194,20 @@ export function parseYiQuestion(question: string | null): { domain: YiDomain; su
   return domain ? { domain, sub: question.slice(sep + 3) } : null;
 }
 
-export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (question: string) => void; glass?: boolean }) {
+export function YiThemeSelector({ onConfirm, glass = false, bare = false }: { onConfirm: (question: string) => void; glass?: boolean;
+  /** Dans une carte à encadrement propre (AskCard du Double Hexagramme) : pas
+   *  de second panneau laqué ni d'en-tête dupliqué — les 4 tuiles posées
+   *  directement sur la carte (fix débordement des titres, demande user). */
+  bare?: boolean; }) {
   const lang = useLang();
   const [domainId, setDomainId] = useState<string | null>(null);
   const [subIdx, setSubIdx] = useState<number | null>(null);
   const subRef = useRef<HTMLDivElement>(null);
 
-  const pickDomain = (id: string) => {
+  // Un tap ferme le domaine déjà ouvert (collapsible, comme la modale des
+  // runes) ; le dépliant reste refermable via « Changer de domaine ».
+  const toggleDomain = (id: string) => {
+    if (domainId === id) { setDomainId(null); setSubIdx(null); return; }
     setDomainId(id);
     setSubIdx(null);
     window.setTimeout(() => {
@@ -218,33 +225,37 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
 
   return (
     <div
-      className="rounded-2xl px-4 pb-5 pt-4"
-      style={{
+      className={bare ? 'pt-1' : 'rounded-2xl px-4 pb-5 pt-4'}
+      style={bare ? undefined : {
         background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 60%, ${YI_LACQUER.panelDeep} 100%)`,
         border: `1.5px solid ${YI_LACQUER.gold}55`,
         boxShadow: '0 0 40px rgba(0,0,0,0.55), inset 0 0 40px rgba(142,28,34,0.16)',
       }}
     >
-      {/* En-tête gravé */}
-      <p className="text-center font-[family-name:var(--font-cinzel-deco)] text-[11px] tracking-[0.35em]" style={{ color: `${YI_LACQUER.gold}99` }}>
-        ☰ · ☱ · ☲
-      </p>
-      <h2 className="mt-1 text-center font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: YI_LACQUER.gold }}>
-        {pick4('Choisissez votre intention', 'Choose your intention', "Elija su intención", "अपना संकल्प चुनें")(lang)}
-      </h2>
-      <p className="mx-auto mt-1 max-w-sm text-center text-xs italic leading-relaxed" style={{ color: YI_LACQUER.lilacDim }}>
-        {pick4('Le Yi Jing répond à une question précise. Choisissez un domaine, puis l’intention qui vous parle — les achillées travailleront dessus.', 'The I Ching answers a precise question. Pick a domain, then the intention that speaks to you — the yarrow stalks will work on it.', "El Yi Jing responde a una pregunta precisa. Elija un dominio y después la intención que le hable — las milenramas trabajarán sobre ella.", "इ चिंग एक सुस्पष्ट प्रश्न का उत्तर देता है। एक क्षेत्र चुनें, फिर वह संकल्प जो आपको पुकारता है — यारो की डंडियाँ उसी पर कार्य करेंगी।")(lang)}
-      </p>
+      {/* En-tête gravé — absent en mode bare (la carte AskCard a déjà le sien) */}
+      {!bare && (
+        <>
+          <p className="text-center font-[family-name:var(--font-cinzel-deco)] text-[11px] tracking-[0.35em]" style={{ color: `${YI_LACQUER.gold}99` }}>
+            ☰ · ☱ · ☲
+          </p>
+          <h2 className="mt-1 text-center font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: YI_LACQUER.gold }}>
+            {pick4('Choisissez votre intention', 'Choose your intention', "Elija su intención", "अपना संकल्प चुनें")(lang)}
+          </h2>
+          <p className="mx-auto mt-1 max-w-sm text-center text-xs italic leading-relaxed" style={{ color: YI_LACQUER.lilacDim }}>
+            {pick4('Le Yi Jing répond à une question précise. Choisissez un domaine, puis l’intention qui vous parle — les achillées travailleront dessus.', 'The I Ching answers a precise question. Pick a domain, then the intention that speaks to you — the yarrow stalks will work on it.', "El Yi Jing responde a una pregunta precisa. Elija un dominio y después la intención que le hable — las milenramas trabajarán sobre ella.", "इ चिंग एक सुस्पष्ट प्रश्न का उत्तर देता है। एक क्षेत्र चुनें, फिर वह संकल्प जो आपको पुकारता है — यारो की डंडियाँ उसी पर कार्य करेंगी।")(lang)}
+          </p>
+        </>
+      )}
 
       {/* Les 4 domaines — grille 2×2 */}
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className={bare ? 'mt-2 grid grid-cols-2 gap-2.5' : 'mt-4 grid grid-cols-2 gap-3'}>
         {YI_DOMAINS.map((d) => {
           const sel = domainId === d.id;
           return (
             <button
               key={d.id}
               type="button"
-              onClick={() => pickDomain(d.id)}
+              onClick={() => toggleDomain(d.id)}
               className="group relative flex flex-col items-center rounded-xl px-2 py-3 transition-transform active:scale-[0.97]"
               style={{
                 background: sel
@@ -257,7 +268,7 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
               <span style={{ filter: sel ? 'drop-shadow(0 0 8px rgba(243,201,105,0.45))' : 'none' }}>
                 {d.icon(sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}b3`)}
               </span>
-              <span className="mt-1.5 text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}cc` }}>
+              <span className="mt-1.5 w-full break-words text-center font-[family-name:var(--font-cinzel-deco)] text-[13px] leading-tight" style={{ color: sel ? YI_LACQUER.gold : `${YI_LACQUER.gold}cc` }}>
                 {pickContent(d.label, lang)}
               </span>
               <span className="mt-0.5 text-center text-[9.5px] italic leading-tight" style={{ color: sel ? YI_LACQUER.lilac : `${YI_LACQUER.lilacDim}99` }}>
@@ -298,7 +309,9 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
                     <li key={i}>
                       <button
                         type="button"
-                        onClick={() => setSubIdx(i)}
+                        onClick={() => bare
+                          ? onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(s, lang)}`)
+                          : setSubIdx(i)}
                         className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
                         style={{ background: sel ? 'rgba(142,28,34,0.35)' : 'transparent' }}
                       >
@@ -316,7 +329,9 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
         )}
       </AnimatePresence>
 
-      {/* CTA — pilule dorée (charte Yi Jing) */}
+      {/* CTA — pilule dorée (charte Yi Jing). Inutile en mode bare : le tap
+          sur un sous-thème lance DIRECTEMENT le tirage (demande user). */}
+      {!bare && (
       <div className="mt-5 text-center">
         <button
           type="button"
@@ -335,12 +350,15 @@ export function YiThemeSelector({ onConfirm, glass = false }: { onConfirm: (ques
         >
           {pick4('Interroger le Yi Jing', 'Consult the Yi Jing', "Interrogar el Yi Jing", "इ चिंग से प्रश्न करें")(lang)}
         </button>
+        {/* Aide sous le CTA : retirée en mode bare (carte standardisée du
+            Double Hexagramme — redondante sous la validation, demande user). */}
         {!ready && (
           <p className="mt-2 text-[10px] italic" style={{ color: `${YI_LACQUER.lilacDim}88` }}>
             {pick4('Choisissez un domaine puis une intention.', 'Pick a domain, then an intention.', "Elija un dominio y luego una intención.", "एक क्षेत्र चुनें, फिर एक संकल्प।")(lang)}
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

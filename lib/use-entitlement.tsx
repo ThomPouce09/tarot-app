@@ -11,6 +11,7 @@ import { useT } from '@/lib/i18n';
 import { GuestExitButton } from '@/components/guest-mode-banner';
 import { GUEST_EVENT } from '@/lib/guest-client';
 import { api } from '@/lib/api-client';
+import { useExitToHub } from '@/lib/hub-back';
 
 export interface UsageState {
   baseUsedToday: number;
@@ -23,6 +24,9 @@ export interface UsageState {
   welcomeGrandUsed: boolean;
   bonusGrand: number;
   rechargeCredits: number;
+  // Tickets de tirages gagnés par publicités récompensées (point 7) — pool.
+  adTicketsBase?: number;
+  adTicketsGrand?: number;
   streakDays: number;
   /** Privilèges mensuels restants (Conseil d'Odin / Secret d'Artémis) ; null = illimité (Arkane). */
   odinRemaining?: number | null;
@@ -157,6 +161,84 @@ export function useEntitlement() {
 }
 
 // ── Modale de gating (paywall / limite) ─────────────────────────
+// Ligne « Gagnez des tirages » (point 7) : proposee dans les modales
+// d'epuisement (2 pubs = base, 3 pubs = avance, caps 2+2/mois — voir
+// lib/ads.ts cote serveur). Le SDK AdMob n'est pas encore branche : le
+// bouton annonce « bientot » — l'economie serveur est deja en place.
+function AdsEarnRow() {
+  const t = useT();
+  const native = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+  const { sub } = useEntitlement();
+  const usage = sub?.usage ?? null;
+  type AdKindLocal = 'base' | 'grand';
+  const [state, setState] = useState<Record<AdKindLocal, { left: number; ready: number } | null>>({ base: null, grand: null });
+  const [busy, setBusy] = useState<AdKindLocal | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'state' }) })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive || !d?.offers) return;
+        setState({ base: { left: d.offers.base.leftThisMonth, ready: d.offers.base.ticketsReady }, grand: { left: d.offers.grand.leftThisMonth, ready: d.offers.grand.ticketsReady } });
+      })
+      .catch(() => { /* silencieux : ligne optionnelle */ });
+    return () => { alive = false; };
+  }, []);
+
+  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(null), 3200); };
+
+  const watchAd = async (kind: AdKindLocal) => {
+    if (busy) return;
+    setBusy(kind);
+    try {
+      const st = await api('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', kind }) }).then((r) => r.json());
+      if (!st.ok) { flash(st.error === 'capped' ? t('gate.adsSoon') : String(st.error || '')); return; }
+      if (!native) { flash(t('gate.adsSoon')); return; }
+      // TODO (etape AdMob) : montrer la video recompensee puis
+      // POST { action:'reward', kind, txId: st.txId } + reload().
+      flash(t('gate.adsSoon'));
+    } catch { flash(t('gate.adsSoon')); }
+    finally { setBusy(null); }
+  };
+
+  const pool = {
+    base: (usage?.adTicketsBase ?? 0) + (state.base?.ready ?? 0),
+    grand: (usage?.adTicketsGrand ?? 0) + (state.grand?.ready ?? 0),
+  };
+
+  return (
+    <div className="mt-4 rounded-xl border p-3 text-left" style={{ borderColor: 'rgba(218,165,32,0.25)', background: 'rgba(218,165,32,0.05)' }}>
+      <p className="text-center text-[11px] uppercase tracking-[0.25em]" style={{ color: '#DAA520' }}>{t('gate.adsTitle')}</p>
+      {toast && <p className="mt-1.5 text-center text-[11px] italic" style={{ color: '#F0C75E' }}>{toast}</p>}
+      <div className="mt-2 space-y-2">
+        {(['base', 'grand'] as AdKindLocal[]).map((kind) => {
+          const st = state[kind];
+          const ready = pool[kind];
+          return (
+            <div key={kind} className="flex items-start justify-between gap-2">
+              <p className="text-[11px] leading-snug" style={{ color: 'rgba(220,220,230,0.8)' }}>
+                {kind === 'base' ? t('gate.adsBaseText') : t('gate.adsGrandText')}
+                {ready > 0 && <span className="block text-[10px] italic" style={{ color: '#DAA520' }}>{t('gate.adsReady').replace('{n}', String(ready))}</span>}
+              </p>
+              <button
+                type="button"
+                onClick={() => void watchAd(kind)}
+                disabled={busy !== null || (st !== null && st.left === 0)}
+                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold disabled:opacity-40"
+                style={{ border: '1px solid rgba(218,165,32,0.6)', color: '#F0C75E', background: 'rgba(218,165,32,0.12)' }}
+              >
+                {busy === kind ? '…' : t('gate.adsWatch')}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function EntitlementGateModal({ reason, onClose }: { reason: GateReason | null; onClose: () => void }) {
   const t = useT();
   if (!reason) return null;
@@ -201,6 +283,8 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
             </>
           )}
         </div>
+        {/* Exhaustion constatee -> proposer les tirages gagnables par pub (point 7). */}
+        {(isBaseDaily || isBasePack || isBaseMonthly || isGrand) && <AdsEarnRow />}
       </div>
     </div>
   );

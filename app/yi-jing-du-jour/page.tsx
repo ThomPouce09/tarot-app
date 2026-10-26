@@ -1214,7 +1214,7 @@ function YiJingDuJourPage() {
                 <h3 className="font-[family-name:var(--font-cinzel-deco)] text-lg" style={{ color: L.or }}>{t('synthesis')}</h3>
                 <span className="text-2xl" style={{ color: `${L.or}cc` }}>{hex.caractere}</span>
               </div>
-              <p className="mt-3 max-h-[55dvh] overflow-y-auto whitespace-pre-line text-[13.5px] leading-relaxed" style={{ color: `${L.ivoire}dd` }}>
+              <p className="mt-3 max-h-[55vh] overflow-y-auto whitespace-pre-line text-[13.5px] leading-relaxed" style={{ color: `${L.ivoire}dd`, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
                 {displaySynth}
               </p>
               <button type="button" onClick={() => setSynthOpen(false)} className="mt-4 w-full rounded-full py-2 text-[13px]" style={{ background: `linear-gradient(160deg, ${L.rouge}, ${L.rougeDeep})`, color: L.or, border: `1px solid ${L.or}55` }}>
