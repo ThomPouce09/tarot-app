@@ -1,5 +1,5 @@
 // lib/echo.ts
-// Mécanique des « Augures » : l'oracle scelle une prémonction datée à la fin
+// Mécanique des « Augures » : l'oracle scelle une prémonition datée à la fin
 // d'une lecture (4 univers : tarot, Yi Jing, runes, dés). L'utilisateur la
 // rouvre à l'échéance (14-45 j) et rend son verdict : oui / partiel / non.
 // Gating : Initié = 2 augures actifs maximum, Arkane = illimité.
@@ -37,13 +37,13 @@ export function buildEchoPrompt(
   summary: string,
 ): string {
   const lore = DOMAIN_LORE[domain]?.fr || 'une lecture divinatoire';
-  return `Tu es la voix profonde d'un oracle qui scelle un ÉCHO : une prémonction datée, née de ${lore}.
+  return `Tu es la voix profonde d'un oracle qui scelle un ÉCHO : une prémonition datée, née de ${lore}.
 
 Contexte de la lecture :
 Question du consultant : « ${question || 'Chemins et avenir'} »
 Synthèse de la lecture : « ${summary.slice(0, 900)} »
 
-Écris UN seul augure : une prémonction précise, concrète et VÉRIFIABLE dans le temps
+Écris UN seul augure : une prémonition précise, concrète et VÉRIFIABLE dans le temps
 (événement, rencontre, nouvelle, retournement — pas une généralité vague ni un conseil).
 Ton : solennel, bienveillant, poétique mais factuel. Une seule phrase fluide de 140 à 260
 caractères en français, sans promettre de date précise dans le texte.

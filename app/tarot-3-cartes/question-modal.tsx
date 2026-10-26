@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLang, pick4 } from '@/lib/i18n';
+import { useExitToHub } from '@/lib/hub-back';
 
 export default function QuestionModal({
   onSubmit,
@@ -19,6 +20,7 @@ export default function QuestionModal({
   onSubmit: (question: string) => void;
 }) {
   const lang = useLang();
+  const exitHub = useExitToHub('/tarot'); // tap hors-modale → retour au hub
   const [value, setValue] = useState('');
 
   const handle = () => {
@@ -34,7 +36,7 @@ export default function QuestionModal({
       transition={{ duration: 0.8, ease: 'easeOut' }}
     >
       {/* Voile : le jeu devine derrière la brume */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={exitHub} />
 
       <motion.div
         className="ts-panel relative w-full max-w-md overflow-hidden rounded-2xl border border-[#DAA520]/35 shadow-[0_0_40px_rgba(74,25,49,0.6),0_18px_50px_rgba(0,0,0,0.7)]"

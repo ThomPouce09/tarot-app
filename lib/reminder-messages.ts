@@ -208,7 +208,7 @@ export const SEAL_COPY: Record<'due' | 'eve', { title: L10n; body: L10n }> = {
   eve: {
     title: { fr: 'Un sceau se brise demain', en: 'A seal breaks tomorrow', es: 'Un sello se rompe mañana', hi: 'कल एक मुहर टूटेगी' },
     body: {
-      fr: '{nom}, l’oracle a scellé une prémonction qui atteint son heure demain. Prépare-toi à briser le sceau.',
+      fr: '{nom}, l’oracle a scellé une prémonition qui atteint son heure demain. Prépare-toi à briser le sceau.',
       en: '{nom}, the oracle has sealed a foretelling that reaches its hour tomorrow. Prepare to break the seal.',
       es: '{nom}, el oráculo ha sellado una premonición que alcanza su hora mañana. Prepárate para romper el sello.',
       hi: '{nom}, ओरैकल ने एक प्रेरणा मुहरबंद की है जो कल अपनी घड़ी पाती है। मुहर तोड़ने की तैयारी रखो।',

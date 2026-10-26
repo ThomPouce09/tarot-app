@@ -750,7 +750,7 @@ export function RuneAnalysis({
             </div>
           )}
 
-          {/* ✶ L'Écho scellé — prémonction datée née de cette lecture (Initié/Arkane). */}
+          {/* ✶ L'Écho scellé — prémonition datée née de cette lecture (Initié/Arkane). */}
           {echo && (synthese || conseil) && (
             <EchoBox
               domain="runes"

@@ -1,7 +1,7 @@
 'use client';
 
 // app/dashboard/account/echoes/page.tsx
-// Les Augures des Etoiles — registre de toutes les prémonctions scellées
+// Les Augures des Etoiles — registre de toutes les prémonitions scellées
 // (tarot, Yi Jing, runes, dés). Réservé aux Arkanes (étape 10) ; les autres
 // niveaux voient un vérouillage doux vers l'abonnement.
 //

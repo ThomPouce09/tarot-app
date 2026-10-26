@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useLang, pick4 } from '@/lib/i18n';
+import { useExitToHub } from '@/lib/hub-back';
 import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 // Configuration du rig, extraite a l'etape 1 du decoupage.
@@ -15,6 +16,7 @@ import { YiQingRig } from './rig';
 // --- Main Page ---
 function YiQingPage() {
   const lang = useLang();
+  const exitHub = useExitToHub('/yi-jing'); // tap hors-modale → retour au hub
   const [question, setQuestion] = useState('');
   const [questionAsked, setQuestionAsked] = useState(false);
   const [qOpen, setQOpen] = useState(false);
@@ -59,8 +61,9 @@ function YiQingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
+          onClick={exitHub}
         >
-          <div className="w-full max-w-md bg-black/70 backdrop-blur-md rounded-2xl p-5 border border-yellow-700/30 shadow-2xl">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-black/70 backdrop-blur-md rounded-2xl p-5 border border-yellow-700/30 shadow-2xl">
             <p
               className="text-center text-yellow-300/80 text-sm mb-3"
               style={{ fontFamily: 'var(--font-cinzel), serif' }}

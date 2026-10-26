@@ -537,7 +537,7 @@ export const DICT = {
   },
   'echo.daysLeft': { fr: "Encore {n} jour(s).", en: "{n} day(s) left.", es: "Quedan {n} día(s).", hi: "अभी {n} दिन शेष।" },
   'echo.masked': { fr: "Sceau encore fermé", en: "Seal still closed", es: "Sello aún cerrado", hi: "मुहर अभी बंद है" },
-  'echo.maskedModal': { fr: "Le sceau tient jusqu'au {date}. Revenez ce jour-là briser le cachet et lire la prémonction de l'Oracle.", en: "The seal holds until {date}. Come back that day to break it and read the Oracle's foretelling.", es: "El sello se mantiene hasta el {date}. Vuelva ese día para romperlo y leer la premonición del Oráculo.", hi: "मुहर {date} तक बनी रहेगी। उस दिन लौटकर छाप तोड़ें और ओरैकल की प्रेरणा पढ़ें।" },
+  'echo.maskedModal': { fr: "Le sceau tient jusqu'au {date}. Revenez ce jour-là briser le cachet et lire la prémonition de l'Oracle.", en: "The seal holds until {date}. Come back that day to break it and read the Oracle's foretelling.", es: "El sello se mantiene hasta el {date}. Vuelva ese día para romperlo y leer la premonición del Oráculo.", hi: "मुहर {date} तक बनी रहेगी। उस दिन लौटकर छाप तोड़ें और ओरैकल की प्रेरणा पढ़ें।" },
   'echo.dueNow': {
     fr: "L'heure est venue. Brisez le sceau et lisez ce que l'oracle avait dit.",
     en: "The hour has come. Break the seal and read what the oracle foretold.",
@@ -994,7 +994,7 @@ export const DICT = {
   'letter.readingRunes': { fr: "Tirage Runes", en: "Rune casting", es: "Tirada de Runas", hi: "रून वाचन" },
   'letter.readingDes': { fr: "Tirage des Dés", en: "Zodiac dice reading", es: "Tirada de los Dados", hi: "पासों का वाचन" },
   'letter.echoDueTitle': { fr: "Vos augures sont parvenus à leur heure", en: "Your auguries have reached their hour", es: "Sus augurios han llegado a su hora", hi: "आपके शगुन अपने समय पर पहुँच गए हैं" },
-  'letter.echoDueBody': { fr: "{dus} prémonction(s) scellée(s) attendent votre verdict — ", en: "{dus} sealed foretelling(s) await your verdict — ", es: "{dus} premonición(es) sellada(s) esperan su veredicto — ", hi: "{dus} मुहरबंद भविष्यवाणी(याँ) आपके निर्णय की प्रतीक्षा में हैं — " },
+  'letter.echoDueBody': { fr: "{dus} prémonition(s) scellée(s) attendent votre verdict — ", en: "{dus} sealed foretelling(s) await your verdict — ", es: "{dus} premonición(es) sellada(s) esperan su veredicto — ", hi: "{dus} मुहरबंद भविष्यवाणी(याँ) आपके निर्णय की प्रतीक्षा में हैं — " },
   'letter.echoMore': { fr: "et {n} autre(s) mûrissent encore. ", en: "and {n} more are still ripening. ", es: "y {n} más siguen madurando. ", hi: "और {n} अन्य अभी पक रहे हैं। " },
   'letter.echoDueCta': { fr: "Brisez le sceau et dites si l'oracle a vu juste.", en: "Break the seal and tell whether the oracle saw true.", es: "Rompa el sello y diga si el oráculo acertó.", hi: "मुहर तोड़ें और बताएँ कि ओरैकल सच्चा रहा या नहीं।" },
   'letter.echoLink': { fr: "Vérifier mes augures", en: "Check my auguries", es: "Verificar mis augurios", hi: "मेरे शगुन जाँचें" },

@@ -607,7 +607,7 @@ function InterpretationInner() {
               </div>
             )}
 
-            {/* ✶ L'Écho scellé — prémonction datée (Initié / Arkane) */}
+            {/* ✶ L'Écho scellé — prémonition datée (Initié / Arkane) */}
             <EchoBox
               domain={isTarot ? 'tarot' : 'yi-jing'}
               readingId={typeof interpretation.readingId === 'string' ? interpretation.readingId : null}

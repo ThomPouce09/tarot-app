@@ -13,6 +13,7 @@
 // la question validée.
 
 import dynamic from 'next/dynamic';
+import { useExitToHub } from '@/lib/hub-back';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
@@ -49,6 +50,7 @@ function YggdrasilPage() {
     lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
   const POS = YGG_POS.map((p) => (pickPos(p).name));
 
+  const exitHub = useExitToHub('/runes'); // tap hors-modale → retour au hub
   const [phase, setPhase] = useState<Phase>('intro');
   const [isRolling, setIsRolling] = useState(false);
   const [runes, setRunes] = useState<DrawnRune[]>([]);
@@ -196,7 +198,7 @@ function YggdrasilPage() {
             className="fixed inset-0 z-[90] flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={exitHub} />
             <motion.div
               initial={{ opacity: 0, y: 26, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

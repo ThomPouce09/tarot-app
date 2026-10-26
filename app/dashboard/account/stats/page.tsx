@@ -291,7 +291,7 @@ export default function StatsPage() {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [readings, setReadings] = useState<any[]>([]);
-  // Augures clos → « Ferveur de l'oracle » (précision des prémonctions, étape 9)
+  // Augures clos → « Ferveur de l'oracle » (précision des prémonitions, étape 9)
   const [echoes, setEchoes] = useState<any[]>([]);
 
   if (typeof window !== 'undefined' && !ready) {

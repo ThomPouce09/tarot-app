@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLang, tr } from '@/lib/i18n';
 import { pickEchoText } from '@/lib/i18n/echo-text';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
+import { useExitToHub } from '@/lib/hub-back';
 import AuthGate from '@/components/auth-gate';
 import YiSlideNav from '@/components/yi-slide-nav';
 import WaitOverlay from '@/components/wait-overlay';
@@ -178,13 +179,16 @@ function LiveStack({ lines, L }: { lines: number[]; L: (fr: string, en: string) 
 }
 
 /* ── Modale d'accueil : le rituel expliqué UNE fois, bouton « Compris » ── */
-function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onClose: () => void }) {
+function IntroModal({ L, onClose, onExit }: { L: (fr: string, en: string) => string; onClose: () => void; onExit: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[90] flex items-center justify-center px-6"
-      style={{ background: 'rgba(10,4,7,0.78)', backdropFilter: 'blur(5px)' }}>
+      style={{ background: 'rgba(10,4,7,0.78)', backdropFilter: 'blur(5px)' }}
+      onClick={onExit}>
+      {/* carte interne : le tap DEDANS ne ferme pas */}
       <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
+        onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-sm rounded-3xl px-6 py-7 text-center"
         style={{ background: `linear-gradient(160deg, ${YI_LACQUER.panelTop} 0%, ${YI_LACQUER.panelMid} 55%, ${YI_LACQUER.panelDeep} 100%)`,
           border: `1.5px solid ${GOLD}66`, boxShadow: '0 14px 48px rgba(0,0,0,0.6), 0 0 34px rgba(243,201,105,0.16)' }}>
@@ -211,6 +215,7 @@ function IntroModal({ L, onClose }: { L: (fr: string, en: string) => string; onC
 function DoublePage() {
   const lang = useLang();
   const en = lang === 'en';
+  const exitHub = useExitToHub('/yi-jing'); // tap hors-modale d'accueil → retour au hub
   const { sub, gateReason, closeGate, openGate, reload: reloadSub } = useEntitlement();
   // Initié sans place libre : le bouton « sceller » ne se montre PAS (juger ou
   // supprimer un augure non brisé en rend une — même règle que le serveur).
@@ -661,7 +666,7 @@ function DoublePage() {
       </AnimatePresence>
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <AnimatePresence>
-        {intro && <IntroModal L={L} onClose={() => setIntro(false)} />}
+        {intro && <IntroModal L={L} onClose={() => setIntro(false)} onExit={exitHub} />}
       </AnimatePresence>
       {waitOn && db && <WaitOverlay type="yi-jing-double" ready={!!db.read} onVideoEnded={() => setWaitOn(false)} fit169 />}
     </div>

@@ -44,6 +44,7 @@ import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
 import { api } from '@/lib/api-client';
 import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
+import { useExitToHub } from '@/lib/hub-back';
 import AnalysisWaitCard from '@/components/analysis-wait-card';
 import WaitPoolLine from '@/components/wait-pool-line';
 import { preloadAstroDice } from '@/components/astro-dice/preload';
@@ -104,6 +105,7 @@ function AffinagePage() {
   // Le chunk WebGL du gobelet se télécharge dès l'arrivée sur la page :
   // quand l'utilisateur atteint l'étape de tirage, plus rien ne « charge ».
   useEffect(() => { preloadAstroDice(); pickAndPreloadWaitVideo('analyse-des-zodiaque'); }, []);
+  const exitHub = useExitToHub('/des-divinatoires'); // tap hors-modale → retour au hub
   const [phase, setPhase] = useState<Phase>('initial');
   const [question, setQuestion] = useState<string | null>(null);
   const t = useT();
@@ -646,8 +648,8 @@ function AffinagePage() {
             validation impossible si < 2 mots. « Enregistrer » ferme la modale,
             révèle l'astrodice (remonté sous le titre) et le tutoriel. */}
         {phase === 'initial' && !hasLaunched && (
-          <div className="fixed inset-0 z-[95] flex items-center justify-center px-4" style={{ background: 'rgba(6,3,8,0.82)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-sm">
+          <div className="fixed inset-0 z-[95] flex items-center justify-center px-4" style={{ background: 'rgba(6,3,8,0.82)', backdropFilter: 'blur(6px)' }} onClick={exitHub}>
+          <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <AskQuestion
             required
             minWords={2}
@@ -1098,7 +1100,7 @@ function AffinagePage() {
                     );
                   })()}
 
-                  {/* ✶ L'Écho scellé — prémonction datée née de cette lecture.
+                  {/* ✶ L'Écho scellé — prémonition datée née de cette lecture.
                       Proposée UNIQUEMENT quand l'affinage est terminé (option
                       choisie + analyse posée) : avant, la lecture va encore
                       évoluer (zoom A/B), sceller trop tôt figerait un brouillon. */}

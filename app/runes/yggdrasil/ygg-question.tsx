@@ -8,6 +8,7 @@
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useExitToHub } from '@/lib/hub-back';
 import { useLang, useT, contentLang, pickContent, tr } from '@/lib/i18n';
 import { RUNE_THEME, RuneButton } from '../_shared';
 import { RUNE_DOMAINS } from '../nornes2/theme-selector';
@@ -20,6 +21,8 @@ export default function YggQuestion({ open, onConfirm, copy }: {
 }) {
   const t = useT();
   const lang = useLang();
+  // Tap hors-modale (le voile) : retour au hub des runes (demande user).
+  const exitHub = useExitToHub('/runes');
   const C = {
     title: 'À qui s’adresse l’Arbre ?', titleEn: 'Whom does the Tree speak of?',
 titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किसे संबोधित करता है?",
@@ -55,7 +58,7 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
           className="fixed inset-0 z-[90] flex items-center justify-center p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={exitHub} />
           <motion.div
             initial={{ opacity: 0, y: 26, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

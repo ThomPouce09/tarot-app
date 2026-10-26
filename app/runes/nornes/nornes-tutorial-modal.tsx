@@ -7,6 +7,7 @@
 
 import { motion } from 'framer-motion';
 import { useT } from '@/lib/i18n';
+import { useExitToHub } from '@/lib/hub-back';
 import { RUNE_THEME, RuneButton } from '../_shared';
 import { ShakePouch } from './shake-tutorial';
 
@@ -23,6 +24,8 @@ export function NornesTutorialModal({
   step3Key?: string;
 }) {
   const t = useT();
+  // Tap hors-modale (le voile) : retour au hub des runes (demande user).
+  const exitHub = useExitToHub('/runes');
   const STEPS = [
     { glyph: 'ᛟ', key: step1Key },
     { glyph: 'ᚲ', key: step2Key },
@@ -31,7 +34,7 @@ export function NornesTutorialModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
       {/* Voile sombre */}
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onDone} />
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={exitHub} />
 
       <motion.div
         role="dialog"
