@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import YiSlideNav from '@/components/yi-slide-nav';
-import { ThemeSelector } from './theme-selector';
+import { RuneAskCard } from '../rune-ask';
 import {
   RuneBackground,
   RuneTitle,
@@ -292,7 +292,12 @@ function Nornes2Page() {
               }}
               transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <ThemeSelector auto onConfirm={handleThemeConfirm} />
+              <RuneAskCard
+                title={t('runes.nornes2.themeTitle')}
+                sub={tr("Choisis le domaine sous la garde d'un dieu du Nord et l'intention que les Nornes déroulent — ou écris ta question précise.", "Choose the domain under a Norse god's guard and the intention the Norns must unfold — or write your precise question.")}
+                cta={tr("Tisser le fil", "Weave the thread")}
+                onConfirm={handleThemeConfirm}
+              />
             </motion.div>
           </div>
         )}
