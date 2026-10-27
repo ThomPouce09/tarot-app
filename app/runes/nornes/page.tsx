@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import YiSlideNav from '@/components/yi-slide-nav';
-import { AskQuestion } from '@/components/ask-question';
+import { RuneAskCard } from '../rune-ask';
 import {
   RuneBackground,
   RuneTitle,
@@ -162,11 +162,11 @@ function NornesPage() {
               }}
               transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <AskQuestion
-                required
+              <RuneAskCard
+                title={tr("Quel fil veux-tu dérouler ?", "Which thread shall we unfold?")}
+                sub={tr("Confie ta question précise aux Nornes — le thème oriente la lecture si tu préfères rester abstrait.", "Entrust your precise question to the Norns — a theme orients the reading if you prefer to stay abstract.")}
+                cta={tr("Tisser le fil", "Weave the thread")}
                 onConfirm={handleQuestionConfirm}
-                accentColor={RUNE_THEME.goldPale}
-                autoFocus={false}
               />
             </motion.div>
           </div>
