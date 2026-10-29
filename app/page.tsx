@@ -396,7 +396,7 @@ export default function HomePage() {
               <img
                 src="/images/yi-jing-icon.png"
                 alt="Yi Jing"
-                className="w-9 h-9 mb-2 object-contain"
+                className="w-12 h-12 mb-2 object-contain"
                 style={{ filter: 'drop-shadow(0 0 10px rgba(243,201,105,0.55))' }}
               />
               <h2
