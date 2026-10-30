@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, Suspense, useEffect, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import YiSlideNav from '@/components/yi-slide-nav';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +17,8 @@ import { EntitlementGateModal } from '@/lib/use-entitlement';
 import { api } from '@/lib/api-client';
 import EchoBox from '@/components/echo-box';
 import FollowUpPanel from '@/components/follow-up-panel';
+import { ClarifyRail } from '@/components/clarify-draw';
+import type { FollowUpTurn } from '@/components/follow-up-panel';
 import { isBaseType } from '@/lib/classification';
 import { parseYiQuestion, YI_LACQUER, IconDragon, IconBird, IconTiger, IconWarrior } from '@/app/yi-jing-simplifie/theme-selector';
 import { parseTarotQuestion, localizeTarotQuestion, TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
@@ -38,6 +41,36 @@ interface Interpretation {
   [key: string]: string | number | undefined;
 }
 
+/* Section repliable — bandeau discret (or fin, aucun halo) qui déplie le
+   contenu en douceur. Utilisé pour le tirage de base et les réponses
+   précédentes quand une lame de précision a rendu l'analyse plus récente. */
+function Collapsible({ open, onToggle, title, subtitle, children }: {
+  open: boolean; onToggle: () => void; title: string; subtitle?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <button type="button" onClick={onToggle} aria-expanded={open}
+        className="w-full flex items-center justify-between px-5 py-3.5 text-left">
+        <span className="min-w-0 flex-1">
+          <span className="block text-yellow-500/85 text-[11px] uppercase tracking-[0.2em]" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{title}</span>
+          {subtitle && (
+            <span className="mt-0.5 block truncate text-[12px] italic text-yellow-100/70" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+              « {subtitle} »
+            </span>
+          )}
+        </span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="rgba(218,165,32,0.6)" strokeWidth="2" strokeLinecap="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }} aria-hidden>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div className="overflow-hidden" style={{ maxHeight: open ? 4000 : 0, transition: 'max-height .45s ease' }}>
+        <div className="px-5 pb-5 space-y-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function InterpretationInner() {
   const searchParams = useSearchParams();
   const pathname = usePathname(); // e.g., /interpret/tarot-3-cartes
@@ -49,6 +82,17 @@ function InterpretationInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gateReason, setGateReason] = useState<any>(null);
+  // Lames de précision tirées dans les questions enchaînées (tarot avancé) :
+  // rendues sous le tapis, à côté des emplacements pointillés restants.
+  const [clarifyCards, setClarifyCards] = useState<number[]>([]);
+  // Pile des analyses : le fil complet (questions enchaînées + leurs réponses).
+  // La DERNIÈRE analyse s'affiche en grand ; le tirage de base et les réponses
+  // plus anciennes se replient sous des bandeaux dépliables.
+  const [clarifyTurns, setClarifyTurns] = useState<FollowUpTurn[]>([]);
+  const [baseOpen, setBaseOpen] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+  const latestCardRef = useRef<HTMLDivElement | null>(null);
+  const turnsLenRef = useRef(0);
   const [hexagram, setHexagram] = useState<{
     numero: number;
     name?: string;
@@ -91,6 +135,23 @@ function InterpretationInner() {
 
   // Extract type from pathname: /interpret/tarot-3-cartes -> tarot-3-cartes
   const type = pathname.split('/')[2] || '';
+
+  // Sur une nouvelle réponse enchaînée (lames de précision) : on remonte tout
+  // en haut de l'analyse — cartes en tête, dernière lecture en grand. Placé
+  // AVANT les return anticipés (règles des hooks React).
+  useEffect(() => {
+    if (type !== 'tarot-3-cartes' && type !== 'tarot-5-c-manuelle') return;
+    if (clarifyTurns.length > turnsLenRef.current && clarifyTurns.length > 0) {
+      // Le conteneur qui scrolle est la page elle-meme (fixed + overflow-y-auto),
+      // pas la fenetre : window.scrollTo ne suffirait pas.
+      window.setTimeout(() => {
+        const sc = document.getElementById('interpret-scroll');
+        if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 420);
+    }
+    turnsLenRef.current = clarifyTurns.length;
+  }, [clarifyTurns.length, type]);
 
   // ── Garde de retour (lib/draw-back-guard) — filet (B) ─────────────────
   // Le bouton retour du smartphone ne doit JAMAIS remonter cette page de façon
@@ -281,6 +342,8 @@ function InterpretationInner() {
     ? hexVariant(hexagram.synthese_en, hexagram.synthese_es, hexagram.synthese_hi) || hexagram.synthese || ''
     : '';
   // Cartes tirées (Tarot) : id + nom + position, pour le récap visuel en haut de page
+  // Mode lame de précision : uniquement les deux tirages avancés demandés.
+  const clarifyOn = isTarot && (type === 'tarot-3-cartes' || type === 'tarot-5-c-manuelle');
   const tarotCards = isTarot
     ? (searchParams.get('cartes') || '')
         .split(',')
@@ -315,8 +378,51 @@ function InterpretationInner() {
         { label: t('interpret.conseil'), value: interpretation.conseil, Icon: IconConseil },
       ];
 
+  /* ── Pile des analyses (lames de précision) ──
+     latest = dernière réponse (grands blocs) ; older = réponses d'avant,
+     repliées ; le tirage de base se replie dès qu'une précision existe. */
+  const latest = clarifyOn && clarifyTurns.length > 0 ? clarifyTurns[clarifyTurns.length - 1] : null;
+  const older = clarifyOn ? clarifyTurns.slice(0, -1) : [];
+
+
+  const baseAnalysis = (
+    <Fragment key="base-analysis">
+      {sections.filter((x) => x.value).map((section, idx, arr) => (
+        <Fragment key={section.label}>
+          <div className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
+            <h2 className="text-yellow-500 font-semibold text-lg tracking-wide mb-2 flex items-center gap-2.5" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>
+              {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
+              {section.label}
+            </h2>
+            <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
+          </div>
+          {isTarot3 && idx < arr.length - 1 && (
+            <div className="flex items-center justify-center py-1" aria-hidden>
+              <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+              <span className="mx-2 text-yellow-400/70 text-lg leading-none">→</span>
+              <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+            </div>
+          )}
+        </Fragment>
+      ))}
+    </Fragment>
+  );
+
+  const resumeBlock = interpretation.resume ? (
+    <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
+        <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>{tr("Résumé", "Summary", "Resumen", "सारांश")}</h3>
+      </div>
+      <p className="text-gray-100 leading-relaxed italic text-[15px]">
+        {interpretation.resume}
+      </p>
+    </div>
+  ) : null;
+
   return (
     <div
+      id="interpret-scroll"
       className="fixed inset-0 bg-black flex flex-col items-center p-4 overflow-y-auto"
       style={{
         backgroundImage: 'url(/backgrounds/interpret-bg.jpg)',
@@ -502,6 +608,9 @@ function InterpretationInner() {
               </div>
             ))}
           </div>
+          {/* Lames de précision (questions enchaînées) — sous le tapis, avec
+              les emplacements pointillés encore libres. */}
+          {clarifyOn && <ClarifyRail cards={clarifyCards} total={3} highlightLast />}
         </div>
       )}
 
@@ -576,36 +685,91 @@ function InterpretationInner() {
               </div>
             )}
 
-            {/* Analyse détaillée — Tarot 3 cartes : Passé/Présent/Avenir ; sinon situation/défis/... */}
-            {sections.filter((s) => s.value).map((section, idx, arr) => (
-              <Fragment key={section.label}>
-                <div className="p-5 rounded-2xl border border-yellow-500/20 bg-white/[0.03] backdrop-blur-sm">
-                  <h2 className="text-yellow-500 font-semibold text-lg tracking-wide mb-2 flex items-center gap-2.5" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>
-                    {section.Icon && <section.Icon className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />}
-                    {section.label}
-                  </h2>
-                  <p className="text-gray-200 leading-relaxed text-[15px]">{section.value}</p>
-                </div>
-                {isTarot3 && idx < arr.length - 1 && (
-                  <div className="flex items-center justify-center py-1" aria-hidden>
-                    <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
-                    <span className="mx-2 text-yellow-400/70 text-lg leading-none">→</span>
-                    <div className="h-px w-2/3 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
+            {/* Analyse détaillée — en grand si c'est l'analyse courante,
+                repliée sous « Tirage de base » dès qu'une lame de précision
+                a pris le relais. */}
+            {latest ? (
+              <Collapsible open={baseOpen} onToggle={() => setBaseOpen((v) => !v)} title={t('follow.baseCollapsed')} subtitle={rawQuestion || (tarotThemeL10n ? `${tarotThemeL10n.label} — ${tarotThemeL10n.sub}` : tarotTheme ? `${pickContent(tarotTheme.theme.label, lang)} — ${tarotTheme.sub}` : '') || undefined}>
+                {baseAnalysis}
+                {interpretation.resume && (
+                  <div className="p-4 rounded-xl border border-yellow-400/30 bg-black/30">
+                    <p className="text-gray-100 leading-relaxed italic text-[13.5px]">{interpretation.resume}</p>
                   </div>
                 )}
-              </Fragment>
-            ))}
+              </Collapsible>
+            ) : (
+              <>
+                {baseAnalysis}
+                {resumeBlock}
+              </>
+            )}
 
-            {/* ✶ Résumé du tirage — en fin (synthèse globale) */}
-            {interpretation.resume && (
-              <div className="relative p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
-                  <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont, textTransform: 'capitalize' }}>{tr("Résumé", "Summary", "Resumen", "सारांश")}</h3>
+            {/* ═══ RÉPONSES PRÉCÉDENTES — lames d'avant la dernière, repliées ═══ */}
+            {older.length > 0 && (
+              <Collapsible open={pastOpen} onToggle={() => setPastOpen((v) => !v)} title={`${t('follow.pastAnswers')} (${older.length})`} subtitle={older.length ? (older[older.length - 1].question || '').slice(0, 60) : undefined}>
+                {older.map((x, i) => (
+                  <div key={i} className="rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(218,165,32,0.14)', background: 'rgba(255,255,255,0.03)' }}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {typeof x.clarifyCard === 'number' && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={`/cards/arcana/${x.clarifyCard}.jpg`} alt="" className="rounded"
+                          style={{ width: 30, aspectRatio: '764 / 1286', objectFit: 'cover', border: '1px solid rgba(218,165,32,0.4)' }} />
+                      )}
+                      <p className="text-[11px] tracking-[0.14em] uppercase" style={{ color: 'rgba(218,165,32,0.6)', fontFamily: 'var(--font-cinzel), serif' }}>
+                        {t('follow.turn')} {i + 2}
+                      </p>
+                    </div>
+                    <p className="text-[13px] italic mb-2" style={{ color: 'rgba(218,165,32,0.85)' }}>« {x.question} »</p>
+                    <p className="text-[13px] leading-relaxed text-gray-300">{String(x.data?.conclusion || x.data?.develop || x.answer || '').slice(0, 420)}</p>
+                  </div>
+                ))}
+              </Collapsible>
+            )}
+
+
+
+
+
+            {latest && (
+              <div ref={latestCardRef} className="space-y-4" style={{ scrollMarginTop: '88px' }}>
+                <div className="flex items-center gap-2.5">
+                  {typeof latest.clarifyCard === 'number' && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={`/cards/arcana/${latest.clarifyCard}.jpg`}
+                      alt=""
+                      className="rounded-lg shrink-0"
+                      style={{ width: 52, aspectRatio: '764 / 1286', objectFit: 'cover', border: '1px solid rgba(218,165,32,0.6)', boxShadow: '0 0 16px rgba(218,165,32,0.35)' }}
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-yellow-500/80 text-[10px] uppercase tracking-[0.2em]" style={{ fontFamily: 'var(--font-cinzel), serif' }}>{t('follow.clarifyName')}</p>
+                    <p className="text-yellow-100 text-sm italic truncate">« {latest.question} »</p>
+                  </div>
                 </div>
-                <p className="text-gray-100 leading-relaxed italic text-[15px]">
-                  {interpretation.resume}
-                </p>
+                {String(latest.data?.develop || '').trim() && (
+                  <div className="p-5 rounded-2xl border border-yellow-500/25 bg-white/[0.04] backdrop-blur-sm">
+                    <h2 className="text-yellow-500 font-semibold text-lg tracking-wide mb-2" style={{ fontFamily: titleFont }}>{t('follow.develop')}</h2>
+                    <p className="text-gray-100 leading-relaxed text-[15px]">{String(latest.data.develop)}</p>
+                  </div>
+                )}
+                {String(latest.data?.conclusion || '').trim() && (
+                  <div className="p-5 rounded-2xl border border-yellow-500/25 bg-white/[0.04] backdrop-blur-sm">
+                    <h2 className="text-yellow-500 font-semibold text-lg tracking-wide mb-2 flex items-center gap-2" style={{ fontFamily: titleFont }}>
+                      <IconIssue className="w-[22px] h-[22px] text-yellow-400/90 shrink-0" />{t('follow.conclusion')}
+                    </h2>
+                    <p className="text-gray-100 leading-relaxed text-[15px]">{String(latest.data.conclusion)}</p>
+                  </div>
+                )}
+                {String(latest.data?.resume || '').trim() && (
+                  <div className="p-6 rounded-2xl border border-yellow-400/40 bg-gradient-to-b from-yellow-900/25 to-black/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <IconResume className="w-5 h-5 text-yellow-400 shrink-0" />
+                      <h3 className="text-yellow-300 font-serif text-xl tracking-wide" style={{ fontFamily: titleFont }}>✦ {tr("Résumé", "Summary", "Resumen", "सारांश")}</h3>
+                    </div>
+                    <p className="text-gray-100 leading-relaxed italic text-[15px]">{String(latest.data.resume)}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -630,6 +794,10 @@ function InterpretationInner() {
               tier={isBaseType(type) ? 'base' : 'grand'}
               onGate={(reason) => setGateReason(reason)}
               parentReadingId={typeof interpretation.readingId === 'string' ? interpretation.readingId : null}
+              clarify={clarifyOn}
+              clarifyVideo={type === 'tarot-5-c-manuelle' ? '/images/bg-tarot-5c.mp4' : undefined}
+              onClarifyCards={setClarifyCards}
+              onTurnsChange={setClarifyTurns}
             />
           </>
         </div>

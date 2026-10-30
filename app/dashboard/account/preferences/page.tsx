@@ -7,6 +7,8 @@ import { setSoundPrefs, unlockAllSounds, stopVoices, stopAllSounds } from '@/lib
 import MusicPlayer from '@/components/music-player';
 import { getMusicPrefs, type MusicTrackId } from '@/lib/music';
 import { resetAllTutorials } from '@/lib/tutorials';
+import { getPasseurMode, setPasseurMode, PASSEUR_MODE_EVENT } from '@/components/passeur';
+import type { PasseurMode } from '@/lib/guide-data';
 import { LANDING_BACKGROUNDS, isVideoBackground, backgroundsForLevel, type BackgroundLevel } from '@/lib/backgrounds';
 import { useEntitlement } from '@/lib/use-entitlement';
 import { setSpaceTheme, type SpaceTheme } from '@/lib/theme';
@@ -137,6 +139,9 @@ type Prefs = {
   language: 'fr' | 'en' | 'es' | 'hi';
   soundEffects: boolean;
   voices: boolean;
+  // « Le Passeur » : aide au choix du tirage (auto / bouton / off). Local
+  // (localStorage), comme les sons — pas de champ serveur.
+  passeur: PasseurMode;
   musicOn: boolean;
   musicTrack: MusicTrackId;
   theme: SpaceTheme;
@@ -150,6 +155,7 @@ const DEFAULT_PREFS: Prefs = {
   language: 'fr',
   soundEffects: true,
   voices: true,
+  passeur: 'auto', // remplacé à l'affichage par getPasseurMode() (effet de synchro)
   musicOn: true,
   musicTrack: 'vibrations',
   theme: 'sombre',
@@ -308,6 +314,20 @@ export default function PreferencesPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableBgs, loaded]);
+
+  // Synchronise le mode « Le Passeur » depuis localStorage (local, comme les
+  // sons) + écoute les changements (autre onglet, reset tutoriels).
+  useEffect(() => {
+    const sync = () => setPrefs((p) => ({ ...p, passeur: getPasseurMode() }));
+    sync();
+    window.addEventListener(PASSEUR_MODE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(PASSEUR_MODE_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const requestReminderPermission = () => {
     // Déclenche la demande de permission + enregistrement du token FCM côté Capacitor.
@@ -515,6 +535,35 @@ export default function PreferencesPage() {
       {/* Code du mode Invité — verrou 4 chiffres du retour au mode normal
           (gérable/réinitialisable ici, en mode normal). */}
       <GuestPinPanel email={email} t={t} notify={showToast} subscriber={level !== 'apprenti'} />
+
+      {/* Le Passeur — aide au choix du tirage (auto / bouton / désactivé) */}
+      <div className="mystic-panel p-5">
+        <h2 className="mystic-subtitle text-sm mb-1">{t('prefs.passeur')}</h2>
+        <p className="text-gray-500 text-[11px] mb-3">{t('prefs.passeurHint')}</p>
+        <div role="group" aria-label={t('prefs.passeur')} className="grid grid-cols-3 gap-2">
+          {([
+            ['auto', t('prefs.passeurAuto')],
+            ['bouton', t('prefs.passeurBouton')],
+            ['off', t('prefs.passeurOff')],
+          ] as [PasseurMode, string][]).map(([mode, label]) => {
+            const on = prefs.passeur === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setPasseurMode(mode); setPrefs((p) => ({ ...p, passeur: mode })); }}
+                aria-pressed={on}
+                className="rounded-[0.6rem] py-2 text-xs font-semibold transition-all duration-200 hover:brightness-110"
+                style={on
+                  ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 58%), linear-gradient(135deg, #F0C75E, #B8860B)', color: '#34121F', border: '1px solid rgba(240,199,94,0.9)', boxShadow: '0 4px 14px rgba(218,165,32,0.4), inset 0 -3px 8px rgba(122,74,4,0.45)' }
+                  : { background: 'linear-gradient(135deg, rgba(90,58,30,0.5), rgba(58,36,16,0.5))', color: '#F5EAD6', border: '1px solid rgba(218,165,32,0.35)', boxShadow: 'inset 0 1px 0 rgba(240,199,94,0.07)' }}
+              >
+                {on ? '✓ ' : ''}{label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Visiter — rejouer le tutoriel de première visite */}
       <div className="mystic-panel p-5">

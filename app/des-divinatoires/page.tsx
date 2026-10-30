@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
 import FirstVisitHints from '@/components/first-visit-hints';
+import Passeur from '@/components/passeur';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
 import { TutorialModal, type TutorialSlide } from './tutorial-modal';
@@ -207,17 +208,17 @@ descEs: "Elija un Elemento y una intención: los tres dados responden a lo esenc
     steps: [
       'Choisissez un Élément (Feu, Terre, Air, Eau)',
       'Choisissez une intention dans la liste',
-      'Secouez le gobelet et jetez les trois dés',
+      'Secouez le gobelet du doigt — ou secouez le téléphone — pour mélanger, puis jetez les trois dés d’un geste vertical',
       'Lisez l’analyse ancrée sur votre intention',
     ],
     stepsEn: [
       'Choose an Element (Fire, Earth, Air, Water)',
       'Pick an intention from the list',
-      'Shake the cup and cast the three dice',
+      'Shake the cup with your finger — or shake your phone — to mix, then cast the three dice with a vertical flick',
       'Read the analysis anchored to your intention',
     ],
-stepsEs: ["Elija un Elemento (Fuego, Tierra, Aire, Agua)", "Elija una intención en la lista", "Agite el vaso y lance los tres dados", "Lea el análisis anclado en su intención"],
-stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्वी, वायु, जल)", "सूची से एक संकल्प चुनें", "गिलास हिलाएँ और तीन पासे फेंकें", "अपने संकल्प पर आधारित विश्लेषण पढ़ें"],
+stepsEs: ["Elija un Elemento (Fuego, Tierra, Aire, Agua)", "Elija una intención en la lista", "Agite el vaso con el dedo —o sacuda el teléfono— para mezclar y lance los tres dados con un gesto vertical", "Lea el análisis anclado en su intención"],
+stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्वी, वायु, जल)", "सूची से एक संकल्प चुनें", "उँगली से गिलास हिलाएँ — या फ़ोन हिलाएँ — मिलाने के लिए, फिर ऊर्ध्व गति से तीन पासे फेंकें", "अपने संकल्प पर आधारित विश्लेषण पढ़ें"],
   },
   {
     icon: '🔍',
@@ -342,6 +343,7 @@ export default function DesDivinatoiresHub() {
     <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+<Passeur universe="des" />
       <DiceTitle
         title={tr("Les Dés zodiacaux", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
         subtitle={tr("Trois dés, trois clés : Planète, signe et vision pour décoder votre situation.", "Three dice, three keys: Planet, sign and vision to decode your situation.", "Tres dados, tres claves: Planeta, signo y visión para descodificar su situación.", "तीन पासे, तीन कुंजियाँ: ग्रह, राशि और दृष्टि — अपनी स्थिति को सुलझाने के लिए।")}

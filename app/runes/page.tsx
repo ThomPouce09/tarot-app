@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import YiSlideNav from '@/components/yi-slide-nav';
 import FirstVisitHints from '@/components/first-visit-hints';
+import Passeur from '@/components/passeur';
 import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
@@ -269,6 +270,7 @@ export default function RunesHub() {
       <RunesRandomBackdrop />
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+<Passeur universe="runes" />
       <RuneTitle
         fit
         title={(() => {

@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import YiSlideNav from '@/components/yi-slide-nav';
 import FirstVisitHints from '@/components/first-visit-hints';
+import Passeur from '@/components/passeur';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -242,6 +243,7 @@ export default function TarotHubPage() {
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+<Passeur universe="tarot" />
 
       {/* Titre */}
       <div

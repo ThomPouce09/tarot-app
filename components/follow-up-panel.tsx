@@ -24,6 +24,8 @@ import { waitMessages } from '@/lib/wait-messages';
 import { api } from '@/lib/api-client';
 import { TAROT_NIGHT } from '@/app/tarot-3-cartes-simplifie/theme-selector';
 import { YI_LACQUER } from '@/app/yi-jing-simplifie/theme-selector';
+import { ClarifyDrawPortal } from '@/components/clarify-draw';
+import { TAROT_CARDS } from '@/lib/tarot-data';
 
 export interface FollowUpUsage {
   baseUsedMonth?: number | null;
@@ -40,6 +42,8 @@ interface ThreadTurn {
   data: Record<string, any>;
   /** Texte intégral (sections + résumé) — sert de contexte au fil. */
   answer: string;
+  /** Lame de précision attirée pour cette question (tarot avancé uniquement). */
+  clarifyCard?: number;
 }
 
 interface Props {
@@ -64,7 +68,30 @@ interface Props {
   parentReadingId?: string | null;
   /** callback quota refusé (402) → ouvre la modale d'abonnement du parent */
   onGate: (reason: string) => void;
+  /** ── Lame de précision (tarot avancé : 3 Cartes Précis / 5 Cartes Manuelles) ──
+      true = chaque question enchaînée attire UNE carte neuve (jamais retombée),
+      analysée au format franc (développement + conclusion), max MAX_CLARIFY. */
+  clarify?: boolean;
+  /** Fond animé du tirage d'origine (5 Manuelles : vidéo) — repris dans le
+      portail de précision pour que le geste soit exactement le même. */
+  clarifyVideo?: string;
+  /** Le parent rend le rail sous le tapis : on lui remonte les lames tirées. */
+  onClarifyCards?: (cards: number[]) => void;
+  /** Le parent affiche la pile des analyses (tapis replié + lames de
+   *  précision) : on lui remonte le fil complet à chaque évolution. */
+  onTurnsChange?: (turns: FollowUpTurn[]) => void;
 }
+
+/** Tour du fil, exposé au parent (page d'interprétation). */
+export interface FollowUpTurn {
+  question: string;
+  answer: string;
+  data: Record<string, any>;
+  clarifyCard?: number;
+}
+
+/** Limite demandée : 3 questions d'affinage maximum par consultation. */
+const MAX_CLARIFY = 3;
 
 /** Clés de sections par univers — les mêmes que la page d'interprétation. */
 function sectionDefs(isTarot: boolean, t: (k: string) => string) {
@@ -85,6 +112,10 @@ function sectionDefs(isTarot: boolean, t: (k: string) => string) {
 
 /** Texte intégral d'une réponse (pour le contexte du fil serveur). */
 function fullAnswer(d: Record<string, any>, isTarot: boolean): string {
+  // Lame de précision : format franc develop/conclusion/resume (tarot).
+  if (typeof d?.develop === 'string') {
+    return ['develop', 'conclusion', 'resume'].map((k) => String(d?.[k] ?? '').trim()).filter(Boolean).join('\n\n');
+  }
   const keys = isTarot
     ? ['passe', 'present', 'avenir', 'resume']
     : ['situation', 'defis', 'soutien', 'issue', 'conseil', 'resume'];
@@ -241,6 +272,7 @@ const FUW_MIN_MS = 3500;
 export default function FollowUpPanel({
   type, isTarot, cartes, baguette, userId,
   initialQuestion, initialSummary, usage: usageProp, tier, parentReadingId, onGate,
+  clarify, clarifyVideo, onClarifyCards, onTurnsChange,
 }: Props) {
   const t = useT();
   const lang = useLang();
@@ -253,6 +285,16 @@ export default function FollowUpPanel({
   const [turns, setTurns] = useState<ThreadTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // ── Portail de la lame de précision ──
+  // question « en vol » : saisie → ouverture du portail → lame choisie →
+  // POST /api/interpret avec clarifyCard → réponse au format franc.
+  const [pendingQ, setPendingQ] = useState<string | null>(null);
+  // lame posée, analyse en cours : le portail reste à l'écran (les animations
+  // du tirage initial sont ainsi reprises jusque dans la révélation), puis il
+  // s'efface dès que la réponse arrive — on se retrouve en haut de l'analyse.
+  const [pendingCard, setPendingCard] = useState<number | null>(null);
+  // Réponse reçue : l'overlay d'analyse se retire en fondu, puis le portail.
+  const [analysisReady, setAnalysisReady] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const startedRef = useRef(0);
   // ── Focus aux etapes (exigence user) ──
@@ -279,6 +321,11 @@ export default function FollowUpPanel({
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Le parent (pile d'analyses) reflète le fil dès qu'il évolue.
+  // onTurnsChange est le setter useState du parent — référence stable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { onTurnsChange?.(turns); }, [turns]);
 
   useEffect(() => {
     if (busy && !wasBusyRef.current) {
@@ -314,8 +361,14 @@ export default function FollowUpPanel({
     return Math.max(0, usage.grandMonthly - (usage.grandUsedMonth ?? 0));
   })();
 
-  const costNote =
-    remaining === 'unlimited'
+  const costNote = clarify
+    ? pick4(
+        'Votre question attire une lame de précision — une carte neuve, jamais tombée dans cette consultation — et l\u2019Oracle la lit pour vous.',
+        'Your question draws a clarifier card — a new one, never fallen in this consultation — and the Oracle reads it for you.',
+        'Su pregunta atrae una lamina de precision: una carta nueva, que jamas cayo en esta consulta, y el Oraculo la lee para usted.',
+        'आपका प्रश्न एक स्पष्टिकारक पत्ता खींचता है — नया पत्ता, जो इस परामर्श में पहले नहीं आया — और ओरैकल उसे पढ़ता है।',
+      )(lang)
+    : remaining === 'unlimited'
       ? pick4('Compris dans votre abonnement — sans surcoût.', 'Included in your subscription — no extra cost.', 'Incluido en su suscripción — sin coste adicional.', 'आपकी सदस्यता में शामिल — अतिरिक्त लागत नहीं।')(lang)
       : remaining === null
         ? pick4('Cette question compte comme une consultation complète.', 'This question counts as a full reading.', 'Esta pregunta cuenta como una consulta completa.', 'यह प्रश्न एक पूर्ण परामर्श माना जाएगा।')(lang)
@@ -326,12 +379,20 @@ export default function FollowUpPanel({
             `प्रत्येक प्रश्न एक पूर्ण परामर्श है — इस माह ${remaining} ${tier === 'base' ? 'मूल वाचन' : 'उन्नत परामर्श'} शेष हैं।`,
           )(lang);
 
-  const ask = useCallback(async () => {
-    const q = question.trim();
-    if (wordCount < 2 || busy) return;
+  // Lames deja posees dans la consultation (tapis d'origine + precisions) :
+  // exclues de la nouvelle pioche — aucune carte ne retombe deux fois.
+  const laidIds: number[] = [
+    ...(isTarot ? cartes : []),
+    ...turns.map((x) => x.clarifyCard).filter((x): x is number => typeof x === 'number'),
+  ];
+
+  const runAsk = async (q: string, clarifyCard?: number) => {
     setBusy(true);
     setErr(null);
     startedRef.current = Date.now();
+    // Lame de précision : le portail plein écran REMPLACE la scène d'attente —
+    // il reste monté pendant l'analyse (mêmes animations que l'origine).
+    const viaPortal = typeof clarifyCard === 'number';
     const body: any = {
       type,
       question: q,
@@ -343,6 +404,10 @@ export default function FollowUpPanel({
       flowId: (crypto.randomUUID?.() ?? `fu-${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/-/g, ''),
     };
     if (isTarot) body.cartes = cartes; else if (baguette != null) body.baguette = baguette;
+    if (typeof clarifyCard === 'number') {
+      body.clarifyCard = clarifyCard;
+      body.clarifyHistory = turns.map((x) => x.clarifyCard).filter((x): x is number => typeof x === 'number');
+    }
     try {
       const res = await api('/api/interpret', {
         method: 'POST',
@@ -351,11 +416,13 @@ export default function FollowUpPanel({
       });
       if (res.status === 402) {
         const data = await res.json().catch(() => ({}));
+        if (viaPortal) { setPendingQ(q); setPendingCard(null); }
         onGate(data.reason || 'limit-grand');
         return;
       }
       if (res.status === 401 || res.status === 403) {
         const data = await res.json().catch(() => ({}));
+        if (viaPortal) { setPendingQ(q); setPendingCard(null); }
         setErr(data.error || 'session');
         return;
       }
@@ -363,25 +430,72 @@ export default function FollowUpPanel({
       const answer = fullAnswer(data, isTarot);
       if (data.error || !answer) throw new Error(data.error || 'réponse vide');
       // Rituel : la scène tient au moins FUW_MIN_MS (comme le WaitOverlay du
-      // tirage initial) — la révélation ne clignote pas.
-      const elapsed = Date.now() - startedRef.current;
-      if (elapsed < FUW_MIN_MS) await new Promise((r) => setTimeout(r, FUW_MIN_MS - elapsed));
-      setTurns((prev) => [...prev, { question: q, data, answer }]);
+      // tirage initial) — la révélation ne clignote pas. En mode portail, la
+      // pioche + révélation de la lame ont déjà tenu l'écran : on ne rallonge
+      // pas d'un temps mort artificiel.
+      if (!viaPortal) {
+        const elapsed = Date.now() - startedRef.current;
+        if (elapsed < FUW_MIN_MS) await new Promise((r) => setTimeout(r, FUW_MIN_MS - elapsed));
+      }
+      setTurns((prev) => {
+        const nextTurns = [...prev, { question: q, data, answer, ...(typeof clarifyCard === 'number' ? { clarifyCard } : {}) }];
+        if (typeof clarifyCard === 'number') {
+          onClarifyCards?.(nextTurns.map((x) => x.clarifyCard).filter((x): x is number => typeof x === 'number'));
+        }
+        return nextTurns;
+      });
       setQuestion('');
+      if (viaPortal) setAnalysisReady(true); // fondu de l'animation, puis onDismiss
     } catch (e: any) {
+      if (viaPortal) { setPendingQ(q); setPendingCard(null); setAnalysisReady(false); }
       setErr(e?.message || 'erreur');
     } finally {
       setBusy(false);
     }
-  }, [question, busy, wordCount, type, userId, lang, isTarot, cartes, baguette, turns, initialQuestion, initialSummary, parentReadingId, onGate]);
+  };
+
+  const ask = useCallback(async () => {
+    const q = question.trim();
+    if (wordCount < 2 || busy) return;
+    // Mode lame de précision : la question ouvre D'ABORD le portail de tirage
+    // (même environnement, mêmes animations que l'origine) ; l'analyse part
+    // quand la lame est posée.
+    if (clarify) { setPendingQ(q); setQuestion(''); return; }
+    await runAsk(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, busy, wordCount, type, userId, lang, isTarot, cartes, baguette, turns, initialQuestion, initialSummary, parentReadingId, onGate, clarify]);
+
+  const clarifyReached = clarify === true && turns.length >= MAX_CLARIFY;
 
   const secs = sectionDefs(isTarot, t);
+  // Sections d'un tour de lame de précision (format franc).
+  const clarifySecs: { k: string; label: string }[] = [
+    { k: 'develop', label: t('follow.develop') },
+    { k: 'conclusion', label: t('follow.conclusion') },
+  ];
 
   // Sans identité (invité), la consultation filée n'a pas de suivi de droits :
   // le panneau reste discret.
   if (!email) return null;
 
   return (
+    <>
+    {/* Portail « lame de précision » : même environnement, mêmes animations
+        que le tirage d'origine — une seule carte, jamais retombée. */}
+    {(pendingQ !== null || pendingCard !== null) && (
+      <ClarifyDrawPortal
+        excludeIds={laidIds}
+        question={pendingQ || ''}
+        backgroundVideo={clarifyVideo}
+        majorsOnly={type === 'tarot-3-cartes'}
+        analyzing={pendingCard !== null}
+        analysisReady={analysisReady}
+        waitType={type}
+        onDismiss={() => { setPendingQ(null); setPendingCard(null); setAnalysisReady(false); }}
+        onQuit={() => { if (pendingCard == null && pendingQ) setQuestion(pendingQ); setPendingQ(null); setPendingCard(null); }}
+        onPicked={(cardId) => { setPendingCard(cardId); void runAsk(pendingQ || '', cardId); }}
+      />
+    )}
     <section
       ref={panelRef}
       className="rounded-2xl border backdrop-blur-sm"
@@ -433,7 +547,7 @@ export default function FollowUpPanel({
             <div className="px-5 pb-5 space-y-4">
               {/* Fil des echanges precedents (#2…) — reponses completes,
                   meme presentation que la lecture initiale. */}
-              {turns.length > 0 && (
+              {!clarify && turns.length > 0 && (
                 <ol className="space-y-3">
                   {turns.map((x, i) => (
                     <li key={i} ref={i === turns.length - 1 ? lastTurnRef : null} className="rounded-xl border px-4 py-3" style={{ borderColor: `${gold}22`, background: 'rgba(255,255,255,0.03)', scrollMarginTop: '88px' }}>
@@ -441,8 +555,23 @@ export default function FollowUpPanel({
                         {t('follow.turn')} {i + 2}
                       </p>
                       <p className="mb-2 text-[13px] italic" style={{ color: gold }}>« {x.question} »</p>
+                      {/* Lame de précision posée pour cette question */}
+                      {typeof x.clarifyCard === 'number' && (
+                        <div className="mb-2 flex items-center gap-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/cards/arcana/${x.clarifyCard}.jpg`}
+                            alt={TAROT_CARDS.find((c) => c.id === x.clarifyCard)?.name || ''}
+                            className="rounded-md"
+                            style={{ width: 34, aspectRatio: '764 / 1286', objectFit: 'cover', border: `1px solid ${gold}66`, boxShadow: `0 0 10px ${gold}33` }}
+                          />
+                          <span className="text-[10px] uppercase tracking-[0.16em]" style={{ color: `${gold}b3`, fontFamily: 'var(--font-cinzel), serif' }}>
+                            {t('follow.clarifyName')}
+                          </span>
+                        </div>
+                      )}
                       <div className="space-y-2.5">
-                        {secs.map((s) => {
+                        {(typeof x.data?.develop === 'string' ? clarifySecs : secs).map((s) => {
                           const v = String(x.data?.[s.k] ?? '').trim();
                           if (!v) return null;
                           return (
@@ -464,9 +593,11 @@ export default function FollowUpPanel({
                 </ol>
               )}
 
-              {/* attente : scene 16:9 thematique (ou video fournie par le user) */}
+              {/* attente : scene 16:9 thematique (ou video fournie par le user)
+                    — en mode lame de précision, le portail plein écran tient
+                    l'écran pendant l'analyse : pas de scene ici. */}
               <AnimatePresence>
-                {busy && (
+                {busy && pendingCard == null && (
                   <motion.div ref={sceneRef} key="wait" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                     style={{ scrollMarginTop: '88px' }}>
                     <FollowWaitScene isTarot={isTarot} lang={lang} />
@@ -474,8 +605,10 @@ export default function FollowUpPanel({
                 )}
               </AnimatePresence>
 
-              {/* Saisie (masquee pendant l'attente — la scene prend la place) */}
-              {!busy && (
+              {/* Saisie (masquee pendant l'attente — la scene prend la place ;
+                    disparaît définitivement quand la 3e lame de précision est
+                    posée : l'affinage est clos, seule reste la suite logique) */}
+              {!busy && !clarifyReached && (
                 <textarea
                   ref={inputRef}
                   value={question}
@@ -488,10 +621,12 @@ export default function FollowUpPanel({
                 />
               )}
 
-              {/* CTA + annonce du cout */}
+              {/* CTA + annonce du cout (annonce masquee quand l'affinage est
+                  clos — l'encart « nouvelle consultation » suffit) */}
               {!busy && (
                 <div className="flex flex-col gap-2">
                   {err && <p className="text-[12.5px] text-red-300">{err}</p>}
+                  {!clarifyReached && (
                   <p className="flex items-start gap-2 text-[12px] leading-snug" style={{ color: `${gold}cc` }}>
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" className="mt-0.5 shrink-0">
                       <circle cx="12" cy="12" r="9" />
@@ -499,14 +634,37 @@ export default function FollowUpPanel({
                     </svg>
                     {costNote}
                   </p>
-                  <button
-                    type="button"
-                    onClick={ask}
-                    disabled={!canAsk}
-                    className={"w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed " + (isTarot ? "tarot-btn" : "yi-btn")}
-                  >
-                    {t('follow.ask')}
-                  </button>
+                  )}
+                  {clarifyReached ? (
+                    // Limite atteinte : on ne bloque pas sec, on ouvre la suite logique.
+                    <div className="rounded-xl border px-4 py-3 text-center" style={{ borderColor: `${gold}3a`, background: 'rgba(255,255,255,0.03)' }}>
+                      <p className="text-[12px] leading-snug" style={{ color: `${gold}cc` }}>{t('follow.maxReached')}</p>
+                      <a
+                        href={isTarot ? '/tarot' : '/yi-jing'}
+                        className={"mt-3 inline-block text-sm " + (isTarot ? "tarot-btn" : "yi-btn")}
+                        style={{ padding: '10px 18px' }}
+                      >
+                        {t('follow.newConsult')}
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      {/* compteur des questions d'affinage (max 3) */}
+                      {clarify && (
+                        <p className="text-[11px] text-center" style={{ color: `${gold}99` }}>
+                          {t('follow.clarifyName')} {turns.length + 1} / {MAX_CLARIFY}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={ask}
+                        disabled={!canAsk || (clarify && turns.length >= MAX_CLARIFY)}
+                        className={"w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed " + (isTarot ? "tarot-btn" : "yi-btn")}
+                      >
+                        {clarify ? t('follow.clarifyAsk') : t('follow.ask')}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -514,5 +672,6 @@ export default function FollowUpPanel({
         )}
       </AnimatePresence>
     </section>
+    </>
   );
 }

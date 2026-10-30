@@ -1105,7 +1105,44 @@ export function ThreadSteps({
             </p>
             <p className="text-amber-200 italic text-sm">« <Highlight text={String(step.question || '')} query={query} /> »</p>
           </div>
-          {keys.map(([k, label, Icon]) => {
+          {/* Lame de précision attirée pour cette question (tarot avancé) */}
+          {Number.isInteger(step.clarifyCard) && (
+            <div className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/cards/arcana/${step.clarifyCard}.jpg`}
+                alt=""
+                className="rounded-md"
+                style={{ width: 40, aspectRatio: '764 / 1286', objectFit: 'cover', border: '1px solid rgba(218,165,32,0.5)', boxShadow: '0 0 12px rgba(218,165,32,0.25)' }}
+              />
+              <span className="text-[10px] uppercase tracking-[0.16em] text-amber-400/80" style={{ fontFamily: 'var(--font-cinzel), serif' }}>
+                {t('follow.clarifyName')}
+              </span>
+            </div>
+          )}
+          {/* Lame de précision : réponse au format franc (développement,
+              conclusion, synthèse). Sinon : grille de sections du tirage. */}
+          {typeof step.develop === 'string' && step.develop ? (
+            <>
+              <div className="bg-gray-800/30 border-gray-700/25 border rounded-lg p-3">
+                <h4 className="text-amber-300 font-semibold text-sm mb-2">{t('follow.develop')}</h4>
+                <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={String(step.develop)} query={query} /></p>
+              </div>
+              {String(step.conclusion || '').trim() && (
+                <div className="bg-green-950/20 border-green-800/30 border rounded-lg p-3">
+                  <h4 className="text-green-300 font-semibold text-sm mb-2">{t('follow.conclusion')}</h4>
+                  <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={String(step.conclusion)} query={query} /></p>
+                </div>
+              )}
+              {String(step.resume || '').trim() && (
+                <div className="bg-purple-950/15 border-purple-800/30 border rounded-lg p-3">
+                  <h4 className="text-purple-300 font-semibold text-sm mb-2">✦ {t('history.synthesis')}</h4>
+                  <p className="text-gray-100 text-sm leading-relaxed italic"><Highlight text={String(step.resume)} query={query} /></p>
+                </div>
+              )}
+            </>
+          ) : (
+            keys.map(([k, label, Icon]) => {
             const v = String(step?.[k] ?? '').trim();
             if (!v) return null;
             const isResume = k === 'resume';
@@ -1117,7 +1154,8 @@ export function ThreadSteps({
                 <p className={`text-gray-200 text-sm leading-relaxed${isResume ? ' italic text-gray-100' : ''}`}><Highlight text={v} query={query} /></p>
               </div>
             );
-          })}
+            })
+          )}
         </div>
       ))}
     </div>
