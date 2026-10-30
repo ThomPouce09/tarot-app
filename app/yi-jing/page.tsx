@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import yiJingBackdrops from '@/lib/generated/backdrops-yi-jing.json';
 import YiSlideNav from '@/components/yi-slide-nav';
 import FirstVisitHints from '@/components/first-visit-hints';
+import Passeur from '@/components/passeur';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -235,6 +236,7 @@ export default function YiJingHubPage() {
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
       <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+<Passeur universe="yijing" />
 
       {/* Titre */}
       <div className="absolute top-[6%] left-1/2 w-[92vw] max-w-xl -translate-x-1/2 z-30 text-center px-4 pointer-events-none">

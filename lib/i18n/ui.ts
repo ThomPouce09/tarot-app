@@ -990,6 +990,13 @@ export const DICT = {
   'tourRenard.text': { fr: "On a échangé à peine quelques mots, toi et moi. La visite du hall des Etoiles s'est arrêtée en chemin — veux-tu la reprendre où tu l'as laissée ? Ça ne pique pas, ça éclaire.", en: "We barely exchanged a few words, you and I. The Hall of Stars tour stopped midway — shall we pick it back up? It does not sting, it illuminates.", es: "Solo intercambiamos unas pocas palabras, tú y yo. La visita al salón de las Estrellas se detuvo a medias — ¿quiere retomarla? No pica, ilumina.", hi: "हमने बस कुछ शब्द exchanging किए, आप और मैं। तारों के दालान की सैर बीच में रुक गई — क्या इसे दोबारा उठाएँ? यह चुभता नहीं, रोशन करता है।" },
   'tourRenard.accept': { fr: "Reprendre la visite", en: "Resume the tour", es: "Reanudar la visita", hi: "सैर फिर से शुरू करें" },
   'tourRenard.refuse': { fr: "Pas maintenant", en: "Not now", es: "Ahora no", hi: "अभी नहीं" },
+  'passeur.open': { fr: "Aide au choix du tirage", en: "Choosing a reading", es: "Ayuda para elegir tirada", hi: "पात चुनने में सहायता" },
+  'passeur.aria': { fr: "Aide aux tirages — choisir son tirage", en: "Reading helper — choose your reading", es: "Ayuda de tiradas — elegir su tirada", hi: "पात सहायक — अपना पात चुनें" },
+  'prefs.passeur': { fr: "Aide aux tirages", en: "Reading helper", es: "Ayuda de tiradas", hi: "पात सहायक" },
+  'prefs.passeurHint': { fr: "Guide les nouveaux vers le bon tirage dans chaque univers.", en: "Guides newcomers to the right reading in each universe.", es: "Guía a los nuevos hacia la tirada adecuada en cada universo.", hi: "हर ब्रह्मांड में नए पाठकों को सही पात तक ले जाता है।" },
+  'prefs.passeurAuto': { fr: "Guide automatique", en: "Automatic guide", es: "Guía automática", hi: "स्वचालित मार्गदर्शिका" },
+  'prefs.passeurBouton': { fr: "Point d’interrogation", en: "Question-mark button", es: "Signo de interrogación", hi: "प्रश्न-चिह्न बटन" },
+  'prefs.passeurOff': { fr: "Désactivé", en: "Off", es: "Desactivado", hi: "बंद" },
   'prefs.replayTour': { fr: "Revoir le tutoriel", en: "Replay the tutorial", es: "Ver de nuevo el tutorial", hi: "ट्यूटोरियल फिर देखें" },
   'prefs.replayTourHint': { fr: "Relance tous les tutoriels du jeu", en: "Replays every tutorial in the game", es: "Reinicia todos los tutoriales del juego", hi: "खेल की सभी मार्गदर्शिकाएँ दोबारा चलाएँ" },
 
