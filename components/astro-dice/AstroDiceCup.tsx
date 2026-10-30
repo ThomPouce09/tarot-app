@@ -14,8 +14,9 @@
 // Machine d'états (overlay) :
 //   idle   : gobelet posé en bas de l'arène (gobelet1) — invitation à secouer
 //   shake  : l'utilisateur bouge le doigt gauche/droite → autant d'A/R qu'il
-//            veut pour "mélanger" ; 3 changements de direction déclenchent la
-//            phase tip (prêt à renverser)
+//            veut pour "mélanger" ; les secousses (doigt ou smartphone) ne
+//            lancent jamais : le renversement exige un geste VERTICAL sec
+//            (push doigt > 36 px, tap, ou flick Y du smartphone)
 //   tip    : 3 "pushes" verticaux (montées) dans le pad → à chaque push on joue
 //            gobelet2 puis gobelet3 ; AU 3e push (gobelet3 affiché) on déclenche
 //            AUTOMATIQUEMENT le lancer (ANIM 1) en passant `spawn` = rebord bas
@@ -326,43 +327,81 @@ export default function AstroDiceCup({
 
   /* --- Secouage du smartphone + poussée verticale franche (comme baguettes/runes)
      Même mécanique que le pochon des runes : usePouchShake compte les
-     demi-balancements (gamma) et les frappes en translation (accelération),
-     avec un « last » partagé = une seule poussée par balancement. Ici, trois
-     poussées franches arment le renversement du gobelet. En complément, un
-     Flick vertical énergique (chute d'accélération Y franche en < 250 ms)
-     renverse immédiatement : le push seul suffit, comme pour le pouce. */
+     demi-balancements (gamma) et les frappes en translation (accelération).
+     DIFFÉRENCE importante pour le gobelet : ces poussées HORIZONTALES ne font
+     que « mélanger » (le gobelet chancelle, le tuto s'efface) — elles ne
+     lancent JAMAIS le tirage. Le lancer par le smartphone exige un geste
+     VERTICAL sec et franc : le flick Y détecté ci-dessous (chute d'accélération
+     Y franche en < 250 ms, sans à-coups horizontaux). Le doigt garde ses
+     déclencheurs habituels (poussée verticale > 36 px, tap). */
   const cupActive = !revealed && (phase === 'idle' || phase === 'shake');
-  const shakeCountRef = useRef(0);
-  const lastFlickRef = useRef(0);
+  // Impulsion visuelle à chaque poussée horizontale du smartphone : le gobelet
+  // part de côté en alternance (ressort) — la simulation des mini-dés lit `x`
+  // et reçoit la même énergie de mélange que lors d'une secousse du doigt.
+  const pushDirRef = useRef(1);
+  const lastPushRef = useRef(0);
+  const pushSoundAt = useRef(0);
   const { requestPermissions } = usePouchShake(cupActive, () => {
     if (!cupActive) return;
-    shakeCountRef.current += 1;
-    const n = shakeCountRef.current;
-    if (n === 1) onShake?.();
-    if (n >= 3) { shakeCountRef.current = 0; launch(); }
+    onShake?.();
+    const now = Date.now();
+    lastPushRef.current = now;
+    pushDirRef.current *= -1;
+    animate(x, pushDirRef.current * 30, { type: 'spring', stiffness: 460, damping: 13 });
+    if (now - pushSoundAt.current > 1200) {
+      pushSoundAt.current = now;
+      playRandom('dice-shake-1', 'dice-shake-2', 'dice-shake-3', 'dices-cup-1', 'dices-cup-2', 'dices-cup-3');
+    }
   }, (gamma) => {
-    if (cupActive && !revealed) x.set(Math.max(-14, Math.min(14, gamma * 0.8)));
+    // Basculement visuel du téléphone : UNIQUEMENT si le doigt ne tient pas le
+    // pad ET qu'aucune impulsion de poussée ne joue (sinon l'écriture gamma,
+    // bornée ±14, écraserait ~60×/s la position x de la secousse du doigt ou
+    // le ressort de l'impulsion → plus aucun mouvement horizontal visible).
+    if (cupActive && !revealed && !shaking.current && Date.now() - lastPushRef.current > 450)
+      x.set(Math.max(-14, Math.min(14, gamma * 0.8)));
   });
   useEffect(() => {
     if (!cupActive) return;
-    let prevY: number | null = null;
-    let prevT = 0;
+    /* Fenêtre glissante de 250 ms (pas de comparaison échantillon-à-échantillon :
+       en plein milieu d'une secousse g/d, x peut être calme AU PIC de sa course
+       pendant que le tangage fait chuter y — c'est ce qui déclenchait encore).
+       Le lancer exige : (1) une CHUTE de y ≥ 6 m/s² depuis le sommet de la
+       fenêtre (geste vertical sec : bascule/jeté vers le haut), ET (2) une
+       AMPLITUDE horizontale de la fenêtre entière ≤ 8 m/s² — une secousse g/d
+       a toujours une excursion x bien plus grande : elle ne déclenche donc
+       JAMAIS, quel que soit l'instant d'échantillonnage. */
+    const WIN = 250;
+    const samples: { t: number; ax: number; ay: number }[] = [];
+    let lastLaunch = 0;
     const onMotion = (e: DeviceMotionEvent) => {
       const a = e.accelerationIncludingGravity;
       if (!a || a.y == null) return;
       const now = Date.now();
+      const ax = a.x ?? 0;
+      const ay = a.y;
+      samples.push({ t: now, ax, ay });
+      while (samples.length && now - samples[0].t > WIN) samples.shift();
+      if (revealed) return;
+      let hiY = -Infinity;
+      let tHiY = now;
+      let loAx = Infinity;
+      let hiAx = -Infinity;
+      for (const s of samples) {
+        if (s.ay > hiY) { hiY = s.ay; tHiY = s.t; }
+        if (s.ax < loAx) loAx = s.ax;
+        if (s.ax > hiAx) hiAx = s.ax;
+      }
+      const yDrop = hiY - ay;
+      const xSwing = hiAx - loAx;
       if (
-        prevY != null &&
-        now - prevT < 250 &&
-        prevY - a.y >= 4.5 &&
-        now - lastFlickRef.current > 800 &&
-        !revealed
+        now - tHiY <= WIN &&
+        yDrop >= 6.0 &&
+        xSwing <= 8.0 &&
+        now - lastLaunch > 800
       ) {
-        lastFlickRef.current = now;
+        lastLaunch = now;
         launch();
       }
-      prevY = a.y;
-      prevT = now;
     };
     window.addEventListener('devicemotion', onMotion);
     return () => window.removeEventListener('devicemotion', onMotion);

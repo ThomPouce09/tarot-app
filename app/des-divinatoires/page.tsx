@@ -208,17 +208,17 @@ descEs: "Elija un Elemento y una intención: los tres dados responden a lo esenc
     steps: [
       'Choisissez un Élément (Feu, Terre, Air, Eau)',
       'Choisissez une intention dans la liste',
-      'Secouez le gobelet et jetez les trois dés',
+      'Secouez le gobelet du doigt — ou secouez le téléphone — pour mélanger, puis jetez les trois dés d’un geste vertical',
       'Lisez l’analyse ancrée sur votre intention',
     ],
     stepsEn: [
       'Choose an Element (Fire, Earth, Air, Water)',
       'Pick an intention from the list',
-      'Shake the cup and cast the three dice',
+      'Shake the cup with your finger — or shake your phone — to mix, then cast the three dice with a vertical flick',
       'Read the analysis anchored to your intention',
     ],
-stepsEs: ["Elija un Elemento (Fuego, Tierra, Aire, Agua)", "Elija una intención en la lista", "Agite el vaso y lance los tres dados", "Lea el análisis anclado en su intención"],
-stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्वी, वायु, जल)", "सूची से एक संकल्प चुनें", "गिलास हिलाएँ और तीन पासे फेंकें", "अपने संकल्प पर आधारित विश्लेषण पढ़ें"],
+stepsEs: ["Elija un Elemento (Fuego, Tierra, Aire, Agua)", "Elija una intención en la lista", "Agite el vaso con el dedo —o sacuda el teléfono— para mezclar y lance los tres dados con un gesto vertical", "Lea el análisis anclado en su intención"],
+stepsHi: ["एक तत्व चुनें (अग्नि, पृथ्वी, वायु, जल)", "सूची से एक संकल्प चुनें", "उँगली से गिलास हिलाएँ — या फ़ोन हिलाएँ — मिलाने के लिए, फिर ऊर्ध्व गति से तीन पासे फेंकें", "अपने संकल्प पर आधारित विश्लेषण पढ़ें"],
   },
   {
     icon: '🔍',
