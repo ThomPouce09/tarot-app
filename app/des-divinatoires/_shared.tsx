@@ -249,10 +249,19 @@ export function useDiceCupHeight(tutorialBoxRef?: MutableRefObject<HTMLElement |
       let topH = 0;
       if (cupBoxRef?.current) {
         const rect = cupBoxRef.current.getBoundingClientRect();
-        topH = Math.max(0, Math.round(rect.top + window.scrollY));
+        // Scène en position FIXE (lancer Solution) : rect.top est DÉJÀ relatif à
+        // l'viewport — n'y rajoute pas scrollY (sinon la hauteur calculée
+        // s'effondre selon l'endroit où l'on scrollait avant le lancer).
+        const fixed = getComputedStyle(cupBoxRef.current).position === 'fixed';
+        topH = Math.max(0, Math.round(fixed ? rect.top : rect.top + window.scrollY));
       }
       const fit = topH > 0 ? vh - topH - tutH - 16 : vh - 24 - 2 * tutH;
-      const next = Math.max(300, Math.min(560, Math.min(Math.round(vh * 0.56), fit)));
+      // Plafond physique : 92 % du viewport (scène centrée, jamais un aplat
+      // bord à bord). ANCIEN : plafond fixe 560 px + 56 % vh → sur téléphone
+      // haut (~800-900 css px) il restait ~30 % d'écran vide : « l'animation
+      // n'est pas en plein écran » (retour user). Le fit (place réelle sous le
+      // bandeau, tuto décompté) décide, 92 % vh borne le maximum.
+      const next = Math.max(300, Math.min(Math.round(vh * 0.92), fit));
       setCupH((prev) => (prev === next ? prev : next));
     };
     measure();

@@ -97,6 +97,9 @@ function ObstacleSolutionPage() {
   const [voiesLoading, setVoiesLoading] = useState(false);
   const [voiesError, setVoiesError] = useState(false);
   const voieRef = useRef<Voie | null>(null);
+  // Copie state pour le rendu : le prop « artemis » de la Solution doit savoir
+  // quelle voie a été choisie (voieRef seul ne déclenche pas de re-render).
+  const [chosenVoie, setChosenVoie] = useState<Voie | null>(null);
   const voiesFetchedRef = useRef(false);
 
   // Interprétations LLM courtes
@@ -107,6 +110,9 @@ function ObstacleSolutionPage() {
   // Analyses approfondies
   const [deepObstacle, setDeepObstacle] = useState<string | null>(null);
   const [deepSolution, setDeepSolution] = useState<string | null>(null);
+  // Secret d'Artémis reçu (fusionné à l'analyse Solution) — remonté par
+  // DiceAnalysis pour la persistance historique.
+  const [artemisAdvice, setArtemisAdvice] = useState<string | null>(null);
 
   // Sauvegarde centralisée
   const readingIdRef = useRef<string | null>(null);
@@ -123,9 +129,25 @@ function ObstacleSolutionPage() {
   // ne déborde jamais du bas de l'écran, même sans scroll possible.
   const cupH = useDiceCupHeight(tutorialRef, step === 'obstacle_roll' || step === 'solution_roll', cupAreaRef);
 
+  // Espace réservé sous l'arène : cible du focus pendant le lancer (le bas
+  // de l'animation est ainsi garanti visible — recette demandée par le user).
+  const cupAnchorRef = useRef<HTMLDivElement | null>(null);
   const scrollToCup = useCallback(() => {
-    // Gobelet CENTRÉ dans l'écran pendant le lancer (comme /choix) +
-    // correction mesurée : le bas du tuteur ne dépasse jamais l'écran.
+    // L'ANCRE (petit espace réservé SOUS le gobelet+tuto) est alignée sur la
+    // ligne de flottaison (block:'end') : l'arène entière est donc garantie
+    // visible, y compris son bas — le scroll étant gelé pendant le lancer,
+    // compter sur un centrage ou une correction ne suffisait pas.
+    const el = cupAnchorRef.current;
+    if (el) {
+      const align = (b: ScrollBehavior) => el.scrollIntoView({ behavior: b, block: 'end' });
+      align('smooth');
+      // Le layout bouge encore (tuto qui apparaît, WebGL qui se dimensionne) :
+      // passes de verrouillage.
+      window.setTimeout(() => align('smooth'), 400);
+      window.setTimeout(() => align('auto'), 900);
+      window.setTimeout(() => align('auto'), 1500);
+      return;
+    }
     scrollToCupFit(cupRef.current ?? cupAreaRef.current, tutorialRef.current);
   }, []);
 
@@ -143,6 +165,10 @@ function ObstacleSolutionPage() {
   }, []);
 
   const rollSolution = useCallback(() => {
+    // Remonter en haut de page AVANT le gel du scroll posé par le gobelet :
+    // sans ça, l'arène naît à la profondeur où l'on avait scrollé (les Voies)
+    // et son bas reste hors écran, irrattrapable (le scroll est verrouillé).
+    try { window.scrollTo({ top: 0 }); } catch { /* noop */ }
     setFaces(randomTargetFaces());
     setStep('solution_roll');
     setResetSignal((n) => n + 1);
@@ -205,8 +231,9 @@ function ObstacleSolutionPage() {
       shortB: shortSolution,
       deepA: deepObstacle,
       deepB: deepSolution,
+      ...(artemisAdvice ? { artemis: artemisAdvice } : {}),
     }) });
-  }, [step, shortObstacle, shortSolution, deepObstacle, deepSolution, readingId, obstacle, solution]);
+  }, [step, shortObstacle, shortSolution, deepObstacle, deepSolution, readingId, obstacle, solution, artemisAdvice]);
 
   // ── Les Voies : dès que l'Obstacle est posé, l'oracle trace 4 attitudes ──
   useEffect(() => {
@@ -246,6 +273,7 @@ function ObstacleSolutionPage() {
 
   const chooseVoie = useCallback((v: Voie, reason?: string | null) => {
     voieRef.current = v;
+    setChosenVoie(v);
     // La Solution se lit DANS la voie choisie : son énoncé devient la
     // question du second lancer (l'IA relie obstacle, voie et faces).
     const qq = reason ? `${v.name} — ${v.motto} (l'oracle impose : ${reason})` : `${v.name} — ${v.motto}`;
@@ -311,7 +339,7 @@ function ObstacleSolutionPage() {
       <div className="mx-auto max-w-2xl px-4">
         {/* Question sauvegardée affichée en permanence après enregistrement
             (une seule ligne — tap pour la modale qui l'affiche en entier) */}
-        {question && (
+        {question && step !== 'solution_roll' && (
           <OneLineQuestion
             className="mx-auto mb-4 max-w-xl text-sm italic leading-relaxed"
             style={{
@@ -342,7 +370,12 @@ function ObstacleSolutionPage() {
           </div>
         )}
 
-        {/* ════════════ GOBELET + TUTORIEL ════════════ */}
+        {/* ════════════ GOBELET + TUTORIEL ════════════
+            FIX NORMAL, toujours : le canvas WebGL du gobelet ne s'initialise
+            PAS dans un conteneur position:fixed/overlay (mesuré deux fois :
+            écran noir / arène absente — retour user « l'astrodice est cassé »).
+            L'agrandissement de l'arène vient uniquement de useDiceCupHeight
+            (92 % vh, plus de plafond 560 px) + blocs cachés au-dessous. */}
         {(step === 'obstacle_roll' || step === 'solution_roll') && (
           <div ref={cupAreaRef}>
             <div
@@ -369,16 +402,25 @@ function ObstacleSolutionPage() {
             </div>
             {/* Tutoriel — rendu partagé (référence /choix) */}
             <DiceTutorial show={showTutorial} boxRef={tutorialRef} text={t('des.choix.tutorial')} />
+            {/* Espace réservé sous l'arène : cible du focus (bas de l'animation
+                garanti visible pendant le lancer). */}
+            <div ref={cupAnchorRef} className="h-8" aria-hidden />
           </div>
         )}
 
-        {/* ════════════ RÉSULTAT OBSTACLE (pilule cliquable + analyse) ════════════ */}
+        {/* ════════════ RÉSULTAT OBSTACLE (pilule cliquable + analyse) ════════════
+            PENDANT le lancer de la Solution ('solution_roll'), le bloc est CACHÉ
+            sans être démonté (display:none) : le démontage remonterait DiceAnalysis
+            et relancerait son APPEL IA — on verrait alors deux animations d'attente
+            en même temps (Obstacle + Solution). Caché, il ne prend aucune hauteur :
+            l'arène WebGL remonte et n'est plus tronquée, et son analyse déjà rendue
+            reste intacte en mémoire. */}
         <AnimatePresence>
           {obstacle && step !== 'obstacle_roll' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-5"
+              className={step === 'solution_roll' ? 'hidden' : 'mt-5'}
             >
               <p
                 className="mb-1 text-center text-xs uppercase tracking-widest"
@@ -398,9 +440,14 @@ function ObstacleSolutionPage() {
           )}
         </AnimatePresence>
 
-        {/* ════════════ LES VOIES — l'oracle trace la sortie de l'Obstacle ════════════ */}
+        {/* ════════════ LES VOIES — l'oracle trace la sortie de l'Obstacle ════════════
+            Affichées SEULEMENT quand l'analyse IA de l'Obstacle est posée
+            (demande user : pas de voies pendant l'animation d'attente). Les
+            voies sont fetching en parallèle dès obstacle_done — quand l'analyse
+            tombe, elles sont déjà là. Filet : si l'IA ne rend rien du tout,
+            une erreur de chargement des voies affichera quand même le bloc. */}
         <AnimatePresence>
-          {step === 'obstacle_done' && obstacle && (
+          {step === 'obstacle_done' && obstacle && (deepObstacle || shortObstacle || voiesError) && (
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -482,6 +529,8 @@ function ObstacleSolutionPage() {
                 spread="Solution"
                 onInterpretationReady={setShortSolution}
                 onDeepAnalysisReady={setDeepSolution}
+                artemis={obstacle && chosenVoie ? { obstacleFaces: obstacle, voie: `${chosenVoie.name} — ${chosenVoie.motto}`, originalQuestion: questionRef.current } : null}
+                onArtemisReady={setArtemisAdvice}
               />
             </motion.div>
           )}

@@ -3,15 +3,18 @@
 // Composants de rendu de /des-divinatoires/obstacle-solution (etape 2/2).
 // Deplaces tels quels depuis page.tsx. GlowDefsStrike reste prive ici.
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { DICE_THEME, DiceButton, PLANET_NAMES, SIGN_NAMES } from '../_shared';
 import type { TargetFaces } from '@/components/astro-dice';
 import AnalysisWaitVideo from '@/components/analysis-wait-video';
 import WaitPoolLine from '@/components/wait-pool-line';
 import { nextRaceSeq } from '@/lib/race-guard';
+import { playSound } from '@/lib/sounds';
+import ArtemisParchment from '@/components/artemis-parchment';
 import { api } from '@/lib/api-client';
 import { useT, useLang, pick4, type Lang } from '@/lib/i18n';
+import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
 import { md, VOIE_TINT } from './helpers';
 
 // ── Analyse courte (LLM, fallback DB) + approfondie — moule /choix ──
@@ -21,12 +24,19 @@ export function DiceAnalysis({
   spread,
   onInterpretationReady,
   onDeepAnalysisReady,
+  artemis,
+  onArtemisReady,
 }: {
   faces: TargetFaces;
   question?: string | null;
   spread?: string;
   onInterpretationReady?: (interp: string | null) => void;
   onDeepAnalysisReady?: (analysis: string | null) => void;
+  /** Secret d'Artémis (Solution uniquement) : obstacleFaces + voie posés →
+   *  le chuchotement arrive FUSIONNÉ dans l'appel deep ; le parchemin s'affiche
+   *  sous l'analyse. Null = tirage sans privilège (Obstacle, ou voie absente). */
+  artemis?: { obstacleFaces: TargetFaces; voie: string; originalQuestion?: string | null } | null;
+  onArtemisReady?: (advice: string) => void;
 }) {
   const t = useT();
   const lang = useLang();
@@ -34,6 +44,14 @@ export function DiceAnalysis({
   const [dbLoading, setDbLoading] = useState(false);
   const [isDeep, setIsDeep] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  // ── Secret d'Artémis (fusionné à l'appel deep de la Solution) ──
+  const [artemisAdvice, setArtemisAdvice] = useState<string | null>(null);
+  const [artemisRevealed, setArtemisRevealed] = useState(false);
+  const artemisBlockedRef = useRef<string | null>(null);
+  // Miroir ref : la valeur au moment de l'appel, sans re-déclencher l'effet.
+  const artemisRef = useRef(artemis);
+  artemisRef.current = artemis;
+  const { gateReason, openGate, closeGate } = useEntitlement();
 
   // Tirage AVANCÉ → l'analyse approfondie (prompt long) est automatique dès
   // que les dés sont posés, et REMPLACE le résumé court dans la même carte
@@ -53,14 +71,26 @@ export function DiceAnalysis({
     setDbLoading(true);
     setDbInterpretation(null);
     setIsDeep(false);
+    setArtemisAdvice(null);
+    setArtemisRevealed(false);
+    artemisBlockedRef.current = null;
 
     (async () => {
       // 1) Analyse approfondie automatique
       try {
+        const arts = artemisRef.current;
         const res = await api('/api/astro-interpretation-obstacle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planet, sign, house, question, kind: spread, mode: 'deep', lang }),
+          body: JSON.stringify({
+            planet, sign, house, question, kind: spread, mode: 'deep', lang,
+            ...(arts ? {
+              withArtemis: true,
+              obstacleFaces: arts.obstacleFaces,
+              voie: arts.voie,
+              originalQuestion: arts.originalQuestion || undefined,
+            } : {}),
+          }),
         });
         const data = await res.json();
         if (seq !== lastSeqRef.current) return;
@@ -68,6 +98,12 @@ export function DiceAnalysis({
           setDbInterpretation(data.analysis);
           setIsDeep(true);
           onDeepAnalysisReady?.(data.analysis);
+          // Secret arrive AVEC l'analyse (un seul appel IA) ; refus = motif
+          // pour la modale de gate au clic sur « Révéler ».
+          if (arts) {
+            if (data.artemis) { setArtemisAdvice(String(data.artemis)); onArtemisReady?.(String(data.artemis)); }
+            if (data.artemisBlocked) artemisBlockedRef.current = String(data.artemisBlocked);
+          }
           setDbLoading(false);
           return;
         }
@@ -179,6 +215,27 @@ export function DiceAnalysis({
             {md(dbInterpretation)}
           </div>
         </div>
+      )}
+
+      {/* ── Le secret d'Artémis — Solution deep uniquement : le chuchotement
+          arrive FUSIONNÉ avec l'analyse (même appel IA) ; le parchemin se
+          révèle au clic. Privilège refusé (tier/limit) → modale de gate. ── */}
+      {artemis && isDeep && (dbInterpretation || !dbLoading) && (
+        <>
+          <ArtemisParchment
+            advice={artemisAdvice}
+            revealed={artemisRevealed}
+            onReveal={() => {
+              if (!artemisAdvice && artemisBlockedRef.current) {
+                openGate(artemisBlockedRef.current as GateReason);
+                return;
+              }
+              playSound('artemis-secret', 1);
+              setArtemisRevealed(true);
+            }}
+          />
+          <EntitlementGateModal reason={gateReason} onClose={closeGate} />
+        </>
       )}
     </div>
   );
