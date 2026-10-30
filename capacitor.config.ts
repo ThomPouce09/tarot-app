@@ -2,7 +2,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.tarot.app',
-  appName: 'Oracle des Etoiles',
+  // Le nom du launcher est porté par les ressources Android (values*/strings.xml,
+  // localisé par langue du système) ; appName = repli pour les outils Capacitor.
+  appName: "L'Oracle des Étoiles",
   webDir: 'out',
   server: {
     androidScheme: 'https',
