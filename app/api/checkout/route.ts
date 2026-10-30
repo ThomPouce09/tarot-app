@@ -99,7 +99,18 @@ export async function POST(request: NextRequest) {
 
     let customerId: string | undefined;
     const existingSub = await prisma.subscription.findUnique({ where: { userId: user.id } });
-    if (existingSub) customerId = existingSub.stripeCustomerId;
+    // Garde symétrique du webhook RevenueCat : un compte déjà servi par un
+    // abonnement Google Play ACTIF ne doit pas créer d'abonnement Stripe
+    // parallèle (double débit). L'achat web sur compte Play reste bloqué tant
+    // que l'abonnement Play est actif — c'est la politique Play (un seul
+    // fournisseur de renouvellement par compte).
+    if (existingSub && existingSub.source === 'play' && ['active', 'trialing', 'past_due'].includes(existingSub.status)) {
+      return NextResponse.json(
+        { error: 'Vous avez déjà un abonnement actif via Google Play — gérez-le depuis l’application Google Play.' },
+        { status: 409 }
+      );
+    }
+    if (existingSub?.stripeCustomerId) customerId = existingSub.stripeCustomerId;
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

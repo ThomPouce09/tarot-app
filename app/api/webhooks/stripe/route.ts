@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
           where: { userId },
           create: {
             userId,
+            source: 'stripe',
             stripeCustomerId: customerId,
             stripeSubscriptionId: subId,
             stripePriceId: priceId,
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest) {
           where: { userId: user.id },
           create: {
             userId: user.id,
+            source: 'stripe',
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             stripePriceId: (sub.items.data[0]?.price?.id) as string,

@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
     await prisma.subscription.upsert({
       where: { userId },
       create: {
-        userId,
+            userId,
+            source: 'stripe',
         stripeCustomerId: customerId,
         stripeSubscriptionId: sub.id,
         stripePriceId: priceId,

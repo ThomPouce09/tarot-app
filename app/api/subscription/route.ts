@@ -72,6 +72,9 @@ export async function GET(request: NextRequest) {
       // Tirages prêtés en mode Invité ce mois-ci (rappel page Abonnement).
       guestUsedMonth: (rights as { guestUsedMonth?: number })?.guestUsedMonth ?? 0,
       plan: sub?.plan ?? 'apprenti',
+      // 'stripe' | 'play' | null — l'APK s'en sert pour router la gestion
+      // (Play = écran d'abonnement Google, Stripe = portal).
+      source: sub?.source ?? null,
       level,
       status: sub?.status ?? null,
       billing: sub?.billing ?? 'month',

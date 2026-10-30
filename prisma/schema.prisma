@@ -101,9 +101,17 @@ model Subscription {
   id                  String   @id @default(cuid())
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId    String
-  stripeSubscriptionId String
-  stripePriceId       String
+  // Source de l'abonnement : 'stripe' (web, CB/PayPal) ou 'play' (Google Play
+  // Billing via webhook RevenueCat, APK). Un seul abonnement actif par compte —
+  // la ligne porte sa source, les champs de l'AUTRE source sont null.
+  source              String   @default("stripe") // 'stripe' | 'play'
+  // Champs Stripe — null pour les abonnés Play.
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  stripePriceId       String?
+  // Champs Play/RevenueCat — null pour les abonnés Stripe.
+  playProductId       String? // product id Play (ex. oracle_initie_mensuel)
+  playPurchaseToken   String? // dernier token connu (traçabilité / debug)
   plan                String // 'initie' | 'arkane'
   billing             String   @default("month") // 'month' | 'year'
   status              String // active | canceled | past_due | trialing
