@@ -2,9 +2,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.tarot.app',
-  // Le nom du launcher est porté par les ressources Android (values*/strings.xml,
-  // localisé par langue du système) ; appName = repli pour les outils Capacitor.
-  appName: "L'Oracle des Étoiles",
+  // Le nom du launcher est porté par les ressources Android (values*/strings.xml) :
+  // values/ = REPLI anglais (toute langue non traduite), values-fr l'original
+  // apostrophé, values-en/es/hi localisés. appName doit rester SANS apostrophe :
+  // `cap sync` le réécrit brut dans values/strings.xml (aapt casserait sinon).
+  appName: "The Oracle of Stars",
   webDir: 'out',
   server: {
     androidScheme: 'https',
