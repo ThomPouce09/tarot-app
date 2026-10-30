@@ -34,6 +34,7 @@ export function NornesTutorialModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
       {/* Voile sombre */}
+
       <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={exitHub} />
 
       <motion.div

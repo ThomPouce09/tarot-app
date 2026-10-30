@@ -42,6 +42,7 @@ import { meaningFor } from '@/components/astro-dice/meanings';
 import { planetName, signName, houseName, dieKindLabel } from '@/components/astro-dice/names';
 import { saveReading, updateReading } from '@/lib/save-reading';
 import { nextRaceSeq } from '@/lib/race-guard';
+
 import { api } from '@/lib/api-client';
 import { useEntitlement, EntitlementGateModal, type GateReason } from '@/lib/use-entitlement';
 import { useExitToHub } from '@/lib/hub-back';
@@ -767,7 +768,7 @@ function AffinagePage() {
                 lineHeight: 1.2,
               }}
             >
-              {tr("Secouez le gobelet pour mélanger les dés, puis poussez vers le haut pour les jeter", "Shake the cup to mix the dice, then swipe up to cast them", "Agite el vaso para mezclar los dados y deslice hacia arriba para lanzarlos", "गिलास को हिलाकर पाशों को मिलाएँ, फिर फेंकने के लिए ऊपर स्लाइड करें")}
+              {tr("Secouez le gobelet du doigt — ou secouez le téléphone — pour mélanger les dés, puis poussez vers le haut pour les jeter", "Shake the cup with your finger — or shake your phone — to mix the dice, then swipe up to cast them", "Agite el vaso con el dedo —o sacuda el teléfono— para mezclar los dados y deslice hacia arriba para lanzarlos", "पासे मिलाने के लिए गिलास को उँगली से हिलाएँ — या फ़ोन हिलाएँ — फिर फेंकने के लिए ऊपर स्लाइड करें")}
             </p>
           </div>
         )}

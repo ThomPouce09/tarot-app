@@ -171,6 +171,7 @@ function AdsEarnRow() {
   const { sub } = useEntitlement();
   const usage = sub?.usage ?? null;
   type AdKindLocal = 'base' | 'grand';
+
   const [state, setState] = useState<Record<AdKindLocal, { left: number; ready: number } | null>>({ base: null, grand: null });
   const [busy, setBusy] = useState<AdKindLocal | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -198,6 +199,7 @@ function AdsEarnRow() {
       if (!native) { flash(t('gate.adsSoon')); return; }
       // TODO (etape AdMob) : montrer la video recompensee puis
       // POST { action:'reward', kind, txId: st.txId } + reload().
+
       flash(t('gate.adsSoon'));
     } catch { flash(t('gate.adsSoon')); }
     finally { setBusy(null); }
@@ -217,7 +219,8 @@ function AdsEarnRow() {
           const st = state[kind];
           const ready = pool[kind];
           return (
-            <div key={kind} className="flex items-start justify-between gap-2">
+            <div key={kind} className="flex items-center justify-between gap-2">
+
               <p className="text-[11px] leading-snug" style={{ color: 'rgba(220,220,230,0.8)' }}>
                 {kind === 'base' ? t('gate.adsBaseText') : t('gate.adsGrandText')}
                 {ready > 0 && <span className="block text-[10px] italic" style={{ color: '#DAA520' }}>{t('gate.adsReady').replace('{n}', String(ready))}</span>}
@@ -238,6 +241,7 @@ function AdsEarnRow() {
     </div>
   );
 }
+
 
 export function EntitlementGateModal({ reason, onClose }: { reason: GateReason | null; onClose: () => void }) {
   const t = useT();
@@ -283,7 +287,8 @@ export function EntitlementGateModal({ reason, onClose }: { reason: GateReason |
             </>
           )}
         </div>
-        {/* Exhaustion constatee -> proposer les tirages gagnables par pub (point 7). */}
+        {/* Épuisement constaté → proposer les tirages gagnables par pub (point 7). */}
+
         {(isBaseDaily || isBasePack || isBaseMonthly || isGrand) && <AdsEarnRow />}
       </div>
     </div>

@@ -133,6 +133,7 @@ function GuestPinPanel({ email, t, notify, subscriber }: { email: string; t: (k:
 type Prefs = {
   dailyReminder: boolean;
   // « Vous nous manquez » : interrupteur INDEPENDANT du rappel quotidien.
+
   missYou: boolean;
   emailNews: boolean;
   backgrounds: string[];
@@ -150,6 +151,7 @@ type Prefs = {
 const DEFAULT_PREFS: Prefs = {
   dailyReminder: false,
   missYou: true, // comportement historique : actif par defaut
+
   emailNews: false,
   backgrounds: [], // vide = tous les fonds en mode aléatoire
   language: 'fr',
@@ -585,6 +587,7 @@ export default function PreferencesPage() {
 
       {/* Nous suivre — liens officiels Instagram / Facebook / TikTok (point 6).
           URLs en base (social_links, Neon) ; reseau sans URL = grise « bientot ». */}
+
       <SocialLinksPanel t={t} />
 
       {/* Reset */}

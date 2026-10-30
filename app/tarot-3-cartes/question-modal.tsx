@@ -35,7 +35,10 @@ export default function QuestionModal({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8, ease: 'easeOut' }}
     >
-      {/* Voile : le jeu devine derrière la brume */}
+      {/* Voile : le jeu devine derrière la brume — un tap DEHORS de la carte
+          ramène au hub Tarot (règle maison : toute modale de départ est
+          fermable par tap extérieur). */}
+
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={exitHub} />
 
       <motion.div

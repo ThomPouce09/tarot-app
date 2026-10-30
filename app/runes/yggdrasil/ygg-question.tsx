@@ -1,10 +1,12 @@
 'use client';
 
-// app/runes/yggdrasil/ygg-question.tsx — La modale de la question (Yggdrasil).
-// Deux chemins, un seul résultat : une question libre OU un thème orienté
-// (4 domaines gardés par une divinité · 5 sous-thèmes chacun, réutilisés de
-// /nornes2). La confirmation lance DIRECTEMENT le tirage : pas d'étape
-// intermédiaire.
+// app/runes/yggdrasil/ygg-question.tsx — La modale de la question (Yggdrasil,
+// Mjölnir). Présentation standardisée sur /obstacle-solution (demande user) :
+// DEUX ONGLETS, pas de « ou » — « Ma question » par défaut, « Thème & intention
+// » en second (4 domaines gardés par une divinité · 5 sous-thèmes chacun,
+// réutilisés de /nornes2). La confirmation lance DIRECTEMENT le tirage : pas
+// d'étape intermédiaire.
+// Mêmes gabarits que DiceLaunchCard (lancer de dés) — teinte cèdre de l'univers.
 
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,17 +28,19 @@ export default function YggQuestion({ open, onConfirm, copy }: {
   const C = {
     title: 'À qui s’adresse l’Arbre ?', titleEn: 'Whom does the Tree speak of?',
 titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किसे संबोधित करता है?",
-    sub: 'Confie ta question — ou choisis un thème pour orienter la lecture si tu préfères rester abstrait.',
-    subEn: 'Entrust your question — or pick a theme to orient the reading if you prefer to stay abstract.',
+    sub: 'Confie ta question précise — le thème oriente la lecture si tu préfères rester abstrait.',
+    subEn: 'Entrust your precise question — a theme orients the reading if you prefer to stay abstract.',
     cta: 'Planter la question', ctaEn: 'Plant the question',
-    subEs: 'Confía tu pregunta — o elige un tema para orientar la lectura si prefieres mantenerte abstracto.',
-    subHi: 'अपना प्रश्न सौंपो — या यदि अमूर्त रहना पसंद हो तो वाचन को दिशा देने के लिए कोई विषय चुनो।',
+    subEs: 'Confía tu pregunta precisa — el tema orienta la lectura si prefieres mantenerte abstracto.',
+    subHi: 'अपना सुस्पष्ट प्रश्न सौंपो — यदि अमूर्त रहना पसंद हो तो विषय वाचन को दिशा देता है।',
     ctaEs: 'Plantear la pregunta',
     ctaHi: 'प्रश्न रखो',
     ...(copy ?? {}),
   };
   const L = (fr: string, en: string, es?: string, hi?: string) =>
     lang === 'en' ? en : lang === 'es' ? (es || fr) : lang === 'hi' ? (hi || fr) : fr;
+  // Question libre par défaut (exigence user — même ordre que /obstacle-solution).
+  const [mode, setMode] = useState<'free' | 'theme'>('free');
   const [free, setFree] = useState('');
   const [domainId, setDomainId] = useState<string | null>(null);
   const domain = RUNE_DOMAINS.find((d) => d.id === domainId) ?? null;
@@ -58,6 +62,8 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
           className="fixed inset-0 z-[90] flex items-center justify-center p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
+          {/* Voile : un tap DEHORS de la carte ferme et ramène au hub. */}
+
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={exitHub} />
           <motion.div
             initial={{ opacity: 0, y: 26, scale: 0.95 }}
@@ -80,100 +86,125 @@ titleEs: "¿A quién se dirige el Árbol?", titleHi: "वृक्ष किस�
               {L(C.sub, C.subEn, C.subEs, C.subHi)}
             </p>
 
-            {/* Chemin 1 : question libre */}
-            <div className="mt-4">
-              <textarea
-                value={free}
-                onChange={(e) => setFree(e.target.value)}
-                maxLength={300}
-                rows={2}
-                placeholder={tr("Ta question, ton sujet…", "Your question, your matter…", "Tu pregunta, tu asunto…", "तुम्हारा प्रश्न, तुम्हारा विषय…")}
-                className="w-full resize-none rounded-xl px-3.5 py-3 text-[14px] leading-relaxed outline-none"
-                style={{
-                  // fond OPAQUE (force-dark WebView ne la réécrit pas) + caret doré
-                  background: 'linear-gradient(160deg, #16301f 0%, #0d2015 100%)',
-                  border: `1.5px solid ${RUNE_THEME.goldPale}3d`,
-                  color: RUNE_THEME.sagePale,
-                  caretColor: RUNE_THEME.goldPale,
-                  fontFamily: 'var(--font-cormorant), serif',
-                }}
-              />
-              <div className="mt-2 text-center">
-                <RuneButton
-                  variant="save"
-                  saveTint="cedar"
-                  disabled={!free.trim()}
-                  onClick={() => free.trim() && onConfirm(free.trim())}
+            {/* Onglets : mêmes pastilles que /obstacle-solution — thème à
+                gauche, « Ma question » à droite ; question précise ACTIVE par
+                défaut. */}
+            <div className="mt-4 mb-1 flex justify-center gap-2">
+              {([
+                ['theme', tr("Thème & intention", "Theme & intention", "Tema e intención", "विषय एवं संकल्प")],
+                ['free', tr("Ma question libre", "My own question", "Mi pregunta libre", "मेरा स्वतंत्र प्रश्न")],
+              ] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setMode(k)}
+                  className="rounded-full px-4 py-1.5 text-xs font-bold transition-all active:scale-[0.97]"
+                  style={{
+                    fontFamily: 'var(--font-cinzel), serif',
+                    letterSpacing: '0.06em',
+                    color: mode === k ? RUNE_THEME.goldPale : `${RUNE_THEME.sage}99`,
+                    background: mode === k ? 'linear-gradient(180deg, #1f5234 0%, #0c2417 100%)' : 'transparent',
+                    border: mode === k ? `1px solid ${RUNE_THEME.goldPale}bf` : `1px solid ${RUNE_THEME.goldPale}33`,
+                    boxShadow: mode === k ? `0 0 16px ${RUNE_THEME.goldPale}42, inset 0 1px 0 ${RUNE_THEME.goldPale}4d` : 'none',
+                  }}
                 >
-                  {L(C.cta, C.ctaEn, C.ctaEs, C.ctaHi)}
-                </RuneButton>
-              </div>
+                  {mode === k ? '✦ ' : ''}{label}{mode === k ? ' ✦' : ''}
+                </button>
+              ))}
             </div>
 
-            {/* Chemin 2 : thèmes orientés */}
-            <div className="mt-4 flex items-center gap-3">
-              <span className="h-px flex-1" style={{ background: `${RUNE_THEME.sage}33` }} />
-              <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `${RUNE_THEME.sage}99` }}>{tr("ou choisis un thème", "or pick a theme", "o elige un tema", "या कोई विषय चुनो")}</span>
-              <span className="h-px flex-1" style={{ background: `${RUNE_THEME.sage}33` }} />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
-              {RUNE_DOMAINS.map((d) => {
-                const sel = domainId === d.id;
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => (sel ? setDomainId(null) : pickDomain(d.id))}
-                    className="relative flex flex-col items-center rounded-xl px-2 py-2.5 transition-transform active:scale-[0.97]"
-                    style={{
-                      background: sel
-                        ? `linear-gradient(165deg, ${RUNE_THEME.forestMid}66 0%, ${RUNE_THEME.forestDeep} 90%)`
-                        : `linear-gradient(165deg, ${RUNE_THEME.forest}55 0%, ${RUNE_THEME.ink}88 90%)`,
-                      border: `1px solid ${sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}2e`}`,
-                      boxShadow: sel ? `0 0 18px ${RUNE_THEME.goldGlow}` : 'none',
-                    }}
+            {mode === 'free' ? (
+              <div className="mt-3">
+                <textarea
+                  value={free}
+                  onChange={(e) => setFree(e.target.value)}
+                  maxLength={300}
+                  rows={2}
+                  placeholder={tr("Ta question, ton sujet…", "Your question, your matter…", "Tu pregunta, tu asunto…", "तुम्हारा प्रश्न, तुम्हारा विषय…")}
+                  className="w-full resize-none rounded-xl px-3.5 py-3 text-[14px] leading-relaxed outline-none"
+                  style={{
+                    // fond OPAQUE (force-dark WebView ne la réécrit pas) + caret doré
+                    background: 'linear-gradient(160deg, #16301f 0%, #0d2015 100%)',
+                    border: `1.5px solid ${RUNE_THEME.goldPale}3d`,
+                    color: RUNE_THEME.sagePale,
+                    caretColor: RUNE_THEME.goldPale,
+                    fontFamily: 'var(--font-cormorant), serif',
+                  }}
+                />
+                <div className="mt-3 text-center">
+                  <RuneButton
+                    variant="save"
+                    saveTint="cedar"
+                    disabled={!free.trim()}
+                    onClick={() => free.trim() && onConfirm(free.trim())}
                   >
-                    {d.icon(sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}b3`)}
-                    <span className="mt-1 text-center text-[12px] leading-tight" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}cc` }}>
-                      {pickContent(d.label, lang)}
-                    </span>
-                    <span className="mt-0.5 text-center text-[9px] italic leading-tight" style={{ color: sel ? RUNE_THEME.sagePale : `${RUNE_THEME.sage}99` }}>
-                      {d.deity}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <AnimatePresence initial={false}>
-              {domain && (
-                <motion.div
-                  key="subs" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }} className="overflow-hidden"
-                >
-                  <div ref={subRef} className="mt-3 rounded-xl px-2.5 py-2" style={{ background: `${RUNE_THEME.ink}99`, border: `1px solid ${RUNE_THEME.goldPale}22` }}>
-                    <p className="px-1 pb-1 text-[10px] uppercase tracking-[0.25em]" style={{ color: RUNE_THEME.goldSoft }}>
-                      {t('runes.nornes2.subTitle')}
-                    </p>
-                    <ul className="space-y-0.5">
-                      {domain.subs.map((s, i) => (
-                        <li key={i}>
-                          <button
-                            type="button"
-                            onClick={() => onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(s, lang)}`)}
-                            className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[#1f5234]/40"
-                          >
-                            <span className="mt-[3px] text-[8px]" style={{ color: RUNE_THEME.goldPale }}>◆</span>
-                            <span className="text-[12px] leading-snug" style={{ color: RUNE_THEME.stone }}>
-                              {pickContent(s, lang)}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    {L(C.cta, C.ctaEn, C.ctaEs, C.ctaHi)}
+                  </RuneButton>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Thèmes orientés : 4 domaines × 5 sous-thèmes */}
+                <div className="mt-3 grid grid-cols-2 gap-2.5">
+                  {RUNE_DOMAINS.map((d) => {
+                    const sel = domainId === d.id;
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => (sel ? setDomainId(null) : pickDomain(d.id))}
+                        className="relative flex flex-col items-center rounded-xl px-2 py-2.5 transition-transform active:scale-[0.97]"
+                        style={{
+                          background: sel
+                            ? `linear-gradient(165deg, ${RUNE_THEME.forestMid}66 0%, ${RUNE_THEME.forestDeep} 90%)`
+                            : `linear-gradient(165deg, ${RUNE_THEME.forest}55 0%, ${RUNE_THEME.ink}88 90%)`,
+                          border: `1px solid ${sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}2e`}`,
+                          boxShadow: sel ? `0 0 18px ${RUNE_THEME.goldGlow}` : 'none',
+                        }}
+                      >
+                        {d.icon(sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}b3`)}
+                        <span className="mt-1 text-center text-[12px] leading-tight" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: sel ? RUNE_THEME.goldPale : `${RUNE_THEME.goldPale}cc` }}>
+                          {pickContent(d.label, lang)}
+                        </span>
+                        <span className="mt-0.5 text-center text-[9px] italic leading-tight" style={{ color: sel ? RUNE_THEME.sagePale : `${RUNE_THEME.sage}99` }}>
+                          {d.deity}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <AnimatePresence initial={false}>
+                  {domain && (
+                    <motion.div
+                      key="subs" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }} className="overflow-hidden"
+                    >
+                      <div ref={subRef} className="mt-3 rounded-xl px-2.5 py-2" style={{ background: `${RUNE_THEME.ink}99`, border: `1px solid ${RUNE_THEME.goldPale}22` }}>
+                        <p className="px-1 pb-1 text-[10px] uppercase tracking-[0.25em]" style={{ color: RUNE_THEME.goldSoft }}>
+                          {t('runes.nornes2.subTitle')}
+                        </p>
+                        <ul className="space-y-0.5">
+                          {domain.subs.map((s, i) => (
+                            <li key={i}>
+                              <button
+                                type="button"
+                                onClick={() => onConfirm(`${pickContent(domain.label, lang)} — ${pickContent(s, lang)}`)}
+                                className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[#1f5234]/40"
+                              >
+                                <span className="mt-[3px] text-[8px]" style={{ color: RUNE_THEME.goldPale }}>◆</span>
+                                <span className="text-[12px] leading-snug" style={{ color: RUNE_THEME.stone }}>
+                                  {pickContent(s, lang)}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}
