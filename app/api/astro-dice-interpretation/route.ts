@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildProfileBlock, injectProfile } from '@/lib/profile';
 import { callOracle, LONG_REQUEST_TIMEOUT_MS } from '@/lib/llm';
 import { clampTwoSentences } from '@/lib/artemis-secret';
+import { ORACLE_ASTRO_STANCE } from '@/lib/oracle-stance';
 import { checkPerk, consumePerk, perkReasonCode } from '@/lib/perks';
 import { resolveLang, outputDirective } from '@/lib/lang';
 import { type DieKind } from '@/components/astro-dice/glyphs';
@@ -246,6 +247,8 @@ Les actions en langage courant, CHACUNE commence par "Action concrète N :", 10-
 // Déclenché par body.withArtemis + body.originalFaces (les autres appelants
 // zoom gardent le texte libre comme avant).
 
+const LANG_NAMES: Record<string, string> = { fr: 'en français', en: 'in English', es: 'en español', hi: 'in हिन्दी' };
+
 function buildZoomWithArtemisPrompt(
   faces: Record<string, string | number>,
   originalFaces: Record<string, string | number>,
@@ -253,6 +256,7 @@ function buildZoomWithArtemisPrompt(
   m: Mode,
   dbInterpretation?: string,
   question?: string,
+  langName = 'en français',
 ): string {
   const kinds: DieKind[] = ['planet', 'sign', 'house'];
   const lines = (f: Record<string, string | number>) =>
@@ -275,8 +279,10 @@ ${lines(faces)}${db}${q}
 
 Deux réponses, dans le même objet JSON :
 1. "texte" : ${mission}.
-2. "artemis" : le SECRET d'Artémis — 2 phrases MAXIMUM (une seule si elle suffit), gravées dans un parchemin : chaque mot compte. Message puissant, tranchant, qui découle UNIQUEMENT de ce changement de ${label} lu à la lumière du tirage initial et dit un lien DIRECT avec les cartes face à la personne (nomme l'attitude, le geste, l'enjeu précis de CE tirage — jamais une maxime générale). Ton : révélation nocturne d'une déesse qui connaît la personne, jamais un conseil de développement personnel. Aucun remplissage, aucune reformulation du point 1.
+LANGUE IMPOSÉE — NON NÉGOCIABLE : la personne ne lit que ${langName}. CHACUNE des deux valeurs ("texte" ET "artemis") doit être intégralement rédigée ${langName}, y compris les noms des astres (Artémis / Artemis, Saturne / Saturn…) dans la langue cible. Ne jamais mélanger les langues, jamais répondre dans une autre langue que ${langName}.
 
+2. "artemis" : le SECRET d'Artémis. TU ES ARTÉMIS. La consultante ou le consultant est devant toi et vient de confier son problème ; le tirage initial a posé le décor, ce changement de ${label} lu à sa lumière est la réponse. Tu lui chuchotes exactement DEUX phrases courtes — séparées par un POINT, jamais des virgules : la première désigne ce qu'elle doit voir ou faire demain, dans sa vraie vie, ancrée dans la maison en jeu (maison 3 = les mots, maison 4 = le foyer, maison 7 = l'autre en face, maison 10 = le métier…) ; la seconde nomme l'énergie mise dans sa main en UN verbe (trancher, se taire, attendre, dire, refuser…). Tutoiement grave de déesse à mortelle — une flèche qui traverse une cuirasse, jamais une maxime générale, jamais un manuel d'actions, jamais un résumé du point 1.
+   FRANÇAIS IMPECCABLE EXIGÉ (si ${langName} est le français) : chaque phrase est une phrase GRAMATICALE COMPLÈTE — sujet + verbe conjugué + complément — comme une déesse qui parle, pas une énumération de noms collés (« la force tranquille accepte » est INTERDIT). Pas d'anglais qui déborde, pas de mots inventés. Relis-toi : si une romancière française n'écrirait pas la phrase telle quelle, réécris-la.
 Réponds STRICTEMENT en JSON (pas de texte avant/après, pas de markdown) :
 { "texte": "...", "artemis": "..." }`;
 }
@@ -320,7 +326,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'facesA et facesB requis' }, { status: 400 });
     }
     const prompt = buildChoixPrompt(facesA, facesB, kinds, question, body.dbInterpretationA, body.dbInterpretationB);
-    const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
+    const content = (await callOracle(injectProfile(ORACLE_ASTRO_STANCE + prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         comparaison: "Les étoiles se voilent un instant… La comparaison n'a pas pu être générée. Recommence plus tard.",
@@ -342,7 +348,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'faces requis' }, { status: 400 });
     }
     const prompt = buildObstacleSolutionPrompt(faces, kinds, kind, dbInterpretation, question);
-    const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
+    const content = (await callOracle(injectProfile(ORACLE_ASTRO_STANCE + prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang))) || '';
     if (!content || content.trim().length === 0) {
       return NextResponse.json({
         texte: "Les étoiles se voilent un instant… L'analyse n'a pas pu être générée. Recommence plus tard.",
@@ -396,11 +402,11 @@ export async function POST(request: NextRequest) {
   }
 
   const prompt = fusedArtemis
-    ? buildZoomWithArtemisPrompt(faces, body.originalFaces, zoomKind, m, dbInterpretation, question)
+    ? buildZoomWithArtemisPrompt(faces, body.originalFaces, zoomKind, m, dbInterpretation, question, LANG_NAMES[lang] || 'en français')
     : buildPrompt(faces, kinds, m, dbInterpretation, question);
   // Analyse longue (json ~10 phrases) : délai élargi, sinon abort sur les
   // modèles gratuits → « Les étoiles se voilent » et bouton de relance.
-  const content = (await callOracle(injectProfile(prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang), m === 'global' || fusedArtemis ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
+  const content = (await callOracle(injectProfile(ORACLE_ASTRO_STANCE + prompt, await buildProfileBlock(guarded.email)) + outputDirective(lang), m === 'global' || fusedArtemis ? { timeoutMs: LONG_REQUEST_TIMEOUT_MS } : undefined)) || '';
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json({
