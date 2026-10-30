@@ -198,6 +198,7 @@ export default function WaitOverlay({
   ready = false,
   onVideoEnded,
   fit169 = false,
+  zClass = 'z-50',
 }: {
   type: string;
   /** Rend les vidéos d'attente en 16:9 centré (bandes noires) plutôt qu'en plein écran recadré. */
@@ -206,6 +207,9 @@ export default function WaitOverlay({
    *  de vidéos minimum, sauf si ready est déjà là). */
   ready?: boolean;
   onVideoEnded?: () => void;
+  /** Classe Tailwind de z-index (défaut z-50) — la lame de précision la monte
+   *  à z-[165] pour couvrir le portail de tirage (z-[150]). */
+  zClass?: string;
 }) {
   const lang = useLang();
   const [cfg, setCfg] = useState<WaitConfig | null>(() => optimisticConfig(type, lang));
@@ -296,7 +300,7 @@ export default function WaitOverlay({
   const v = VARIANTS[c.animation] || VARIANTS.fade;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black pb-20">
+    <div className={`fixed inset-0 ${zClass} flex items-end justify-center overflow-hidden bg-black pb-20`}>
       {c.backgroundType === 'video' && c.backgroundUrls.length > 0 ? (
         <VideoBackground
           urls={c.backgroundUrls.map(withHd)}

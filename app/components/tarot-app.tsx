@@ -56,10 +56,25 @@ export default function TarotApp({
   backgroundImage,
   // Vidéo de fond en boucle (remplace backgroundImage si fournie).
   backgroundVideo,
+  // ── Lame de précision (questions enchaînées, tirages avancés) ──
+  // Cartes déjà posées dans la consultation : exclues de la pioche (aucune
+  // lame ne retombe deux fois). Exclusion re-vérifiée côté serveur.
+  // (excludeIds, inOverlay, onQuit, interpretLabel : typés dans le bloc `}: {`
+  //  en dessous — JAMAIS d'annotation `?:` dans la déstructuration, erreur SWC.)
+  // true = rendu dans une overlay (le panneau d'enchaînement) : la navbar
+  // tiroir est masquée (l'espace parent garde la sienne) et un bouton de
+  // sortie (onQuit) est proposé en haut à gauche.
+  // Libellé du bouton d'interprétation (défaut : « Consulter l'Oracle… »).
   // Disposition des emplacements en croix (tirage 5 cartes) : tableau de
   // 5 positions dans l'ordre d'affichage, chacune avec une zone de grille.
   // Ex. [{ area: 'sommet', label: 'Le Sommet', icon: '✦' }, ...]
   crossLayout,
+  excludeIds,
+  inOverlay,
+  onQuit,
+  ctaHidden,
+  ctaBottom,
+  interpretLabel,
 }: {
   totalPicks?: number;
   positionLabels?: string[];
@@ -73,6 +88,17 @@ export default function TarotApp({
   backgroundImage?: string;
   backgroundVideo?: string;
   crossLayout?: { area: string; label: string; icon: string }[];
+  excludeIds?: number[];
+  inOverlay?: boolean;
+  onQuit?: () => void;
+  /** Lame posée + analyse en cours : masque le bouton « Consulter l'Oracle »
+   *  (la révélation reste seule à l'écran, animations inchangées). */
+  ctaHidden?: boolean;
+  /** Position verticale du CTA d'interprétation (défaut '10%'). Pour la lame
+   *  de précision : calc(...) just sous la carte révélée (recentrée en haut),
+   *  au lieu de flotter tout en bas sous une pioche vide. */
+  ctaBottom?: string;
+  interpretLabel?: string;
 }) {
   const router = useRouter();
 
@@ -96,9 +122,14 @@ export default function TarotApp({
   /* ---- Deck (78 cartes, ou 22 arcanes majeurs si majorsOnly) ---- */
   // Déterministe au 1er render (évite le mismatch d'hydratation Math.random SSR/client).
   // Le mélange aléatoire est appliqué APRÈS hydratation, dans un useEffect.
+  const excludeKey = Array.isArray(excludeIds) && excludeIds.length ? excludeIds.join(',') : '';
   const deckBase = useMemo(
-    () => (majorsOnly ? TAROT_CARDS.filter((c) => c.arcana === 'major') : [...TAROT_CARDS]),
-    [majorsOnly],
+    () => {
+      const excl = new Set(excludeKey ? excludeKey.split(',').map(Number) : []);
+      const fam = majorsOnly ? TAROT_CARDS.filter((c) => c.arcana === 'major') : [...TAROT_CARDS];
+      return fam.filter((c) => !excl.has(c.id));
+    },
+    [majorsOnly, excludeKey],
   );
   const [deck, setDeck] = useState<TarotCard[]>(() => [...deckBase]);
   useEffect(() => {
@@ -476,8 +507,31 @@ export default function TarotApp({
         transition={{ duration: 0.6 }}
         style={{ pointerEvents: isReady ? 'auto' : 'none' }}
       >
-        <YiSlideNav />
+        {!inOverlay && <YiSlideNav />}
       </motion.div>
+      {onQuit && (
+        <motion.button
+          type="button"
+          onClick={onQuit}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isReady ? 1 : 0 }}
+          transition={{ duration: 0.6 }}
+          aria-label={tr("Sortir du tirage", "Leave the draw", "Salir de la tirada", "पात से बाहर")}
+          title={tr("Sortir du tirage", "Leave the draw", "Salir de la tirada", "पात से बाहर")}
+          className="absolute z-[70] flex h-9 w-9 items-center justify-center rounded-full"
+          style={{
+            top: 14, left: 14,
+            background: 'rgba(20,10,5,0.55)',
+            border: '1px solid rgba(218,165,32,0.45)',
+            color: '#E8C87A',
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </motion.button>
+      )}
 
       {/* ========== CINEMATIC BACKGROUND ========== */}
       <motion.div
@@ -955,10 +1009,10 @@ export default function TarotApp({
       {flying && <FlyingCard flying={flying} />}
 
       {/* ========== BOUTON INTERPRÉTATION ========== */}
-      {reveal && (
+      {reveal && !ctaHidden && (
         <motion.div
           className="absolute left-0 right-0 text-center z-30 px-4 sm:px-6"
-          style={{ bottom: '10%' }}
+          style={{ bottom: ctaBottom || (vw < 640 ? 'calc((10% + 71vh - 235px) / 2 - 3vh)' : 'calc((10% + 71vh - 455px) / 2 - 3vh)') }}
           initial={{ opacity: 0, y: 24, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -1006,10 +1060,8 @@ export default function TarotApp({
                 animation: 'btnShimmer 3.2s ease-in-out infinite',
               }}
             />
-            <span className="relative z-10 flex items-center justify-center gap-2.5">
-              <span className="star-ornament" style={{ fontSize: '1.15em', filter: 'drop-shadow(0 0 6px rgba(255,225,150,0.9))' }}>✦</span>
-              {tr("Consulter l'Oracle à propos de ce tirage", "Ask the Oracle about this reading", "Consultar al Oráculo sobre esta tirada", "इस वाचन पर ओरैकल से परामर्श करें")}
-              <span className="star-ornament" style={{ fontSize: '1.15em', filter: 'drop-shadow(0 0 6px rgba(255,225,150,0.9))', animationDelay: '-1.6s, -0.8s' }}>✦</span>
+            <span className="relative z-10 flex items-center justify-center">
+              {interpretLabel || tr("Consulter l'Oracle à propos de ce tirage", "Ask the Oracle about this reading", "Consultar al Oráculo sobre esta tirada", "इस वाचन पर ओरैकल से परामर्श करें")}
             </span>
           </motion.button>
         </motion.div>
