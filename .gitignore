@@ -33,6 +33,7 @@ lerna-debug.log*
 
 # Backups (on ne versionne pas les backups)
 backups/
+.backups/
 
 # IDE
 .vscode/

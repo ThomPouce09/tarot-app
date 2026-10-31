@@ -206,10 +206,10 @@ export const GUIDE_UNIVERSES: Record<UniverseKey, GuideUniverse> = {
       {
         href: '/des-divinatoires/choix',
         title: 'Le tirage du choix', titleEn: 'The Choice Reading', base: false,
-        gestureFr: 'Deux lancés, deux chemins : chaque option a son énergie et sa couleur.',
-        gestureEn: 'Two throws, two paths: each option gets its own energy and colour.',
-        forFr: 'Pour trancher entre deux options précises — A ou B, sans se raconter d\u2019histoires.',
-        forEn: 'To decide between two concrete options — A or B, without telling yourself stories.',
+        gestureFr: 'Vous déposez vos deux options telles que vous les vivez, un seul lancer monte la balance : le ciel pèse les deux plateaux et la voyante ouvre vos deux vies.',
+        gestureEn: 'You lay down both options as you live them, one cast raises the balance: the sky weighs the two plates and the seer opens your two lives.',
+        forFr: 'Pour trancher entre deux options précises — le verdict est argumenté, jamais pile ou face, et c\u2019est vous qui décidez.',
+        forEn: 'To decide between two concrete options — the verdict is argued, never a coin flip, and the decision stays yours.',
       },
       {
         href: '/des-divinatoires/obstacle-solution',

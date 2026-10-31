@@ -99,6 +99,7 @@ export const SOUNDS: SoundEntry[] = [
   { key: 'seal-astro-click', file: '/audio/seal-astro-click.mp3', category: 'ui', label: 'Clic sceller (dés zodiacaux)', duration: 1.62, usage: 'Augure des dés — clic sur « Sceller l’augure »' },
   { key: 'animation-zodiac', file: '/audio/animation-zodiac.mp3', category: 'dice', label: 'Frappe du zodiaque', duration: 3.01, usage: 'Dés — animation « le ciel se déchire » (les 3 faces)' },
   { key: 'animation-zodiac-obstacle', file: '/audio/animation-zodiac-obstacle.mp3', category: 'dice', label: 'Frappe du zodiaque (Obstacle & Solution)', duration: 4.04, usage: 'Dés — frappe dans /obstacle-solution' },
+  { key: 'duel-glide', file: '/audio/duel-glide.mp3', category: 'dice', label: 'Glissement du plateau (Duel)', duration: 1.59, usage: 'Dés — Tirage du choix v2 : chaque élément glisse du rang vers son plateau' },
   { key: 'barman-apparition', file: '/audio/barman-apparition.mp3', category: 'ui', label: 'Apparition du barman', duration: 1.9, usage: 'Pause repas — clic sur le barman (bulle qui ouvre)' },
   { key: 'spell2', file: '/audio/spell2.mp3', category: 'ui', label: 'Sort (variante 2)', duration: 8.0, usage: 'Révélation magique — message du barman' },
   { key: 'spell3', file: '/audio/spell3.mp3', category: 'ui', label: 'Sort (variante 3)', duration: 3.1, usage: 'Révélation magique — message du barman' },

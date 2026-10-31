@@ -7,7 +7,7 @@ import YiSlideNav from '@/components/yi-slide-nav';
 import AuthGate from '@/components/auth-gate';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import WaitPoolLine from '@/components/wait-pool-line';
-import { playRandom } from '@/lib/sounds';
+import { playRandom, playSound } from '@/lib/sounds';
 import { api } from '@/lib/api-client';
 
 // ─── Charte laque noir / rouge / or (identité Yi Jing) ─────────────────────
@@ -944,6 +944,9 @@ function YiJingDuJourPage() {
   const draw = () => {
     setDrawing(true);
     setError(null);
+    // Le « sort » de révélation accompagne le dressage de l'hexagramme
+    // (le son du n° de tige apparue dans le tutoriel) — il avait disparu.
+    playSound('spell', 0.8);
     api('/api/yi-jing-du-jour', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -231,6 +231,8 @@ export async function decideProfilePrompt(email: string | null | undefined): Pro
       where: { email: e },
       select: {
         domains: true, lifeStage: true, tone: true, familiarity: true, birthTown: true, birthHour: true,
+        birthCountry: true, comment: true,   // profileHasData les teste : sans eux, un profil
+                                           // « partiellement rempli » passait pour vide (bug).
         profilePromptSeen: true, profilePromptAt: true, profilePromptRefusals: true,
         readings: { select: { id: true } },
       },
@@ -238,7 +240,7 @@ export async function decideProfilePrompt(email: string | null | undefined): Pro
     if (!u) return 'none';
     const readCount = u.readings.length;
     if (readCount < PROFILE_PROMPT_MIN_READINGS) return 'none';
-    if (profileHasData(u)) return 'suppress'; // profil complété → plus jamais
+    if (profileHasData(u)) return 'suppress'; // profil Oracle complété → plus jamais
     if (u.profilePromptRefusals >= 2) return 'suppress';
     if (!u.profilePromptSeen) return 'show';
     if (!u.profilePromptAt) return 'show';

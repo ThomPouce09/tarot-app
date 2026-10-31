@@ -1160,3 +1160,9 @@ html, body {
 @keyframes navIconPulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.16); filter: brightness(1.3); } }
 .nav-icon-pulse { animation: navIconPulse 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .nav-icon-pulse { animation: none; } }
+/* Aide aux tirages ouverte : le menu du hub reste NET au-dessus du voile
+   flouté (la modale le présente explicitement — il doit rester visible
+   jusqu'au « Compris »). Même surélévation pour la pastille des mini-tutots
+   qui entoure le menu. z-[60] = voile du Passeur ; bulle = 106. */
+html.passeur-open [data-nav-menu] { z-index: 107 !important; }
+html.passeur-open .hint-ring { z-index: 106 !important; }
