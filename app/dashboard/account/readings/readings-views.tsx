@@ -825,6 +825,8 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
         if ((parsed.version === 'des-choix' || parsed.version === 'des-obstacle-solution') && parsed.facesA && parsed.facesB) {
           // sera géré via cette variable en sortie
           interpData = parsed;
+        } else if (parsed.version === 'des-choix-v2' && parsed.faces) {
+          interpData = parsed;
         } else if (parsed.static || parsed.dbInterpretation || parsed.oracleFlash || parsed.analysisGlobal || parsed.refine) {
           interpData = parsed;
           // structured = sections de l'analyse globale (compatibilité AstroView)
@@ -887,7 +889,7 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
       )}
 
       {/* Cartes (dés) — masquées pour des-choix (affichées inline ci-dessous) */}
-      {interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution' ? null : cards.length === 0 ? (
+      {interpData?.version === 'des-choix' || interpData?.version === 'des-obstacle-solution' || interpData?.version === 'des-choix-v2' ? null : cards.length === 0 ? (
         <p className="text-gray-400 text-xs italic">{tr("Tirage sans d\u00e9tail enregistr\u00e9.", "Reading with no saved details.", "Tirada sin detalle registrado.", "\u0935\u093f\u0935\u0930\u0923-\u0930\u0939\u093f\u0924 \u0935\u093f\u0928\u094d\u092f\u093e\u0938 \u0926\u0930\u094d\u091c \u0928\u0939\u0940\u0902 \u0939\u0941\u0908\u0964")}</p>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)}, minmax(0, 1fr))` }}>
@@ -964,6 +966,96 @@ export function AstroView({ r, query = '' }: { r: Reading; query?: string }) {
                 </div>
               )}
             </div>
+          </>
+        );
+      })()}
+
+      {/* ── Format des-choix-v2 « Duel » : dépôt des deux options, un lancer,
+           pesées du ciel, verdict et tranché du consultant ── */}
+      {interpData?.version === 'des-choix-v2' && (() => {
+        const ip: Record<string, any> = interpData || {};
+        const v = ip.verdict as Record<string, string> | undefined;
+        const st = ip.structure as { pesees?: { name: string; pour: string; motif: string }[]; terrain?: string; balance?: string } | undefined;
+        const bal = (ip.balance as string) || st?.balance || 'equilibre';
+        const peseesW = (st?.pesees || []) as { pour: string }[];
+        const wA = peseesW.filter((x) => x.pour === 'A' || x.pour === 'both').length;
+        const wB = peseesW.filter((x) => x.pour === 'B' || x.pour === 'both').length;
+        const faceTiles = DES_CHOIX_KINDS.map((k) => ({ kind: k, value: (ip.faces as any)?.[k], label: k === 'planet' ? PLANET_NAMES[(ip.faces as any)?.[k] as string] : k === 'sign' ? SIGN_NAMES[(ip.faces as any)?.[k] as string] : `${t('history.house')} ${(ip.faces as any)?.[k]}` }));
+        const optBox = (letter: 'A' | 'B') => {
+          const txt = (letter === 'A' ? ip.optionA : ip.optionB) as string;
+          const pen = bal === letter;
+          return (
+            <div className="rounded-2xl p-4" style={{ background: pen ? 'rgba(212,175,55,0.08)' : 'rgba(46,134,193,0.06)', border: pen ? '1px solid rgba(212,175,55,0.5)' : '1px solid rgba(46,134,193,0.25)' }}>
+              <h4 className="text-center text-base font-bold mb-2" style={{ fontFamily: 'var(--font-cinzel-deco), serif', color: pen ? '#D4AF37' : '#7FB3D5' }}>
+                ═══ {t(letter === 'A' ? 'des.choix.duel.pathA' : 'des.choix.duel.pathB')} ═══
+              </h4>
+              <p className="text-center text-sm italic mb-2" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#F0E6D3' }}>« {txt} »</p>
+              {v && (
+                <>
+                  <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#c4a0e0', fontFamily: 'var(--font-cinzel), serif' }}>{t(letter === 'A' ? 'des.choix.duel.argA' : 'des.choix.duel.argB')}</p>
+                  <p className="text-gray-200 text-sm leading-relaxed mb-2"><Highlight text={letter === 'A' ? v.developA : v.developB} query={query} /></p>
+                  {(letter === 'A' ? v.consequenceA : v.consequenceB) && (
+                    <>
+                      <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#87CEEB', fontFamily: 'var(--font-cinzel), serif' }}>{t(letter === 'A' ? 'des.choix.duel.lifeA' : 'des.choix.duel.lifeB')}</p>
+                      <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={letter === 'A' ? v.consequenceA : v.consequenceB} query={query} /></p>
+                    </>
+                  )}
+                </>
+              )}
+              <p className="mt-2 text-center text-[11px] uppercase tracking-widest" style={{ color: `${pen ? '#D4AF37' : '#cfe3f5'}bb`, fontFamily: 'var(--font-cinzel-deco), serif' }}>
+                {letter === 'A' ? wA : wB}/3 ✦
+              </p>
+            </div>
+          );
+        };
+        return (
+          <>
+            {/* Tuiles des 3 dés du lancer unique */}
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${faceTiles.length}, minmax(0, 1fr))` }}>
+              {faceTiles.map((c, i) => (
+                <div key={i} className="flex flex-col items-center rounded-xl p-3 text-center" style={{ background: 'rgba(46,134,193,0.10)', border: '1px solid rgba(46,134,193,0.35)' }}>
+                  <div className="text-3xl leading-none" style={{ color: '#7FB3D5' }}>{c.value}</div>
+                  <div className="mt-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#cfe3f5', opacity: 0.7 }}>{kindLabel[c.kind] || c.kind}</div>
+                  <p className="mt-1.5 text-sm font-semibold leading-snug" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#cfe3f5' }}>{c.label}</p>
+                </div>
+              ))}
+            </div>
+            {st?.terrain && (
+              <p className="text-center text-xs italic" style={{ color: '#cfe3f5', opacity: 0.8 }}>{st.terrain}</p>
+            )}
+            {st?.pesees && (
+              <div className="rounded-2xl p-3" style={{ background: 'rgba(4,6,15,0.35)', border: '1px solid rgba(212,175,55,0.25)' }}>
+                {st.pesees.map((pe, i) => (
+                  <p key={i} className="text-sm leading-relaxed" style={{ color: '#F0E6D3' }}>
+                    • {pe.name} → {pe.pour === 'both' ? t('des.choix.duel.hesitates') : t(pe.pour === 'A' ? 'des.choix.duel.pathA' : 'des.choix.duel.pathB')}
+                    {pe.motif ? <span style={{ opacity: 0.75 }}> — {pe.motif}</span> : null}
+                  </p>
+                ))}
+              </div>
+            )}
+            {v?.tranche && (
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.45)' }}>
+                <p className="text-center text-[15px] font-bold leading-relaxed" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#D4AF37' }}>
+                  <Highlight text={v.tranche} query={query} />
+                </p>
+              </div>
+            )}
+            {optBox('A')}
+            {optBox('B')}
+            {v?.angleMorts && (
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(10,20,48,0.4)', border: '1px dashed rgba(212,175,55,0.4)' }}>
+                <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#cfe3f5', fontFamily: 'var(--font-cinzel), serif' }}>{t('des.choix.duel.angleMort')}</p>
+                <p className="text-gray-200 text-sm leading-relaxed"><Highlight text={v.angleMorts} query={query} /></p>
+              </div>
+            )}
+            {v?.troisiemeLumiere && (
+              <p className="text-center text-sm italic leading-relaxed" style={{ fontFamily: 'var(--font-cormorant), serif', color: '#FFF6DC' }}>
+                ✦ <Highlight text={v.troisiemeLumiere} query={query} /> ✦
+              </p>
+            )}
+            {v?.resume && (
+              <p className="text-center text-sm font-bold" style={{ fontFamily: 'var(--font-cinzel), serif', color: '#E8C66A' }}>{v.resume}</p>
+            )}
           </>
         );
       })()}

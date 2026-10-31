@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLang, pick4, tr } from '@/lib/i18n';
-import { isEffectsEnabled } from '@/lib/sounds';
+import { isEffectsEnabled, playSound } from '@/lib/sounds';
 import {
   BOX_IMG, STICK_IMG, MOVEMENT_THRESHOLD, MAX_BOX_SHIFT_X, MAX_BOX_SHIFT_Y, STICK_LIFT_HEIGHT, STICK_RISE_EASE, STICK_SWING_K, STICK_SWING_DAMP, HORIZONTAL_SENSITIVITY, VERTICAL_SENSITIVITY, TOP_STICKS_COUNT, STICK_DISPLAY_WIDTH, STICK_DISPLAY_HEIGHT, STICK_REAL_WIDTH, BOX_WIDTH, BOX_HEIGHT, BOX_BOTTOM, RIG_W, RIG_H, STICK_BASE_BOTTOM_OFFSET, ACCEL_THRESHOLD, ACCEL_NOISE_FLOOR, SWIPE_ANIMATION_DURATION, SWIPE_ANIMATION_DISTANCE, SWIPE_BELOW_BOX, SWIPE_ICON_SIZE, SWIPE_ICON_OPACITY, SWIPE_TEXT_FONT_SIZE, SWIPE_TEXT_MAX_WIDTH, PROGRESS_BAR_ABOVE_BOX, RESULT_CONTAINER_BOTTOM, RESULT_SUBTITLE_FONT_SIZE, makeSticks, getStickRise,
   type MotionState, type Stick, type Jumping,
@@ -296,6 +296,13 @@ export function YiQingRig({ questionAsked, question }: { questionAsked: boolean;
 
   // Position d'affichage : derive vers le centre (xOffset -> 0) une fois 'centered'
   const displayX = centered ? 0 : (jumping?.xOffset ?? 0);
+
+  // Le « sort » (spell.mp3) accompagne la révélation de l'élue : joué une
+  // seule fois quand la phase passe à 'done' (numéro + traits affichés) —
+  // le son qui tombe juste après le frottement dans le tutoriel Yi Jing.
+  useEffect(() => {
+    if (phase === 'done') playSound('spell', 0.7);
+  }, [phase]);
 
   // --- Jumping animation ---
   useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
-// Helpers de /des-divinatoires/choix : mini-renderer markdown et
-// etiquettes des des. Deplaces tels quels depuis page.tsx (decoupage).
+// Helpers de /des-divinatoires/choix : mini-renderer markdown et etiquettes
+// des des. Deplaces tels quels depuis page.tsx (decoupage).
 
 import { DICE_THEME } from '../_shared';
 import { DieKind, TargetFaces } from '@/components/astro-dice';
@@ -36,7 +36,10 @@ export function inlineMd(s: string): React.ReactNode {
     return part;
   });
 }
-export type Step = 'A_intro' | 'A_roll' | 'A_done' | 'B_intro' | 'B_roll' | 'B_done';
+// v2 « Duel » : un seul lancer, l'IA arbitre les deux options déposées.
+// (A/B_done restent dans l'union pour la LECTURE des anciens tirages et des
+//  builds APK antérieurs ; plus aucune page ne les écrit.)
+export type Step = 'intro' | 'roll' | 'pesee' | 'verdict' | 'done' | 'A_intro' | 'A_roll' | 'A_done' | 'B_intro' | 'B_roll' | 'B_done';
 
 export const ACTIVE_DICE: DieKind[] = ['planet', 'sign', 'house'];
 

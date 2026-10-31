@@ -1,6 +1,6 @@
 'use client';
 
-import { useLang, pick4, tr} from '@/lib/i18n';
+import { useLang, tr} from '@/lib/i18n';
 import { withHd } from '@/lib/video-quality';
 import Firefly from '@/components/firefly';
 import { motion } from "framer-motion";
@@ -16,7 +16,7 @@ import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
-import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { type TutorialSlide } from './tutorial-modal';
 import { DrawTypeCorner } from '@/components/draw-type-badge';
 
 // ── Tutoriel par tirage (réplique du pattern /des-divinatoires & /runes) ────
@@ -177,8 +177,6 @@ import GuestModeBanner from '@/components/guest-mode-banner';
 export default function YiJingHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
-  const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
@@ -187,19 +185,11 @@ export default function YiJingHubPage() {
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
-    if (typeof window !== 'undefined') {
-      setFirstVisit(!localStorage.getItem('yijing_tuto_seen'));
-    }
   }, []);
 
   // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
   useEffect(() => { loadTiles(); }, [loadTiles]);
 
-  const openTutorial = (i: number) => {
-    setActiveSlide(YI_TUTORIALS[i]);
-    if (typeof window !== 'undefined') localStorage.setItem('yijing_tuto_seen', '1');
-    setFirstVisit(false);
-  };
 
   // Jingle d'ouverture : même pattern que /des-divinatoires et /runes
   // (user activation héritée de la navigation par lien ; installSoundUnlock
@@ -235,7 +225,7 @@ export default function YiJingHubPage() {
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }]} />
 <Passeur universe="yijing" />
 
       {/* Titre */}
@@ -292,26 +282,6 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
-                  title={t('hubs.yijing.base')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(243,201,105,0.10)', border: '1px solid rgba(243,201,105,0.33)',
-                    color: '#F5EAD6', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(243,201,105,0.4), 0 0 0 4px rgba(243,201,105,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5EAD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={YI_TUTORIALS[1]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[1]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[1]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-simple.png?v=2"
@@ -370,26 +340,6 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
-                  title={t('hubs.yijing.simple')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(243,201,105,0.10)', border: '1px solid rgba(243,201,105,0.33)',
-                    color: '#F5EAD6', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(243,201,105,0.4), 0 0 0 4px rgba(243,201,105,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5EAD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={YI_TUTORIALS[2]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[2]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[2]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-precis.png?v=2"
@@ -448,26 +398,6 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
-                  title={t('hubs.yijing.day')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(243,201,105,0.10)', border: '1px solid rgba(243,201,105,0.33)',
-                    color: '#F5EAD6', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(243,201,105,0.4), 0 0 0 4px rgba(243,201,105,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5EAD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={YI_TUTORIALS[3]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[3]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[3]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img
                 src="/images/yi-jing-du-jour.png"
@@ -526,26 +456,6 @@ export default function YiJingHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-[#f3c969]/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह वाचन कैसे काम करता है")(lang) }
-                  title={t('hubs.yijing.double')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[yijGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(243,201,105,0.10)', border: '1px solid rgba(243,201,105,0.33)',
-                    color: '#F5EAD6', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(243,201,105,0.4), 0 0 0 4px rgba(243,201,105,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5EAD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={YI_TUTORIALS[0]?.base} color='#F3C969' title={(lang === "en" ? (YI_TUTORIALS[0]?.base ? "Base draw" : "Advanced draw") : YI_TUTORIALS[0]?.base ? "Tirage de base" : "Tirage avancé")} />
                 {/* Icône de tuile — double hexagramme (image fournie) */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -614,7 +524,6 @@ export default function YiJingHubPage() {
           {t('hubs.yijing.footer')}
         </p>
       </div>
-    <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
     <EntitlementGateModal reason={gateReason} onClose={closeGate} />
     <Firefly page="yi-jing" />
     </div>

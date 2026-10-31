@@ -11,8 +11,11 @@
 //     RÉELS de l'univers, un par un ; « C'est pour moi » plonge dans le tirage,
 //     « Voir la suite » passe au suivant ; en bout de course, « Choisir moi-même ».
 //
-// Ouverture auto : une fois par univers (flag compte 'passeur_<u>'), UNIQUEMENT
-// si le mode Préférences est 'auto' et que le hall des Étoiles est terminé.
+// Ouverture auto (mode 'auto' de Préférences) : le guide s'affiche
+// systématiquement en entrant dans chaque univers (une fois par univers et
+// par session de navigation). « Choisir moi-même » bascule la préférence en
+// 'bouton' (plus d'auto nulle part, jusqu'à ce que le user remette 'auto')
+// et fait scintiller le point d'interrogation 3 s.
 // Vouvoiement de rigueur (règle utilisateur).
 
 import { useCallback, useEffect, useState } from 'react';
@@ -20,7 +23,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLang, useT } from '@/lib/i18n';
 import { playSound } from '@/lib/sounds';
-import { isTutorialSeen, markTutorialSeen, hydrateTutorials, TUTS_EVENT } from '@/lib/tutorials';
+import { hydrateTutorials } from '@/lib/tutorials';
 import { GUIDE_UNIVERSES, type UniverseKey, type PasseurMode } from '@/lib/guide-data';
 
 // ── Préférence partagée (localStorage + base) ────────────────────────────────
@@ -35,6 +38,18 @@ export function getPasseurMode(): PasseurMode {
 
 export function setPasseurMode(m: PasseurMode) {
   try { localStorage.setItem(PASSEUR_MODE_KEY, m); } catch { /* stockage indisponible */ }
+  // Remettre « Guide automatique » relance l'accueil dans TOUS les univers
+  // (session en cours incluse) : on purge les marqueurs « déjà accueilli ».
+  if (m === 'auto') {
+    try {
+      const doomed: string[] = [];
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i);
+        if (k && k.startsWith('passeur_auto_')) doomed.push(k);
+      }
+      doomed.forEach((k) => window.sessionStorage.removeItem(k));
+    } catch { /* stockage indisponible */ }
+  }
   window.dispatchEvent(new Event(PASSEUR_MODE_EVENT));
 }
 
@@ -44,12 +59,25 @@ export function PasseurButton({ universe, open, top = 80, right = 7, z = 55 }: {
 }) {
   const t = useT();
   const [hidden, setHidden] = useState(false);
+  // Scintillement de signalement (3 s) quand le guide se ferme sur
+  // « Choisir moi-même » : le user doit voir où retrouver l'aide.
+  const [nudge, setNudge] = useState(false);
   useEffect(() => {
     const sync = () => setHidden(getPasseurMode() === 'off');
     sync();
     window.addEventListener(PASSEUR_MODE_EVENT, sync);
     window.addEventListener('storage', sync);
     return () => { window.removeEventListener(PASSEUR_MODE_EVENT, sync); window.removeEventListener('storage', sync); };
+  }, []);
+  useEffect(() => {
+    let timer: number | undefined;
+    const onNudge = () => {
+      setNudge(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setNudge(false), 3000);
+    };
+    window.addEventListener('passeur-nudge', onNudge);
+    return () => { window.removeEventListener('passeur-nudge', onNudge); window.clearTimeout(timer); };
   }, []);
   if (hidden) return null;
   const label = t('passeur.open');
@@ -59,7 +87,7 @@ export function PasseurButton({ universe, open, top = 80, right = 7, z = 55 }: {
       onClick={() => { playSound('mute-unmute', 0.7); open(); }}
       aria-label={label}
       title={label}
-      className="fixed flex h-9 w-9 items-center justify-center rounded-full opacity-60 backdrop-blur-[2px] transition-all duration-300 hover:scale-110 hover:opacity-100 active:scale-95"
+      className="fixed flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-[2px] transition-transform duration-300 hover:scale-110 active:scale-95"
       style={{
         top,
         right,
@@ -67,8 +95,16 @@ export function PasseurButton({ universe, open, top = 80, right = 7, z = 55 }: {
         background: 'rgba(26,14,10,0.28)',
         border: '1px solid rgba(255,255,255,0.10)',
         boxShadow: 'none',
+        opacity: nudge ? 1 : 0.6,
+        animation: nudge ? 'passeur-sparkle 1s ease-in-out infinite' : undefined,
       }}
     >
+      {nudge && (
+        <style>{`@keyframes passeur-sparkle {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(218,165,32,0); }
+          50% { transform: scale(1.22); box-shadow: 0 0 20px 4px rgba(218,165,32,0.85); }
+        }`}</style>
+      )}
       {/* Glyphe « ? » fin — même trait que l'enceinte (stroke 2, viewBox 24) */}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DAA520" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M9.2 9a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.4-2.8 4" />
@@ -85,7 +121,6 @@ export function PasseurGuide({ universe }: { universe: UniverseKey }) {
   const lang = useLang();
   const U = GUIDE_UNIVERSES[universe];
   const fr = lang !== 'en';
-  const flagKey = `passeur_${universe}`;
   const hubPath = U.hubPath;
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0); // 0..N-1 = tirage présenté ; N = fin
@@ -97,27 +132,33 @@ export function PasseurGuide({ universe }: { universe: UniverseKey }) {
     return () => window.removeEventListener('passeur-open', onOpen);
   }, []);
 
-  // Ouverture AUTO : mode 'auto' + flag univers jamais vu + hall terminé
-  // + portail langue fermé. Comme FirstVisitHints, on attend la disparition
-  // des overlays prioritaires ; on ne se relance JAMAIS après fermeture.
+  // Ouverture AUTO — nouvelle règle (10/31) : en mode « Guide automatique »,
+  // le guide s'affiche SYSTÉMATIQUEMENT dans tous les univers (une fois par
+  // session de navigation par univers, via sessionStorage — jamais de flag
+  // permanent : tant que le mode reste 'auto', chaque univers l'accueille).
+  // « Choisir moi-même » bascule le mode en 'bouton' → plus aucune ouverture
+  // auto nulle part, jusqu'à ce que le user remette 'auto' en Préférences.
   useEffect(() => {
     let stop = false;
+    const sessionKey = `passeur_auto_${universe}`;
     const poll = () => {
       if (stop) return;
-      // Mode vérifié À CHAQUE tick : un changement dans Préférences (autre onglet)
-      // est respecté immédiatement.
-      if (getPasseurMode() !== 'auto') return;
+      // La boucle RESTE VIVE même hors mode 'auto' : si le user remet
+      // « Guide automatique » en Préférences (sans recharger), l'accueil
+      // reprend ici. Mode vérifié à chaque tick.
+      if (getPasseurMode() !== 'auto') { setTimeout(poll, 600); return; }
+      if (window.sessionStorage.getItem(sessionKey) === '1') return; // déjà accueilli dans cette session
       const busy = document.querySelector('[data-lang-gate]') || document.querySelector('[data-tour="hall"]');
-      hydrateTutorials().then(() => {
-        if (stop) return;
-        // flag posé à la fermeture : la modale ne se rouvre jamais en auto.
-        if (!busy && !isTutorialSeen(flagKey)) setOpen(true);
-        else setTimeout(poll, 600);
-      });
+      if (!busy) {
+        try { window.sessionStorage.setItem(sessionKey, '1'); } catch { /* stockage indisponible */ }
+        setOpen(true);
+      } else {
+        setTimeout(poll, 600);
+      }
     };
     poll();
     return () => { stop = true; };
-  }, [flagKey]);
+  }, [universe]);
 
   // Ferme si l'utilisateur navigue hors du hub (on sort, la page change).
   useEffect(() => {
@@ -130,15 +171,40 @@ export function PasseurGuide({ universe }: { universe: UniverseKey }) {
 
   const close = useCallback(() => {
     setOpen(false);
-    markTutorialSeen(flagKey); // « vu » = ne se rouvre plus en auto, quel que soit le mode de sortie
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flagKey]);
+  }, []);
+
+  // Tant que la modale est ouverte, le MENU doit rester nettement visible
+  // (l'utilisateur doit le voir jusqu'au « Compris » — il lui est présenté
+  // dans le guide) : le voile flouté de la modale passerait par-dessus sinon.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.documentElement;
+    if (open) el.classList.add('passeur-open'); else el.classList.remove('passeur-open');
+    return () => { el.classList.remove('passeur-open'); };
+  }, [open]);
+
+  // « Choisir moi-même » : l'aide passe en mode bouton PARTOUT, le point
+  // d'interrogation scintille 3 s pour montrer où la retrouver. Les marqueurs
+  // de session « déjà accueilli » sont effacés : si le user remet « Guide
+  // automatique » plus tard, l'accueil reprend dans chaque univers.
+  const chooseMyself = useCallback(() => {
+    setOpen(false);
+    setPasseurMode('bouton');
+    try {
+      const doomed: string[] = [];
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i);
+        if (k && k.startsWith('passeur_auto_')) doomed.push(k);
+      }
+      doomed.forEach((k) => window.sessionStorage.removeItem(k));
+    } catch { /* stockage indisponible */ }
+    window.dispatchEvent(new Event('passeur-nudge'));
+  }, []);
 
   const go = useCallback((href: string) => {
     setOpen(false);
-    markTutorialSeen(flagKey);
     router.push(href);
-  }, [flagKey, router]);
+  }, [router]);
 
   const N = U.tirages.length;
   const step = idx < N ? U.tirages[idx] : null;
@@ -269,7 +335,7 @@ export function PasseurGuide({ universe }: { universe: UniverseKey }) {
                             {fr ? 'Non, voir la suite →' : 'No, show me the next →'}
                           </button>
                           <button
-                            onClick={close}
+                            onClick={chooseMyself}
                             className="text-xs underline-offset-2 transition-opacity hover:opacity-80"
                             style={{ color: U.accentPale, opacity: 0.75 }}
                           >

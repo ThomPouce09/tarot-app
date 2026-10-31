@@ -43,10 +43,17 @@ export default function FoxReminder({ delayMs = 1800 }: Props) {
   useEffect(() => {
     const email = readEmailLocal();
     if (!email) return; // visiteur non connecté : rien à rappeler
+    // Reprise/lecture du tutoriel : la landing est déjà monopolisée par
+    // le tour — le renard du Profil ne se superpose jamais (bug user).
+    // Deux chemins : ?tour=1 (rappel) et '/' sec après « Revoir le
+    // tutoriel » (le tour s'ouvre par flag) → drapeau global __arkaneTourOpen.
+    try { if (new URLSearchParams(window.location.search).get('tour') === '1') return; } catch { /* noop */ }
+    if ((window as any).__arkaneTourOpen) return;
 
     let stop = false;   // cleanup d'un remontage StrictMode : on ne touche plus l'état
     const t = setTimeout(async () => {
       try {
+        if ((window as any).__arkaneTourOpen) return; // le tour s'est monté entre-temps
         const res = await api(
           `/api/profile-prompt?email=${encodeURIComponent(email)}&lang=${lang}`,
         );
@@ -62,7 +69,8 @@ export default function FoxReminder({ delayMs = 1800 }: Props) {
           }
         };
         void waitOrbes().then(() => {
-          if (!stop) setFox({
+          // double contrôle : le tour a pu se monter pendant l'attente
+          if (!stop && !(window as any).__arkaneTourOpen) setFox({
             creature: data.creature, text: data.message.text,
             category: data.message.category, lang,
           });

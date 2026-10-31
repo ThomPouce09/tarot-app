@@ -73,6 +73,14 @@ export default function OnboardingTour() {
     }
   }, [ready, pathname, open]);
 
+  // Drapeau global : le renard du Profil (FoxReminder) ne se superpose
+  // jamais au tour, quel que soit le chemin d'ouverture (flag, ?tour=1,
+  // bouton « Revoir le tutoriel »).
+  useEffect(() => {
+    (window as any).__arkaneTourOpen = open;
+    return () => { (window as any).__arkaneTourOpen = false; };
+  }, [open]);
+
   const close = useCallback(() => {
     markTutorialSeen(TOUR_FLAG); // compte (base) + cache local
     closedRef.current = true;

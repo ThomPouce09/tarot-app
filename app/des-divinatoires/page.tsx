@@ -9,9 +9,9 @@ import FirstVisitHints from '@/components/first-visit-hints';
 import Passeur from '@/components/passeur';
 import Firefly from '@/components/firefly';
 import { DiceBackground, DiceTitle, DICE_THEME } from './_shared';
-import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { type TutorialSlide } from './tutorial-modal';
 import { DrawTypeCorner } from '@/components/draw-type-badge';
-import { useLang, pick4, tr } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -173,9 +173,9 @@ descEs: "Precisar un matiz o ajustar su postura sin repetir toda la tirada", des
   {
     href: '/des-divinatoires/choix',
     title: 'Le tirage du choix', titleEn: 'The Choice Reading', titleEs: 'La tirada de la elección', titleHi: 'चयन का वाचन',
-    desc: 'Aide à la décision : 2 chemins, 2 énergies, à vous de choisir',
-    descEn: 'Decision aid: 2 paths, 2 energies — the choice is yours',
-descEs: "Ayuda a la decisión: 2 caminos, 2 energías, usted decide", descHi: "निर्णय-सहायता: 2 पथ, 2 ऊर्जाएँ, चुनना आपका है",
+    desc: 'Aide à la décision : déposez vos deux options, un seul lancer, le ciel les pèse — à vous de trancher',
+    descEn: 'Decision aid: lay down both options, cast once, the sky weighs them — you decide',
+descEs: "Ayuda a la decisión: deposite sus dos opciones, un solo lance, el cielo las pesa — usted decide", descHi: "निर्णय-सहायता: दोनों विकल्प रखें, एक फेंक, आकाश तौलता है — निर्णय आपके",
     icon: '⚖️',
     iconImg: '/images/des-choix.png',
     bg: `linear-gradient(150deg, ${DICE_THEME.nightMid} 0%, ${DICE_THEME.brickDark} 100%)`,
@@ -248,20 +248,20 @@ stepsHi: ["अपना प्रारंभिक प्रश्न रखे
     title: 'Le tirage du choix',
     titleEn: 'The Choice Reading',
 titleEs: "La tirada de la elección", titleHi: "चयन का वाचन",
-    desc: "Une aide à la décision : comparez l'énergie de deux options lorsque vous hésitez entre deux chemins.",
-    descEn: "A decision aid: compare the energy of two options when you're torn between two paths.",
+    desc: "Une aide à la décision : déposez vos deux options telles que vous les vivez, un seul lancer éclaire le duel, la voyante pèse vos deux vies — et c'est vous qui tranchez.",
+    descEn: "A decision aid: lay down both options as you live them, one cast lights the duel, the seer weighs your two lives — and you decide.",
     steps: [
-      'Formulez vos deux options clairement',
-      'Lancez une première fois pour l’option A',
-      'Relancez pour l’option B, puis comparez les énergies',
+      'Déposez vos deux options — ce qu’elles vous donnent et ce qu’elles vous coûtent',
+      'Lancez une seule fois : le ciel pèse les deux plateaux',
+      'Lisez le verdict, les deux vies ouvertes — puis tranchez vous-même',
     ],
     stepsEn: [
-      'State your two options clearly',
-      'Roll once for option A',
-      'Roll again for option B, then compare the energies',
+      'Lay down both options — what they give you and what they cost',
+      'Cast once: the sky weighs the two plates',
+      'Read the verdict and the two open lives — then decide yourself',
     ],
-stepsEs: ["Formule sus dos opciones con claridad", "Lance una primera vez para la opción A", "Vuelva a lanzar para la opción B, luego compare las energías"],
-stepsHi: ["अपने दोनों विकल्प स्पष्ट रूप से रखें", "विकल्प A के लिए पहली बार फेंकें", "विकल्प B के लिए दोबारा फेंकें, फिर ऊर्जाओं की तुलना करें"],
+stepsEs: ["Deposite sus dos opciones — qué le dan y qué le cuestan", "Lance una sola vez: el cielo pesa los dos platillos", "Lea el veredicto y las dos vidas abiertas — luego decida usted"],
+stepsHi: ["दोनों विकल्प रखें — जो देते हैं और जो महँगा पड़ता है", "एक बार फेंकें: आकाश दोनों पलड़े तौलता है", "निर्णय और दोनों खुले जीवन पढ़ें — फिर निर्णय आपके"],
   },
   {
     icon: '🗝️',
@@ -289,8 +289,6 @@ stepsHi: ["अवरोध की पहचान के लिए फेंक�
 import GuestModeBanner from '@/components/guest-mode-banner';
 export default function DesDivinatoiresHub() {
   const [mounted, setMounted] = useState(false);
-  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
-  const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
   const auth = useRequireVerified();
@@ -304,20 +302,11 @@ export default function DesDivinatoiresHub() {
 
   useEffect(() => {
     setMounted(true);
-    // Lueur d'appel au 1er passage (une seule fois).
-    if (typeof window !== 'undefined') {
-      setFirstVisit(!localStorage.getItem('dd_tuto_seen'));
-    }
   }, []);
 
   // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
   useEffect(() => { loadTiles(); }, [loadTiles]);
 
-  const openTutorial = (i: number) => {
-    setActiveSlide(TUTORIALS[i]);
-    if (typeof window !== 'undefined') localStorage.setItem('dd_tuto_seen', '1');
-    setFirstVisit(false);
-  };
 
   // Jingle d'ouverture : joue une fois au montage de la page. La navigation
   // depuis un lien (menu ou hub) hérite de la user activation du clic →
@@ -342,7 +331,7 @@ export default function DesDivinatoiresHub() {
   return (
     <DiceBackground bgImage={bg ?? undefined}>
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }]} />
 <Passeur universe="des" />
       <DiceTitle
         title={tr("Les Dés zodiacaux", "The Zodiac Dice", "Los Dados del Zodíaco", "राशि चक्र के पासे")}
@@ -381,43 +370,6 @@ export default function DesDivinatoiresHub() {
                 style={{ borderColor: `${DICE_THEME.ocre}33` }}
               />
 
-              {/* ⓘ tutoriel de la tuile — coin supérieur droit, discret.
-                  Le clic n'active PAS la navigation du lien (stopPropagation).
-                  Lueur dorée au 1er passage (localStorage dd_tuto_seen). */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openTutorial(i);
-                }}
-                aria-label={
-                  pick4(`Comment fonctionne ce tirage : ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, `How this reading works: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, "Cómo funciona esta tirada: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}", "यह विन्यास कैसे काम करता है: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}")(lang)
-                }
-                data-info-i
-                className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
-                  firstVisit ? 'animate-[ddGlow_2s_ease-in-out_3]' : ''
-                }`}
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  left: 'auto',
-                  background: `${DICE_THEME.ocre}1a`,
-                  border: `1px solid ${DICE_THEME.ocre}55`,
-                  color: DICE_THEME.ocreLight,
-                  opacity: firstVisit ? 1 : 0.5,
-                  boxShadow: firstVisit
-                    ? `0 0 16px ${DICE_THEME.gold}66, 0 0 0 4px ${DICE_THEME.ocre}22`
-                    : 'none',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke={DICE_THEME.ocreLight} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="8" />
-                  <path d="M12 11v5" />
-                  <path d="M12 8h.01" />
-                </svg>
-              </button>
               <DrawTypeCorner base={TUTORIALS[i]?.base} color={DICE_THEME.ocreLight} title={(lang === 'en' ? (TUTORIALS[i]?.base ? 'Base draw' : 'Advanced draw') : TUTORIALS[i]?.base ? 'Tirage de base' : 'Tirage avancé')} />
               {mounted && <ZodiacFrieze position="top" />}
               {mounted && <ZodiacFrieze position="bottom" />}
@@ -460,7 +412,6 @@ export default function DesDivinatoiresHub() {
         <GuestModeBanner tone="celeste" />
       </div>
 
-      <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <Firefly page="des-divinatoires" />
     </DiceBackground>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useLang, pick4, tr } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
 import { withHd } from '@/lib/video-quality';
 import Firefly from '@/components/firefly';
 import Link from "next/link";
@@ -14,7 +14,7 @@ import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
 import { useRequireVerified, VerifiedGate } from '@/components/verified-gate';
-import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { type TutorialSlide } from './tutorial-modal';
 import { DrawTypeCorner } from '@/components/draw-type-badge';
 // Liste AUTO-GÉNÉRÉE au build/dev (scripts/gen-backdrops.cjs lit
 // public/backgrounds/tarot-bg*.jpg|.mp4) : déposer un nouveau fichier
@@ -180,8 +180,6 @@ import GuestModeBanner from '@/components/guest-mode-banner';
 export default function TarotHubPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
-  const [firstVisit, setFirstVisit] = useState(false);
   const t = useT();
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
@@ -190,19 +188,11 @@ export default function TarotHubPage() {
   useEffect(() => {
     const user = localStorage.getItem('tarot_user');
     if (user) setIsLoggedIn(true);
-    if (typeof window !== 'undefined') {
-      setFirstVisit(!localStorage.getItem('tarot_tuto_seen'));
-    }
   }, []);
 
   // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
   useEffect(() => { loadTiles(); }, [loadTiles]);
 
-  const openTutorial = (i: number) => {
-    setActiveSlide(TAROT_TUTORIALS[i]);
-    if (typeof window !== 'undefined') localStorage.setItem('tarot_tuto_seen', '1');
-    setFirstVisit(false);
-  };
 
   // Jingle d'ouverture : même pattern que /des-divinatoires et /runes
   // (user activation héritée de la navigation par lien ; installSoundUnlock
@@ -242,7 +232,7 @@ export default function TarotHubPage() {
 
       {/* Menu parchemin (remplace la croix) */}
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }]} />
 <Passeur universe="tarot" />
 
       {/* Titre */}
@@ -303,26 +293,6 @@ export default function TarotHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(0); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
-                  title={t('hubs.tarot.tile3s')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
-                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={TAROT_TUTORIALS[0]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[0]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[0]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Simplifié', '3 Cards Simplified', '3 cartas simplificado', '3 पत्ते सरल')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
@@ -375,26 +345,6 @@ export default function TarotHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-500/25 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(1); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
-                  title={t('hubs.tarot.tile3')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
-                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={TAROT_TUTORIALS[1]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[1]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[1]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/tirage-3-cartes.png" alt={tr('3 Cartes Précis', '3 Cards Precise', '3 cartas preciso', '3 पत्ते सटीक')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
@@ -447,26 +397,6 @@ export default function TarotHubPage() {
               }}
             >
               <div className="absolute inset-1.5 border border-amber-400/30 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(2); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
-                  title={t('hubs.tarot.tile5')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
-                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={TAROT_TUTORIALS[2]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[2]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[2]?.base ? "Tirage de base" : "Tirage avancé")} />
               <img src="/images/roue-semaine.svg" alt={tr('Roue des sept arcanes', 'Wheel of the seven arcana', 'Rueda de los siete arcanos', 'सात अर्कानों का चक्र')} className="w-16 h-16 mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
               <h2
@@ -520,26 +450,6 @@ export default function TarotHubPage() {
                 }}
               >
                 <div className="absolute inset-1.5 border border-amber-500/30 rounded-lg pointer-events-none" />
-                {/* ⓘ tutoriel — le clic n'active PAS la navigation */}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTutorial(3); }}
-                  aria-label={ pick4('Comment fonctionne ce tirage', 'How this reading works', "Cómo funciona esta tirada", "यह विन्यास कैसे काम करता है")(lang) }
-                  title={t('hubs.tarot.tileMan')}
-                  data-info-i
-                  className={`absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${firstVisit ? 'animate-[tarotGlow_2s_ease-in-out_3]' : ''}`}
-                  style={{
-                    position: 'absolute', top: 6, right: 6, left: 'auto',
-                    background: 'rgba(218,165,32,0.10)', border: '1px solid rgba(218,165,32,0.33)',
-                    color: '#FFD700', opacity: firstVisit ? 1 : 0.5,
-                    boxShadow: firstVisit ? '0 0 16px rgba(218,165,32,0.4), 0 0 0 4px rgba(218,165,32,0.13)' : 'none',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </button>
                 <DrawTypeCorner base={TAROT_TUTORIALS[3]?.base} color='#DAA520' title={(lang === "en" ? (TAROT_TUTORIALS[3]?.base ? "Base draw" : "Advanced draw") : TAROT_TUTORIALS[3]?.base ? "Tirage de base" : "Tirage avancé")} />
                 <img src="/images/5 cartes manuelles.png" alt={tr('5 cartes manuelles', '5 manual cards', '5 cartas manuales', '5 पत्ते, हाथ से चुने')} className="w-16 h-auto mb-1 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.5))" }} />
                 <h2
@@ -644,7 +554,6 @@ export default function TarotHubPage() {
           {t('hubs.tarot.footer')}
         </p>
       </div>
-    <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
     <EntitlementGateModal reason={gateReason} onClose={closeGate} />
     <Firefly page="tarot" />
     </div>

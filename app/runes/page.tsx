@@ -13,9 +13,9 @@ import Passeur from '@/components/passeur';
 import Firefly from '@/components/firefly';
 import { RuneBackground, RuneTitle } from './_shared';
 import { RUNE_THEME } from './_shared';
-import { TutorialModal, type TutorialSlide } from './tutorial-modal';
+import { type TutorialSlide } from './tutorial-modal';
 import { DrawTypeCorner } from '@/components/draw-type-badge';
-import { useLang, pick4, tr } from '@/lib/i18n';
+import { useLang, tr } from '@/lib/i18n';
 import { installSoundUnlock, playSound, stopSound } from '@/lib/sounds';
 import { useEntitlement, EntitlementGateModal } from '@/lib/use-entitlement';
 import GatedTile from '@/components/gated-tile';
@@ -225,27 +225,17 @@ stepsHi: ["Urðr — स्रोत: जो तुम्हें पोषि�
 import GuestModeBanner from '@/components/guest-mode-banner';
 export default function RunesHub() {
   const [mounted, setMounted] = useState(false);
-  const [activeSlide, setActiveSlide] = useState<TutorialSlide | null>(null);
-  const [firstVisit, setFirstVisit] = useState(false);
   const lang = useLang();
   const { tiles, loadTiles, gateReason, closeGate, openGate } = useEntitlement();
   const auth = useRequireVerified();
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined') {
-      setFirstVisit(!localStorage.getItem('runes_tuto_seen'));
-    }
   }, []);
 
   // Charge la dispo de tous les tirages (grisage des tuiles épuisées).
   useEffect(() => { loadTiles(); }, [loadTiles]);
 
-  const openTutorial = (i: number) => {
-    setActiveSlide(TUTORIALS[i]);
-    if (typeof window !== 'undefined') localStorage.setItem('runes_tuto_seen', '1');
-    setFirstVisit(false);
-  };
 
   // Jingle d'ouverture : même pattern que /des-divinatoires (user activation
   // héritée de la navigation par lien ; installSoundUnlock couvre l'accès direct).
@@ -269,7 +259,7 @@ export default function RunesHub() {
     <RuneBackground>
       <RunesRandomBackdrop />
       <YiSlideNav />
-      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }, { selector: '[data-info-i]', textKey: 'hint.hubInfo' }]} />
+      <FirstVisitHints flagKey="hints_hubs" hints={[{ selector: '[data-nav-menu]', textKey: 'hint.hubMenu' }]} />
 <Passeur universe="runes" />
       <RuneTitle
         fit
@@ -299,42 +289,6 @@ export default function RunesHub() {
               whileHover={{ scale: 1.04, y: -3 }}
               whileTap={{ scale: 0.98 }}
             >
-              {/* ⓘ tutoriel de la tuile — le clic n'active PAS la navigation.
-                  Lueur dorée au 1er passage (localStorage runes_tuto_seen). */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openTutorial(i);
-                }}
-                aria-label={
-                  pick4(`Comment fonctionne ce tirage : ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, `How this reading works: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}`, "Cómo funciona esta tirada: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}", "यह विन्यास कैसे काम करता है: ${lang === 'en' ? (tile.titleEn || tile.title) : lang === 'es' ? (tile.titleEs || tile.title) : lang === 'hi' ? (tile.titleHi || tile.title) : tile.title}")(lang)
-                }
-                data-info-i
-                className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 active:scale-95 ${
-                  firstVisit ? 'animate-[runesGlow_2s_ease-in-out_3]' : ''
-                }`}
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  left: 'auto',
-                  background: `${RUNE_THEME.goldPale}1a`,
-                  border: `1px solid ${RUNE_THEME.goldPale}55`,
-                  color: RUNE_THEME.goldPale,
-                  opacity: firstVisit ? 1 : 0.5,
-                  boxShadow: firstVisit
-                    ? `0 0 16px ${RUNE_THEME.goldGlow}, 0 0 0 4px ${RUNE_THEME.goldPale}22`
-                    : 'none',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke={RUNE_THEME.goldPale} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="8" />
-                  <path d="M12 11v5" />
-                  <path d="M12 8h.01" />
-                </svg>
-              </button>
               <DrawTypeCorner base={TUTORIALS[i]?.base} color={RUNE_THEME.goldPale} title={(lang === 'en' ? (TUTORIALS[i]?.base ? 'Base draw' : 'Advanced draw') : TUTORIALS[i]?.base ? 'Tirage de base' : 'Tirage avancé')} />
 
               {/* frise de runes discrètes le long du liseré (après hydratation) */}
@@ -388,7 +342,6 @@ export default function RunesHub() {
         <GuestModeBanner tone="teal" />
       </div>
 
-      <TutorialModal open={activeSlide !== null} onClose={() => setActiveSlide(null)} slide={activeSlide} />
       <EntitlementGateModal reason={gateReason} onClose={closeGate} />
       <Firefly page="runes" />
     </RuneBackground>
