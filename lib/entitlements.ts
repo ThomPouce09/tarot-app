@@ -13,10 +13,10 @@
 //   - Streak : compteur de jours consécutifs (vitrine/stats/lettre uniquement,
 //     ne récompense plus).
 //
-// Un tirage de BASE est plafonné par mois pour les abonnés (Initié 90, Arkane
+// Un tirage de BASE est plafonné par mois pour les abonnés (Initié 65, Arkane
 // 120) ; pour les non-abonnés, seul le Pack Apprenti en donne un (puis tickets
 // cadeaux et crédits de recharge). Un GRAND tirage est limité (mensuel :
-// Initié 10, Arkane 120) ; il consomme d'abord les droits one-shot (pack,
+// Initié 30, Arkane 100) ; il consomme d'abord les droits one-shot (pack,
 // tickets, bonus hérités), puis 15 crédits de recharge, puis le quota mensuel.
 
 import { prisma } from './prisma';
@@ -36,7 +36,7 @@ export interface Rights {
   baseUnlimited: boolean;
   // Mode Invité : prêt anonyme — ne change AUCUN quota, sert à l'UI.
   guestMode: boolean;
-  baseMonthly: number | null; // plafond mensuel de bases (Initié 90, Arkane 120)
+  baseMonthly: number | null; // plafond mensuel de bases (Initié 65, Arkane 120)
   baseUsedMonth: number;
   grandMonthly: number | null; // null = illimité
   grandUsedMonth: number;
@@ -211,7 +211,7 @@ export async function canDo(email: string, type: string, question: string | null
 
   // ── TIRAGE DE BASE ──
   if (cls.isBase) {
-    // Abonnés actifs (Initié/Arkane) : QUOTA MENSUEL de bases (90 / 120) —
+    // Abonnés actifs (Initié/Arkane) : QUOTA MENSUEL de bases (65 / 120) —
     // l'ancien « illimité » n'existe plus. Tickets cadeaux et crédits de
     // recharge prennent le relais au-delà du plafond.
     if (subActive && (rights.level === 'initie' || rights.level === 'arkane')) {
@@ -247,7 +247,7 @@ export async function canDo(email: string, type: string, question: string | null
   }
 
   // ── GRAND TIRAGE ──
-  // Initié 10 / Arkane 120 par mois : le calcul ci-dessous ajoute le quota
+  // Initié 30 / Arkane 100 par mois : le calcul ci-dessous ajoute le quota
   // mensuel (grandMonthly !== null) aux ressources one-shot (welcome, tickets,
   // streak, crédits). L'ancien « Arkane illimité » (grandMonthly null) est
   // remplacé par un plafond ; s'il redevient null, le return direct suit.

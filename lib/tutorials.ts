@@ -155,6 +155,15 @@ export async function resetAllTutorials(): Promise<void> {
     for (const k of ['tarot_seen_tour', 'tarot_tour_done', 'hints_landing', 'hints_runes', 'hints_tarot', 'hints_yijing', 'hints_des', 'hints_hubs']) {
       localStorage.removeItem(k);
     }
+    // Marqueurs de session de l'Aide aux tirages (passeur_auto_*) : sans ça,
+    // « Revoir le tutoriel » (rechargement dans le MÊME onglet) laisserait le
+    // guide des hubs muet — sessionStorage survit au rechargement.
+    const doomed: string[] = [];
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const k = window.sessionStorage.key(i);
+      if (k && k.startsWith('passeur_auto_')) doomed.push(k);
+    }
+    doomed.forEach((k) => window.sessionStorage.removeItem(k));
   } catch {
     // stockage indisponible
   }

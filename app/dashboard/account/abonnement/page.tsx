@@ -337,7 +337,7 @@ export default function AbonnementPage() {
   const currentRank = hasSubscription ? (RANK[current] ?? 2) : 0;
   const isLocked = (p: PlanId): boolean => {
     // La recharge cosmique reste TOUJOURS achetable — y compris pour Arkane :
-    // les 120+120 tirages mensuels ne sont pas illimités ; au-delà du quota,
+    // les 65+30 / 120+100 tirages mensuels ne sont pas illimités ; au-delà du quota,
     // les credits de recharge prolongent la consommation dans tous les univers.
     if (p === 'recharge') return false;
     // On ne peut pas choisir un plan inférieur au plan actif (sans résilier).
@@ -360,14 +360,14 @@ export default function AbonnementPage() {
   const baseUsedToday = usage?.baseUsedToday ?? 0;
   const baseUnlimited = usage?.baseUnlimited ?? false;
 
-  // Abonnés : quota mensuel de bases (Initié 90 / Arkane 120) ; Apprenti :
+  // Abonnés : quota mensuel de bases (Initié 65 / Arkane 120) ; Apprenti :
   // formule journalière historique (welcome + 1/jour + crédits).
   const baseRemaining: number | 'inf' = baseMonthly !== null
     ? Math.max(0, baseMonthly - baseUsedMonth) + Math.floor(credits / CREDITS_BASE)
     : (welcomeBaseUsed.length === 0 ? 1 : 0) + giftTickets + Math.floor(credits / CREDITS_BASE);
 
   const grandQuotaLeft = (grandMonthly ?? 0) > 0 ? Math.max(0, (grandMonthly ?? 0) - grandUsed) : 0;
-  // Arkane n'est plus « illimité » : 120/mois, le compteur s'affiche comme Initié.
+  // Arkane n'est plus « illimité » : 120 bases + 100 avancés/mois, le compteur s'affiche comme Initié.
   const grandRemaining: number | 'inf' = (isArkane && grandMonthly === null) ? 'inf' : bonusGrand + (welcomeGrandUsed ? 0 : 1) + Math.floor(credits / CREDITS_GRAND) + grandQuotaLeft;
 
   const rechargeRelevant = credits > 0;

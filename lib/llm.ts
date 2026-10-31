@@ -17,12 +17,27 @@ export interface OracleProvider {
   /** Modèles « reasoning » : chaîne de pensée qui explose le temps de réponse
    *  sur les gros JSON (>150 s vs ~12 s désactivée). On passe enable_thinking. */
   noThinking?: boolean;
+  /** MiniMax-M3.1-Flash : n'obéit PAS à enable_thinking:false → couper la
+   *  chaîne de pensée par reasoning_effort ('minimal' validé en test). */
+  reasoningEffort?: string;
 }
 
 // --- Configuration des fournisseurs (clés via variables d'env, jamais en dur) ---
 const PROVIDERS: OracleProvider[] = [
-    {
+  {
+    // A/B qualité (31/10) : MiniMax-M3.1-Flash en PREMIER (−50 % promo, ~0,075/0,30
+    // $/M), qwen3.8-flash en filet derrière. Attention : minimax IGNORE
+    // enable_thinking:false (il avale alors 4 000 tokens de raisonnement et
+    // renvoie content VIDE) → couper la chaîne de pensée avec
+    // reasoning_effort:'minimal', supporté par ce modèle.
     name: 'b.ai',
+    baseUrl: 'https://api.b.ai/v1/chat/completions',
+    apiKey: process.env.B_AI_API_KEY,
+    models: ['minimax-m3.1-flash'],
+    reasoningEffort: 'minimal',
+  },
+  {
+    name: 'b.ai-qwen',
     baseUrl: 'https://api.b.ai/v1/chat/completions',
     apiKey: process.env.B_AI_API_KEY,
     // Modèle gratuit de l'agrégateur. Raisonneur par défaut → on coupe la
@@ -129,6 +144,7 @@ export async function callOracle(
               temperature,
               max_tokens: maxTokens,
               ...(provider.noThinking ? { enable_thinking: false } : {}),
+              ...(provider.reasoningEffort ? { reasoning_effort: provider.reasoningEffort } : {}),
             }),
             signal: controller.signal,
           });
